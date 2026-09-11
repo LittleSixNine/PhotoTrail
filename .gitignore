@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+gpx_tracks/
+*.[gG][pP][xX]
+.geotag_backup_*/
+
+# Local credentials and private inputs (not a substitute for a history audit)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+private/
+local-data/
+outputs/
+*_original
+*.[jJ][pP][gG]
+*.[jJ][pP][eE][gG]
+*.[hH][eE][iI][cC]
+*.[aA][rR][wW]
+*.[dD][nN][gG]
+*.[nN][eE][fF]
+*.[cC][rR]2
+*.[cC][rR]3
+*.[rR][aA][fF]
+*.[tT][iI][fF]
+*.[tT][iI][fF][fF]
+
+# Generated demonstration output
+demo-output/
+*.[pP][nN][gG]
+
+# Internal notes and generated location reports
+/PLAN.md
+/docs/devlog.md
+reports/
+/preview.html
+/analysis.json
+/photo-locations.json
+/road-requests.json
+geotag-report.json
