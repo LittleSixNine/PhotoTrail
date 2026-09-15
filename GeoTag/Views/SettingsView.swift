@@ -201,6 +201,10 @@ struct SettingsView: View {
 
             Spacer()
             HStack {
+                Button("打开启动设置向导") {
+                    UserDefaults.standard.set(false, forKey: SetupGuideView.completedKey)
+                    NSApplication.shared.keyWindow?.close()
+                }
                 Spacer()
                 Button("Close") {
                     NSApplication.shared.keyWindow?.close()

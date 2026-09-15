@@ -43,6 +43,7 @@ settings:
       - GeoTag/DevAssets/TestPictures/image.foo
     DEVELOPMENT_TEAM: ""
     ENABLE_APP_SANDBOX: YES
+    ENABLE_RESOURCE_ACCESS_LOCATION: YES
     ENABLE_OUTGOING_NETWORK_CONNECTIONS: YES;
     ENABLE_USER_SCRIPT_SANDBOXING: NO
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
@@ -92,6 +93,8 @@ targets:
         LSApplicationCategoryType: public.app-category.photography
         NSHumanReadableCopyright: Copyright 2022-2026 Marco S Hyman
         ITSAppUsesNonExemptEncryption: NO
+        NSLocationUsageDescription: 仅在点击定位按钮时获取本机位置，用于移动地图，不修改照片
+        NSLocationWhenInUseUsageDescription: 仅在点击定位按钮时获取本机位置，用于移动地图，不修改照片
         NSPhotoLibraryUsageDescription: 用于读取并修改你选择的照片的拍摄时间和位置
         LSMultipleInstancesProhibited: YES
         CFBundleDocumentTypes:

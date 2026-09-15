@@ -1,6 +1,4 @@
 import OSLog
-import SplitHView
-import SplitVView
 import SwiftUI
 import UDF
 import UniformTypeIdentifiers
@@ -10,58 +8,49 @@ struct ContentView: View {
     @Environment(\.openWindow) var openWindow
 
     @AppStorage(Self.alternateLayoutKey) var alternateLayout = false
-    @AppStorage(Self.splitHNormalKey) var hNormal = 0.45
-    @AppStorage(Self.splitHAlternateKey) var hAlternate = 0.55
-    @AppStorage(Self.splitVNormalKey) var vNormal = 0.60
-    @AppStorage(Self.splitVAlternateKey) var vAlternate = 0.40
 
     @State private var locationWorkspace = LocationWorkspace()
     @State private var sheetType: SheetType?
     @State private var importFiles = false
     @State private var spinnerEnabled = false
     @State private var inspectorPresented = false
+    @State private var setupPresented = false
+    @AppStorage(SetupGuideView.completedKey) private var setupCompleted = false
 
     private let testIDs = TestIDs.ContentView.self
 
     var body: some View {
-        SplitHView(percent: alternateLayout ? $hAlternate : $hNormal) {
+        VStack(spacing: 0) {
             Group {
                 if alternateLayout {
-                    SplitVView(percent: $vAlternate) {
-                        ImageTableView(inspectorPresented: $inspectorPresented)
-                            .accessibilityElement(children: .contain)
-                            .accessibilityIdentifier(testIDs.imageTableViewAltID)
-                    } bottom: {
-                        PhotoWithLocationPanel()
-                            .accessibilityIdentifier(testIDs.imageViewAltID)
-                    }
+                    PhotoDetailPage()
                 } else {
-                    ImageTableView(inspectorPresented: $inspectorPresented)
-                        .accessibilityElement(children: .contain)
-                        .accessibilityIdentifier(testIDs.imageTableViewID)
+                    HStack(spacing: 0) {
+                        ImageTableView(inspectorPresented: $inspectorPresented) { alternateLayout = true }
+                            .accessibilityIdentifier(testIDs.imageTableViewID)
+                        Divider()
+                        PhotoActionSidebar()
+                    }
                 }
             }
-            .overlay {
-                if spinnerEnabled {
-                    ProgressView("Processing files...")
-                }
-            }
-        } right: {
-            if alternateLayout {
-                MapWithSearchView()
-            } else {
-                SplitVView(percent: $vNormal) {
-                    PhotoWithLocationPanel()
-                        .accessibilityIdentifier(testIDs.imageViewID)
-                } bottom: {
-                    MapWithSearchView()
-                }
-            }
+            .overlay { if spinnerEnabled { ProgressView("正在导入照片…") } }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
+        .tint(.blue)
         .environment(locationWorkspace)
-        .task { locationWorkspace.load() }
+        .task {
+            if setupCompleted { await locationWorkspace.load() }
+            else { setupPresented = true }
+        }
+        .onChange(of: setupCompleted) {
+            if !setupCompleted { setupPresented = true }
+        }
+        .sheet(isPresented: $setupPresented) {
+            SetupGuideView {
+                setupPresented = false
+                Task { await locationWorkspace.load() }
+            }.environment(locationWorkspace)
+        }
         .dropDestination(for: URL.self) { items, _ in
             store.send(.openFiles(items), undoable: false) {
                 if let urls = store.uniqueURLs {
@@ -72,6 +61,12 @@ struct ContentView: View {
                 }
             }
             return true
+        }
+        .onChange(of: store.mapSearchActive) {
+            if store.mapSearchActive { alternateLayout = true }
+        }
+        .onChange(of: store.searchActive) {
+            if store.searchActive { alternateLayout = false }
         }
         .onChange(of: store.showTimeZoneWindow) {
             openWindow(id: GeoTagApp.adjustTimeZone)
@@ -114,10 +109,27 @@ struct ContentView: View {
             }
         }
         .toolbar {
-            PhotoPickerView()
-                .accessibilityIdentifier(testIDs.photoPickerViewID)
-            InspectorButtonView(presented: $inspectorPresented)
-                .accessibilityIdentifier(testIDs.inspectorButtonViewID)
+            ToolbarItem(placement: .principal) {
+                WorkspacePageSwitch(selection: $alternateLayout)
+            }
+            ToolbarItem(placement: .primaryAction) {
+                HStack(spacing: 8) {
+                if alternateLayout {
+                    WorkspaceSaveButton().fixedSize()
+                }
+                Button { store.send(.openCommand, undoable: false) } label: {
+                    HStack(spacing: 7) {
+                        Image(systemName: "plus")
+                        Text("导入照片")
+                    }.fixedSize()
+                }
+                .labelStyle(.titleAndIcon)
+                PhotoPickerView()
+                    .accessibilityIdentifier(testIDs.photoPickerViewID)
+                InspectorButtonView(presented: $inspectorPresented)
+                    .accessibilityIdentifier(testIDs.inspectorButtonViewID)
+                }.buttonStyle(WorkspaceToolbarButtonStyle())
+            }
         }
     }
 

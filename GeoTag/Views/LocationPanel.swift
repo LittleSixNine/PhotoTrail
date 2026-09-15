@@ -1,33 +1,20 @@
 import Coords
+import MapKit
 import SwiftUI
 import UDF
-
-struct PhotoWithLocationPanel: View {
-    @State private var expanded = true
-    var body: some View {
-        HStack(spacing: 0) {
-            ImageView().frame(maxWidth: .infinity, maxHeight: .infinity)
-            Divider()
-            if expanded {
-                LocationPanel().frame(width: 290)
-            }
-            Button {
-                expanded.toggle()
-            } label: {
-                Image(systemName: expanded ? "sidebar.right" : "sidebar.left")
-            }
-            .buttonStyle(.borderless)
-            .help(expanded ? "收起位置面板" : "展开位置面板")
-            .padding(6)
-        }
-    }
-}
 
 struct LocationPanel: View {
     @Environment(Store<GeoTagState, GeoTagEvent>.self) private var store
     @Environment(LocationWorkspace.self) private var workspace
-    @AppStorage("GeoTagCNMapProvider") private var provider = "apple"
-    @FocusState private var textFocused: Bool
+    @AppStorage("GeoTagCNMapProvider") private var provider = "amap"
+
+    @State private var region = ""
+    @State private var displayedRegionKey = ""
+
+    private var regionKey: String {
+        guard let point = store[store.mostSelected].metadata.location else { return "" }
+        return "\(provider):\(point.latitude):\(point.longitude)"
+    }
 
     private var editable: Bool {
         !store.saveInProgress && !store.selection.isEmpty && store.selection.allSatisfy { store[$0].updatable }
@@ -36,27 +23,62 @@ struct LocationPanel: View {
     var body: some View {
         @Bindable var workspace = workspace
         let content = VStack(alignment: .leading, spacing: 12) {
-                Picker("地图", selection: $provider) {
-                    Text("苹果").tag("apple")
-                    Text("高德").tag("amap")
+                HStack {
+                    Text("当前位置").font(.headline)
+                    Spacer()
+                    mapSettings
                 }
-                .pickerStyle(.segmented)
-                if provider == "amap" { searchSection }
                 statusSection
                 Divider()
                 favoritesSection
-                if provider == "amap" {
-                    Divider()
-                    HStack {
-                        Button("高德设置…") { workspace.settingsPresented = true }
-                        Button("重新加载") { workspace.reload() }.disabled(workspace.credentials == nil)
-                    }
-                }
+                Divider()
+                Text("轨迹同步").font(.headline)
+                Text("轨迹同步功能稍后加入。")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             .padding(12)
         return ScrollView { content }
+        .task(id: "\(regionKey):\(provider == "amap" && workspace.ready)") {
+            let key = regionKey
+            displayedRegionKey = key
+            region = ""
+            let metadata = store[store.mostSelected].metadata
+            guard let point = metadata.location, metadata.canDisplayAsWGS84 else { return }
+            if let cached = workspace.regionCache[key] { region = cached; return }
+            region = "正在读取地区…"
+            do {
+                try await Task.sleep(for: .milliseconds(500))
+                let name: String
+                if provider == "amap" {
+                    guard let lookup = workspace.lookupAMapRegion, workspace.ready else {
+                        region = "地图就绪后读取地区"
+                        return
+                    }
+                    name = try await lookup(MapCoordinate(latitude: point.latitude, longitude: point.longitude))
+                } else {
+                    guard let request = MKReverseGeocodingRequest(location:
+                        CLLocation(latitude: point.latitude, longitude: point.longitude)) else { return }
+                    request.preferredLocale = Locale(identifier: "zh_CN")
+                    let items = try await request.mapItems
+                    let place = items.first?.placemark
+                    var parts: [String] = []
+                    for value in [place?.administrativeArea, place?.locality, place?.subLocality]
+                        .compactMap({ $0 }) where !parts.contains(value) { parts.append(value) }
+                    name = parts.joined(separator: " · ")
+                }
+                guard !Task.isCancelled, key == regionKey else { return }
+                region = name.isEmpty ? "暂无地区信息" : name
+                if !name.isEmpty {
+                    if workspace.regionCache.count >= 256 { workspace.regionCache.removeAll() }
+                    workspace.regionCache[key] = name
+                }
+            } catch {
+                guard !Task.isCancelled, key == regionKey else { return }
+                region = "地区暂不可用"
+            }
+        }
         .sheet(isPresented: $workspace.settingsPresented) {
-            AMapSettingsView { credentials in
+            AMapSettingsView(initialCredentials: workspace.credentials) { credentials in
                 workspace.credentials = credentials
                 workspace.reload()
             }
@@ -66,93 +88,51 @@ struct LocationPanel: View {
         .sheet(item: $workspace.favoriteDraft) { favorite in
             FavoriteEditor(favorite: favorite)
         }
-        .onChange(of: textFocused) {
-            store.send(.textfieldFocusChanged(textFocused), undoable: false)
-        }
-        .onChange(of: store.mapSearchActive) {
-            if provider == "amap" && store.mapSearchActive { textFocused = true }
-        }
-        .task(id: workspace.query) {
-            workspace.invalidateSelection?()
-            let query = workspace.query.trimmingCharacters(in: .whitespacesAndNewlines)
-            workspace.results = []
-            workspace.selectedResult = nil
-            workspace.searching = false
-            guard provider == "amap", workspace.ready, !query.isEmpty else { return }
-            do { try await Task.sleep(for: .milliseconds(300)) } catch { return }
-            workspace.search?(query)
-        }
-        .onChange(of: provider) {
-            workspace.status = provider == "amap" ? "高德地图加载中…" : "在地图点选位置，或应用收藏地点。"
-            workspace.query = ""
-            workspace.selectedResult = nil
-            textFocused = false
-        }
     }
 
-    private var searchSection: some View {
-        @Bindable var workspace = workspace
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                TextField("搜索地点，例如东方明珠", text: $workspace.query)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($textFocused)
-                    .onSubmit { workspace.search?(workspace.query.trimmingCharacters(in: .whitespacesAndNewlines)) }
-                    .disabled(!workspace.ready)
-                if !workspace.query.isEmpty {
-                    Button { workspace.query = "" } label: { Image(systemName: "xmark.circle") }
-                        .buttonStyle(.borderless).help("清空搜索")
-                }
+    private var mapSettings: some View {
+        Menu {
+            Picker("地图来源", selection: $provider) {
+                Text("苹果地图（海外拍摄优先）").tag("apple")
+                Text("高德地图（中国大陆拍摄优先）").tag("amap")
             }
-            if workspace.searching { ProgressView("搜索中…").controlSize(.small) }
-            ForEach(workspace.results) { result in
-                Button {
-                    workspace.selectedResult = result
-                    workspace.previewSearch?(result)
-                } label: {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(result.name).fontWeight(.medium)
-                        Text(result.address).font(.caption).foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(6)
-                    .background(workspace.selectedResult?.id == result.id ? Color.accentColor.opacity(0.12) : .clear)
-                    .clipShape(RoundedRectangle(cornerRadius: 5))
-                }
-                .buttonStyle(.plain)
-            }
-            if let result = workspace.selectedResult {
-                HStack {
-                    Button("应用到 \(store.selection.count) 张") {
-                        workspace.chooseSearch?(result, "apply")
-                    }.disabled(!editable || !workspace.ready)
-                    Button("收藏此地点") { workspace.chooseSearch?(result, "favorite") }
-                        .disabled(!workspace.ready)
-                }
-            }
+            Divider()
+            Button("高德 API 设置…") { workspace.settingsPresented = true }
+            Button("重新加载高德地图") { workspace.reload() }
+                .disabled(provider != "amap" || workspace.credentials == nil)
+        } label: {
+            ZStack(alignment: .bottomTrailing) {
+                Image(systemName: "mappin.and.ellipse").font(.system(size: 19))
+                Image(systemName: "gearshape.fill").font(.system(size: 10))
+                    .background(Color(nsColor: .windowBackgroundColor), in: Circle())
+                    .offset(x: 5, y: 3)
+            }.frame(width: 28, height: 26)
         }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help("地图设置")
+        .accessibilityLabel("地图设置")
     }
 
     private var statusSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("当前位置").font(.headline)
-            Text("已选择 \(store.selection.count) 张照片").font(.caption)
-            Text(workspace.status).font(.caption).textSelection(.enabled)
-            if store.unsavedChanges { Label("有未保存的修改", systemImage: "pencil.circle").font(.caption) }
-            DisclosureGroup("定位详情") {
-                VStack(alignment: .leading, spacing: 4) {
-                    let metadata = store[store.mostSelected].metadata
-                    if let point = metadata.location {
-                        Text("纬度：\(point.latitude, specifier: "%.6f")")
-                        Text("经度：\(point.longitude, specifier: "%.6f")")
-                        Text(metadata.gpsMapDatum?.isEmpty != false
-                             ? "原照片未声明坐标系，暂按 WGS84 显示；浏览不会修改照片。"
-                             : "坐标基准：\(metadata.gpsMapDatum ?? "")")
-                    } else { Text("这张照片暂无可显示的位置。") }
-                    Text("高德地图显示主选照片；点选会设置全部选中照片的位置，保存后写入 WGS84。")
-                }.font(.caption).frame(maxWidth: .infinity, alignment: .leading)
+            let metadata = store[store.mostSelected].metadata
+            if let point = metadata.location {
+                Text("纬度：\(point.latitude, specifier: "%.6f")")
+                Text("经度：\(point.longitude, specifier: "%.6f")")
+                if displayedRegionKey == regionKey, !region.isEmpty {
+                    Text(region).font(.caption).foregroundStyle(.secondary)
+                }
+            } else {
+                Text("暂无定位").foregroundStyle(.secondary)
             }
-        }
+            if !workspace.status.isEmpty,
+               !workspace.status.hasPrefix("高德地图已就绪"),
+               !workspace.status.hasPrefix("选择照片后"),
+               !workspace.status.hasPrefix("在地图点选") {
+                Text(workspace.status).font(.caption).foregroundStyle(.secondary)
+            }
+        }.textSelection(.enabled)
     }
 
     private var favoritesSection: some View {

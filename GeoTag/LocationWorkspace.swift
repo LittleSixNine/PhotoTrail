@@ -32,7 +32,14 @@ final class LocationWorkspace {
     var favoriteError: String?
     var previewCoordinate: MapCoordinate?
     var previewID = UUID()
+    var appleHeading = 0.0
+    var amapHeading = 0.0
+    @ObservationIgnored var appleNavigation: ((String) -> Void)?
+    @ObservationIgnored var amapNavigation: ((String) -> Void)?
+    @ObservationIgnored var lookupAMapRegion: ((MapCoordinate) async throws -> String)?
+    @ObservationIgnored var regionCache: [String: String] = [:]
 
+    @ObservationIgnored var setSatellite: ((Bool) -> Void)?
     @ObservationIgnored var invalidateSelection: (() -> Void)?
     @ObservationIgnored var search: ((String) -> Void)?
     @ObservationIgnored var previewSearch: ((AMapSearchResult) -> Void)?
@@ -46,13 +53,25 @@ final class LocationWorkspace {
         self.favoritesURL = favoritesURL
     }
 
-    func load() {
+    func load() async {
         guard !didLoad else { return }
         didLoad = true
         // Unit-test hosts must not load private favorites, credentials or live maps.
         guard ProcessInfo.processInfo.environment["GEOTAG_CN_OFFLINE_TESTS"] != "1" else { return }
-        do { credentials = try AMapCredentials.load() } catch { status = error.localizedDescription }
         loadFavorites()
+        if UserDefaults.standard.string(forKey: "GeoTagCNMapProvider") ?? "amap" == "amap" {
+            await loadCredentials()
+        }
+    }
+
+    @ObservationIgnored private var loadingCredentials = false
+    func loadCredentials() async {
+        guard credentials == nil, !loadingCredentials,
+              ProcessInfo.processInfo.environment["GEOTAG_CN_OFFLINE_TESTS"] != "1" else { return }
+        loadingCredentials = true
+        defer { loadingCredentials = false }
+        do { credentials = try await Task.detached { try AMapCredentials.load() }.value }
+        catch { status = error.localizedDescription }
     }
 
     func loadFavorites() {

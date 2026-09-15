@@ -99,13 +99,18 @@
 
       function makeMarker(point, kind) {
         const label = kind === "photo" ? "照片位置" : "地点预览";
-        const color = kind === "photo" ? "#d83a36" : "#246bd1";
-        // Inline SVG avoids SDK default image URLs resolving relative to this file:// page.
-        const content = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="42"
-          viewBox="0 0 30 42" role="img" aria-label="${label}">
-          <path d="M15 40C12 33 2 23 2 15a13 13 0 1 1 26 0c0 8-10 18-13 25Z"
-            fill="${color}" stroke="white" stroke-width="2"/>
-          <circle cx="15" cy="15" r="5" fill="white"/></svg>`;
+        const opacity = kind === "photo" ? 1 : 0.65;
+        // SVG has no bottom padding: its (16,42) tip is the bottom-center anchor.
+        const content = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42"
+          viewBox="0 0 32 42" style="display:block;opacity:${opacity}" role="img" aria-label="${label}">
+          <defs><linearGradient id="pinRed" x2="1" y2="1">
+            <stop stop-color="red"/><stop offset="1" stop-color="#e8302e"/></linearGradient></defs>
+          <path d="M16 42C12 34 0 26 0 16C0 5 5 0 16 0C27 0 32 5 32 16C32 26 20 34 16 42Z"
+            fill="url(#pinRed)"/>
+          <path d="M6 23L13 12L18 19L22 15L27 23Z" fill="white"/>
+          <circle cx="22.5" cy="9.5" r="2.5" fill="white"/>
+          <path d="M3 15C4 2 17 0 25 5" fill="none" stroke="white" stroke-opacity=".45"
+            stroke-width="1.3" stroke-linecap="round"/></svg>`;
         return new AMap.Marker({ position: [point.longitude, point.latitude],
           anchor: "bottom-center", content, title: label, bubble: false });
       }
@@ -126,7 +131,7 @@
           previewMarker = makeMarker(displayed, "preview");
           map.add(previewMarker);
           map.setZoomAndCenter(16, [displayed.longitude, displayed.latitude]);
-          status("蓝色标记为预览地点，尚未修改照片。");
+          status("浅红色标记为预览地点，尚未修改照片。");
         } catch (_) { if (generation === previewGeneration) status("地点预览失败，请检查网络。"); }
       }
 
@@ -151,6 +156,7 @@
       }
 
       async function start(config) {
+        window.forceWebGL = config.preferWebGL !== false;
         window._AMapSecurityConfig = { securityJsCode: config.securityJsCode };
         await timedCall(done => {
           const script = document.createElement("script");
@@ -160,20 +166,67 @@
           document.head.appendChild(script);
         });
         const api = await timedCall(done => AMapLoader.load({
-          key: config.key, version: "2.0", plugins: ["AMap.Geocoder", "AMap.PlaceSearch", "AMap.Scale", "AMap.ToolBar"]
+          key: config.key, version: "2.0", plugins: ["AMap.Geocoder", "AMap.PlaceSearch", "AMap.Scale"]
         }).then(value => done(null, value), () => done(new Error("地图鉴权失败"))));
-        map = new api.Map("map", { zoom: 12, center: [121.48, 31.23], viewMode: "2D" });
+        map = new api.Map("map", { zoom: 12, center: [121.48, 31.23], viewMode: "2D", resizeEnable: true });
         geocoder = new api.Geocoder({ extensions: "base" });
         placeSearch = new api.PlaceSearch({ pageSize: 6, extensions: "base" });
         map.addControl(new api.Scale());
-        map.addControl(new api.ToolBar());
+        map.on("complete", () => post({ type: "rendering", metrics: renderingInfo() }));
+        setTimeout(() => post({ type: "rendering", metrics: renderingInfo() }), 5000);
+        map.on("rotatechange", () => post({ type: "heading", value: map.getRotation() }));
         map.on("click", event => selectPoint(event));
         notice.hidden = true;
         status("高德地图已就绪。点选地图或搜索地点。");
         return true;
       }
 
-      return { start, updateSnapshot, convertGPS, search, preview, selectSearch, clearPreview };
+      function renderingInfo() {
+        const frames = [];
+        function inspect(doc) {
+          const canvases = Array.from(doc.querySelectorAll('canvas')).map(canvas => {
+            let gl = null;
+            try { gl = canvas.getContext('webgl2') || canvas.getContext('webgl')
+              || canvas.getContext('experimental-webgl'); } catch (_) {}
+            const rect = canvas.getBoundingClientRect();
+            return { webgl: !!gl, lost: gl ? gl.isContextLost() : false,
+              width: canvas.width, height: canvas.height, cssWidth: rect.width, cssHeight: rect.height };
+          });
+          const tiles = Array.from(doc.querySelectorAll('.amap-layer img')).filter(image => image.width > 100);
+          frames.push({ canvases, rasterTiles: tiles.length });
+          for (const frame of doc.querySelectorAll('iframe')) {
+            try { if (frame.contentDocument) inspect(frame.contentDocument); } catch (_) {}
+          }
+        }
+        inspect(document);
+        return { preferWebGL: window.forceWebGL, sdkWebGL: !!AMap.Browser?.isWebGL,
+          dpr: window.devicePixelRatio, frames };
+      }
+
+      function navigate(command) {
+        if (!map) return;
+        if (command === "zoomIn") map.setZoom(Math.min(20, map.getZoom() + 1));
+        if (command === "zoomOut") map.setZoom(Math.max(2, map.getZoom() - 1));
+        if (command === "north") map.setRotation(0);
+      }
+      async function region(point) {
+        const displayed = await convertGPS(point);
+        const result = await timedCall(done => geocoder.getAddress([displayed.longitude, displayed.latitude],
+          (state, value) => state === "complete" ? done(null, value) : done(new Error("地区查询失败"))));
+        const address = result?.regeocode?.addressComponent || {};
+        return [...new Set([address.province, address.city, address.district]
+          .filter(value => typeof value === "string" && value.length))].join(" · ");
+      }
+      let satelliteLayer;
+      function setSatellite(enabled) {
+        if (!map) return;
+        if (enabled && !satelliteLayer) {
+          satelliteLayer = new AMap.TileLayer.Satellite();
+          map.add(satelliteLayer);
+        }
+        if (satelliteLayer) enabled ? satelliteLayer.show() : satelliteLayer.hide();
+      }
+      return { start, updateSnapshot, convertGPS, search, preview, selectSearch, clearPreview, setSatellite, navigate, region, renderingInfo };
     })();
   </script>
 </body>

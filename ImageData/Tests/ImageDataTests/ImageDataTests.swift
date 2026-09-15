@@ -57,6 +57,7 @@ struct ImageDataTests {
     @Test func initFake() async throws {
         let imageData = ImageData()
         #expect(imageData.name == "unknown.img")
+        #expect(!imageData.metadata.readable)
         #expect(!imageData.updatable)
     }
 

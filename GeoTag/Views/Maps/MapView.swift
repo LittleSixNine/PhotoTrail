@@ -24,6 +24,7 @@ struct MapView: View {
     @State private var mapRect: MKMapRect?
     @State private var camera: MapCamera?
     @State private var mapStyleName: MapStyleName = .standard
+    @AppStorage("GeoTagCNSatellite") private var satellite = false
     @State private var mainPin: Coords?
     @State private var otherPins: [OtherPin] = []
     @State private var tracks: [MapTrack] = []
@@ -32,14 +33,15 @@ struct MapView: View {
         MapReader { mapProxy in
             Map(position: $cameraPosition) {
                 if let point = workspace.previewCoordinate {
-                    Marker("收藏预览", coordinate: Coords(latitude: point.latitude, longitude: point.longitude))
-                        .tint(.blue)
+                    Annotation("位置预览", coordinate: Coords(latitude: point.latitude, longitude: point.longitude),
+                               anchor: .bottom) { PhotoMapPin(preview: true) }
+                        .annotationTitles(.hidden)
                 }
                 if let mainPin {
                     Annotation("main pin",
                                coordinate: mainPin,
                                anchor: .bottom) {
-                        Image(.pin)
+                        PhotoMapPin()
                     }
                     .annotationTitles(.hidden)
                 }
@@ -48,7 +50,7 @@ struct MapView: View {
                         Annotation("other pin",
                                    coordinate: pin.location,
                                    anchor: .bottom ) {
-                            Image(.otherPin)
+                            PhotoMapPin(preview: true)
                         }
                         .annotationTitles(.hidden)
                     }
@@ -58,14 +60,12 @@ struct MapView: View {
                         .stroke(trackColor, lineWidth: trackWidth)
                 }
             }
-            .mapStyle(mapStyleName.mapStyle())
+            .mapStyle(satellite ? .imagery : mapStyleName.mapStyle())
             .mapControls {
-                MapCompass()
-                MapPitchToggle()
                 MapScaleView()
-                MapZoomStepper()
             }
             .onMapCameraChange(frequency: .onEnd) { context in
+                workspace.appleHeading = context.camera.heading
                 camera = context.camera
                 if let distance = camera?.distance {
                     cameraDistance = distance
@@ -102,17 +102,31 @@ struct MapView: View {
                     setCameraPosition(to: Coords(latitude: point.latitude, longitude: point.longitude))
                 }
             }
+            .onChange(of: satellite) {
+                if !satellite { mapStyleName = .standard }
+            }
             .onChange(of: mapStyleName) {
                 savedMapStyle = mapStyleName.rawValue
             }
             .onChange(of: searchInfo.recenterLocation) {
                 if let location = searchInfo.recenterLocation {
-                    recenter(on: location)
+                    setCameraPosition(to: location)
                     searchInfo.recenterLocation = nil
                 }
             }
             .onChange(of: mainPin) { recenter(on: mainPin) }
             .onAppear {
+                workspace.appleNavigation = { command in
+                    guard let current = camera else { return }
+                    let distance: Double
+                    switch command {
+                    case "zoomIn": distance = max(100, current.distance / 2)
+                    case "zoomOut": distance = min(40_000_000, current.distance * 2)
+                    default: distance = current.distance
+                    }
+                    cameraPosition = .camera(.init(centerCoordinate: current.centerCoordinate,
+                        distance: distance, heading: command == "north" ? 0 : current.heading, pitch: current.pitch))
+                }
                 let center = CLLocationCoordinate2D(
                     latitude: initialMapLatitude,
                     longitude: initialMapLongitude)
@@ -120,6 +134,7 @@ struct MapView: View {
                 setCameraPosition(to: center)
                 mapStyleName = .init(rawValue: savedMapStyle) ?? .standard
             }
+            .onDisappear { workspace.appleNavigation = nil }
             .task(id: store.version) {
                 mainPin = store.currentLocation
                 otherPins = store.selection.compactMap {

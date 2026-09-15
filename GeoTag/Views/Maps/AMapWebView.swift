@@ -55,6 +55,24 @@ struct AMapWebView: NSViewRepresentable {
         private var validationGeneration = 0
 
         func connect() {
+            parent.workspace.amapNavigation = { [weak self] command in
+                guard let self, !disposed, ready else { return }
+                browserView?.callAsyncJavaScript("window.geoTag.navigate(command);",
+                    arguments: ["command": command], in: nil, in: .page) { _ in }
+            }
+            parent.workspace.lookupAMapRegion = { [weak self] point in
+                guard let self, !disposed, ready, let browserView else { throw URLError(.notConnectedToInternet) }
+                let result = try await browserView.callAsyncJavaScript("return await window.geoTag.region(point);",
+                    arguments: ["point": ["latitude": point.latitude, "longitude": point.longitude]],
+                    in: nil, in: .page)
+                guard !disposed, let name = result as? String, !name.isEmpty else { throw URLError(.badServerResponse) }
+                return name
+            }
+            parent.workspace.setSatellite = { [weak self] enabled in
+                guard let self, !disposed, ready else { return }
+                browserView?.callAsyncJavaScript("window.geoTag.setSatellite(enabled);",
+                    arguments: ["enabled": enabled], in: nil, in: .page) { _ in }
+            }
             parent.workspace.invalidateSelection = { [weak self] in
                 guard let self, !disposed else { return }
                 validationGeneration += 1
@@ -121,7 +139,8 @@ struct AMapWebView: NSViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             webView.callAsyncJavaScript("return await window.geoTag.start(config);",
                                         arguments: ["config": ["key": parent.credentials.key,
-                                                                "securityJsCode": parent.credentials.securityJsCode]],
+                                                                "securityJsCode": parent.credentials.securityJsCode,
+                                                                "preferWebGL": true]],
                                         in: nil, in: .page) { [weak self] result in
                 guard let self, !disposed else { return }
                 switch result {
@@ -129,6 +148,7 @@ struct AMapWebView: NSViewRepresentable {
                     ready = true
                     parent.workspace.ready = true
                     updateSnapshot()
+
                 case .failure:
                     report("高德地图加载失败，请检查 Key、安全密钥和网络后重新加载。")
                 }
@@ -157,6 +177,20 @@ struct AMapWebView: NSViewRepresentable {
                   message.frameInfo.request.url == pageURL,
                   let body = message.body as? [String: Any],
                   let type = body["type"] as? String else { return }
+            if type == "rendering" {
+                #if DEBUG
+                if let metrics = body["metrics"] as? [String: Any],
+                   let data = try? JSONSerialization.data(withJSONObject: metrics, options: [.sortedKeys]) {
+                    try? data.write(to: FileManager.default.temporaryDirectory
+                        .appendingPathComponent("geotag-map-render.json"))
+                }
+                #endif
+                return
+            }
+            if type == "heading", let heading = body["value"] as? Double, heading.isFinite {
+                parent.workspace.amapHeading = heading
+                return
+            }
             if type == "status", let text = body["message"] as? String {
                 report(String(text.prefix(300)))
                 return

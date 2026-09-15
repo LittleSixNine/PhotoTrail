@@ -87,7 +87,8 @@ public struct ImageData: Identifiable, Sendable {
     public init() {
         let fakeURL = URL(string: "file:///unknown.img")!
         let fakeName = "unknown.img"
-        let metadata = Metadata(source: .image(fakeURL))
+        var metadata = Metadata(source: .image(fakeURL))
+        metadata.readable = false // Placeholder data must not launch ExifTool while drawing an empty UI.
         self.init(metadata: metadata, name: fakeName)
     }
 }

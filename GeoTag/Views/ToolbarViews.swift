@@ -15,8 +15,8 @@ struct PhotoPickerView: View {
                 PhotosPicker(selection: $pickerItems,
                              matching: .images,
                              photoLibrary: .shared()) {
-                    Label("Photo Library", systemImage: "photo")
-                        .imageScale(.large)
+                    Image(systemName: "photo").frame(width: 16)
+                        .accessibilityLabel("照片图库")
                 }
                 .keyboardShortcut("i", modifiers: [.shift, .command])
             } else {
@@ -31,8 +31,8 @@ struct PhotoPickerView: View {
                         }
                     }
                 } label: {
-                    Label("Photo Library", systemImage: "photo")
-                        .imageScale(.large)
+                    Image(systemName: "photo").frame(width: 16)
+                        .accessibilityLabel("照片图库")
                 }
             }
         }
@@ -60,8 +60,10 @@ struct InspectorButtonView: View {
         Button {
             presented.toggle()
         } label: {
-            Label("Toggle Inspector", systemImage: "info.circle")
+            Image(systemName: "info.circle").frame(width: 16)
+                .accessibilityLabel("照片信息")
         }
+        .help("显示或隐藏照片信息（⌘I）")
         .keyboardShortcut("i")
     }
 }
@@ -72,4 +74,19 @@ struct InspectorButtonView: View {
         to see how these sub-views are used.
         """)
         .padding()
+}
+
+struct WorkspaceToolbarButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    var prominent = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 13, weight: .medium))
+            .foregroundStyle(isEnabled ? (prominent ? Color.white : Color.primary) : Color.secondary)
+            .padding(.horizontal, 12)
+            .frame(height: 34)
+            .background(prominent && isEnabled ? Color.blue : Color(nsColor: .controlBackgroundColor), in: Capsule())
+            .opacity(configuration.isPressed ? 0.75 : 1)
+    }
 }

@@ -50,12 +50,13 @@ struct AMapSettingsView: View {
     @State private var key = ""
     @State private var code = ""
     @State private var error: String?
+    var initialCredentials: AMapCredentials?
     let onSave: (AMapCredentials) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("高德地图设置").font(.title2)
-            Text("填写你自己的 Web 端（JS API）凭据，仅保存在本机钥匙串。")
+            Text("填写你自己的 Web 端（JS API）凭据，保存在本机钥匙串。")
             SecureField("JS API Key", text: $key)
             SecureField("安全密钥 securityJsCode", text: $code)
             Text("此版本用于自用开发验证。加载后，显示照片和校验选点会向高德发送经纬度；照片文件留在本机。")
@@ -74,13 +75,8 @@ struct AMapSettingsView: View {
         }
         .padding(24)
         .frame(width: 460)
-        .task {
-            do {
-                if let saved = try AMapCredentials.load() {
-                    key = saved.key
-                    code = saved.securityJsCode
-                }
-            } catch { self.error = error.localizedDescription }
+        .onAppear {
+            if let saved = initialCredentials { key = saved.key; code = saved.securityJsCode }
         }
     }
 

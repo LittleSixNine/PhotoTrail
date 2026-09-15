@@ -16,7 +16,7 @@ struct GeoTagApp: App {
     @AppStorage(Self.doNotBackupKey) var doNotBackup = false
     @AppStorage(Self.savedBookmarkKey) var savedBookmark = Data()
 
-    let windowWidth = 1000.0
+    let windowWidth = 1180.0
     let windowHeight = 700.0
 
     init() {
@@ -41,9 +41,7 @@ struct GeoTagApp: App {
                 }
                 .task {
                     if !doNotBackup {
-                        if savedBookmark == Data() {
-                            store.send(.noBackupNotice, undoable: false)
-                        } else {
+                        if !savedBookmark.isEmpty {
                             store.send(.initBackupURL, undoable: false) {
                                 if store.backupURL != nil {
                                     store.send(.backupFolderSizeCheck,

@@ -33,14 +33,20 @@ struct AMapView: View {
                 }, workspace: workspace)
                 .id(workspace.session)
             } else {
-                ContentUnavailableView {
-                    Label("配置高德地图", systemImage: "map")
-                } description: {
-                    Text("在照片右侧的“高德设置”中填写凭据。")
-                } actions: {
-                    Button("高德设置…") { workspace.settingsPresented = true }
-                }
+                ZStack {
+                    Color(nsColor: .controlBackgroundColor)
+                    VStack(spacing: 16) {
+                        Image(systemName: "map").font(.system(size: 44)).foregroundStyle(.secondary)
+                        Text("设置高德地图后开始定位").font(.title2.bold())
+                        Text("填写你的高德 Key 和安全密钥，即可搜索地点、查看地图。\n也可以在左侧地图设置中切换到苹果地图。")
+                            .multilineTextAlignment(.center).foregroundStyle(.secondary)
+                        Button("设置高德地图…") { workspace.settingsPresented = true }
+                            .buttonStyle(.borderedProminent)
+                    }.padding(32)
+                }.frame(maxWidth: .infinity, maxHeight: .infinity)
+
             }
         }
+        .onDisappear { workspace.ready = false }
     }
 }
