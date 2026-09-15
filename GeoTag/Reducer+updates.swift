@@ -37,9 +37,13 @@ extension GeoTagReducer {
             """)
 
         state[id].metadata.location = location
+        state[id].metadata.gpsMapDatum = nil
+        state[id].metadata.gpsProcessingMethod = nil
         state[id].metadata.elevation = elevation
         if let pairedID = state[id].pairedID, state[pairedID].updatable {
             state[pairedID].metadata.location = location
+            state[pairedID].metadata.gpsMapDatum = nil
+            state[pairedID].metadata.gpsProcessingMethod = nil
             state[pairedID].metadata.elevation = elevation
         }
         state.unsavedChanges = true

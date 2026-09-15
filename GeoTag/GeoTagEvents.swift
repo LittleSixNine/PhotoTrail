@@ -34,6 +34,7 @@ enum GeoTagEvent: Equatable {
     case initPlaces([Place])
     case linkPairedImages(Bool)
     case locationChanged(Coords)
+    case confirmedWGS84Location(Coords)
     case locationFromTrack([LocationHelper.LocationById])
     case mainWindowChange(NSWindow?)
     case mostSelectedChanged(ImageData.ID)
@@ -92,6 +93,7 @@ extension GeoTagEvent: CustomStringConvertible {
         case .initPlaces: "initPlaces"
         case .linkPairedImages: "linkPairedImages"
         case .locationChanged: "locationChanged"
+        case .confirmedWGS84Location: "confirmedWGS84Location"
         case .locationFromTrack: "locationFromTrack"
         case .mainWindowChange: "mainWindowChange"
         case .mostSelectedChanged: "mostSelectedChanged"

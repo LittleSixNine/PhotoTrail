@@ -111,6 +111,8 @@ extension ReducerTests {
 
     @Test func locationFromTrackEvent() async throws {
         var state = GeoTagState(forPreview: true)
+        // Fixture photos use Pacific local time; do not depend on the test machine timezone.
+        state.timeZone = try #require(TimeZone(identifier: "America/Los_Angeles"))
         let ids = Set(state.imageData.map { $0.id })
         state.selection = ids
         state.mostSelected = state.selection.first

@@ -15,17 +15,12 @@ struct RemoveBackupsAlert: ViewModifier {
                     .keyboardShortcut(.defaultAction)
             } message: {
                 Text("""
-                    Your current backup/save folder
+                    备份文件夹：
+                    \(store.backupURL?.path ?? "未知")
 
-                        \(store.backupURL != nil ? store.backupURL!.path : "unknown")
-
-                    is using \(store.folderSize / 1_000_000) MB to store backup files.
-
-                    \(store.oldFiles.count) files using \
-                    \(store.deletedSize / 1_000_000) MB of storage were \
-                    placed in the folder more than 7 days ago.
-
-                    Would you like to remove those \(store.oldFiles.count) backup files?
+                    当前占用 \(store.folderSize / 1_000_000) MB。
+                    其中 \(store.oldFiles.count) 个备份已超过 7 天，占用 \(store.deletedSize / 1_000_000) MB。
+                    是否删除这些旧备份？
                     """)
             }
         .onChange(of: store.oldFiles) {

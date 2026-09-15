@@ -1,134 +1,77 @@
-## GeoTag for macOS -- macOS 26 or later for GeoTag 6
+<p align="center">
+  <img src="design/geotag-cn-icon-concept-v2.png" width="160" alt="GeoTag CN 图标">
+</p>
 
-GeoTag is a free OS X single window application that allows you to update image
-metadata with geolocation tags by selecting one or more images then panning and
-zooming within a a map to the place the image was recorded. Clicking on the map
-will add the location to the selected photos.  Clicking on a new location will
-change the geolocation for the selected photos.  Zoom in on the map and fine
-tune the location with a click.  The built in ExifTool utility is used to write
-location data to the images when you save your changes.  ExifTool only modifies
-image metadata -- your image pixels are not touched.
+<h1 align="center">GeoTag CN</h1>
 
-See <http://exiftool.org> for information about ExifTool.
-**ExifTool is built-in to GeoTag.**
+<p align="center">为照片补上拍摄地点，也让中国大陆的地图定位更顺手。</p>
 
-Current versions of GeoTag can also update geolocation information in images
-from your Photos Library.  Apple's Photos framework is used instead of
-ExifTool for such updates.  The original image file is not changed.
+GeoTag CN 是一款 macOS 照片定位工具，基于 [marchyman/GeoTag](https://github.com/marchyman/GeoTag) 开发。在原版的照片元数据编辑能力上，加入高德地图、中国大陆坐标转换、常用地点收藏和简体中文界面。
 
-### Version requirements
+## 为什么做这个项目
 
-- GeoTag 6.0+ requires macOS 26 (Tahoe) or later
-- GeoTag 5.7 requires macOS 15 (Sequoia) or later.
-- GeoTag 5.2 thru 5.6 requires macOS 14 (Sonoma) or later.
-- Use GeoTag 5.1 if running on macOS Ventura.
-- Those running earlier versions of macOS can use GeoTag version 4.15.
+我很喜欢 GeoTag，它能通过地图选点，为相机照片和胶片扫描文件补上拍摄位置。
 
-## GeoTag 6.0
+为了减少国内地图坐标体系混用造成的偏移，我在原版基础上开发了 GeoTag CN，加入高德地图、坐标转换、地点收藏和中文界面，让日常定位更方便。
 
-Mostly the same user interface, but restructured and rewriten under the hood.
+## 功能
 
-> [!NOTE] 6.0.2 improves map search
+- **高德地图定位**：在地图上点选拍摄地点，将通过校验的位置转换为 WGS84 后设置到照片。
+- **地点搜索**：使用高德官方搜索服务查找地标、建筑和地址；先预览候选地点，再明确应用到照片。
+- **常用地点收藏**：为地点添加名称和备注，支持预览、编辑、删除和快速应用。
+- **简体中文界面**：地图切换、定位信息、搜索和收藏集中在照片右侧，面板可收起。
+- **批量编辑与撤销**：给多张选中照片设置同一位置，保存前可以撤销或重做。
+- **保留原版能力**：苹果地图、拍摄时间及其他元数据编辑、GPX 相关功能等；高德地图目前只显示主选照片的位置。
 
-> [!NOTE] 6.0.1 fixes these issues found in the 6.0 release
-> - Using finder 'open with' when multiple images are selected would open
->   multiple windows.
-> - Save was not enabled when the only change was to image timestamps
->
-> A side effect of the multiple window fix is that closing the window no
-> longer terminates the app.  You must use ⌘Q or the menu.
+本地图片通过内置 ExifTool 写入元数据，不重新压缩照片像素。苹果“照片”图库则通过系统 Photos 接口更新。
 
-### Updates
+## Releases · 下载与版本
 
-- Better Undo/Redo support with ability to undo more things. The undo
-  and redo menu items now work correctly.
-- ⌘f to select map search field, ⌘F to select table search field.
+安装包、更新说明和已知问题见 [GitHub Releases](https://github.com/LittleSixNine/geotag-cn/releases)。
 
-### Bug Fixes
+- 系统要求：由于继承原版 GeoTag 6.0.2，需要 **macOS 26 或更新版本**。
+- 当前构建方式：本机临时签名；尚未完成用于公开分发的开发者签名与 Apple 公证。
 
-- Table of images was not focused when leaving search or text fields; a
-  cause cut/copy/paste intermitent failures. Resolved.
-- option to update file modification time used the previous time if the
-  timestamp was also updated; resolved
-- issues reading elevation from xmp files resolved
-- undo/redo menu
-- using `open with...` from finder or `open -a GeoTag ...` from the command
-  line no longer causes the app to quit when it was already running.
-- Apple added Fuji compressed raw image file support
+## 基本使用
 
-### Known issues
+1. 打开照片，或把文件拖入窗口；首次验证建议使用照片副本。
+2. 在照片右侧切换到“高德”，通过“高德设置”填写自己的 **Web 端 JS API Key** 和 **securityJsCode**。
+3. 选中需要定位的照片，在地图上点选，或搜索地点并点击“应用”。
+4. 检查位置后保存。搜索结果的预览不会修改照片；应用位置后仍需手动保存。
+5. 常用地点可以保存为收藏，添加名称及备注，下次直接应用。
 
-- Images from the Photos Library can not always be displayed. This appears
-  to be an Apple issue that has been reported many times over the years. No
-  known workaround.
-- Undo/Redo are disabled in text and search fields.
-- When showing pins for all selected locations the red (most selected) pin
-  may be hidden by the pin of another location near by unless the zoom level
-  is such that both locations are slightly separated on the map.
-- when changing the selection to an image that has a location some of the pin
-  may off the map view.  In an extreme case only the point of the pin is on
-  the map and can not be seen. If you do not see a pin when you expect to
-  zoom out slightly.
-- Double clicking to zoom in or option-double clicking to zoom out will
-  move the pins of selected items. Deselect all items or use a different
-  zoom method to workaround this issue.
+## 坐标与隐私
 
----
+高德选点的处理流程为：
 
-### Operating Instructions:
+```text
+高德地图选点／搜索（GCJ-02）
+    → 转换为 WGS84
+    → 用高德官方正向转换复核
+    → 设置照片位置
+    → 用户保存
+```
 
-*See <https://www.snafu.org/GeoTag/GeoTagHelp/> for more information.*
+- 高德地图显示使用 GCJ-02，确认的新位置和收藏使用 WGS84。当前只接受行政区校验通过的中国大陆选点。
+- 原照片未声明坐标系时，只暂按 WGS84 显示，不据此自动改写或补标原始数据。
+- 启用高德后，搜索词、地图相关坐标和校验请求会发送给高德；照片文件不会上传给高德。
+- 高德凭据保存在本机专用钥匙串记录中；收藏保存在应用私有数据目录中，不随代码上传。
+- 坐标转换校验用于避免坐标体系混用，不能保证原始 GPS 数据或选点本身准确。
 
-Run Program.  Use the Open command from the menu or ⌘O to select files to
-modify. You can also drag files from the finder into the table on the left side
-of the application window.  Or you may select images from your Photos
-Library. File names shown in a light grey color are not recognized as valid
-image files or are disabled for other reasons.  Such files can not be
-modified. Dragging or opening a folder will add all the files in the folder
-and any subfolders.
+## 开发
 
-Select one or more images. When selecting multiple images one of the
-images is considered the "most selected". The name of the most selected
-image is shown in yellow using a bolder font.  The thumbnail of the most
-selected image is displayed in the image well (upper right portion of the
-window). Its location (if any) is marked on the map.
+项目基于原版 **GeoTag v6.0.2**。构建需要完整 Xcode（支持 Swift 6.2、macOS 26 SDK 或更新版本）、XcodeGen 和 SwiftLint。
 
-Click on the map to set or change the location of all selected images. Existing
-location can be changed by clicking on the desired location. Hitting the delete
-key will remove location information from all selected images.  You can
-Undo/Redo image location changes.
+```sh
+xcodegen generate
+xcodebuild -project GeoTag.xcodeproj -scheme GeoTag \
+  -configuration Debug -destination 'platform=macOS' build
+```
 
-Double click the map to zoom in. Option-double click to zoom out. Or use
-pinch gestures to zoom in and out if using a touch pad.
+测试、凭据配置和当前功能边界见 [开发说明](DEVELOPMENT.md)。
 
-Five map styles --- Standard, Imagery, Hybrid, Standard with traffic, and
-Hybrid with traffic --- are supported. Right click on the map to select
-the desired map style. If you find yourself working in a specific area of a
-map you can save the location and zoom level by right clicking on the map
-and selecting *Save map location*.  When GeoTag is launched the map will
-load to the last saved location using the last map style selected.
+## 致谢与许可证
 
-You may cut or copy location information from a single image and then paste
-that information into one or more images.  If you make an error you can
-undo/redo your changes. You can undo all changes to all images by selecting
-"Discard changes" from the "File" menu.  All Undo/Redo information is cleared
-once changes are discarded or saved.
+感谢 Marco S Hyman 开发并开源 [GeoTag](https://github.com/marchyman/GeoTag)，也感谢 [ExifTool](https://exiftool.org/) 等上游项目。
 
-The original versions of images that have been updated are saved are in a
-backup folder.  The backup folder may be changed using GeoTag Settings.
-The first time GeoTag is run it will prompt you to select a backup folder.
-Images updates can not be saved until a backup folder is selected or backups
-are disabled (not recommended).
-
-Cut, Copy, Paste, Delete, and Clear Image List can be accessed from
-a pop up menu by right clicking on an entry in the list.
-
-### Build Instructions for developers
-
-* Get current sources from github -- https://github.com/marchyman/GeoTag
-* GeoTag uses a project.yml file and [xcodegen](https://github.com/yonaskolb/XcodeGen)
-  to generate the GeoTag.xcodeproj bundle. Install and run `xcodegen`.
-* Open the generated project in Xcode
-* ⌘R will build and run, ⌘B to build only
-
-Please report bugs, make requests, etc. [here](https://github.com/marchyman/GeoTag/issues)
+本项目沿用原版的 [MIT 许可证](LICENSE)，保留原作者版权信息。坐标转换相关来源及许可见 [第三方说明](THIRD_PARTY_NOTICES.md)。GeoTag CN 是独立衍生项目，与 Apple、高德不存在官方关联。

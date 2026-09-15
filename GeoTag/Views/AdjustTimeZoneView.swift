@@ -14,21 +14,7 @@ struct AdjustTimezoneView: View {
                 .font(.largeTitle)
                 .padding(.top)
 
-            Text("""
-                When matching images to a GPS track log GeoTag assumes
-                the time zone of image timestamps to be the same as the
-                local-to-this-computer time zone. If the camera was set to
-                the local time in some other time tone or the time zone has
-                changed since you took the pictures select the appropriate
-                value here before matching image timestamps to a track log.
-
-                The time zone is also used to calculate the GPS Date/Time
-                value when saving images (if enabled in GeoTag settings).
-                GPS Date/Time is always saved using GMT/UTC. The time
-                zone of the image timestamp is required to calculate the
-                proper value.  When no Time Zone is specified the
-                local-to-this-computer Time Zone is used.
-                """)
+            Text("匹配照片和轨迹时，请选择相机拍摄时所用的时区。默认使用本机时区。\n\n开启更新 GPS 时间后，程序也会用此时区将拍摄时间转换为 UTC，再保存到照片。")
             .fixedSize(horizontal: false, vertical: true)
             .padding()
 

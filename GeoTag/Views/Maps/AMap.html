@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GeoTag CN 地图</title>
+  <style>
+    html, body, #map { width: 100%; height: 100%; margin: 0; }
+    body { background: #f0f0ed; font-family: -apple-system, sans-serif; }
+    #notice { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 10;
+      background: #fff; color: #333; padding: 10px 14px; border-radius: 6px; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="notice">正在加载高德地图…</div>
+  <script>
+    "use strict";
+    window.geoTag = (() => {
+      let map, geocoder, placeSearch, marker, previewMarker;
+      let previewGeneration = 0;
+      let snapshot = { revision: 0, editable: false, point: null };
+      let sequence = 0;
+      let displayGeneration = 0;
+      const notice = document.getElementById("notice");
+      const post = body => window.webkit.messageHandlers.geoTag.postMessage(body);
+      const status = message => { notice.textContent = message; post({ type: "status", message }); };
+      const valid = point => point && Number.isFinite(point.latitude) && Number.isFinite(point.longitude)
+        && Math.abs(point.latitude) <= 90 && Math.abs(point.longitude) <= 180;
+
+      function timedCall(register) {
+        return new Promise((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error("服务响应超时")), 15000);
+          register((error, value) => {
+            clearTimeout(timer);
+            if (error) reject(error); else resolve(value);
+          });
+        });
+      }
+
+      async function convertGPS(point) {
+        if (!valid(point)) throw new Error("坐标无效");
+        return timedCall(done => AMap.convertFrom([point.longitude, point.latitude], "gps", (state, result) => {
+          const location = result && result.locations && result.locations[0];
+          if (state !== "complete" || !location) return done(new Error("坐标转换失败"));
+          const converted = { latitude: location.getLat(), longitude: location.getLng() };
+          done(valid(converted) ? null : new Error("返回坐标无效"), converted);
+        }));
+      }
+
+      async function selectPoint(event, purpose = "apply", name = "") {
+        if (purpose !== "favorite" && !snapshot.editable) { status("请先选择可编辑的照片。"); return; }
+        const revision = snapshot.revision;
+        const currentSequence = ++sequence;
+        post({ type: "pickStarted", revision, sequence: currentSequence, purpose });
+        status("正在校验所选位置…");
+        try {
+          const point = { latitude: event.lnglat.getLat(), longitude: event.lnglat.getLng() };
+          if (!valid(point)) throw new Error("坐标无效");
+          const address = await timedCall(done => geocoder.getAddress([point.longitude, point.latitude],
+            (state, result) => {
+              const component = result && result.regeocode && result.regeocode.addressComponent;
+              done(state === "complete" && component ? null : new Error("无法确认行政区"), component);
+            }));
+          if (revision !== snapshot.revision || currentSequence !== sequence) return;
+          post({ type: "pick", revision, sequence: currentSequence,
+            latitude: point.latitude, longitude: point.longitude, purpose, name, adcode: String(address.adcode || "") });
+        } catch (_) {
+          if (revision === snapshot.revision && currentSequence === sequence)
+            status("所选位置校验失败，未修改照片。请检查网络、凭据或服务配额。");
+        }
+      }
+
+      async function updateSnapshot(next) {
+        const unchanged = snapshot.point?.latitude === next.point?.latitude
+          && snapshot.point?.longitude === next.point?.longitude;
+        snapshot = next;
+        if (unchanged) return;
+        const generation = ++displayGeneration;
+        ++previewGeneration;
+        if (previewMarker && map) { map.remove(previewMarker); previewMarker = null; }
+        if (!map) return;
+        if (marker) { map.remove(marker); marker = null; }
+        if (!next.point) { notice.hidden = true; return; }
+        try {
+          const point = await convertGPS(next.point);
+          if (generation !== displayGeneration) return;
+          marker = makeMarker(point, "photo");
+          map.add(marker);
+          map.setCenter([point.longitude, point.latitude]);
+          notice.hidden = true;
+        } catch (_) {
+          if (generation === displayGeneration) {
+            notice.hidden = false;
+            status("照片位置显示失败；原照片数据未改变。请检查网络或服务配额。");
+          }
+        }
+      }
+
+      function makeMarker(point, kind) {
+        const label = kind === "photo" ? "照片位置" : "地点预览";
+        const color = kind === "photo" ? "#d83a36" : "#246bd1";
+        // Inline SVG avoids SDK default image URLs resolving relative to this file:// page.
+        const content = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="42"
+          viewBox="0 0 30 42" role="img" aria-label="${label}">
+          <path d="M15 40C12 33 2 23 2 15a13 13 0 1 1 26 0c0 8-10 18-13 25Z"
+            fill="${color}" stroke="white" stroke-width="2"/>
+          <circle cx="15" cy="15" r="5" fill="white"/></svg>`;
+        return new AMap.Marker({ position: [point.longitude, point.latitude],
+          anchor: "bottom-center", content, title: label, bubble: false });
+      }
+
+      function clearPreview() {
+        ++previewGeneration;
+        if (previewMarker && map) map.remove(previewMarker);
+        previewMarker = null;
+      }
+
+      async function preview(point, wgs84) {
+        const generation = ++previewGeneration;
+        try {
+          if (!valid(point)) throw new Error("坐标无效");
+          const displayed = wgs84 ? await convertGPS(point) : point;
+          if (generation !== previewGeneration) return;
+          if (previewMarker) map.remove(previewMarker);
+          previewMarker = makeMarker(displayed, "preview");
+          map.add(previewMarker);
+          map.setZoomAndCenter(16, [displayed.longitude, displayed.latitude]);
+          status("蓝色标记为预览地点，尚未修改照片。");
+        } catch (_) { if (generation === previewGeneration) status("地点预览失败，请检查网络。"); }
+      }
+
+      async function search(query) {
+        if (!query.trim()) return [];
+        const results = await timedCall(done => placeSearch.search(query, (state, result) => {
+          if (state === "no_data") return done(null, []);
+          if (state !== "complete") return done(new Error("搜索失败"));
+          done(null, result?.poiList?.pois || []);
+        }));
+        return results.filter(poi => poi.location && valid({
+          latitude: poi.location.getLat(), longitude: poi.location.getLng()
+        })).map((poi, index) => ({ id: String(poi.id || index), name: String(poi.name || "未命名地点"),
+          address: [poi.pname, poi.cityname, poi.adname, poi.address]
+            .filter(value => typeof value === "string" && value).join(" "),
+          latitude: poi.location.getLat(), longitude: poi.location.getLng() }));
+      }
+
+      async function selectSearch(point, purpose, name) {
+        if (!valid(point) || !["apply", "favorite"].includes(purpose)) return;
+        await selectPoint({ lnglat: { getLat: () => point.latitude, getLng: () => point.longitude } }, purpose, name);
+      }
+
+      async function start(config) {
+        window._AMapSecurityConfig = { securityJsCode: config.securityJsCode };
+        await timedCall(done => {
+          const script = document.createElement("script");
+          script.src = "https://webapi.amap.com/loader.js";
+          script.onload = () => done(null);
+          script.onerror = () => done(new Error("地图加载器不可用"));
+          document.head.appendChild(script);
+        });
+        const api = await timedCall(done => AMapLoader.load({
+          key: config.key, version: "2.0", plugins: ["AMap.Geocoder", "AMap.PlaceSearch", "AMap.Scale", "AMap.ToolBar"]
+        }).then(value => done(null, value), () => done(new Error("地图鉴权失败"))));
+        map = new api.Map("map", { zoom: 12, center: [121.48, 31.23], viewMode: "2D" });
+        geocoder = new api.Geocoder({ extensions: "base" });
+        placeSearch = new api.PlaceSearch({ pageSize: 6, extensions: "base" });
+        map.addControl(new api.Scale());
+        map.addControl(new api.ToolBar());
+        map.on("click", event => selectPoint(event));
+        notice.hidden = true;
+        status("高德地图已就绪。点选地图或搜索地点。");
+        return true;
+      }
+
+      return { start, updateSnapshot, convertGPS, search, preview, selectSearch, clearPreview };
+    })();
+  </script>
+</body>
+</html>

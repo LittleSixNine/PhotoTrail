@@ -26,7 +26,11 @@ struct GeoTagApp: App {
     }
 
     var body: some Scene {
-        Window("GeoTag Version Six", id: "main") {
+        Window("GeoTag CN", id: "main") {
+            if ProcessInfo.processInfo.environment["GEOTAG_CN_OFFLINE_TESTS"] == "1" {
+                // Unit tests use the app bundle, not its interactive window or private state.
+                Color.clear.frame(width: 1, height: 1)
+            } else {
             ContentView()
                 .background(WindowAccessor(window: $mainWindow))
                 .frame(minWidth: windowWidth, minHeight: windowHeight)
@@ -52,7 +56,7 @@ struct GeoTagApp: App {
                     store.send(.initPlaces(savedPlaces), undoable: false)
                 }
                 .environment(store)
-
+            }
         }
         .commands {
             NewItemCommands(store: store)

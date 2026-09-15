@@ -19,10 +19,28 @@ public struct MapWithSearchView: View {
         var recenterLocation: Coords?
     }
 
+    @Environment(LocationWorkspace.self) private var workspace
     @FocusState var mapFocus: MapFocus?
     @State var searchInfo = SearchInfo()
+    @AppStorage("GeoTagCNMapProvider") private var mapProvider = "apple"
 
     public var body: some View {
+        VStack(spacing: 0) {
+            if mapProvider == "amap" {
+                AMapView()
+            } else {
+                appleMap
+            }
+        }
+        .onChange(of: mapProvider) {
+            mapFocus = nil
+            searchInfo = SearchInfo()
+            store.send(.textfieldFocusChanged(false), undoable: false)
+            store.send(.findInMap(false), undoable: false)
+        }
+    }
+
+    private var appleMap: some View {
         ZStack {
             GeometryReader { geometry in
                 MapView(mapFocus: $mapFocus, searchInfo: $searchInfo)

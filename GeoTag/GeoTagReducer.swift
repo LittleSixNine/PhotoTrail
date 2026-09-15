@@ -98,6 +98,18 @@ struct GeoTagReducer: Reducer, Sendable {
         case .locationChanged(let coords):
             update(&newState, coords: coords)
 
+        case .confirmedWGS84Location(let coords):
+            guard !state.saveInProgress else { return state }
+            update(&newState, coords: coords)
+            for id in state.selection {
+                newState[id].metadata.gpsMapDatum = "WGS-84"
+                newState[id].metadata.gpsProcessingMethod = "MANUAL"
+                if let pairedID = state[id].pairedID, state[pairedID].updatable {
+                    newState[pairedID].metadata.gpsMapDatum = "WGS-84"
+                    newState[pairedID].metadata.gpsProcessingMethod = "MANUAL"
+                }
+            }
+
         case .locationFromTrack(let updates):
             for entry in updates {
                 update(&newState, id: entry.id,

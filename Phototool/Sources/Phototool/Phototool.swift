@@ -61,7 +61,8 @@ public struct Phototool {
 
     public static func update(timestamp: Date? = nil,
                               location: CLLocation?,
-                              for asset: PHAsset) async -> Bool {
+                              for asset: PHAsset,
+                              updateLocation: Bool = true) async -> Bool {
         let library = PHPhotoLibrary.shared()
         do {
             try await library.performChanges {
@@ -70,7 +71,9 @@ public struct Phototool {
                 if let timestamp {
                     assetChangeReqeust.creationDate = timestamp
                 }
-                assetChangeReqeust.location = location
+                if updateLocation {
+                    assetChangeReqeust.location = location
+                }
             }
             return true
         } catch {

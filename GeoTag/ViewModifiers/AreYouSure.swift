@@ -26,7 +26,7 @@ struct AreYouSure: ViewModifier {
                 .keyboardShortcut(.cancelAction)
         } message: {
             let message = store.confirmationMessage ?? ""
-            Text(message)
+            Text(LocalizedStringKey(message))
         }
         .onChange(of: store.presentConfirmation) {
             presentConfirmation.toggle()

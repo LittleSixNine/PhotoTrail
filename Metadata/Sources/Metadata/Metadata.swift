@@ -35,6 +35,11 @@ public struct Metadata: Sendable {
     public var dateTimeCreated: String?
     public var location: Coords?
     public var elevation: Double?
+    public var gpsMapDatum: String?
+    public var gpsProcessingMethod: String?
+
+    // A save-snapshot flag, not image metadata. Excluded from copying/equality.
+    public var preserveGPSOnSave = false
     public var city: String?
     public var state: String?
     public var country: String?
@@ -56,6 +61,8 @@ public struct Metadata: Sendable {
         dateTimeCreated = converting.dateTimeCreated
         location = converting.location
         elevation = converting.elevation
+        gpsMapDatum = converting.gpsMapDatum
+        gpsProcessingMethod = converting.gpsProcessingMethod
         city = converting.city
         state = converting.state
         country = converting.country
@@ -78,6 +85,8 @@ extension Metadata {
         dateTimeCreated = copy.dateTimeCreated
         location = copy.location
         elevation = copy.elevation
+        gpsMapDatum = copy.gpsMapDatum
+        gpsProcessingMethod = copy.gpsProcessingMethod
         city = copy.city
         state = copy.state
         country = copy.country
@@ -129,12 +138,12 @@ extension Metadata {
         location?.formatted(.longitude) ?? ""
     }
     public var formattedElevation: String {
-        var value = "Elevation: "
+        var value = String(localized: "Elevation: ")
         if let elevation {
             value += String(format: "% 4.2f", elevation)
-            value += " meters"
+            value += String(localized: " meters")
         } else {
-            value += "Unknown"
+            value += String(localized: "Unknown")
         }
         return value
     }
@@ -185,9 +194,31 @@ extension Metadata: Equatable {
         return lhs.dateTimeCreated == rhs.dateTimeCreated
             && lhs.location == rhs.location
             && lhs.elevation == rhs.elevation
+            && lhs.gpsMapDatum == rhs.gpsMapDatum
+            && lhs.gpsProcessingMethod == rhs.gpsProcessingMethod
             && lhs.city == rhs.city
             && lhs.state == rhs.state
             && lhs.country == rhs.country
             && lhs.countryCode == rhs.countryCode
+    }
+}
+
+// Keep location writes separate from date/address-only edits, including unknown datums.
+extension Metadata {
+    public var canDisplayAsWGS84: Bool {
+        guard let datum = gpsMapDatum, !datum.isEmpty else { return true }
+        let normalized = datum.uppercased().filter { $0.isLetter || $0.isNumber }
+        return normalized == "WGS84" || normalized == "WGS1984"
+    }
+
+    public func forSaving(comparedTo original: Metadata?) -> Metadata {
+        var snapshot = self
+        if let original {
+            snapshot.preserveGPSOnSave = location == original.location
+                && elevation == original.elevation
+                && gpsMapDatum == original.gpsMapDatum
+                && gpsProcessingMethod == original.gpsProcessingMethod
+        }
+        return snapshot
     }
 }

@@ -213,7 +213,7 @@ struct ExiftoolSerializedTests {
 
         // run
         try await Exiftool.helper.update(image: copy, from: metadata,
-                                         timeZone: nil)
+                                         timeZone: TimeZone(identifier: "America/Los_Angeles"))
 
         // verify results
         let newdata = Exiftool.helper.metadata(from: nil, primaryURL: copy)
@@ -298,7 +298,7 @@ struct ExiftoolSerializedTests {
 
         // run
         try await Exiftool.helper.update(image: xmpCopy, from: metadata,
-                                         timeZone: nil)
+                                         timeZone: TimeZone(identifier: "America/Los_Angeles"))
 
         // verify results
         let newdata = Exiftool.helper.metadata(from: xmpCopy,

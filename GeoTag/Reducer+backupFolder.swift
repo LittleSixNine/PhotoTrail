@@ -93,8 +93,7 @@ extension GeoTagReducer {
                     type: .unexpectedErrorSheet,
                     error: error.localizedDescription,
                     message: """
-                        Error creating security scoped bookmark for backup \
-                        location \(url.path)
+                        无法保存备份文件夹的访问权限： \(url.path)
                         """
                 )
             }

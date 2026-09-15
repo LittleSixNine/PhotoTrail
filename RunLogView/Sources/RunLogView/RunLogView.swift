@@ -44,7 +44,7 @@ public struct RunLogView: View {
                             forType: .string)
                         copyLog = false
                     } label: {
-                        Text("\(copyLog ? "Copy" : "Copied!")")
+                        Text(copyLog ? String(localized: "Copy") : String(localized: "Copied!"))
                             .padding(.horizontal)
                     }
                     .accessibilityIdentifier(testIDs.copyID)

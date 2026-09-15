@@ -15,6 +15,7 @@ struct ContentView: View {
     @AppStorage(Self.splitVNormalKey) var vNormal = 0.60
     @AppStorage(Self.splitVAlternateKey) var vAlternate = 0.40
 
+    @State private var locationWorkspace = LocationWorkspace()
     @State private var sheetType: SheetType?
     @State private var importFiles = false
     @State private var spinnerEnabled = false
@@ -31,7 +32,7 @@ struct ContentView: View {
                             .accessibilityElement(children: .contain)
                             .accessibilityIdentifier(testIDs.imageTableViewAltID)
                     } bottom: {
-                        ImageView()
+                        PhotoWithLocationPanel()
                             .accessibilityIdentifier(testIDs.imageViewAltID)
                     }
                 } else {
@@ -50,7 +51,7 @@ struct ContentView: View {
                 MapWithSearchView()
             } else {
                 SplitVView(percent: $vNormal) {
-                    ImageView()
+                    PhotoWithLocationPanel()
                         .accessibilityIdentifier(testIDs.imageViewID)
                 } bottom: {
                     MapWithSearchView()
@@ -59,6 +60,8 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
+        .environment(locationWorkspace)
+        .task { locationWorkspace.load() }
         .dropDestination(for: URL.self) { items, _ in
             store.send(.openFiles(items), undoable: false) {
                 if let urls = store.uniqueURLs {

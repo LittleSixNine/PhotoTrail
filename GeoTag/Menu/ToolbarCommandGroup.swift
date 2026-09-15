@@ -64,7 +64,7 @@ struct AlternateLayoutOptionView: View {
     @AppStorage(ContentView.alternateLayoutKey) var alternateLayout = false
 
     var body: some View {
-        Label("\(alternateLayout ? "Normal" : "Alternate") Layout",
+        Label(alternateLayout ? "标准布局" : "另一种布局",
               systemImage: "arrow.left.arrow.right.square")
     }
 }

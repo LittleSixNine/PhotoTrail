@@ -14,8 +14,8 @@ settings:
   base:
     ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
     ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-    CODE_SIGN_IDENTITY: Apple Development
-    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGN_STYLE: Manual
     DEAD_CODE_STRIPPING: YES
     DEVELOPMENT_ASSET_PATHS:
       - GeoTag/DevAssets/PreviewData.swift
@@ -41,13 +41,14 @@ settings:
       - GeoTag/DevAssets/TestPictures/P1000686.JPG
       - GeoTag/DevAssets/TestPictures/Screenshot.png
       - GeoTag/DevAssets/TestPictures/image.foo
-    DEVELOPMENT_TEAM: A3UXBEBE8Z
+    DEVELOPMENT_TEAM: ""
     ENABLE_APP_SANDBOX: YES
     ENABLE_OUTGOING_NETWORK_CONNECTIONS: YES;
     ENABLE_USER_SCRIPT_SANDBOXING: NO
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
-    PRODUCT_NAME: GeoTag
-    STRING_CATALOG_GENERATE_SYMBOLS: YES
+    GEOTAG_CN_BUNDLE_ID: local.GeoTagCN
+    PRODUCT_NAME: GeoTag CN
+    STRING_CATALOG_GENERATE_SYMBOLS: NO
     SWIFT_EMIT_LOC_STRINGS: YES
     SWIFT_STRICT_CONCURRENCY: YES
     SWIFT_VERSION: 6.2
@@ -79,19 +80,19 @@ targets:
       - package: SplitHView
       - package: SplitVView
     sources:
-      - Supporting Files/AppIcon.icon
       - Supporting Files/Assets.xcassets
+      - THIRD_PARTY_NOTICES.md
       - Supporting Files/Credits.rtf
       - Supporting Files/PrivacyInfo.xcprivacy
       - GeoTag
     info:
       path: Generated/Info.plist
       properties:
-        CFBundleDisplayName: $(TARGET_NAME)
+        CFBundleDisplayName: GeoTag CN
         LSApplicationCategoryType: public.app-category.photography
         NSHumanReadableCopyright: Copyright 2022-2026 Marco S Hyman
         ITSAppUsesNonExemptEncryption: NO
-        NSPhotoLibraryUsageDescription: Update Photo Timestamps and Location Coordinates
+        NSPhotoLibraryUsageDescription: 用于读取并修改你选择的照片的拍摄时间和位置
         LSMultipleInstancesProhibited: YES
         CFBundleDocumentTypes:
           - CFBundleTypeName: Image Files
@@ -167,7 +168,9 @@ targets:
         ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY: YES
         ENABLE_USER_SELECTED_FILES: readwrite
         GENERATE_INFOPLIST_FILE: NO
-        PRODUCT_BUNDLE_IDENTIFIER: org.snafu.GeoTag
+        PRODUCT_BUNDLE_IDENTIFIER: $(GEOTAG_CN_BUNDLE_ID)
+        PRODUCT_MODULE_NAME: GeoTag
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     postBuildScripts:
       - path: .buildversion.sh
         name: Build Version
@@ -188,7 +191,8 @@ targets:
     settings:
       GENERATE_INFOPLIST_FILE: YES
       PRODUCT_NAME: $(TARGET_NAME)
-      PRODUCT_BUNDLE_IDENTIFIER: org.snafu.GeoTagTests
+      PRODUCT_BUNDLE_IDENTIFIER: local.GeoTagCNTests
+      TEST_HOST: "$(BUILT_PRODUCTS_DIR)/GeoTag CN.app/Contents/MacOS/GeoTag CN"
     schemes: none
 
   GeoTagUITests:
@@ -201,7 +205,7 @@ targets:
     settings:
       GENERATE_INFOPLIST_FILE: YES
       PRODUCT_NAME: $(TARGET_NAME)
-      PRODUCT_BUNDLE_IDENTIFIER: org.snafu.GeoTagUITests
+      PRODUCT_BUNDLE_IDENTIFIER: local.GeoTagCNUITests
     schemes: none
 
 schemes:
@@ -228,6 +232,7 @@ schemes:
         - package: Phototool/PhototoolTests
       environmentVariables:
         ImagePath: $(SRCROOT)/GeoTag/DevAssets
+        GEOTAG_CN_OFFLINE_TESTS: "1"
     profile:
       config: Release
     analyze:

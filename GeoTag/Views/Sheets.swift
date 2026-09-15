@@ -165,7 +165,7 @@ struct UnexpectedErrorView: View {
                 .font(.title)
                 .padding()
             if let message = store.sheetMessage {
-                Text(message)
+                Text(LocalizedStringKey(message))
                     .padding()
             }
             if let errorDescription = store.sheetError {

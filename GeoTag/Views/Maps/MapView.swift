@@ -18,6 +18,7 @@ struct MapView: View {
     var mapFocus: FocusState<MapWithSearchView.MapFocus?>.Binding
     @Binding var searchInfo: MapWithSearchView.SearchInfo
 
+    @Environment(LocationWorkspace.self) private var workspace
     @State private var cameraPosition: MapCameraPosition = .automatic
     @State private var cameraDistance: Double = 0
     @State private var mapRect: MKMapRect?
@@ -30,6 +31,10 @@ struct MapView: View {
     var body: some View {
         MapReader { mapProxy in
             Map(position: $cameraPosition) {
+                if let point = workspace.previewCoordinate {
+                    Marker("收藏预览", coordinate: Coords(latitude: point.latitude, longitude: point.longitude))
+                        .tint(.blue)
+                }
                 if let mainPin {
                     Annotation("main pin",
                                coordinate: mainPin,
@@ -92,6 +97,11 @@ struct MapView: View {
                     }
                 }
             })
+            .onChange(of: workspace.previewID) {
+                if let point = workspace.previewCoordinate {
+                    setCameraPosition(to: Coords(latitude: point.latitude, longitude: point.longitude))
+                }
+            }
             .onChange(of: mapStyleName) {
                 savedMapStyle = mapStyleName.rawValue
             }

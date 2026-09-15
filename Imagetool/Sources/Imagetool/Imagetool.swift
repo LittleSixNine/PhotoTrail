@@ -64,6 +64,10 @@ public struct Imagetool {
                     return metadata
                 }
             }
+            metadata.gpsMapDatum = gpsData[kCGImagePropertyGPSMapDatum as String] as? String
+            if let method = gpsData[kCGImagePropertyGPSProcessingMethod as String] as? String {
+                metadata.gpsProcessingMethod = method
+            }
             if let lat = gpsData[Self.GPSLatitude] as? Double,
                let latRef = gpsData[Self.GPSLatitudeRef] as? String,
                let lon = gpsData[Self.GPSLongitude] as? Double,

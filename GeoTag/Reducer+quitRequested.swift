@@ -8,10 +8,7 @@ extension GeoTagReducer {
         }
 
         if state.unsavedChanges {
-            state.confirmationMessage = """
-                If you quit GeoTag before saving changes the changes \
-                will be lost.  Are you sure you want to quit?
-                """
+            state.confirmationMessage = "仍有未保存的修改，退出后会丢失。确认退出？"
             state.confirmationEvent = .terminateRequest
             state.presentConfirmation.toggle()
         }

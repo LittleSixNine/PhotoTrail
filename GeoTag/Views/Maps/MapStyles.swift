@@ -36,7 +36,7 @@ struct MapStylePicker: View {
     var body: some View {
         Picker(selection: $mapStyleName) {
             ForEach(MapStyleName.allCases) { style in
-                Text(style.rawValue).tag(style)
+                Text(LocalizedStringKey(style.rawValue)).tag(style)
             }
         } label: {
             Label("Map style…", systemImage: "map")

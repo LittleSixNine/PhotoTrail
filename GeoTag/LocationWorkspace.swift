@@ -1,0 +1,111 @@
+import Coords
+import Foundation
+import Observation
+
+struct SavedLocation: Codable, Identifiable, Equatable {
+    var id = UUID()
+    var name: String
+    var note: String
+    let coordinate: MapCoordinate // Always WGS84; never infer this from an unlabelled photo.
+}
+
+struct AMapSearchResult: Identifiable {
+    let id: String
+    let name: String
+    let address: String
+    let coordinate: MapCoordinate // GCJ-02, only for AMap preview/validation.
+}
+
+@MainActor @Observable
+final class LocationWorkspace {
+    var status = "选择照片后，在地图上点选拍摄地点。"
+    var query = ""
+    var results: [AMapSearchResult] = []
+    var searching = false
+    var ready = false
+    var session = UUID()
+    var settingsPresented = false
+    var credentials: AMapCredentials?
+    var selectedResult: AMapSearchResult?
+    var favoriteDraft: SavedLocation?
+    var favorites: [SavedLocation] = []
+    var favoriteError: String?
+    var previewCoordinate: MapCoordinate?
+    var previewID = UUID()
+
+    @ObservationIgnored var invalidateSelection: (() -> Void)?
+    @ObservationIgnored var search: ((String) -> Void)?
+    @ObservationIgnored var previewSearch: ((AMapSearchResult) -> Void)?
+    @ObservationIgnored var chooseSearch: ((AMapSearchResult, String) -> Void)?
+    @ObservationIgnored var previewWGS84: ((MapCoordinate) -> Void)?
+    @ObservationIgnored private let favoritesURL: URL
+    @ObservationIgnored private var didLoad = false
+
+    init(favoritesURL: URL = URL.applicationSupportDirectory
+        .appendingPathComponent("GeoTagCN/Favorites.json")) {
+        self.favoritesURL = favoritesURL
+    }
+
+    func load() {
+        guard !didLoad else { return }
+        didLoad = true
+        // Unit-test hosts must not load private favorites, credentials or live maps.
+        guard ProcessInfo.processInfo.environment["GEOTAG_CN_OFFLINE_TESTS"] != "1" else { return }
+        do { credentials = try AMapCredentials.load() } catch { status = error.localizedDescription }
+        loadFavorites()
+    }
+
+    func loadFavorites() {
+        guard FileManager.default.fileExists(atPath: favoritesURL.path) else { return }
+        do {
+            let saved = try JSONDecoder().decode([SavedLocation].self, from: Data(contentsOf: favoritesURL))
+            guard saved.allSatisfy({ $0.coordinate.isValid }), Set(saved.map(\.id)).count == saved.count else {
+                throw CocoaError(.fileReadCorruptFile)
+            }
+            favorites = saved
+            favoriteError = nil
+        } catch {
+            favoriteError = "收藏文件读取失败，原文件已保留。"
+        }
+    }
+
+    func saveFavorite(_ value: SavedLocation) throws {
+        guard value.coordinate.isValid, !value.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw CocoaError(.validationMissingMandatoryProperty)
+        }
+        var updated = favorites
+        if let index = updated.firstIndex(where: { $0.id == value.id }) {
+            updated[index] = value
+        } else {
+            updated.append(value)
+        }
+        try persist(updated)
+    }
+
+    func deleteFavorite(_ id: UUID) throws {
+        try persist(favorites.filter { $0.id != id })
+    }
+
+    private func persist(_ updated: [SavedLocation]) throws {
+        // Do not overwrite unreadable private data with an empty/new list.
+        guard favoriteError == nil else { throw CocoaError(.fileReadCorruptFile) }
+        try FileManager.default.createDirectory(at: favoritesURL.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+        try JSONEncoder().encode(updated).write(to: favoritesURL, options: .atomic)
+        favorites = updated
+    }
+
+    func reload() {
+        ready = false
+        searching = false
+        results = []
+        selectedResult = nil
+        session = UUID()
+    }
+
+    func preview(_ coordinate: MapCoordinate) {
+        previewCoordinate = coordinate
+        previewID = UUID()
+        previewWGS84?(coordinate)
+    }
+}

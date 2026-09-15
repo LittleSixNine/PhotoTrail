@@ -20,3 +20,9 @@ xcuserdata/
 *.xcodeproj/
 *.xcworkspace/
 *.trace/
+
+# GeoTag CN local settings and private data are never public source.
+.geotag-cn.local.json
+.env
+.env.*
+*.xcresult/

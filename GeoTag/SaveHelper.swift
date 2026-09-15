@@ -18,15 +18,18 @@ enum SaveHelper {
         // capture the data needed to update images
         let libraryImages =
             Dictionary(uniqueKeysWithValues: store.libraryImages.map {
-                (store.imageData[$0].id, store.imageData[$0].metadata)
+                (store.imageData[$0].id, store.imageData[$0].metadata
+                    .forSaving(comparedTo: store.imageData[$0].original))
             })
         let fileImages =
             Dictionary(uniqueKeysWithValues: store.fileImages.map {
-                (store.imageData[$0].id, store.imageData[$0].metadata)
+                (store.imageData[$0].id, store.imageData[$0].metadata
+                    .forSaving(comparedTo: store.imageData[$0].original))
             })
         let xmpImages =
             Dictionary(uniqueKeysWithValues: store.xmpImages.map {
-                (store.imageData[$0].id, store.imageData[$0].metadata)
+                (store.imageData[$0].id, store.imageData[$0].metadata
+                    .forSaving(comparedTo: store.imageData[$0].original))
             })
         // Do the save in the background, report when done.
         let task = Task {
@@ -58,7 +61,8 @@ enum SaveHelper {
                 let location = metadata.clLocation(nil)
                 let ok = await Phototool.update(timestamp: timestamp,
                                                 location: location,
-                                                for: asset)
+                                                for: asset,
+                                                updateLocation: !metadata.preserveGPSOnSave)
                 if ok {
                     store.send(.imageSaved(id, metadata), undoable: false)
                 } else {

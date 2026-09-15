@@ -147,7 +147,7 @@ extension Exiftool {
         let args = [
             "-args", "-c", "%.15f", "-createdate",
             "-gpsstatus", "-gpslatitude", "-gpslongitude",
-            "-gpsaltitude", "-xmp:city", "-xmp:state",
+            "-gpsaltitude", "-gpsmapdatum", "-gpsprocessingmethod", "-xmp:city", "-xmp:state",
             "-xmp:country", "-xmp:countrycode", url.path
         ]
 
@@ -200,6 +200,10 @@ extension Exiftool {
                            parts.count >= 3 {
                             ele = parts[2] == "Above" ? eleValue : -eleValue
                         }
+                    case "-GPSMapDatum":
+                        metadata.gpsMapDatum = String(value)
+                    case "-GPSProcessingMethod":
+                        metadata.gpsProcessingMethod = String(value)
                     case "-City":
                         metadata.city = String(value)
                     case "-State":
@@ -279,12 +283,16 @@ extension Exiftool {
         // build exiftool arguments array
         var args = [
             "-q", "-m", "-overwrite_original_in_place",
-            latArg, latRefArg,
-            lonArg, lonRefArg,
-            eleArg, eleRefArg,
             cityArg, stateArg,
             countryArg, countryCodeArg
         ]
+
+        if !metadata.preserveGPSOnSave {
+            args += [latArg, latRefArg, lonArg, lonRefArg, eleArg, eleRefArg,
+                     "-GPSMapDatum=" + (metadata.gpsMapDatum ?? ""),
+                     "-GPSProcessingMethod=" + (metadata.gpsProcessingMethod ?? ""),
+                     "-gpsstatus="]
+        }
 
         // add args to update date/time if present
         if let dateTimeCreated = metadata.dateTimeCreated {
@@ -325,7 +333,7 @@ extension Exiftool {
             }
         }
 
-        args += ["-gpsstatus=", image.path]
+        args.append(image.path)
 
         try run(args)
     }
