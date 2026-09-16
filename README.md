@@ -38,10 +38,10 @@ PhotoTrail 是一款 macOS 照片定位工具，基于 [marchyman/GeoTag](https:
 
 ## Releases · 下载与版本
 
-当前 PhotoTrail 源码尚未发布安装包；[GitHub Releases](https://github.com/LittleSixNine/PhotoTrail/releases) 中现有文件是旧 GeoTag CN 预发布版，仅供历史参考。
+最新版：[PhotoTrail v0.3.0](https://github.com/LittleSixNine/PhotoTrail/releases/tag/v0.3.0)。下载 `PhotoTrail-0.3.0-macOS-arm64.zip`，解压后将 `PhotoTrail.app` 拖入“应用程序”。旧版 `v0.1.0`、`v0.2.0` 是 GeoTag CN 预发布版，仅供历史参考。
 
 - 系统要求：由于继承原版 GeoTag 6.0.2，需要 **macOS 26 或更新版本**。
-- 当前构建方式：本机临时签名；尚未完成用于公开分发的开发者签名与 Apple 公证。
+- 当前安装包为 Apple 芯片版本，采用临时签名，尚未完成开发者签名与 Apple 公证；首次打开可能被 macOS 拦截。
 
 ## 基本使用
 
