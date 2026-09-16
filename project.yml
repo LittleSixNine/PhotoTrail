@@ -19,6 +19,7 @@ settings:
     DEAD_CODE_STRIPPING: YES
     DEVELOPMENT_ASSET_PATHS:
       - GeoTag/DevAssets/PreviewData.swift
+      - GeoTag/DevAssets/AnotherTrack.GPX
       - GeoTag/DevAssets/TestBadTrack.GPX
       - GeoTag/DevAssets/TestTrack.GPX
       - GeoTag/DevAssets/OtherPictures/788A1113.CR3
@@ -32,6 +33,7 @@ settings:
       - GeoTag/DevAssets/TestPictures/L1000051.DNG
       - GeoTag/DevAssets/TestPictures/L1000052.DNG
       - GeoTag/DevAssets/TestPictures/P1000658.JPG
+      - GeoTag/DevAssets/TestPictures/L1000051.JPG
       - GeoTag/DevAssets/TestPictures/P1000659.JPG
       - GeoTag/DevAssets/TestPictures/P1000660.JPG
       - GeoTag/DevAssets/TestPictures/P1000661.JPG
