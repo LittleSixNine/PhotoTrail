@@ -33,7 +33,7 @@ struct ContextMenuView: View {
                     store.send(.deleteRequest)
                 }
             }
-            .disabled(nothingToEdit(context: context))
+            .disabled(store.saveInProgress || nothingToEdit(context: context))
 
             Button("Copy", systemImage: "document.on.document") {
                 handleContext()
@@ -63,13 +63,13 @@ struct ContextMenuView: View {
                     }
                 }
              }
-             .disabled(pasteDisabled(context: context))
+             .disabled(store.saveInProgress || pasteDisabled(context: context))
 
             Button("Delete", systemImage: "trash") {
                 handleContext()
                 store.send(.deleteRequest)
             }
-            .disabled(nothingToEdit(context: context))
+            .disabled(store.saveInProgress || nothingToEdit(context: context))
         }
 
         Divider()
@@ -87,7 +87,7 @@ struct ContextMenuView: View {
                                                  extendedTime: extendedTime)
 
             }
-            .disabled(store.gpxTracks.isEmpty ||
+            .disabled(store.saveInProgress || store.gpxTracks.isEmpty ||
                       (context == nil && store.mostSelected == nil))
         }
 
@@ -97,7 +97,7 @@ struct ContextMenuView: View {
             store.send(.clearImagesRequest,
                        description: "clear image list")
         }
-        .disabled(store.imageData.isEmpty || store.unsavedChanges)
+        .disabled(store.saveInProgress || store.imageData.isEmpty || store.unsavedChanges)
     }
 }
 

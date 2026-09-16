@@ -4,15 +4,35 @@ import OSLog
 import SwiftUI
 import UDF
 
-// for each jpg/jpeg file in the table of images find any matching
-// raw file. Link the two together by ID when found. If paired jpegs
-// are disabled remove any original metadata which marks the image
-// as non-updatable
+// Link JPG and RAW files with the same path stem. Both remain in imageData
+// so saving can update both files; only the JPG is presented in the UI.
+
+extension ImageData {
+    var isJPEG: Bool {
+        switch metadata.source {
+        case .image(let url), .xmp(let url):
+            return ["jpg", "jpeg"].contains(url.pathExtension.lowercased())
+        default:
+            return false
+        }
+    }
+
+    var isPairedJPEG: Bool { isJPEG && pairedID != nil }
+}
 
 extension GeoTagState {
-    mutating func linkPairedImages(_ disablePairedJpegs: Bool) {
+    var visibleImages: [ImageData] {
+        imageData.filter { $0.pairedID == nil || $0.isJPEG }
+    }
+
+    mutating func linkPairedImages() {
         let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "GeoTag",
                             category: "GeoTagState")
+        let rawExtensions: Set<String> = [
+            "3fr", "arw", "cr2", "cr3", "dng", "erf", "fff", "iiq", "kdc", "mef",
+            "mos", "mrw", "nef", "nrw", "orf", "pef", "raf", "raw", "rwl", "rw2",
+            "srw", "x3f"
+        ]
 
         struct URLBase {
             let id: ImageData.ID
@@ -29,6 +49,8 @@ extension GeoTagState {
                                        url: url,
                                        base: url.deletingPathExtension().path)
                     }
+                } else if case let .xmp(url) = $0.metadata.source, $0.isJPEG {
+                    return URLBase(id: $0.id, url: url, base: url.deletingPathExtension().path)
                 }
                 return nil
             }
@@ -36,27 +58,29 @@ extension GeoTagState {
             imageData.compactMap {
                 if case .image(let url) = $0.metadata.source  {
                     let ext = url.pathExtension.lowercased()
-                    if ext != "jpg" && ext != "jpeg" {
+                    if rawExtensions.contains(ext) {
                         return URLBase(id: $0.id,
                                        url: url,
                                        base: url.deletingPathExtension().path)
                     }
+                } else if case .xmp(let url) = $0.metadata.source,
+                          rawExtensions.contains(url.pathExtension.lowercased()) {
+                    return URLBase(id: $0.id, url: url, base: url.deletingPathExtension().path)
                 }
                 return nil
             }
+        let rawByBase = Dictionary(rawBase.map { ($0.base, $0) }, uniquingKeysWith: { first, _ in first })
 
         for jpeg in jpegBase {
-            if let raw = rawBase.first(where: { $0.base == jpeg.base }) {
+            if let raw = rawByBase[jpeg.base] {
                 logger.notice("""
                     Pairing \(jpeg.url.lastPathComponent, privacy: .public) \
                     <> \(raw.url.lastPathComponent, privacy: .public)"
                     """ )
                 self[jpeg.id].pairedID = raw.id
                 self[raw.id].pairedID = jpeg.id
-                // disable the jpeg version if requested
-                if disablePairedJpegs {
-                    self[jpeg.id].original = nil
-                }
+                if selection.remove(raw.id) != nil { selection.insert(jpeg.id) }
+                if mostSelected == raw.id { mostSelected = jpeg.id }
             }
         }
     }

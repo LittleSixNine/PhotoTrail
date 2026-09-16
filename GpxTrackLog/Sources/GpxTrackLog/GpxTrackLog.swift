@@ -4,12 +4,19 @@ import Foundation
 //
 // An instance of a GpxTrackLog is created by opening and parsing a GPX file.
 
-public struct GpxTrackLog: Sendable, Equatable {
+public struct GpxTrackLog: Sendable, Equatable, Codable {
+    public let sourceURL: URL
     public let tracks: [Track]
 
     public init(contentsOf url: URL) throws {
         let gpxFile = try Gpx(contentsOf: url)
         tracks = try gpxFile.parse()
+        sourceURL = url.standardizedFileURL
+    }
+
+    public init(sourceURL: URL, tracks: [Track]) {
+        self.sourceURL = sourceURL.standardizedFileURL
+        self.tracks = tracks
     }
 
     // return the timestamp of the first point in the first segment of the
@@ -29,17 +36,18 @@ public struct GpxTrackLog: Sendable, Equatable {
 
 extension GpxTrackLog {
     // Tracks are made up of one or more Segments.
-    public struct Track: Sendable, Equatable {
+    public struct Track: Sendable, Equatable, Codable {
         public var segments = [Segment]()
     }
 
     // Segments are made up of Points.
-    public struct Segment: Sendable, Equatable {
+    public struct Segment: Sendable, Equatable, Codable {
         public var points = [Point]()
     }
 
     // points contain (at least) a latitude, longitude, and timestamp.
-    public struct Point: Equatable, Sendable {
+    public struct Point: Equatable, Sendable, Codable {
+        public var hasRecordedTime = false
         public let lat: Double
         public let lon: Double
         public var ele: Double?
@@ -280,6 +288,7 @@ extension Gpx: XMLParserDelegate {
                     if !tracks[trackIx].segments[segmentIx].points.isEmpty {
                         let pointIx = tracks[trackIx].segments[segmentIx].points.count - 1
                         if let convertedTime {
+                            tracks[trackIx].segments[segmentIx].points[pointIx].hasRecordedTime = true
                             tracks[trackIx]
                                 .segments[segmentIx]
                                 .points[pointIx]

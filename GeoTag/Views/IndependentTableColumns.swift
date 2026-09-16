@@ -1,26 +1,32 @@
 import SwiftUI
 
-// Own the divider gesture: AppKit's normal resize shifts every following column.
+// Install narrow handles inside the real header, so AppKit never starts its own
+// single-column tracking loop at these dividers. Header labels still sort normally.
 struct IndependentTableColumns: NSViewRepresentable {
     func makeNSView(context: Context) -> ColumnObserverView { ColumnObserverView() }
-    func updateNSView(_ view: ColumnObserverView, context: Context) {}
+    func updateNSView(_ view: ColumnObserverView, context: Context) {
+        DispatchQueue.main.async { view.installHandles() }
+    }
 
     final class ColumnObserverView: NSView {
-        private var monitor: Any?
         private weak var table: NSTableView?
-        private var boundary: Int?
-        private var startX: CGFloat = 0
-        private var startWidths: [CGFloat] = []
+        private var handles: [DividerHandle] = []
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
-            if let monitor { NSEvent.removeMonitor(monitor); self.monitor = nil }
-            guard window != nil else { return }
-            monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) {
-                [weak self] event in
-                guard let self else { return event }
-                return self.handle(event)
+            NotificationCenter.default.removeObserver(self)
+            if window == nil {
+                handles.forEach { $0.removeFromSuperview() }
+                handles = []
+                table = nil
+                return
             }
+            DispatchQueue.main.async { [weak self] in self?.installHandles() }
+        }
+
+        override func layout() {
+            super.layout()
+            installHandles()
         }
 
         private func findTable(_ view: NSView) -> NSTableView? {
@@ -28,34 +34,68 @@ struct IndependentTableColumns: NSViewRepresentable {
             return view.subviews.lazy.compactMap { self.findTable($0) }.first
         }
 
-        private func handle(_ event: NSEvent) -> NSEvent? {
-            guard let window, event.window === window else { return event }
-            if event.type == .leftMouseDown {
-                guard let root = window.contentView, let table = findTable(root),
-                      let header = table.headerView else { return event }
-                let point = header.convert(event.locationInWindow, from: nil)
-                guard header.bounds.contains(point),
-                      let index = (0..<(table.numberOfColumns - 1)).first(where: {
-                          abs(header.headerRect(ofColumn: $0).maxX - point.x) <= 5
-                      }) else { return event }
-                self.table = table
-                boundary = index
+        func installHandles() {
+            guard let root = window?.contentView, let found = findTable(root),
+                  let header = found.headerView else { return }
+            if table !== found || handles.first?.superview !== header {
+                handles.forEach { $0.removeFromSuperview() }
+                table = found
+                NotificationCenter.default.removeObserver(self)
+                for view in [found, header] {
+                    view.postsFrameChangedNotifications = true
+                    NotificationCenter.default.addObserver(self, selector: #selector(refreshHandles),
+                        name: NSView.frameDidChangeNotification, object: view)
+                }
+                handles = (0..<(found.numberOfColumns - 1)).map { index in
+                    let handle = DividerHandle(frame: .zero)
+                    handle.owner = self
+                    handle.boundary = index
+                    handle.setAccessibilityElement(true)
+                    handle.setAccessibilityRole(.splitter)
+                    handle.setAccessibilityLabel("调整\(found.tableColumns[index].title)列宽")
+                    header.addSubview(handle)
+                    return handle
+                }
+            }
+            refreshHandles()
+        }
+
+        @objc private func refreshHandles() {
+            guard let header = table?.headerView else { return }
+            for handle in handles {
+                let rect = header.headerRect(ofColumn: handle.boundary)
+                let frame = NSRect(x: rect.maxX - 5, y: rect.minY, width: 10, height: rect.height)
+                if handle.frame != frame { handle.frame = frame }
+            }
+        }
+
+        final class DividerHandle: NSView {
+            weak var owner: ColumnObserverView?
+            var boundary = 0
+            private var startX: CGFloat = 0
+            private var widths: [CGFloat] = []
+            override var acceptsFirstResponder: Bool { true }
+            override func resetCursorRects() { addCursorRect(bounds, cursor: .resizeLeftRight) }
+            override func mouseDown(with event: NSEvent) {
+                window?.makeFirstResponder(self)
                 startX = event.locationInWindow.x
-                startWidths = table.tableColumns.map(\.width)
-                return nil
+                widths = owner?.table?.tableColumns.map(\.width) ?? []
             }
-            guard let boundary, let table else { return event }
-            if event.type == .leftMouseDragged {
-                Self.resize(in: table, boundary: boundary, widths: startWidths,
-                            delta: event.locationInWindow.x - startX)
-                return nil
+            override func mouseDragged(with event: NSEvent) {
+                guard let table = owner?.table else { return }
+                ColumnObserverView.resize(in: table, boundary: boundary, widths: widths,
+                                          delta: event.locationInWindow.x - startX)
+                owner?.refreshHandles()
             }
-            if event.type == .leftMouseUp {
-                self.boundary = nil
-                startWidths = []
-                return nil
+            override func mouseUp(with event: NSEvent) { widths = [] }
+            override func keyDown(with event: NSEvent) {
+                guard let table = owner?.table, [123, 124].contains(event.keyCode) else {
+                    super.keyDown(with: event); return
+                }
+                ColumnObserverView.resize(in: table, boundary: boundary,
+                    widths: table.tableColumns.map(\.width), delta: event.keyCode == 123 ? -10 : 10)
+                owner?.refreshHandles()
             }
-            return event
         }
 
         static func resize(in table: NSTableView, boundary: Int, widths: [CGFloat], delta: CGFloat) {

@@ -1,4 +1,4 @@
-# GeoTag CN 开发说明
+# PhotoTrail 开发说明
 
 基于 marchyman/GeoTag v6.0.2（2663c879）。已接入高德地图点选、官方地点搜索和本地收藏；完整跨格式验收仍在进行。
 原项目许可证见 LICENSE；坐标公式来源及许可证见 THIRD_PARTY_NOTICES.md。
@@ -16,10 +16,10 @@ swift test --package-path Metadata
 swift test --package-path Exiftool
 swift test --package-path Imagetool
 xcodebuild -project GeoTag.xcodeproj -scheme GeoTag -destination 'platform=macOS' \
-  GEOTAG_CN_BUNDLE_ID=local.GeoTagCN.Validation -only-testing:GeoTagTests test
+  PHOTOTRAIL_BUNDLE_ID=local.PhotoTrail.Validation -only-testing:GeoTagTests test
 ```
 
-本机开发采用 ad-hoc 签名，应用名为 GeoTag CN，标识为 local.GeoTagCN，与原版分开。
+本机开发采用 ad-hoc 签名，应用名为 PhotoTrail。当前正式构建暂留 `local.GeoTagCN` 兼容标识，使更名版本能在原沙盒内迁移数据；独立验证构建使用 `local.PhotoTrail.Validation`。
 分发所需的开发者签名、公证与发布流程尚未配置。
 
 ## 高德点选
@@ -40,7 +40,7 @@ xcodebuild -project GeoTag.xcodeproj -scheme GeoTag -destination 'platform=macOS
 - 原照片未声明 GPSMapDatum 时，只暂按 WGS84 显示，不据此修改或补标原始坐标系。明确声明其他基准的照片不显示原标记。
 - 仅修改日期或地址时，保留 GPS；用户显式开启原版“更新 GPS 时间戳”选项时仍按该设置更新 GPS 时间。
 - 本原型仅允许高德行政区代码确认为中国大陆的选点，未知、境外及港澳台点暂不写入。公式的数值边界不是国界判断。
-- 高德原型只显示主选照片，点选作用于全部选中可编辑照片。地址回填、全部照片标记、GPX 轨迹叠加尚未接入高德；这些原有功能仍在 Apple 地图中。
+- 苹果与高德均显示全部有有效定位的导入照片；缩略图由原生层显示，不进入高德 JavaScript。拖动只更新稳定 ID 对应的单张照片，仍需手动保存。
 - 本地逆转换是近似算法。往返误差测试验证计算一致性，不能证明实际拍摄位置精度。每次官方正向复核也不替代真实地点验收。
 - Photos 图库通过苹果接口更新位置，不能自行设置图库导出照片的 EXIF 基准标签；需另行验证导出行为。
 
@@ -49,19 +49,19 @@ xcodebuild -project GeoTag.xcodeproj -scheme GeoTag -destination 'platform=macOS
 先用公开地点和生成图片完成点选→保存→重开，再用私人目录的照片副本验收。
 至少验证 JPEG、HEIC、RAW+XMP，以及取消保存、断网、快速切换照片、连续点选。
 真实服务测试需要有效凭据；未提供凭据时，仅运行公式、元数据和地图交互的离线测试，不把模拟测试写成实测通过。
-私人照片、真实拍摄位置、凭据和构建日志放在工作区同级 geotag-cn-private，不提交到代码仓库。
+私人照片、真实拍摄位置、凭据和构建日志放在工作区同级 `PhotoTrail-private/`，不提交到代码仓库。
 
 ## 搜索与收藏
 
-详情页左侧显示经纬度、收藏地点和轨迹占位；地图来源和高德 API 凭据入口位于地图设置菜单。
+详情页左侧显示经纬度、收藏地点和 GPX 轨迹工具；地图来源和高德 API 凭据入口位于地图设置菜单。
 苹果与高德共用地图左下角搜索浮层，结果分为地点名和地区两行；选择结果仅预览，点击“应用到照片”才修改位置。
 地图左上角可切换标准/卫星视图，右下角定位按钮仅在点击时请求系统定位并移动地图，不修改照片。
 左栏默认宽度为窗口的 26%，照片条默认高度为 13%；拖动尺寸会保存在本机。
 高德搜索使用官方 JS API 的 AMap.PlaceSearch，输入后显示候选地点；选中候选只预览，点击“应用”才修改选中照片的位置，仍需手动保存。
-收藏支持名称、备注、编辑和删除，保存为 WGS84，存放在应用私有 Application Support/GeoTagCN/Favorites.json，独立于公开代码。点击收藏名称预览，点击“应用”设置选中照片的位置。读取失败时保留原文件并禁止覆盖。
+收藏支持名称、备注、编辑和删除，保存为 WGS84，存放在应用私有 `Application Support/PhotoTrail/Favorites.json`，独立于公开代码。首次启动会复制旧 `GeoTagCN` 文件，原文件保留。点击收藏名称预览，点击“应用”设置选中照片的位置。
 高德标记使用内嵌 SVG，不依赖默认图标的外部资源加载。应用菜单、主要窗口、设置及提示已加入简体中文。
 
-单元测试方案设置 GEOTAG_CN_OFFLINE_TESTS=1，不加载私人收藏、凭据或交互窗口。独立测试 bundle 标识避免打断日常应用；单元测试不等于真实界面或在线接口验收。
+单元测试方案设置 `PHOTOTRAIL_OFFLINE_TESTS=1`，不加载私人收藏、凭据或交互窗口。独立测试 bundle 标识避免打断日常应用；单元测试不等于真实界面或在线接口验收。
 
 ## 双页面界面（本地开发版）
 
@@ -85,3 +85,27 @@ xcodebuild -project GeoTag.xcodeproj -scheme GeoTag -destination 'platform=macOS
 - 选中照片停留 500 毫秒后，向当前地图服务查询省市区，仅用于显示。会话内按来源和坐标缓存；旧查询结果不能覆盖新选择，不写入照片。
 - 本机定位错误区分权限和网络问题；无法确定位置时提示检查 Wi-Fi，并提供苹果官方说明入口，不把通用错误推断成已检测到 Wi-Fi 关闭。
 - 列分隔拖动由本地事件处理器直接控制相邻两列，总宽度固定；其他表头操作沿用系统行为。
+
+## 0.2.0 之后的本地验证版
+
+搜索控件在同一胶囊中切换材质：收起用 `Glass.clear`，展开输入时用 `Glass.regular`，保持 44 点高度及原来的动画和减少动态效果支持。结果列表继续使用 regular 保证阅读。
+
+高德地图画布通过 `.ignoresSafeArea(.container, edges: .top)` 延伸到浮动标题栏下，不再使用会复制边缘的 `backgroundExtensionEffect()`。`AMapWebView` 使用公开的 `obscuredContentInsets` 显式将网页遮挡边距归零（先赋不同值，避开 WebKit 的相等值短路），避免 WebKit 再为标题栏留出空白；搜索、图层切换和导航按钮仍由原有 SwiftUI 布局定位。
+
+列宽拖动改为真实表头上的窄拖动区域，避免依赖全窗口鼠标监视器。移动分隔只调整左右两列；分隔获得焦点后可用方向键调节。测试覆盖表头命中、鼠标事件路径、相邻宽度总和、最小宽度和后续列保持不变。仍需在交付应用中完成真实鼠标验收。
+
+### 左栏 GPX 轨迹与转换缓存（未发布）
+
+界面范围仅为详情页左栏：照片预览、当前位置、收藏与轨迹统一纵向滚动，无切换页签。每个 GPX 文件一行：复选框控制显隐，点击行选中并自动查看范围，右上角按钮重新读取该文件并刷新。轮廓由本地 WGS84 坐标按比例绘制，保留断点；记录时间来自有效 GPX 时间戳，按本机时区显示，跨天包含日期，无时间明确标注。状态、进度、取消和重试均在对应行内。顶部工具栏、地图控件／布局和底部照片栏保持本轮前实现。
+
+`GpxTrackLog.sourceURL` 绑定文件身份，重复导入替换同一条记录而不增加重复项。照片匹配仍使用原始 WGS84、时间与海拔，与显示勾选和高德缓存无关。从列表移除不删除源文件；菜单里的缓存清除仅清除转换结果。
+
+`TrackLibrary` 在应用沙盒 `Application Support/PhotoTrail/Tracks/cache-v1.json` 原子保存版本化清单、只读安全书签、原始轨迹和高德 GCJ-02 结果；首次启动复制旧 `GeoTagCN` 缓存且不删除原件。目录 0700、文件 0600，不保存凭据。每个窗口首次恢复读取一次缓存和可访问源文件，后续显隐使用内存。按坐标顺序和分段内容计算稳定 SHA-256 标识；源文件变化或无效结果不沿用旧缓存，损坏的缓存文件保留、不用空文件覆盖。原文件失联时保留缓存用于查看，但不恢复进照片时间匹配。默认关闭显示，恢复不触发高德转换。
+
+每条轨迹独立转换与显示，所有文件共用一个 JS 队列：每批最多 40 点，请求起始间隔至少 1.1 秒，QPS 限流最多延迟重试两次。单文件完整转换后保存并替换旧结果。刷新失败／取消保留旧轨迹，旧任务结果不能覆盖新请求。样式、选中范围及显隐不重新转换；重新加载地图直接重新绘制内存结果。错误提示只含固定文案和筛选后的服务错误码。
+
+验证：78 项应用测试、25 项地图脚本测试，另有 7 项轨迹匹配与 17 项元数据包测试；覆盖 GPX 导出、定位副本回读和源文件不变、30 张原生照片位置桥接、跨启动恢复、源文件变化、失联、缓存损坏、取消与旧结果隔离、去重和单项移除、时间与缩略图分段，以及 531 点／10,001 点和 QPS 重试。在线只使用公开合成轨迹，不上传私人 GPX，不保存照片。
+
+官方接口依据：[坐标转换及 40 点上限](https://lbs.amap.com/api/javascript-api-v2/guide/transform/convertfrom)、[Polyline](https://lbs.amap.com/api/javascript-api-v2/guide/amap-line/poly-line)。
+
+地区查询保留上一轮修复：显式 completion + continuation 接收 WKWebView 异步返回值，避免 Void 重载丢失结果。未改动地图搜索、导航、照片标记和选点定位流程。

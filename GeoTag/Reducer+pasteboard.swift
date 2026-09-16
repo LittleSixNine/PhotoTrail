@@ -30,7 +30,7 @@ extension GeoTagReducer {
     }
 
     func selectAll(_ state: inout GeoTagState) {
-        let selection = Set(state.imageData.map { $0.id })
+        let selection = Set(state.visibleImages.map { $0.id })
         selectionChanged(&state, selection: selection)
     }
 }

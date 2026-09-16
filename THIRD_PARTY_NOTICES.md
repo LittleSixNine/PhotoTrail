@@ -1,4 +1,8 @@
-# Third-party notices for GeoTag CN additions
+# Third-party notices for PhotoTrail additions
+
+PhotoTrail also incorporates conservative matching behavior derived from the
+author's earlier PhotoTrail prototype. That source is MIT licensed; the merged
+Swift implementation was rewritten for this application and its existing tests.
 
 The forward coordinate formula in `Coords/Sources/Coords/CoordinateTransform.swift`
 is adapted from [wandergis/coordtransform](https://github.com/wandergis/coordtransform).

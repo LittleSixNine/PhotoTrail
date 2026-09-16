@@ -68,6 +68,7 @@ enum SaveHelper {
                 } else {
                     saveStatus = .saveError
                 }
+                store.send(.saveProgress(1), undoable: false)
             }
         }
         return saveStatus
@@ -81,7 +82,7 @@ enum SaveHelper {
                             xmp: Bool = false) async -> SaveStatus {
         @AppStorage(GeoTagApp.doNotBackupKey) var doNotBackup = false
         @AppStorage(SettingsView.addTagsKey) var addTags = false
-        @AppStorage(SettingsView.finderTagKey) var finderTag = "GeoTag"
+        @AppStorage(SettingsView.finderTagKey) var finderTag = "PhotoTrail"
         @AppStorage(SettingsView.createSidecarFilesKey) var createSidecarFiles = false
 
         // make sure there is something to do
@@ -93,7 +94,7 @@ enum SaveHelper {
             return .saveErrorSupressWarning
         }
         let backupURL = doNotBackup ? nil : store.backupURL
-        let tagName = finderTag.isEmpty ? "GeoTag" : finderTag
+        let tagName = finderTag.isEmpty ? "PhotoTrail" : finderTag
 
         // common work done, image vs xmp updates are slightly different
         if xmp {
@@ -166,6 +167,7 @@ enum SaveHelper {
 
             for await taskInfo in group {
                 taskInfos.append(taskInfo)
+                await MainActor.run { store.send(.saveProgress(1), undoable: false) }
                 if limit < ids.count {
                     let id = ids[limit]
                     limit += 1
@@ -240,6 +242,7 @@ enum SaveHelper {
 
             for await taskInfo in group {
                 taskInfos.append(taskInfo)
+                await MainActor.run { store.send(.saveProgress(1), undoable: false) }
                 if limit < ids.count {
                     let id = ids[limit]
                     limit += 1
@@ -247,6 +250,7 @@ enum SaveHelper {
                 }
             }
         }
+
 
         // Update state from the created TaskInfo on MainActor
         await MainActor.run {

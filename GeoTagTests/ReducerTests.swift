@@ -1,3 +1,4 @@
+import Coords
 import ImageData
 import SwiftUI
 import Testing
@@ -210,6 +211,24 @@ struct ReducerTests {
                 #expect(store[pairedID].metadata.country == nil)
                 #expect(store[pairedID].metadata.countryCode == nil)
             }
+        }
+    }
+
+    @Test func onePhotoLocationCanBeAppliedToMultipleSelectedPhotos() throws {
+        var state = GeoTagState(forPreview: true)
+        let ids = Array(state.imageData.filter(\.updatable).prefix(2).map(\.id))
+        #expect(ids.count == 2)
+        state.selection = Set(ids)
+        state.mostSelected = ids.first
+        let store = Store(initialState: state, reduce: GeoTagReducer())
+        let location = Coords(latitude: 31.23, longitude: 121.48)
+
+        store.send(.locationFromPhoto(location, 18), description: "test")
+
+        for id in ids {
+            #expect(store[id].metadata.location == location)
+            #expect(store[id].metadata.elevation == 18)
+            #expect(store[id].metadata.gpsMapDatum == "WGS-84")
         }
     }
 

@@ -6,7 +6,8 @@ import UDF
 struct LocationPanel: View {
     @Environment(Store<GeoTagState, GeoTagEvent>.self) private var store
     @Environment(LocationWorkspace.self) private var workspace
-    @AppStorage("GeoTagCNMapProvider") private var provider = "amap"
+    @AppStorage("PhotoTrailMapProvider") private var provider = "amap"
+    @AppStorage(SettingsView.extendedTimeKey) private var extendedTime = 120.0
 
     @State private var region = ""
     @State private var displayedRegionKey = ""
@@ -32,12 +33,10 @@ struct LocationPanel: View {
                 Divider()
                 favoritesSection
                 Divider()
-                Text("轨迹同步").font(.headline)
-                Text("轨迹同步功能稍后加入。")
-                    .font(.caption).foregroundStyle(.secondary)
+                TrackSidebar()
             }
             .padding(12)
-        return ScrollView { content }
+        return content
         .task(id: "\(regionKey):\(provider == "amap" && workspace.ready)") {
             let key = regionKey
             displayedRegionKey = key
@@ -92,9 +91,9 @@ struct LocationPanel: View {
 
     private var mapSettings: some View {
         Menu {
-            Picker("地图来源", selection: $provider) {
-                Text("苹果地图（海外拍摄优先）").tag("apple")
-                Text("高德地图（中国大陆拍摄优先）").tag("amap")
+            Menu("地图来源") {
+                providerOption("apple", title: "苹果地图（WGS-84）", subtitle: "海外拍摄优先")
+                providerOption("amap", title: "高德地图（GCJ-02）", subtitle: "中国大陆拍摄优先")
             }
             Divider()
             Button("高德 API 设置…") { workspace.settingsPresented = true }
@@ -114,17 +113,30 @@ struct LocationPanel: View {
         .accessibilityLabel("地图设置")
     }
 
+    private func providerOption(_ value: String, title: String, subtitle: String) -> some View {
+        Toggle(isOn: Binding(get: { provider == value }, set: { selected in
+            if selected { provider = value }
+        })) {
+            Text(title)
+            Text(subtitle)
+        }
+    }
+
     private var statusSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             let metadata = store[store.mostSelected].metadata
             if let point = metadata.location {
-                Text("纬度：\(point.latitude, specifier: "%.6f")")
-                Text("经度：\(point.longitude, specifier: "%.6f")")
-                if displayedRegionKey == regionKey, !region.isEmpty {
-                    Text(region).font(.caption).foregroundStyle(.secondary)
+                Text(displayedRegionKey == regionKey && !region.isEmpty ? region : "正在读取地区…")
+                    .font(.title3.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 10) {
+                    Text("纬度 \(point.latitude, specifier: "%.6f")")
+                    Text("经度 \(point.longitude, specifier: "%.6f")")
                 }
+                .font(.caption2).monospacedDigit().foregroundStyle(.secondary)
+                .lineLimit(1).minimumScaleFactor(0.8)
             } else {
-                Text("暂无定位").foregroundStyle(.secondary)
+                Text("暂无定位").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
             }
             if !workspace.status.isEmpty,
                !workspace.status.hasPrefix("高德地图已就绪"),

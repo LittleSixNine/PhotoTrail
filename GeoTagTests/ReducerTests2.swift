@@ -42,7 +42,8 @@ extension ReducerTests {
         }
         savedBookmark = try backupURL.bookmarkData(options: .withSecurityScope)
         store.send(.initBackupURL)
-        #expect(store.backupURL == backupURL)
+        #expect(store.backupURL?.resolvingSymlinksInPath()
+            == backupURL.resolvingSymlinksInPath())
     }
 
     @Test func noBackupNoticeEvent() async throws {
@@ -70,8 +71,7 @@ extension ReducerTests {
         #expect(storePlace.coordinate == testPlace.coordinate)
     }
 
-    @Test(arguments: [true, false])
-    func linkPairedImagesEvent(arg: Bool) async throws {
+    @Test func linkPairedImagesEvent() async throws {
         var state = GeoTagState()
 
         let dng = try #require(Bundle.main.url(forResource: "L1000051",
@@ -87,10 +87,11 @@ extension ReducerTests {
         state.imageData.append(jpgItem)
 
         let store = Store(initialState: state, reduce: GeoTagReducer())
-        store.send(.linkPairedImages(arg))
+        store.send(.linkPairedImages)
         #expect(store.imageData[0].pairedID == store.imageData[1].id)
         #expect(store.imageData[1].pairedID == store.imageData[0].id)
-        #expect(store.imageData[1].updatable == !arg)
+        #expect(store.imageData[1].updatable)
+        #expect(store.visibleImages.map(\.id) == [jpgItem.id])
     }
 
     @Test func locationChangedEvent() async throws {
@@ -109,6 +110,23 @@ extension ReducerTests {
         }
     }
 
+    @Test func locationForImageChangedOnlyUpdatesStableImageID() throws {
+        var state = GeoTagState(forPreview: true)
+        let images = state.imageData.filter { $0.updatable && $0.pairedID == nil }
+        let target = try #require(images.first?.id)
+        let other = try #require(images.dropFirst().first?.id)
+        let originalOther = state[other].metadata.location
+        state.selection = [target, other]
+        state.mostSelected = other
+        let store = Store(initialState: state, reduce: GeoTagReducer())
+        let location = Coords(latitude: 42, longitude: 24)
+
+        store.send(.locationForImageChanged(target, location))
+
+        #expect(store[target].metadata.location == location)
+        #expect(store[other].metadata.location == originalOther)
+    }
+
     @Test func locationFromTrackEvent() async throws {
         var state = GeoTagState(forPreview: true)
         // Fixture photos use Pacific local time; do not depend on the test machine timezone.
@@ -117,10 +135,17 @@ extension ReducerTests {
         state.selection = ids
         state.mostSelected = state.selection.first
         let store = Store(initialState: state, reduce: GeoTagReducer())
+        let originalLocations = Dictionary(uniqueKeysWithValues:
+            store.imageData.map { ($0.id, $0.metadata.location) })
         // use the LocationHelper which preps data and sends
         // the .locationFromTrack event with appropriate data
         let task = LocationHelper.locationFromTrack(store, extendedTime: 120)
         _ = await task.result
+        #expect(!store.trackMatches.isEmpty)
+        for image in store.imageData {
+            #expect(store[image.id].metadata.location == originalLocations[image.id]!)
+        }
+        store.send(.applyTrackMatches)
         for id in ids where store[id].updatable {
             // Two of the selected files should not have been updated
             if store[id].name == "Screenshot.png" ||
@@ -163,6 +188,12 @@ extension ReducerTests {
         store.send(.mostSelectedChanged(mostSelected))
         #expect(mostSelected == store.mostSelected)
         #expect(store.selection.contains(mostSelected))
+
+        if let next = selection.first {
+            store.send(.selectionChangedTo([mostSelected, next], next))
+            #expect(store.mostSelected == next)
+            #expect(store.selection.count == 2)
+        }
     }
 
     @Test func newThumbnailEvent() async throws {

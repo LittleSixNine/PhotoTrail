@@ -15,8 +15,21 @@ struct GeoTagReducer: Reducer, Sendable {
     // swiftlint:disable:next function_body_length
     func reduce(_ state: GeoTagState,
                 _ event: GeoTagEvent) -> GeoTagState {
+        if state.saveInProgress {
+            switch event {
+            case .addressChanged, .clearImagesRequest, .deleteRequest, .discardChangesRequest,
+                 .locationChanged, .applyTrackMatches, .newTimestamp, .pasteRequest,
+                 .placeSelection, .timeZoneChanged, .openCommand, .openFiles, .saveRequest:
+                return state
+            default: break
+            }
+        }
         var newState = state
         newState.version &+= 1
+        switch event {
+        case .saveProgress, .imageSaved, .sidecarCreated: break
+        default: newState.mapRevision &+= 1
+        }
         // logger.debug("event: \(event)")
 
         switch event {
@@ -61,6 +74,16 @@ struct GeoTagReducer: Reducer, Sendable {
         case .discardChangesRequest:
             discardChanges(&newState)
 
+        case .restoreTracks(let tracks):
+            for track in tracks {
+                newState.gpxTracks.removeAll { $0.sourceURL == track.sourceURL }
+                newState.gpxTracks.append(track)
+            }
+            newState.gpxTracks.sort { $0.firstTimestamp < $1.firstTimestamp }
+
+        case .removeTrack(let url):
+            newState.gpxTracks.removeAll { $0.sourceURL == url }
+
         case .discardTracksRequest:
             newState.gpxTracks = []
 
@@ -81,6 +104,9 @@ struct GeoTagReducer: Reducer, Sendable {
             newState.gpxBadFileNames = []
 
         case .imageSaved(let id, let metadata):
+            if newState[id].original?.location != metadata.location {
+                newState.locationSavedPhotoIDs.insert(id)
+            }
             newState[id].original = Metadata(copying: metadata)
 
         case .initBackupURL:
@@ -92,11 +118,27 @@ struct GeoTagReducer: Reducer, Sendable {
         case .initPlaces(let places):
             newState.places = places
 
-        case .linkPairedImages(let disablePairedJpegs):
-            newState.linkPairedImages(disablePairedJpegs)
+        case .linkPairedImages:
+            newState.linkPairedImages()
 
         case .locationChanged(let coords):
             update(&newState, coords: coords)
+
+        case .locationForImageChanged(let id, let coords):
+            guard !state.saveInProgress, state[id].updatable else { return state }
+            update(&newState, id: id, location: coords)
+
+        case .locationFromPhoto(let coords, let elevation):
+            guard !state.saveInProgress else { return state }
+            for id in state.selection where state[id].updatable {
+                update(&newState, id: id, location: coords, elevation: elevation)
+                newState[id].metadata.gpsMapDatum = "WGS-84"
+                newState[id].metadata.gpsProcessingMethod = "MANUAL"
+                if let pairedID = state[id].pairedID, state[pairedID].updatable {
+                    newState[pairedID].metadata.gpsMapDatum = "WGS-84"
+                    newState[pairedID].metadata.gpsProcessingMethod = "MANUAL"
+                }
+            }
 
         case .confirmedWGS84Location(let coords):
             guard !state.saveInProgress else { return state }
@@ -111,10 +153,14 @@ struct GeoTagReducer: Reducer, Sendable {
             }
 
         case .locationFromTrack(let updates):
-            for entry in updates {
+            newState.trackMatches = updates
+
+        case .applyTrackMatches:
+            for entry in state.trackMatches where entry.status == .matched {
                 update(&newState, id: entry.id,
                        location: entry.coords, elevation: entry.elevation)
             }
+            newState.trackMatches = []
 
         case .mainWindowChange(let window):
             newState.mainWindow = window
@@ -167,6 +213,9 @@ struct GeoTagReducer: Reducer, Sendable {
                 break
             }
 
+        case .saveProgress(let completed):
+            newState.saveCompleted = min(newState.saveTotal, newState.saveCompleted + max(0, completed))
+
         case .saveRequest:
             save(&newState)
 
@@ -181,6 +230,12 @@ struct GeoTagReducer: Reducer, Sendable {
 
         case .selectionChanged(let selection):
             selectionChanged(&newState, selection: selection)
+
+        case .selectionChangedTo(let selection, let current):
+            selectionChanged(&newState, selection: selection)
+            if let current, newState.selection.contains(current) {
+                newState.mostSelected = current
+            }
 
         case .sheetDismissed:
             if newState.sheetStack.isEmpty {

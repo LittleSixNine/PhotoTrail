@@ -6,7 +6,7 @@ import UDF
 struct SearchView: View {
     @Environment(Store<GeoTagState, GeoTagEvent>.self) private var store
     @Environment(LocationWorkspace.self) private var workspace
-    @AppStorage("GeoTagCNMapProvider") private var provider = "amap"
+    @AppStorage("PhotoTrailMapProvider") private var provider = "amap"
     var mapFocus: FocusState<MapWithSearchView.MapFocus?>.Binding
     @Binding var searchInfo: MapWithSearchView.SearchInfo
     @State private var query = ""
@@ -59,7 +59,7 @@ struct SearchView: View {
             }
             .frame(width: expanded ? expandedWidth : 44, height: 44, alignment: .leading)
             .clipShape(Capsule())
-            .glassEffect(.regular.interactive(), in: Capsule())
+            .glassEffect((expanded ? Glass.regular : Glass.clear).interactive(), in: Capsule())
             .animation(reduceMotion ? nil : .smooth(duration: 0.28), value: expanded)
         }
         .buttonStyle(.bordered)

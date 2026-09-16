@@ -37,6 +37,8 @@ extension GeoTagReducer {
             }
             return false
         }
+        state.saveCompleted = 0
+        state.saveTotal = state.libraryImages.count + state.fileImages.count + state.xmpImages.count
     }
 
     func discardChanges(_ state: inout GeoTagState) {
@@ -58,5 +60,6 @@ extension GeoTagReducer {
         }
         state.scopedURLs = []
         state.imageData = []
+        state.locationSavedPhotoIDs = []
     }
 }

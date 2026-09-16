@@ -9,7 +9,7 @@ struct HelpCommands: Commands {
     var body: some Commands {
         CommandGroup(replacing: .help) {
             Link(destination: URL(string: "https://www.snafu.org/GeoTag/GeoTagHelp/")!) {
-                 Label("GeoTag 6 Help…", systemImage: "link")
+                 Label("Upstream GeoTag Help…", systemImage: "link")
             }
             Divider()
             Link(destination: URL(string: "https://github.com/marchyman/GeoTag/issues")!) {

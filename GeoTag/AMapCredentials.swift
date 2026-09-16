@@ -5,20 +5,32 @@ struct AMapCredentials: Codable {
     let key: String
     let securityJsCode: String
 
-    private static let service = "local.GeoTagCN.AMap"
-    private static var query: [String: Any] {
+    private static let service = "local.PhotoTrail.AMap"
+    private static func query(service serviceName: String = Self.service) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
-         kSecAttrService as String: service,
+         kSecAttrService as String: serviceName,
          kSecAttrAccount as String: "js-api"]
     }
 
     static func load() throws -> Self? {
-        var query = Self.query
+        var query = Self.query()
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
         var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        if status == errSecItemNotFound { return nil }
+        if status == errSecItemNotFound {
+            var legacy = Self.query(service: "local.GeoTagCN.AMap")
+            legacy[kSecReturnData as String] = true
+            legacy[kSecMatchLimit as String] = kSecMatchLimitOne
+            let legacyStatus = SecItemCopyMatching(legacy as CFDictionary, &result)
+            if legacyStatus == errSecItemNotFound { return nil }
+            guard legacyStatus == errSecSuccess, let data = result as? Data else {
+                throw KeychainError(status: legacyStatus)
+            }
+            let credentials = try JSONDecoder().decode(Self.self, from: data)
+            try? credentials.save()
+            return credentials
+        }
         guard status == errSecSuccess, let data = result as? Data else {
             throw KeychainError(status: status)
         }
@@ -28,9 +40,9 @@ struct AMapCredentials: Codable {
     func save() throws {
         let data = try JSONEncoder().encode(self)
         let values = [kSecValueData as String: data]
-        let status = SecItemUpdate(Self.query as CFDictionary, values as CFDictionary)
+        let status = SecItemUpdate(Self.query() as CFDictionary, values as CFDictionary)
         if status == errSecItemNotFound {
-            var item = Self.query
+            var item = Self.query()
             item[kSecValueData as String] = data
             let added = SecItemAdd(item as CFDictionary, nil)
             guard added == errSecSuccess else { throw KeychainError(status: added) }

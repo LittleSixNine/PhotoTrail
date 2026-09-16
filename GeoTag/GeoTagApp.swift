@@ -20,14 +20,15 @@ struct GeoTagApp: App {
     let windowHeight = 700.0
 
     init() {
+        PhotoTrailMigration.settings()
         appDelegate.store = store
         appDelegate.logger.debug("Delegate store set")
         prepareForTesting()
     }
 
     var body: some Scene {
-        Window("GeoTag CN", id: "main") {
-            if ProcessInfo.processInfo.environment["GEOTAG_CN_OFFLINE_TESTS"] == "1" {
+        Window("PhotoTrail", id: "main") {
+            if ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] == "1" {
                 // Unit tests use the app bundle, not its interactive window or private state.
                 Color.clear.frame(width: 1, height: 1)
             } else {
@@ -94,7 +95,7 @@ struct GeoTagApp: App {
 
 extension GeoTagApp {
     static var adjustTimeZone = "Change Time Zone"
-    static var showRunLog = "GeoTag Run/Debug Log"
+    static var showRunLog = "PhotoTrail Run/Debug Log"
 }
 
 // Special handling for UI testing.  Various flags may be passed to

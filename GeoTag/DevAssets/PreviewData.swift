@@ -4,6 +4,8 @@ import Metadata
 import SwiftUI
 import UDF
 
+#if DEBUG
+
 extension GeoTagState {
     init(forPreview: Bool = false,
          withSelection: Set<Int>? = nil) {
@@ -31,7 +33,7 @@ extension GeoTagState {
             }
             imageData.append(item)
         }
-        linkPairedImages(true)
+        linkPairedImages()
         imageData.sort(using: sortOrder)
         if let track = previewTrack() {
             gpxTracks.append(track)
@@ -108,3 +110,5 @@ extension PreviewTrait where T == Preview.ViewTraits {
         .modifier(SelectTrait(selection: Set(select)))
     }
 }
+
+#endif

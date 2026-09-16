@@ -2,6 +2,7 @@ import Foundation
 import ImageData
 import SwiftUI
 import UDF
+import UniformTypeIdentifiers
 
 // initiate processing of the given array of URLs. Get the full list
 // of unique urls and save it for the next step.
@@ -9,14 +10,17 @@ import UDF
 extension GeoTagReducer {
     func openFiles(_ state: inout GeoTagState, urls: [URL]) {
         // Needed to access when using the fileImporter
-        for url in urls where url.startAccessingSecurityScopedResource() {
+        for url in urls where !url.isVideoFile && url.startAccessingSecurityScopedResource() {
             state.scopedURLs.append(url)
         }
 
         // Get all requested URLs
-        let imageURLs = urls.flatMap { url in
+        var seenPaths = Set<String>()
+        let requestedURLs = urls.flatMap { url in
             isFolder(url) ? urlsIn(folder: url) : [url]
-        }
+        }.filter { seenPaths.insert($0.standardizedFileURL.path).inserted }
+        state.ignoredVideoCount = requestedURLs.filter(\.isVideoFile).count
+        let imageURLs = requestedURLs.filter { !$0.isVideoFile }
 
         // check for duplicates of URLs already known
         let processed = Set(state.imageData.map { $0.fullPath })
@@ -59,6 +63,20 @@ extension GeoTagReducer {
             }
         }
         return foundURLs
+    }
+}
+
+extension URL {
+    var isVideoFile: Bool {
+        let ext = pathExtension.lowercased()
+        switch ext {
+        case "3g2", "3gp", "avi", "braw", "crm", "flv", "m2ts", "m2v",
+             "m4v", "mkv", "mov", "mp4", "mpeg", "mpg", "mts", "mxf",
+             "ogv", "qt", "r3d", "ts", "vob", "webm", "wmv":
+            return true
+        default:
+            return UTType(filenameExtension: ext)?.conforms(to: .movie) == true
+        }
     }
 }
 

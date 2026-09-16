@@ -4,11 +4,11 @@ import PhotosUI
 import SwiftUI
 
 extension ImageData {
-    public func makeThumbnail(scale: CGFloat) async -> Image {
+    public func makeThumbnail(scale: CGFloat, maxDimension: Double = 1024) async -> Image {
         var image: Image?
         switch metadata.source {
         case .image(let url), .xmp(let url):
-            if let nsImage = Imagetool.imageThumbnail(url: url) {
+            if let nsImage = Imagetool.imageThumbnail(url: url, maxDimension: maxDimension) {
                 image = Image(nsImage: nsImage)
             }
         case .photos(let pickerItem, _):

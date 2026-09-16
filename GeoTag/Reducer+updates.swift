@@ -81,8 +81,11 @@ extension GeoTagReducer {
                 updatedDate = Date(timeInterval: adjustment,
                                    since: originalDate)
             }
-            state[id].metadata.dateTimeCreated =
-                Metadata.timestamp(from: updatedDate)
+            let timestamp = Metadata.timestamp(from: updatedDate)
+            state[id].metadata.dateTimeCreated = timestamp
+            if let pairedID = state[id].pairedID, state[pairedID].updatable {
+                state[pairedID].metadata.dateTimeCreated = timestamp
+            }
         }
         state.unsavedChanges = true
     }

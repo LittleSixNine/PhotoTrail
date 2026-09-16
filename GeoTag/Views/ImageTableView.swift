@@ -14,7 +14,7 @@ struct ImageTableView: View {
     var openDetail: () -> Void = {}
 
     private var searchableImages: [ImageData] {
-        store.imageData.filter {
+        store.visibleImages.filter {
             (!hideInvalidImages || $0.updatable) && (store.searchText.isEmpty || $0.name.fuzzy(store.searchText))
         }
     }
@@ -30,19 +30,25 @@ struct ImageTableView: View {
                 }))
                 .textFieldStyle(.plain).focused($searchFocused).frame(minWidth: 120, maxWidth: 260)
                 Spacer(minLength: 0)
+                Menu {
+                    Button("导入顺序") { sortOrder = [KeyPathComparator(\ImageData.id)] }
+                    Button("拍摄时间") { sortOrder = [KeyPathComparator(\ImageData.metadata.timestamp)] }
+                    Button("文件名") { sortOrder = [KeyPathComparator(\ImageData.name)] }
+                } label: { Label("排序", systemImage: "arrow.up.arrow.down") }
+                    .fixedSize()
                 Picker("筛选照片", selection: $filter) {
                     ForEach(PhotoListFilter.allCases, id: \.self) { option in
                         Text("\(option.rawValue) \(searchableImages.filter { option.includes($0) }.count)").tag(option)
                     }
                 }.pickerStyle(.segmented).labelsHidden().frame(maxWidth: 440)
-            }.padding(14)
+            }.padding(.leading, 14).padding(.vertical, 14)
             Divider()
             photoTable
             Divider()
             HStack(spacing: 18) {
                 Label("待保存", systemImage: "square.and.arrow.down").foregroundStyle(.orange)
                 Label("无待保存修改", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-                Text("显示 \(filteredImages.count) / 共 \(store.imageData.count) 张照片").foregroundStyle(.secondary)
+                Text("显示 \(filteredImages.count) / 共 \(store.visibleImages.count) 张照片").foregroundStyle(.secondary)
                 Spacer()
             }.font(.caption).padding(12)
         }
@@ -66,9 +72,13 @@ struct ImageTableView: View {
 
     private var photoTable: some View {
         Table(of: ImageData.self, selection: $selection, sortOrder: $sortOrder) {
-            TableColumn("状态") { image in PhotoSaveStatus(image: image) }.width(min: 40, ideal: 48, max: 160)
+            TableColumn("状态") { image in
+                PhotoSaveStatus(image: image).frame(maxWidth: .infinity, alignment: .center)
+            }.width(min: 40, ideal: 48, max: 160)
             TableColumn("预览") { image in
-                PhotoThumbnail(image: image).frame(width: 60, height: 46).padding(.vertical, 5)
+                PhotoThumbnail(image: image, showsPairedBadge: image.isPairedJPEG)
+                    .frame(width: 60, height: 46).padding(.vertical, 5)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }.width(min: 68, ideal: 76, max: 220)
             TableColumn("文件名", value: \.name) { image in
                 Text(image.name).lineLimit(1).truncationMode(.middle).help(image.fullPath)

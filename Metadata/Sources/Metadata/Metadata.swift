@@ -168,16 +168,21 @@ extension Metadata {
 
     // dateTimeCreated as a date relative to the given timeZone.
     // timeZone defaults to the current time zone.
-    public func date(timeZone: TimeZone? = nil) -> Date {
+    public func parsedDate(timeZone: TimeZone? = nil) -> Date? {
         if let dateTimeCreated {
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = Self.dateFormat
             dateFormatter.timeZone = timeZone
-            if let date =  dateFormatter.date(from: dateTimeCreated) {
-                return date
-            }
+            dateFormatter.isLenient = false
+            return dateFormatter.date(from: dateTimeCreated)
         }
-        return Date.now
+        return nil
+    }
+
+    // Legacy editing/display behavior keeps using now when no timestamp exists.
+    // Matching code must use parsedDate(timeZone:) so missing data cannot match by accident.
+    public func date(timeZone: TimeZone? = nil) -> Date {
+        parsedDate(timeZone: timeZone) ?? Date.now
     }
 }
 

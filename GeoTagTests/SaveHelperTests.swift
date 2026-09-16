@@ -80,5 +80,8 @@ struct SaveHelperTests {
             _ = await task.result
         }
         #expect(!store.unsavedChanges)
+        #expect(store.saveTotal > 0)
+        #expect(store.saveCompleted == store.saveTotal)
+        #expect(!store.locationSavedPhotoIDs.isEmpty)
     }
 }

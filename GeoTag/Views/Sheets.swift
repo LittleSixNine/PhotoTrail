@@ -50,10 +50,7 @@ struct GpxLoadView: View {
                     .font(.title)
                 List(store.gpxGoodFileNames, id: \.self) { Text($0) }
                     .frame(maxHeight: .infinity)
-                Text("""
-                    The above GPX file(s) have been processed and will \
-                    show as tracks on the map.
-                    """)
+                Text("轨迹已加载。请在详情页左栏勾选轨迹，或点击轨迹行查看范围。")
                 .lineLimit(nil)
                 .padding()
             }

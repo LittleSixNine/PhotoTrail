@@ -9,8 +9,13 @@ extension GeoTagReducer {
 
     func selectionChanged(_ state: inout GeoTagState,
                           selection: Set<ImageData.ID>) {
-        // filter out items that are not updatable
-        state.selection = selection.filter { state[$0].updatable }
+        state.trackMatches = []
+        let imagesByID = Dictionary(uniqueKeysWithValues: state.imageData.map { ($0.id, $0) })
+        state.selection = Set(selection.compactMap { id in
+            guard let image = imagesByID[id] else { return nil }
+            let visibleID = image.isJPEG ? id : image.pairedID ?? id
+            return imagesByID[visibleID]?.updatable == true ? visibleID : nil
+        })
 
         // Handle the case where nothing is selected.  Otherwise pick an
         // id as being the "most selected".

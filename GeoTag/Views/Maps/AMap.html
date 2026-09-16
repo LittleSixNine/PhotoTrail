@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GeoTag CN 地图</title>
+  <title>PhotoTrail 地图</title>
   <style>
     html, body, #map { width: 100%; height: 100%; margin: 0; }
     body { background: #f0f0ed; font-family: -apple-system, sans-serif; }
@@ -19,9 +19,13 @@
     window.geoTag = (() => {
       let map, geocoder, placeSearch, marker, previewMarker;
       let previewGeneration = 0;
-      let snapshot = { revision: 0, editable: false, point: null };
+      let snapshot = { revision: 0, editable: false, point: null, photos: [], selectedPhotoIDs: [] };
       let sequence = 0;
       let displayGeneration = 0;
+      let photoGeneration = 0, photoKey = "", photoFrame = null;
+      let stablePhotoGroups = [];
+      const photoPoints = new Map();
+      const photoCoordinateCache = new Map();
       const notice = document.getElementById("notice");
       const post = body => window.webkit.messageHandlers.geoTag.postMessage(body);
       const status = message => { notice.textContent = message; post({ type: "status", message }); };
@@ -48,8 +52,231 @@
         }));
       }
 
-      async function selectPoint(event, purpose = "apply", name = "") {
-        if (purpose !== "favorite" && !snapshot.editable) { status("请先选择可编辑的照片。"); return; }
+      function emitPhotoPositions(regroup = true) {
+        if (!map) return;
+        const container = document.getElementById("map");
+        const width = container?.clientWidth || Number.POSITIVE_INFINITY;
+        const height = container?.clientHeight || Number.POSITIVE_INFINITY;
+        const padding = 28;
+        const area = width * height;
+        const cellSize = Math.max(52, Number.isFinite(area) ? Math.sqrt(area / 1600) : 52);
+        if (regroup || stablePhotoGroups.length === 0) {
+          const groups = new Map();
+          for (const [id, point] of photoPoints) {
+            const pixel = map.lngLatToContainer([point.longitude, point.latitude]);
+            if (!pixel || !Number.isFinite(pixel.x) || !Number.isFinite(pixel.y)
+              || pixel.x < -padding || pixel.y < -padding
+              || pixel.x > width + padding || pixel.y > height + padding) continue;
+            const key = `${Math.round(pixel.x / cellSize)}:${Math.round(pixel.y / cellSize)}`;
+            const ids = groups.get(key);
+            if (ids) ids.push(id); else groups.set(key, [id]);
+          }
+          stablePhotoGroups.splice(0, stablePhotoGroups.length, ...groups.values());
+        }
+        const positions = stablePhotoGroups.map(ids => {
+          const pixels = ids.map(id => photoPoints.get(id)).filter(Boolean).map(point =>
+            map.lngLatToContainer([point.longitude, point.latitude])).filter(pixel => pixel
+              && Number.isFinite(pixel.x) && Number.isFinite(pixel.y));
+          if (!pixels.length) return null;
+          const x = pixels.reduce((sum, pixel) => sum + pixel.x, 0) / pixels.length;
+          const y = pixels.reduce((sum, pixel) => sum + pixel.y, 0) / pixels.length;
+          return x < -padding || y < -padding || x > width + padding || y > height + padding
+            ? null : { ids, x, y };
+        }).filter(Boolean);
+        const edgeInset = 36, center = { x: width / 2, y: height / 2 };
+        const edges = Number.isFinite(width) && Number.isFinite(height)
+          ? (snapshot.selectedPhotoIDs || []).map(id => {
+              const point = photoPoints.get(id);
+              if (!point) return null;
+              const pixel = map.lngLatToContainer([point.longitude, point.latitude]);
+              if (!pixel || !Number.isFinite(pixel.x) || !Number.isFinite(pixel.y)
+                || (pixel.x >= edgeInset && pixel.x <= width - edgeInset
+                  && pixel.y >= edgeInset && pixel.y <= height - edgeInset)) return null;
+              const dx = pixel.x - center.x, dy = pixel.y - center.y;
+              const horizontal = dx ? (width / 2 - edgeInset) / Math.abs(dx) : Infinity;
+              const vertical = dy ? (height / 2 - edgeInset) / Math.abs(dy) : Infinity;
+              const scale = Math.min(horizontal, vertical);
+              return { id, x: center.x + dx * scale, y: center.y + dy * scale,
+                angle: Math.atan2(dy, dx) };
+            }).filter(Boolean) : [];
+        post({ type: "photoPositions", positions, edges });
+      }
+
+      function schedulePhotoPositions() {
+        if (photoFrame !== null) return;
+        const nextFrame = window.requestAnimationFrame || (callback => setTimeout(callback, 16));
+        photoFrame = nextFrame(() => { photoFrame = null; emitPhotoPositions(false); });
+      }
+
+      const photoCoordinateKey = point => `${point.latitude.toFixed(8)}:${point.longitude.toFixed(8)}`;
+      function cachePhotoPoint(key, point) {
+        if (photoCoordinateCache.has(key)) photoCoordinateCache.delete(key);
+        photoCoordinateCache.set(key, point);
+        if (photoCoordinateCache.size > 10000)
+          photoCoordinateCache.delete(photoCoordinateCache.keys().next().value);
+      }
+
+      async function renderPhotos(photos) {
+        if (!Array.isArray(photos) || !photos.every(photo => Number.isInteger(photo.id)
+          && valid(photo.point))) return;
+        const key = photos.map(photo => `${photo.id}:${photo.point.latitude}:${photo.point.longitude}`).join("|");
+        if (key === photoKey) { emitPhotoPositions(true); return; }
+        photoKey = key;
+        const generation = ++photoGeneration;
+        photoPoints.clear();
+        try {
+          const missing = new Map();
+          for (const photo of photos) {
+            const coordinateKey = photoCoordinateKey(photo.point);
+            const cached = photoCoordinateCache.get(coordinateKey);
+            if (cached) photoPoints.set(photo.id, cached);
+            else {
+              const entry = missing.get(coordinateKey);
+              if (entry) entry.ids.push(photo.id);
+              else missing.set(coordinateKey, { point: photo.point, ids: [photo.id] });
+            }
+          }
+          const entries = [...missing.entries()];
+          for (let offset = 0; offset < entries.length; offset += 40) {
+            const batch = entries.slice(offset, offset + 40);
+            const converted = await timedCall(done => AMap.convertFrom(
+              batch.map(([, entry]) => [entry.point.longitude, entry.point.latitude]), "gps", (state, result) => {
+                if (state !== "complete" || result?.locations?.length !== batch.length)
+                  return done(new Error("照片坐标转换失败"));
+                const points = result.locations.map(point => ({
+                  latitude: point.getLat(), longitude: point.getLng() }));
+                done(points.every(valid) ? null : new Error("返回坐标无效"), points);
+              }));
+            if (generation !== photoGeneration) return;
+            batch.forEach(([coordinateKey, entry], index) => {
+              cachePhotoPoint(coordinateKey, converted[index]);
+              entry.ids.forEach(id => photoPoints.set(id, converted[index]));
+            });
+            emitPhotoPositions(true);
+            if (offset + 40 < entries.length) await new Promise(resolve => setTimeout(resolve, 1100));
+          }
+          if (generation === photoGeneration) emitPhotoPositions(true);
+        } catch (_) {
+          if (generation === photoGeneration) {
+            photoPoints.clear(); emitPhotoPositions(true);
+            status("部分照片位置显示失败；原照片数据未改变。请检查网络或服务配额。");
+          }
+        }
+      }
+
+      let trackRequest = Promise.resolve(), nextTrackConversion = 0;
+      const trackJobs = new Map(), trackLines = new Map();
+      let trackStyle = { strokeColor: "#FF3B30", strokeWeight: 3 }, selectedTrack = null;
+
+      function setTrackStyle(color, width) {
+        trackStyle = { strokeColor: /^#[0-9a-f]{6}$/i.test(color) ? color : "#FF3B30",
+          strokeWeight: Number.isFinite(width) && width > 0 ? width : 3 };
+        for (const [id, entry] of trackLines) for (const line of entry.lines)
+          line.setOptions({ ...trackStyle, strokeOpacity: !selectedTrack || selectedTrack === id ? 0.85 : 0.35 });
+      }
+
+      function renderTracks(records, selected) {
+        selectedTrack = selected;
+        const ids = new Set(records.map(record => record.id));
+        for (const [id, entry] of trackLines) if (!ids.has(id)) {
+          map.remove(entry.lines); trackLines.delete(id);
+        }
+        for (const record of records) {
+          if (trackLines.get(record.id)?.version === record.version) continue;
+          if (!record.segments.every(segment => segment.length >= 2 && segment.every(valid))) continue;
+          if (trackLines.has(record.id)) map.remove(trackLines.get(record.id).lines);
+          const lines = record.segments.map(segment => new AMap.Polyline({
+            path: segment.map(point => [point.longitude, point.latitude]), ...trackStyle,
+            strokeStyle: "dashed", strokeDasharray: [10, 5], lineJoin: "round", lineCap: "round", bubble: true, zIndex: 40
+          }));
+          map.add(lines);
+          trackLines.set(record.id, { version: record.version, lines });
+        }
+        setTrackStyle(trackStyle.strokeColor, trackStyle.strokeWeight);
+      }
+
+      function fitTracks(id) {
+        const lines = id ? trackLines.get(id)?.lines : [...trackLines.values()].flatMap(entry => entry.lines);
+        if (map && lines?.length) map.setFitView(lines, false, [80, 60, 120, 60], 17);
+      }
+
+      function cancelTrack(request) {
+        const job = trackJobs.get(request);
+        if (job) job.cancelled = true;
+      }
+
+      // All files share this queue and QPS budget. Rendering/cached tracks never enter the queue.
+      function convertTracks(segments, request) {
+        const job = { cancelled: false };
+        trackJobs.set(request, job);
+        const result = trackRequest.then(async () => {
+          if (job.cancelled) { trackJobs.delete(request); return { cancelled: true }; }
+          let completed = 0, total = 0;
+          const report = () => post({ type: "tracks", request, completed, total });
+          try {
+            if (!Array.isArray(segments) || !segments.every(segment => Array.isArray(segment)
+              && segment.length >= 2 && segment.every(valid))) throw new Error("轨迹坐标无效");
+            total = segments.reduce((count, segment) => count + segment.length, 0);
+            report();
+            const paths = [];
+            for (const segment of segments) {
+              const path = [];
+              for (let offset = 0; offset < segment.length; offset += 40) {
+                if (job.cancelled) return { cancelled: true };
+                const batch = segment.slice(offset, offset + 40);
+                let points;
+                for (let attempt = 0; ; attempt++) {
+                  const delay = nextTrackConversion - Date.now();
+                  if (delay > 0) await new Promise(resolve => setTimeout(resolve, delay));
+                  if (job.cancelled) return { cancelled: true };
+                  nextTrackConversion = Date.now() + 1100;
+                  try {
+                    points = await timedCall(done => AMap.convertFrom(
+                      batch.map(point => [point.longitude, point.latitude]), "gps", (state, result) => {
+                        if (state !== "complete") {
+                          const code = typeof result === "string" ? result : result?.info;
+                          return done(new Error(/^[A-Z][A-Z0-9_]{0,79}$/.test(code ?? "")
+                            ? `高德服务：${code}` : "高德坐标转换失败"));
+                        }
+                        if (result?.locations?.length !== batch.length)
+                          return done(new Error("高德返回的坐标数量不完整"));
+                        try {
+                          const converted = result.locations.map(point => ({
+                            latitude: point.getLat(), longitude: point.getLng() }));
+                          done(converted.every(valid) ? null : new Error("返回坐标无效"), converted);
+                        } catch (_) { done(new Error("返回坐标无效")); }
+                      }));
+                    break;
+                  } catch (error) {
+                    if (job.cancelled) return { cancelled: true };
+                    if (attempt >= 2 || !/QPS.*(?:LIMIT|EXCEEDED)/.test(error.message)) throw error;
+                    nextTrackConversion = Date.now() + 1100 * (attempt + 1);
+                  }
+                }
+                if (job.cancelled) return { cancelled: true };
+                path.push(...points);
+                completed += batch.length;
+                report();
+              }
+              paths.push(path);
+            }
+            return { segments: paths };
+          } catch (error) {
+            if (job.cancelled) return { cancelled: true };
+            return { error: /^(服务响应超时|轨迹坐标无效|返回坐标无效|高德坐标转换失败|高德返回的坐标数量不完整|高德服务：[A-Z][A-Z0-9_]{0,79})$/.test(error?.message ?? "")
+              ? error.message : "轨迹转换失败" };
+          } finally { trackJobs.delete(request); }
+        });
+        trackRequest = result.catch(() => {});
+        return result;
+      }
+
+      async function selectPoint(event, purpose = "apply", name = "", photoID = null) {
+        const photoEditable = purpose === "photo"
+          && snapshot.photos?.some(photo => photo.id === photoID && photo.editable);
+        if ((purpose === "apply" && !snapshot.editable) || (purpose === "photo" && !photoEditable)) {
+          status("请先选择可编辑的照片。"); return;
+        }
         const revision = snapshot.revision;
         const currentSequence = ++sequence;
         post({ type: "pickStarted", revision, sequence: currentSequence, purpose });
@@ -64,37 +291,35 @@
             }));
           if (revision !== snapshot.revision || currentSequence !== sequence) return;
           post({ type: "pick", revision, sequence: currentSequence,
-            latitude: point.latitude, longitude: point.longitude, purpose, name, adcode: String(address.adcode || "") });
+            latitude: point.latitude, longitude: point.longitude, purpose, name, photoID,
+            adcode: String(address.adcode || "") });
         } catch (_) {
           if (revision === snapshot.revision && currentSequence === sequence)
             status("所选位置校验失败，未修改照片。请检查网络、凭据或服务配额。");
         }
       }
 
-      async function updateSnapshot(next) {
-        const unchanged = snapshot.point?.latitude === next.point?.latitude
-          && snapshot.point?.longitude === next.point?.longitude;
+      async function updateSnapshot(next, changedPhotos = next.photos) {
+        if (Array.isArray(changedPhotos)) {
+          next.photos = changedPhotos;
+          renderPhotos(changedPhotos);
+        } else next.photos = snapshot.photos || [];
         snapshot = next;
-        if (unchanged) return;
-        const generation = ++displayGeneration;
         ++previewGeneration;
         if (previewMarker && map) { map.remove(previewMarker); previewMarker = null; }
-        if (!map) return;
-        if (marker) { map.remove(marker); marker = null; }
-        if (!next.point) { notice.hidden = true; return; }
-        try {
-          const point = await convertGPS(next.point);
-          if (generation !== displayGeneration) return;
-          marker = makeMarker(point, "photo");
-          map.add(marker);
-          map.setCenter([point.longitude, point.latitude]);
-          notice.hidden = true;
-        } catch (_) {
-          if (generation === displayGeneration) {
-            notice.hidden = false;
-            status("照片位置显示失败；原照片数据未改变。请检查网络或服务配额。");
-          }
-        }
+        emitPhotoPositions(false);
+        notice.hidden = true;
+      }
+
+      function pickPhotoAt(id, point) {
+        if (!photoPoints.has(id) || !point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
+        const location = map.containerToLngLat(new AMap.Pixel(point.x, point.y));
+        selectPoint({ lnglat: location }, "photo", "", id);
+      }
+
+      function focusPhoto(id) {
+        const point = photoPoints.get(id);
+        if (map && point) map.setCenter([point.longitude, point.latitude]);
       }
 
       function makeMarker(point, kind) {
@@ -168,14 +393,19 @@
         const api = await timedCall(done => AMapLoader.load({
           key: config.key, version: "2.0", plugins: ["AMap.Geocoder", "AMap.PlaceSearch", "AMap.Scale"]
         }).then(value => done(null, value), () => done(new Error("地图鉴权失败"))));
-        map = new api.Map("map", { zoom: 12, center: [121.48, 31.23], viewMode: "2D", resizeEnable: true });
+        map = new api.Map("map", { zoom: 12, center: [121.48, 31.23], viewMode: "2D",
+          resizeEnable: true, doubleClickZoom: false });
         geocoder = new api.Geocoder({ extensions: "base" });
         placeSearch = new api.PlaceSearch({ pageSize: 6, extensions: "base" });
         map.addControl(new api.Scale());
         map.on("complete", () => post({ type: "rendering", metrics: renderingInfo() }));
         setTimeout(() => post({ type: "rendering", metrics: renderingInfo() }), 5000);
         map.on("rotatechange", () => post({ type: "heading", value: map.getRotation() }));
-        map.on("click", event => selectPoint(event));
+        for (const event of ["mapmove", "zoomchange"])
+          map.on(event, schedulePhotoPositions);
+        for (const event of ["moveend", "zoomend", "resize", "rotatechange"])
+          map.on(event, () => emitPhotoPositions(true));
+        map.on("dblclick", event => selectPoint(event));
         notice.hidden = true;
         status("高德地图已就绪。点选地图或搜索地点。");
         return true;
@@ -209,6 +439,28 @@
         if (command === "zoomOut") map.setZoom(Math.max(2, map.getZoom() - 1));
         if (command === "north") map.setRotation(0);
       }
+      function zoomByWheel(steps, pixel) {
+        if (!map || !Number.isFinite(steps) || steps === 0
+          || !pixel || !Number.isFinite(pixel.x) || !Number.isFinite(pixel.y)) return;
+        const oldZoom = map.getZoom();
+        const newZoom = Math.min(20, Math.max(2, oldZoom + steps * 0.22));
+        if (newZoom === oldZoom) return;
+        const anchor = map.containerToLngLat(new AMap.Pixel(pixel.x, pixel.y));
+        const center = map.getCenter();
+        const project = point => {
+          const longitude = point.getLng(), latitude = Math.max(-85.0511, Math.min(85.0511, point.getLat()));
+          const radians = latitude * Math.PI / 180;
+          return { x: (longitude + 180) / 360,
+            y: (1 - Math.log(Math.tan(radians) + 1 / Math.cos(radians)) / Math.PI) / 2 };
+        };
+        const unproject = point => ({ longitude: point.x * 360 - 180,
+          latitude: Math.atan(Math.sinh(Math.PI * (1 - 2 * point.y))) * 180 / Math.PI });
+        const anchorWorld = project(anchor), centerWorld = project(center);
+        const scale = 2 ** (newZoom - oldZoom);
+        const next = unproject({ x: anchorWorld.x + (centerWorld.x - anchorWorld.x) / scale,
+          y: anchorWorld.y + (centerWorld.y - anchorWorld.y) / scale });
+        map.setZoomAndCenter(newZoom, [next.longitude, next.latitude]);
+      }
       async function region(point) {
         const displayed = await convertGPS(point);
         const result = await timedCall(done => geocoder.getAddress([displayed.longitude, displayed.latitude],
@@ -226,7 +478,9 @@
         }
         if (satelliteLayer) enabled ? satelliteLayer.show() : satelliteLayer.hide();
       }
-      return { start, updateSnapshot, convertGPS, search, preview, selectSearch, clearPreview, setSatellite, navigate, region, renderingInfo };
+      return { start, updateSnapshot, convertGPS, search, preview, selectSearch, clearPreview,
+        setSatellite, navigate, zoomByWheel, region, renderingInfo, convertTracks, cancelTrack, renderTracks, fitTracks,
+        setTrackStyle, pickPhotoAt, focusPhoto };
     })();
   </script>
 </body>

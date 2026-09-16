@@ -72,11 +72,52 @@ struct GpxTests {
         let afterSegment = try #require(formatter.date(from: "2008-04-18T14:20:00Z"))
         let afterInterval = afterSegment.timeIntervalSince1970
         #expect(trackLog.search(imageTime: afterInterval, extendedTime: 1) == nil)
-        #expect(trackLog.search(imageTime: afterInterval, extendedTime: 10) != nil)
+        #expect(trackLog.search(imageTime: afterInterval, extendedTime: 10) == nil)
 
         let beforeSegment = try #require(formatter.date(from: "2008-04-18T15:10:00Z"))
         let beforeInterval = beforeSegment.timeIntervalSince1970
         #expect(trackLog.search(imageTime: beforeInterval, extendedTime: 1) == nil)
-        #expect(trackLog.search(imageTime: beforeInterval, extendedTime: 10) != nil)
+        #expect(trackLog.search(imageTime: beforeInterval, extendedTime: 10) == nil)
+    }
+
+    @Test func conservativeInterpolationAndBoundaries() {
+        let log = GpxTrackLog(sourceURL: URL(filePath: "/synthetic.gpx"), tracks: [
+            .init(segments: [.init(points: [
+                .init(hasRecordedTime: true, lat: 10, lon: 20, ele: 100, timeFromEpoch: 0),
+                .init(hasRecordedTime: true, lat: 20, lon: 40, ele: 200, timeFromEpoch: 60)
+            ])])
+        ])
+        guard case .matched(let midpoint) = log.match(imageTime: 30, maximumGap: 60) else {
+            Issue.record("Expected an interpolated match")
+            return
+        }
+        #expect(midpoint.method == .linear)
+        #expect(midpoint.coordinate.latitude == 15)
+        #expect(midpoint.coordinate.longitude == 30)
+        #expect(midpoint.elevation == 150)
+        guard case .unmatched = log.match(imageTime: -1, maximumGap: 60) else {
+            Issue.record("Matching must not extrapolate before a segment")
+            return
+        }
+        guard case .unmatched = log.match(imageTime: 30, maximumGap: 59) else {
+            Issue.record("Matching must not bridge a gap beyond the configured limit")
+            return
+        }
+    }
+
+    @Test func segmentAndTrackConflictsAreAmbiguous() {
+        let first = GpxTrackLog.Segment(points: [
+            .init(hasRecordedTime: true, lat: 10, lon: 20, timeFromEpoch: 30)
+        ])
+        let second = GpxTrackLog.Segment(points: [
+            .init(hasRecordedTime: true, lat: 30, lon: 40, timeFromEpoch: 30)
+        ])
+        let log = GpxTrackLog(sourceURL: URL(filePath: "/conflict.gpx"), tracks: [
+            .init(segments: [first, second])
+        ])
+        guard case .ambiguous = log.match(imageTime: 30) else {
+            Issue.record("Conflicting locations at one timestamp must not be chosen silently")
+            return
+        }
     }
 }

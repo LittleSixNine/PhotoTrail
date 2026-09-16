@@ -9,6 +9,7 @@ import SwiftUI
 
 struct GeoTagState {
     var version = 1
+    var mapRevision = 1
     var imageData: [ImageData] = []
 
     // individual images are accessed by ID.
@@ -61,15 +62,20 @@ struct GeoTagState {
     // Image import variables
     var importFiles = false
     var uniqueURLs: [URL]?
+    var ignoredVideoCount = 0
     var scopedURLs: [URL] = []
 
     // GPX File Loading information
     var gpxTracks: [GpxTrackLog] = []
     var gpxGoodFileNames: [String] = []
     var gpxBadFileNames: [String] = []
+    var trackMatches: [LocationHelper.LocationById] = []
 
     // image save/update variables
     var saveInProgress = false
+    var saveCompleted = 0
+    var saveTotal = 0
+    var locationSavedPhotoIDs: Set<ImageData.ID> = []
     var libraryImages: [ImageData.ID] = []
     var fileImages: [ImageData.ID] = []
     var xmpImages: [ImageData.ID] = []

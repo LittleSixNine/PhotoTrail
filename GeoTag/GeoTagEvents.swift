@@ -22,6 +22,8 @@ enum GeoTagEvent: Equatable {
     case clearUniqueURLs
     case deleteRequest
     case discardChangesRequest
+    case restoreTracks([GpxTrackLog])
+    case removeTrack(URL)
     case discardTracksRequest
     case duplicateImages
     case findInMap(Bool)
@@ -32,10 +34,13 @@ enum GeoTagEvent: Equatable {
     case initBackupURL
     case noBackupNotice
     case initPlaces([Place])
-    case linkPairedImages(Bool)
+    case linkPairedImages
     case locationChanged(Coords)
+    case locationForImageChanged(ImageData.ID, Coords)
+    case locationFromPhoto(Coords, Double?)
     case confirmedWGS84Location(Coords)
     case locationFromTrack([LocationHelper.LocationById])
+    case applyTrackMatches
     case mainWindowChange(NSWindow?)
     case mostSelectedChanged(ImageData.ID)
     case newThumbnail(Image)
@@ -48,11 +53,13 @@ enum GeoTagEvent: Equatable {
     case readTrackLog(String, GpxTrackLog?)
     case removeOldFiles
     case saveComplete(SaveHelper.SaveStatus)
+    case saveProgress(Int)
     case saveRequest
     case searchActiveChanged(Bool)
     case searchTextChanged(String)
     case selectAllRequest
     case selectionChanged(Set<ImageData.ID>)
+    case selectionChangedTo(Set<ImageData.ID>, ImageData.ID?)
     case sheetDismissed
     case sidecarCreated(ImageData.ID)
     case sortOrderChanged([KeyPathComparator<ImageData>])
@@ -81,6 +88,8 @@ extension GeoTagEvent: CustomStringConvertible {
         case .clearUniqueURLs: "clearUniqueURLs"
         case .deleteRequest: "deleteRequest"
         case .discardChangesRequest: "discardChangesRequest"
+        case .restoreTracks: "restoreTracks"
+        case .removeTrack: "removeTrack"
         case .discardTracksRequest: "discardTracksRequest"
         case .duplicateImages: "duplicateImages"
         case .findInMap: "findInMap"
@@ -93,8 +102,11 @@ extension GeoTagEvent: CustomStringConvertible {
         case .initPlaces: "initPlaces"
         case .linkPairedImages: "linkPairedImages"
         case .locationChanged: "locationChanged"
+        case .locationForImageChanged: "locationForImageChanged"
+        case .locationFromPhoto: "locationFromPhoto"
         case .confirmedWGS84Location: "confirmedWGS84Location"
         case .locationFromTrack: "locationFromTrack"
+        case .applyTrackMatches: "applyTrackMatches"
         case .mainWindowChange: "mainWindowChange"
         case .mostSelectedChanged: "mostSelectedChanged"
         case .newThumbnail: "newThumbnail"
@@ -107,11 +119,13 @@ extension GeoTagEvent: CustomStringConvertible {
         case .readTrackLog: "readTrackLog"
         case .removeOldFiles: "removeOldFiles"
         case .saveComplete: "saveComplete"
+        case .saveProgress: "saveProgress"
         case .saveRequest: "saveReqest"
         case .searchActiveChanged: "searchActiveChanged"
         case .searchTextChanged: "searchTextChanged"
         case .selectAllRequest: "selectAllRequest"
         case .selectionChanged: "selectionChanged"
+        case .selectionChangedTo: "selectionChangedTo"
         case .sheetDismissed: "sheetDismissed"
         case .sidecarCreated: "sidecarCreated"
         case .sortOrderChanged: "sortOrderChanged"

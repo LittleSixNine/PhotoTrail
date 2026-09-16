@@ -24,8 +24,8 @@ public struct MapWithSearchView: View {
     @State var searchInfo = SearchInfo()
     @State private var locator = DeviceLocation()
     @Environment(\.openURL) private var openURL
-    @AppStorage("GeoTagCNSatellite") private var satellite = false
-    @AppStorage("GeoTagCNMapProvider") private var mapProvider = "amap"
+    @AppStorage("PhotoTrailSatellite") private var satellite = false
+    @AppStorage("PhotoTrailMapProvider") private var mapProvider = "amap"
 
     private var hasMap: Bool { mapProvider != "amap" || workspace.credentials != nil }
 
@@ -44,6 +44,7 @@ public struct MapWithSearchView: View {
                     .padding(.bottom, 52)
                 }
             }.frame(width: geometry.size.width, height: geometry.size.height)
+                .clipped()
         }
         .overlay(alignment: .topLeading) {
             if hasMap {

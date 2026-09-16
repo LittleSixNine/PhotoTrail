@@ -23,7 +23,7 @@ struct PasteboardCommands: Commands {
                     }
                 }
                 .keyboardShortcut("x")
-                .disabled(cutCopyDisabled())
+                .disabled(store.saveInProgress || cutCopyDisabled())
 
                 Button("Copy", systemImage: "document.on.document") {
                     copy()
@@ -53,7 +53,7 @@ struct PasteboardCommands: Commands {
                     }
                 }
                 .keyboardShortcut("v")
-                .disabled(pasteDisabled())
+                .disabled(store.saveInProgress || pasteDisabled())
 
                 Button("Delete", systemImage: "trash") {
                     if store.textfieldActive {
@@ -64,7 +64,7 @@ struct PasteboardCommands: Commands {
                     }
                 }
                 .keyboardShortcut(.delete, modifiers: [])
-                .disabled(deleteDisabled())
+                .disabled(store.saveInProgress || deleteDisabled())
 
                 Button("Select All", systemImage: "character.textbox") {
                     if store.textfieldActive {
@@ -108,7 +108,7 @@ struct PasteboardCommands: Commands {
                                                      extendedTime: extendedTime)
                 }
                 .keyboardShortcut("l")
-                .disabled(locnFromTrackDisabled())
+                .disabled(store.saveInProgress || locnFromTrackDisabled())
 
                 Button("Specify Time Zone…") {
                     store.send(.changeTimeZone, undoable: false)

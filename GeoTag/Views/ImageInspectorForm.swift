@@ -3,6 +3,7 @@ import SwiftUI
 import UDF
 
 struct ImageInspectorForm: View {
+    @Environment(Store<GeoTagState, GeoTagEvent>.self) private var store
     var image: ImageData
 
     let notice: LocalizedStringKey = """
@@ -22,6 +23,7 @@ struct ImageInspectorForm: View {
                 Text(notice)
             }
         }
+        .disabled(store.saveInProgress)
     }
 }
 

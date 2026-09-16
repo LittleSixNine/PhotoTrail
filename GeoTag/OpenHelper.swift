@@ -34,7 +34,7 @@ enum OpenHelper {
     static private
     func images(for urls: [URL],
                 store: Store<GeoTagState, GeoTagEvent>) async {
-        let imageURLs = urls.filter { $0.pathExtension.lowercased() != "gpx" }
+        let imageURLs = urls.filter { $0.pathExtension.lowercased() != "gpx" && !$0.isVideoFile }
         guard !imageURLs.isEmpty else { return }
         var newImages: [ImageData] = []
 
@@ -67,10 +67,8 @@ enum OpenHelper {
             }
         }
         await MainActor.run {
-            @AppStorage(SettingsView.disablePairedJpegsKey) var disablePairedJpegs = false
-
             store.send(.addImages(newImages))
-            store.send(.linkPairedImages(disablePairedJpegs))
+            store.send(.linkPairedImages)
             store.send(.sortUsingCurrentComparator)
         }
         let duration = Date.now.timeIntervalSince1970 - start

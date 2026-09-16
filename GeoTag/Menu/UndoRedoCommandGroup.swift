@@ -15,7 +15,7 @@ struct UndoRedoCommands: Commands {
                 }
             }
             .keyboardShortcut("z")
-            .disabled(store.textfieldActive || !store.canUndo)
+            .disabled(store.textfieldActive || store.saveInProgress || !store.canUndo)
 
             Button("Redo",
                    systemImage: "arrow.uturn.forward") {
@@ -24,7 +24,7 @@ struct UndoRedoCommands: Commands {
                 }
             }
             .keyboardShortcut("z", modifiers: [.shift, .command])
-            .disabled(store.textfieldActive || !store.canRedo)
+            .disabled(store.textfieldActive || store.saveInProgress || !store.canRedo)
         }
     }
 }

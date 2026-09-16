@@ -147,6 +147,7 @@ extension ReducerTests {
         #expect(store.fileImages.isEmpty)
         #expect(store.xmpImages.isEmpty)
 
+        store.send(.saveComplete(.saveOK))
         store.send(.selectAllRequest)
         store.send(.locationChanged(Coords(latitude: 34.567,
                                            longitude: -122.235)))

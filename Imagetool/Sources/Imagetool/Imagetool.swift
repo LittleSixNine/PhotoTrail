@@ -125,7 +125,7 @@ public struct Imagetool {
 
     // Return an NSImage created from the given URL
 
-    public static func imageThumbnail(url: URL) -> NSImage? {
+    public static func imageThumbnail(url: URL, maxDimension: Double = 1024) -> NSImage? {
         var image = NSImage(size: NSRect(x: 0, y: 0, width: 0, height: 0).size)
         guard let imgRef = CGImageSourceCreateWithURL(url as CFURL, nil)
         else {
@@ -137,7 +137,7 @@ public struct Imagetool {
         // 1024x1024 constraint the preview to that size.  1024x1024 is an
         // arbitrary limit.   Preview generation is used to work around a
         // performance hit when using large raw images
-        let maxDimension = 1024.0
+        let maxDimension = max(32, maxDimension)
         var imgOpts: [String: AnyObject] = [
             Self.createThumbnailWithTransform: kCFBooleanTrue,
             Self.createThumbnailFromImageIfAbsent: kCFBooleanTrue,

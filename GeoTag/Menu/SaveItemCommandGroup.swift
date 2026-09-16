@@ -48,14 +48,14 @@ extension SaveItemCommands {
     }
 
     private func discardChangesDisabled() -> Bool {
-        return !store.unsavedChanges
+        return store.saveInProgress || !store.unsavedChanges
     }
 
     private func discardTracksDisabled() -> Bool {
-        return store.gpxTracks.isEmpty
+        return store.saveInProgress || store.gpxTracks.isEmpty
     }
 
     private func clearDisabled() -> Bool {
-        return store.imageData.isEmpty || store.unsavedChanges
+        return store.saveInProgress || store.imageData.isEmpty || store.unsavedChanges
     }
 }

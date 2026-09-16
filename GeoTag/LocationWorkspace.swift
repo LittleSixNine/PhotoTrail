@@ -16,6 +16,20 @@ struct AMapSearchResult: Identifiable {
     let coordinate: MapCoordinate // GCJ-02, only for AMap preview/validation.
 }
 
+struct AMapPhotoPosition: Identifiable, Equatable {
+    let ids: [Int]
+    let x: Double
+    let y: Double
+    var id: Int { ids[0] }
+}
+
+struct AMapPhotoEdgePosition: Identifiable, Equatable {
+    let id: Int
+    let x: Double
+    let y: Double
+    let angle: Double
+}
+
 @MainActor @Observable
 final class LocationWorkspace {
     var status = "选择照片后，在地图上点选拍摄地点。"
@@ -34,6 +48,9 @@ final class LocationWorkspace {
     var previewID = UUID()
     var appleHeading = 0.0
     var amapHeading = 0.0
+    var amapPhotoPositions: [AMapPhotoPosition] = []
+    var amapPhotoEdges: [AMapPhotoEdgePosition] = []
+    let tracks: TrackLibrary
     @ObservationIgnored var appleNavigation: ((String) -> Void)?
     @ObservationIgnored var amapNavigation: ((String) -> Void)?
     @ObservationIgnored var lookupAMapRegion: ((MapCoordinate) async throws -> String)?
@@ -45,21 +62,30 @@ final class LocationWorkspace {
     @ObservationIgnored var previewSearch: ((AMapSearchResult) -> Void)?
     @ObservationIgnored var chooseSearch: ((AMapSearchResult, String) -> Void)?
     @ObservationIgnored var previewWGS84: ((MapCoordinate) -> Void)?
+    @ObservationIgnored var moveAMapPhoto: ((Int, CGPoint) -> Void)?
+    @ObservationIgnored var focusPhoto: ((Int) -> Void)?
+    @ObservationIgnored var zoomAMap: ((Double, CGPoint) -> Void)?
     @ObservationIgnored private let favoritesURL: URL
     @ObservationIgnored private var didLoad = false
 
-    init(favoritesURL: URL = URL.applicationSupportDirectory
-        .appendingPathComponent("GeoTagCN/Favorites.json")) {
-        self.favoritesURL = favoritesURL
+    init(favoritesURL: URL? = nil, tracks: TrackLibrary? = nil) {
+        let current = favoritesURL ?? URL.applicationSupportDirectory
+            .appendingPathComponent("PhotoTrail/Favorites.json")
+        if favoritesURL == nil {
+            PhotoTrailMigration.file(at: current, legacyURL: URL.applicationSupportDirectory
+                .appendingPathComponent("GeoTagCN/Favorites.json"))
+        }
+        self.favoritesURL = current
+        self.tracks = tracks ?? TrackLibrary()
     }
 
     func load() async {
         guard !didLoad else { return }
         didLoad = true
         // Unit-test hosts must not load private favorites, credentials or live maps.
-        guard ProcessInfo.processInfo.environment["GEOTAG_CN_OFFLINE_TESTS"] != "1" else { return }
+        guard ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] != "1" else { return }
         loadFavorites()
-        if UserDefaults.standard.string(forKey: "GeoTagCNMapProvider") ?? "amap" == "amap" {
+        if UserDefaults.standard.string(forKey: "PhotoTrailMapProvider") ?? "amap" == "amap" {
             await loadCredentials()
         }
     }
@@ -67,7 +93,7 @@ final class LocationWorkspace {
     @ObservationIgnored private var loadingCredentials = false
     func loadCredentials() async {
         guard credentials == nil, !loadingCredentials,
-              ProcessInfo.processInfo.environment["GEOTAG_CN_OFFLINE_TESTS"] != "1" else { return }
+              ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] != "1" else { return }
         loadingCredentials = true
         defer { loadingCredentials = false }
         do { credentials = try await Task.detached { try AMapCredentials.load() }.value }
@@ -119,6 +145,8 @@ final class LocationWorkspace {
         searching = false
         results = []
         selectedResult = nil
+        amapPhotoPositions = []
+        amapPhotoEdges = []
         session = UUID()
     }
 

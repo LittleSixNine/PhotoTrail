@@ -18,9 +18,16 @@ struct MetadataDateTests {
 
     @Test func noTimestampAsDate() async throws {
         let metadata = Metadata(source: .image(imageURL))
+        #expect(metadata.parsedDate() == nil)
         let date = Date.now
         #expect(metadata.date() >= date)
         #expect(metadata.date() <= Date.now)
+    }
+
+    @Test func invalidTimestampDoesNotParse() async throws {
+        var metadata = Metadata(source: .image(imageURL))
+        metadata.dateTimeCreated = "not a timestamp"
+        #expect(metadata.parsedDate() == nil)
     }
 
     // Daylight savings caused the following tests to fail.
