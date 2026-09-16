@@ -36,6 +36,23 @@ PhotoTrail 是一款 macOS 照片定位工具，基于 [marchyman/GeoTag](https:
 
 本地图片通过内置 ExifTool 写入元数据，不重新压缩照片像素。苹果“照片”图库则通过系统 Photos 接口更新。
 
+## Agent Skill
+
+PhotoTrail 提供可独立安装的 [skill 模块](skill/)，无需安装 Mac App，即可让具备本地文件访问和命令执行能力的 agent 完成两项工作：
+
+- **照片生成 GPX**：从有定位和拍摄时间的照片生成轨迹，按时间排序并在长间隔处分段。
+- **GPX 给照片补定位**：按拍摄时间匹配轨迹，支持相机时间偏移，输出带定位的 JPEG/HEIC 副本及处理报告，不修改原照片。
+
+### 安装方式
+
+**将[安装说明网址](https://raw.githubusercontent.com/LittleSixNine/PhotoTrail/geotag-cn/skill/INSTALL.md)发给 agent，让它按照说明完成安装。** 可以直接发送：
+
+> 请阅读 https://raw.githubusercontent.com/LittleSixNine/PhotoTrail/geotag-cn/skill/INSTALL.md ，按照说明为你当前使用的 agent 安装 PhotoTrail skill，并检查运行环境。
+
+运行需要 **Python 3.11+ 和 ExifTool**，目前已在 macOS 验证。安装位置由 agent 客户端决定；只支持网页对话、无法运行本地程序的客户端不能直接执行这些功能。照片处理在本地完成，不接入地图搜索或苹果 Photos 图库；首版不提供 RAW/XMP 写入。
+
+功能、参数及使用边界见 [skill 使用说明](skill/SKILL.md)。skill 独立维护，不要求与 Mac App 同步更新。
+
 ## Releases · 下载与版本
 
 最新版：[PhotoTrail v0.3.0](https://github.com/LittleSixNine/PhotoTrail/releases/tag/v0.3.0)。下载 `PhotoTrail-0.3.0-macOS-universal.zip`，解压后将 `PhotoTrail.app` 拖入“应用程序”。旧版 `v0.1.0`、`v0.2.0` 是 GeoTag CN 预发布版，仅供历史参考。
