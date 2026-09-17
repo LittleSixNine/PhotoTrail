@@ -48,13 +48,31 @@ extension ReducerTests {
         storeSaving.send(.quitRequested)
         #expect(storeSaving.sheetType == .savingUpdatesSheet)
 
-        state.saveInProgress = false
         state.unsavedChanges = true
+        let storeSavingChanges = Store(initialState: state, reduce: GeoTagReducer())
+        storeSavingChanges.send(.quitRequested)
+        #expect(storeSavingChanges.sheetType == .savingUpdatesSheet)
+        #expect(!storeSavingChanges.presentConfirmation)
+
+        state.saveInProgress = false
         let storeUnsaved = Store(initialState: state, reduce: GeoTagReducer())
         storeUnsaved.send(.quitRequested)
         #expect(storeUnsaved.confirmationEvent == .terminateRequest)
         #expect(storeUnsaved.confirmationMessage != nil)
         #expect(storeUnsaved.presentConfirmation)
+    }
+
+    @Test func closingWindowWithUnsavedChangesRequestsConfirmation() {
+        var state = GeoTagState()
+        state.unsavedChanges = true
+        let store = Store(initialState: state, reduce: GeoTagReducer())
+        let delegate = AppDelegate()
+        delegate.store = store
+
+        #expect(!delegate.windowShouldClose(NSWindow()))
+        #expect(store.unsavedChanges)
+        #expect(store.confirmationEvent == .terminateRequest)
+        #expect(store.presentConfirmation)
     }
 
     @Test func readTrackLogEvent() async throws {

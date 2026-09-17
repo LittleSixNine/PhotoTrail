@@ -56,7 +56,7 @@ PhotoTrail 提供可独立安装的 [skill 模块](skill/)，无需安装 Mac Ap
 
 ## Releases · 下载与版本
 
-最新版：[PhotoTrail v0.3.1](https://github.com/LittleSixNine/PhotoTrail/releases/tag/v0.3.1)。下载 `PhotoTrail-0.3.1-macOS-universal.zip`，解压后将 `PhotoTrail.app` 拖入“应用程序”。旧版 `v0.1.0`、`v0.2.0` 是 GeoTag CN 预发布版，仅供历史参考。
+最新版：[PhotoTrail v0.3.2](https://github.com/LittleSixNine/PhotoTrail/releases/tag/v0.3.2)。下载 `PhotoTrail-0.3.2-macOS-universal.zip`，解压后将 `PhotoTrail.app` 拖入“应用程序”。旧版 `v0.1.0`、`v0.2.0` 是 GeoTag CN 预发布版，仅供历史参考。
 
 - 系统要求：由于继承原版 GeoTag 6.0.2，需要 **macOS 26 或更新版本**。
 - 当前安装包兼容 Apple 芯片与 Intel Mac，采用临时签名，尚未完成开发者签名与 Apple 公证；首次打开可能被 macOS 拦截。

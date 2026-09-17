@@ -68,15 +68,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
-    // GeoTag needs this delegate to stop the windows from closing
-    // when changes are pending.
+    // Closing the main window follows the same quit flow as the app menu.
     func windowShouldClose(_ sender: NSWindow) -> Bool {
-        if let store {
-            if store.saveInProgress || store.unsavedChanges {
-                store.send(.quitRequested, undoable: false)
-                return false
-            }
+        if let store, store.saveInProgress || store.unsavedChanges {
+            store.send(.quitRequested, undoable: false)
+            return false
         }
-        return true
+        Task { @MainActor in NSApp.terminate(nil) }
+        return false
     }
 }

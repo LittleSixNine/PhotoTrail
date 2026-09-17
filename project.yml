@@ -60,7 +60,7 @@ settings:
     # build script. They are needed (?) to build the plist that the
     # script then modifies.
     CURRENT_PROJECT_VERSION: 1
-    MARKETING_VERSION: 0.3.1
+    MARKETING_VERSION: 0.3.2
   configs:
     debug:
       SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG $(inherited)
@@ -85,8 +85,9 @@ targets:
       - package: SplitVView
     sources:
       - Supporting Files/Assets.xcassets
+      - path: LICENSE
+        buildPhase: resources
       - THIRD_PARTY_NOTICES.md
-      - Supporting Files/Credits.rtf
       - Supporting Files/PrivacyInfo.xcprivacy
       - GeoTag
     info:
@@ -94,7 +95,7 @@ targets:
       properties:
         CFBundleDisplayName: PhotoTrail
         LSApplicationCategoryType: public.app-category.photography
-        NSHumanReadableCopyright: Copyright 2022-2026 Marco S Hyman
+        NSHumanReadableCopyright: PhotoTrail © 2026 littlesixnine
         ITSAppUsesNonExemptEncryption: NO
         NSLocationUsageDescription: 打开地图或点击定位按钮时获取本机位置，用于移动地图，不修改照片
         NSLocationWhenInUseUsageDescription: 打开地图或点击定位按钮时获取本机位置，用于移动地图，不修改照片

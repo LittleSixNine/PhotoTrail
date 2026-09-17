@@ -5,6 +5,7 @@ extension GeoTagReducer {
     func quitRequested(_ state: inout GeoTagState) {
         if state.saveInProgress {
             state.addSheet(type: .savingUpdatesSheet)
+            return
         }
 
         if state.unsavedChanges {
