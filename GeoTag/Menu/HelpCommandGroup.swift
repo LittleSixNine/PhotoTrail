@@ -8,11 +8,11 @@ struct HelpCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .help) {
-            Link(destination: URL(string: "https://www.snafu.org/GeoTag/GeoTagHelp/")!) {
-                 Label("Upstream GeoTag Help…", systemImage: "link")
+            Link(destination: URL(string: "https://github.com/LittleSixNine/PhotoTrail")!) {
+                Label("PhotoTrail Help…", systemImage: "link")
             }
             Divider()
-            Link(destination: URL(string: "https://github.com/marchyman/GeoTag/issues")!) {
+            Link(destination: URL(string: "https://github.com/LittleSixNine/PhotoTrail/issues")!) {
                 Label("Report a bug…", systemImage: "link")
             }
             Button("Show log…", systemImage: "list.clipboard") {

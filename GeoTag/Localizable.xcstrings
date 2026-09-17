@@ -2,13 +2,13 @@
   "sourceLanguage": "en",
   "version": "1.0",
   "strings": {
-    "GeoTag Version Six": {
+    "PhotoTrail": {
       "extractionState": "manual",
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "GeoTag CN"
+            "value": "PhotoTrail"
           }
         }
       }
@@ -189,13 +189,13 @@
         }
       }
     },
-    "GeoTag 6 Help…": {
+    "PhotoTrail Help…": {
       "extractionState": "manual",
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "GeoTag 使用帮助…"
+            "value": "PhotoTrail 使用帮助…"
           }
         }
       }
@@ -266,13 +266,13 @@
         }
       }
     },
-    "GeoTag Saved Settings": {
+    "PhotoTrail Saved Settings": {
       "extractionState": "manual",
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "GeoTag CN 设置"
+            "value": "PhotoTrail 设置"
           }
         }
       }
@@ -1014,13 +1014,13 @@
         }
       }
     },
-    "GeoTag Run/Debug Log": {
+    "PhotoTrail Run/Debug Log": {
       "extractionState": "manual",
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "GeoTag CN 运行日志"
+            "value": "PhotoTrail 运行日志"
           }
         }
       }
@@ -1047,7 +1047,7 @@
         }
       }
     },
-    "Click on the disclosure indicator to choose a folder where GeoTag will place copies of images before performing any updates.": {
+    "Click on the disclosure indicator to choose a folder where PhotoTrail will place copies of images before performing any updates.": {
       "extractionState": "manual",
       "localizations": {
         "zh-Hans": {
@@ -1058,7 +1058,7 @@
         }
       }
     },
-    "GeoTag will not place a copy of updated files in your selected backup folder if this box is checked. If there are issues while updates are in progress it is possible that image files could be corrupted. Allowing GeoTag to make a backup before updates occur is recommended.": {
+    "PhotoTrail will not place a copy of updated files in your selected backup folder if this box is checked. If there are issues while updates are in progress it is possible that image files could be corrupted. Allowing PhotoTrail to make a backup before updates occur is recommended.": {
       "extractionState": "manual",
       "localizations": {
         "zh-Hans": {
@@ -1113,7 +1113,7 @@
         }
       }
     },
-    "When matching image timestamps to a GPS track log GeoTag will assign locations to images taken this many minutes before and after the log endpoints. The first or last location will be used as appropriate.": {
+    "When matching image timestamps to a GPS track log PhotoTrail will assign locations to images taken this many minutes before and after the log endpoints. The first or last location will be used as appropriate.": {
       "extractionState": "manual",
       "localizations": {
         "zh-Hans": {
@@ -1135,7 +1135,7 @@
         }
       }
     },
-    "Checking this box will set file modification time to be the same as the image creation date/time whenever GeoTag updates image metadata with location changes. If the box is not checked file modification times will be controlled by the system.": {
+    "Checking this box will set file modification time to be the same as the image creation date/time whenever PhotoTrail updates image metadata with location changes. If the box is not checked file modification times will be controlled by the system.": {
       "extractionState": "manual",
       "localizations": {
         "zh-Hans": {
@@ -1146,7 +1146,7 @@
         }
       }
     },
-    "GeoTag can set/update the GPS time and date stamps when updating locations. These timestamps are the same as the image create date and time but relative to GMP/UTC, not the local time. When setting this option it is important that the TimeZone (edit menu) is correct for the images being saved.  Please see the GeoTag help pages for more information on setting the time zone.": {
+    "PhotoTrail can set/update the GPS time and date stamps when updating locations. These timestamps are the same as the image create date and time but relative to GMP/UTC, not the local time. When setting this option it is important that the TimeZone (edit menu) is correct for the images being saved.  Please see the PhotoTrail help pages for more information on setting the time zone.": {
       "extractionState": "manual",
       "localizations": {
         "zh-Hans": {
@@ -1168,13 +1168,13 @@
         }
       }
     },
-    "This tag will be added to files when Tag updated files is checked. If the tag is empty \"GeoTag\" will be used.": {
+    "This tag will be added to files when Tag updated files is checked. If the tag is empty \"PhotoTrail\" will be used.": {
       "extractionState": "manual",
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "开启文件标签后使用此名称，留空时使用“GeoTag”。"
+            "value": "开启文件标签后使用此名称，留空时使用“PhotoTrail”。"
           }
         }
       }
@@ -1245,13 +1245,13 @@
         }
       }
     },
-    "Image updates are still being processed.  Please wait for the updates to complete before quiting GeoTag.": {
+    "Image updates are still being processed.  Please wait for the updates to complete before quitting PhotoTrail.": {
       "extractionState": "manual",
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "照片仍在保存，请等待完成后再退出 GeoTag CN。"
+            "value": "照片仍在保存，请等待完成后再退出 PhotoTrail。"
           }
         }
       }
@@ -1278,7 +1278,7 @@
         }
       }
     },
-    "Access to your Photos Library was denied. If you gave access to the program quit and re-launch GeoTag to make sure it is using the current state. If that does not resolve the issue open the Privacy and Security tab of System Settings and select Photos. Make sure GeoTag has full access.": {
+    "Access to your Photos Library was denied. If you gave access to the program quit and re-launch PhotoTrail to make sure it is using the current state. If that does not resolve the issue open the Privacy and Security tab of System Settings and select Photos. Make sure PhotoTrail has full access.": {
       "extractionState": "manual",
       "localizations": {
         "zh-Hans": {

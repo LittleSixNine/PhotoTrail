@@ -16,7 +16,7 @@ ExifTool 安装说明：https://exiftool.org/install.html 。本包不捆绑 Exi
 
 ## 安装
 
-1. 从 [PhotoTrail 仓库的 geotag-cn 分支](https://github.com/LittleSixNine/PhotoTrail/tree/geotag-cn/skill)取得完整 `skill/` 目录。可将仓库克隆到临时目录后仅复制 `skill/`，安装后不需要保留其余源码；记录获取时的提交号，避免混用不同提交的文件。未来若提供固定版本 ZIP，则下载对应校验文件并核对 SHA-256。
+1. 从 [PhotoTrail 仓库的 phototrail 分支](https://github.com/LittleSixNine/PhotoTrail/tree/phototrail/skill)取得完整 `skill/` 目录。可将仓库克隆到临时目录后仅复制 `skill/`，安装后不需要保留其余源码；记录获取时的提交号，避免混用不同提交的文件。未来若提供固定版本 ZIP，则下载对应校验文件并核对 SHA-256。
 2. 压缩包根目录是 `phototrail/`。把这个完整目录放入目标客户端支持的 skill 目录；从源码安装时，将 `skill/` 复制并命名为 `phototrail/`，使目录名与 SKILL.md 的 name 一致。
 3. 不覆盖已有同名安装，除非用户授权更新。保留 LICENSE、脚本、测试及说明。
 4. 按客户端要求刷新或重新加载 skills。安装路径、自动发现方式由客户端决定，本文不硬编码通用路径。

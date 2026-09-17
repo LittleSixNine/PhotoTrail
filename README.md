@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="design/geotag-cn-icon-concept-v2.png" width="160" alt="PhotoTrail 图标">
+  <img src="design/phototrail-icon-concept-v2.png" width="160" alt="PhotoTrail 图标">
 </p>
 
 <h1 align="center">PhotoTrail</h1>
 
 <p align="center">为照片补上拍摄地点，让中国大陆的地图定位更顺手。</p>
 
-PhotoTrail 是一款 macOS 照片定位工具，基于 [marchyman/GeoTag](https://github.com/marchyman/GeoTag) 的照片元数据编辑能力开发。应用支持高德与苹果地图、GPX 轨迹、逐照片缩略图标记、中国大陆坐标转换、常用地点收藏和简体中文界面。
+PhotoTrail 是一款 macOS 照片定位工具。部分照片元数据编辑功能源自 [marchyman/GeoTag](https://github.com/marchyman/GeoTag)；应用还支持高德与苹果地图、GPX 轨迹、逐照片缩略图标记、中国大陆坐标转换、常用地点收藏和简体中文界面。
 
 ## 界面预览
 
@@ -46,9 +46,9 @@ PhotoTrail 提供可独立安装的 [skill 模块](skill/)，无需安装 Mac Ap
 
 ### 安装方式
 
-**将[安装说明网址](https://raw.githubusercontent.com/LittleSixNine/PhotoTrail/geotag-cn/skill/INSTALL.md)发给 agent，让它按照说明完成安装。** 可以直接发送：
+**将[安装说明网址](https://raw.githubusercontent.com/LittleSixNine/PhotoTrail/phototrail/skill/INSTALL.md)发给 agent，让它按照说明完成安装。** 可以直接发送：
 
-> 请阅读 https://raw.githubusercontent.com/LittleSixNine/PhotoTrail/geotag-cn/skill/INSTALL.md ，按照说明为你当前使用的 agent 安装 PhotoTrail skill，并检查运行环境。
+> 请阅读 https://raw.githubusercontent.com/LittleSixNine/PhotoTrail/phototrail/skill/INSTALL.md ，按照说明为你当前使用的 agent 安装 PhotoTrail skill，并检查运行环境。
 
 运行需要 **Python 3.11+ 和 ExifTool**，目前已在 macOS 验证。安装位置由 agent 客户端决定；只支持网页对话、无法运行本地程序的客户端不能直接执行这些功能。照片处理在本地完成，不接入地图搜索或苹果 Photos 图库；首版不提供 RAW/XMP 写入。
 
@@ -56,7 +56,7 @@ PhotoTrail 提供可独立安装的 [skill 模块](skill/)，无需安装 Mac Ap
 
 ## Releases · 下载与版本
 
-最新版：[PhotoTrail v0.3.2](https://github.com/LittleSixNine/PhotoTrail/releases/tag/v0.3.2)。下载 `PhotoTrail-0.3.2-macOS-universal.zip`，解压后将 `PhotoTrail.app` 拖入“应用程序”。旧版 `v0.1.0`、`v0.2.0` 是 GeoTag CN 预发布版，仅供历史参考。
+最新版：[PhotoTrail v0.3.2](https://github.com/LittleSixNine/PhotoTrail/releases/tag/v0.3.2)。下载 `PhotoTrail-0.3.2-macOS-universal.zip`，解压后将 `PhotoTrail.app` 拖入“应用程序”。旧版 `v0.1.0`、`v0.2.0` 是早期预览版，仅供历史参考。
 
 - 系统要求：由于继承原版 GeoTag 6.0.2，需要 **macOS 26 或更新版本**。
 - 当前安装包兼容 Apple 芯片与 Intel Mac，采用临时签名，尚未完成开发者签名与 Apple 公证；首次打开可能被 macOS 拦截。

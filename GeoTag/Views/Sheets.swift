@@ -125,7 +125,7 @@ struct SavingUpdatesView: View {
                 .padding()
             Text("""
                 Image updates are still being processed.  Please wait \
-                for the updates to complete before quiting GeoTag.
+                for the updates to complete before quitting PhotoTrail.
                 """)
             .lineLimit(nil)
             .padding(.bottom, 40)

@@ -18,7 +18,7 @@ final class UITestGroup1: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments.append("-UIINIT")
         app.activate()
-        XCTAssert(app.windows["GeoTag Version Six"].exists)
+        XCTAssert(app.windows["PhotoTrail"].exists)
         let screenshot = app.screenshot()
         let attachment = XCTAttachment(screenshot: screenshot)
         attachment.name = "Initial launch"
