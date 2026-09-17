@@ -30,6 +30,7 @@ struct AMapView: View {
     @AppStorage(SettingsPreferences.showAllPhotoLocationsKey) private var showAllPhotoLocations = true
     @AppStorage(SettingsPreferences.doubleClickKey) private var allowDoubleClick = true
     @AppStorage(SettingsPreferences.dragPinKey) private var allowDragPin = true
+    private var mapStyles = AMapStylePreferences()
     @State private var photos: [AMapPhoto] = []
     @GestureState private var photoDrag: PhotoDrag?
     @State private var pendingPhotoDrag: PendingPhotoDrag?
@@ -72,6 +73,7 @@ struct AMapView: View {
                                 deviceFocusID: workspace.deviceFocusID,
                                 trackRevision: workspace.tracks.revision,
                                 fitRevision: workspace.tracks.fitRevision,
+                                mapStyle: mapStyles.selection.wrappedValue,
                                 trackColor: strokeColor, trackWidth: trackWidth,
                                 onMapTap: onMapTap,
                                 onPick: { id, coordinate in

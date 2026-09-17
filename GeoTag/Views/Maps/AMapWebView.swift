@@ -13,6 +13,7 @@ struct AMapWebView: NSViewRepresentable {
     var deviceFocusID: UUID?
     let trackRevision: Int
     let fitRevision: Int
+    let mapStyle: AMapStyleName
     let trackColor: String
     let trackWidth: Double
     let onMapTap: () -> Void
@@ -26,6 +27,7 @@ struct AMapWebView: NSViewRepresentable {
         configuration.websiteDataStore = .nonPersistent()
         configuration.userContentController.add(context.coordinator, name: "geoTag")
         let view = WKWebView(frame: .zero, configuration: configuration)
+        view.underPageBackgroundColor = .windowBackgroundColor
         // WebKit skips equal inset values. Establish an explicit value before zeroing
         // to disable its automatic titlebar inset, including before window attachment.
         view.obscuredContentInsets = NSEdgeInsets(top: 1, left: 0, bottom: 0, right: 0)
@@ -48,6 +50,7 @@ struct AMapWebView: NSViewRepresentable {
         let deviceChanged = context.coordinator.parent.deviceCoordinate != deviceCoordinate
         let deviceFocusChanged = context.coordinator.parent.deviceFocusID != deviceFocusID
         let tracksChanged = context.coordinator.parent.trackRevision != trackRevision
+        let mapStyleChanged = context.coordinator.parent.mapStyle != mapStyle
         let styleChanged = context.coordinator.parent.trackColor != trackColor
             || context.coordinator.parent.trackWidth != trackWidth
         context.coordinator.parent = self
@@ -59,6 +62,7 @@ struct AMapWebView: NSViewRepresentable {
         if deviceChanged || deviceFocusChanged {
             context.coordinator.updateDeviceLocation(focus: deviceFocusChanged && deviceCoordinate != nil)
         }
+        if mapStyleChanged { context.coordinator.updateMapStyle() }
         if styleChanged { context.coordinator.updateTrackStyle() }
         if tracksChanged { context.coordinator.updateTracks() }
     }
@@ -233,6 +237,7 @@ struct AMapWebView: NSViewRepresentable {
                                         arguments: ["config": ["key": parent.credentials.key,
                                                                 "securityJsCode": parent.credentials.securityJsCode,
                                                                 "preferWebGL": true,
+                                                                "mapStyle": parent.mapStyle.rawValue,
                                                                 "initialCenter": initialCenter,
                                                                 "initialZoom": initialZoom]],
                                         in: nil, in: .page) { [weak self] result in
@@ -244,6 +249,7 @@ struct AMapWebView: NSViewRepresentable {
                     parent.workspace.ready = true
                     updateSnapshot()
                     updateDeviceLocation()
+                    updateMapStyle()
                     updateTrackStyle()
                     updateTracks()
                     focusStartupCoordinate()
@@ -300,6 +306,12 @@ struct AMapWebView: NSViewRepresentable {
             webView.callAsyncJavaScript("return await window.geoTag.updateSnapshot(snapshot, photos);",
                                         arguments: ["snapshot": stateValue, "photos": photosValue],
                                         in: nil, in: .page) { _ in }
+        }
+
+        func updateMapStyle() {
+            guard ready, !disposed else { return }
+            browserView?.callAsyncJavaScript("window.geoTag.setMapStyle(style);",
+                arguments: ["style": parent.mapStyle.rawValue], in: nil, in: .page) { _ in }
         }
 
         func updateTrackStyle() {

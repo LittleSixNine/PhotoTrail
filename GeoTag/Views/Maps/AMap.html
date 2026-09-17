@@ -5,21 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PhotoTrail 地图</title>
   <style>
+    :root { color-scheme: light dark;
+      --map-background: #f0f0ed; --panel: #fff; --text: #222; --secondary: #555;
+      --popup: rgba(250,250,250,.92); --button: rgba(255,255,255,.75);
+      --border: rgba(90,90,90,.2); --shadow: rgba(0,0,0,.22); }
+    @media (prefers-color-scheme: dark) {
+      :root { --map-background: #202224; --panel: #2c2e30; --text: #f2f2f3; --secondary: #b8bbc0;
+        --popup: rgba(40,42,45,.94); --button: rgba(255,255,255,.08);
+        --border: rgba(255,255,255,.18); --shadow: rgba(0,0,0,.4); }
+    }
     html, body, #map { width: 100%; height: 100%; margin: 0; }
-    body { background: #f0f0ed; font-family: -apple-system, sans-serif; }
+    body { background: var(--map-background); font-family: -apple-system, sans-serif; }
     #notice { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 10;
-      background: #fff; color: #333; padding: 10px 14px; border-radius: 6px; pointer-events: none; }
+      background: var(--panel); color: var(--text); padding: 10px 14px; border-radius: 6px; pointer-events: none; }
     .location-popup { width: 158px; box-sizing: border-box; padding: 10px; border-radius: 14px;
-      background: rgba(250,250,250,.85); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-      box-shadow: 0 3px 16px rgba(0,0,0,.22); color: #222; }
+      background: var(--popup); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 3px 16px var(--shadow); color: var(--text); }
     .location-popup strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
       font-size: 13px; margin-bottom: 5px; }
-    .location-popup small { display: block; font: 10px ui-monospace, monospace; color: #555; margin-bottom: 8px; }
+    .location-popup small { display: block; font: 10px ui-monospace, monospace; color: var(--secondary); margin-bottom: 8px; }
     .location-popup .actions { display: flex; gap: 6px; }
-    .location-popup button { height: 44px; border: 1px solid rgba(90,90,90,.2); border-radius: 7px;
-      background: rgba(255,255,255,.65); color: #202020; cursor: pointer; font: 12px -apple-system, sans-serif; }
+    .location-popup button { height: 44px; border: 1px solid var(--border); border-radius: 7px;
+      background: var(--button); color: var(--text); cursor: pointer; font: 12px -apple-system, sans-serif; }
     .location-popup button:first-child { width: 88px; }
     .location-popup button:last-child { width: 44px; }
+    .location-popup button:focus-visible { outline: 2px solid Highlight; outline-offset: 2px; }
     .location-popup button:disabled { opacity: .42; cursor: default; }
   </style>
 </head>
@@ -518,7 +528,7 @@
         const zoom = Number.isFinite(config.initialZoom) && config.initialZoom >= 2
           && config.initialZoom <= 20 ? config.initialZoom : 12;
         map = new api.Map("map", { zoom, center, viewMode: "2D",
-          resizeEnable: true, doubleClickZoom: false });
+          resizeEnable: true, doubleClickZoom: false, mapStyle: mapStyleURL(config.mapStyle) });
         startup.center = center;
         startup.zoom = zoom;
         geocoder = new api.Geocoder({ extensions: "base" });
@@ -607,6 +617,14 @@
         return [...new Set([address.province, address.city, address.district]
           .filter(value => typeof value === "string" && value.length))].join(" · ");
       }
+      const mapStyles = new Set(["normal", "dark", "light", "whitesmoke", "fresh", "grey",
+        "graffiti", "macaron", "blue", "darkblue", "wine"]);
+      function mapStyleURL(style) {
+        return "amap://styles/" + (mapStyles.has(style) ? style : "normal");
+      }
+      function setMapStyle(style) {
+        if (map) map.setMapStyle(mapStyleURL(style));
+      }
       let satelliteLayer;
       function setSatellite(enabled) {
         if (!map) return;
@@ -617,7 +635,7 @@
         if (satelliteLayer) enabled ? satelliteLayer.show() : satelliteLayer.hide();
       }
       return { start, updateSnapshot, convertGPS, search, preview, selectSearch, clearPreview, setDeviceLocation,
-        setSatellite, navigate, zoomByWheel, region, renderingInfo, convertTracks, cancelTrack, renderTracks, fitTracks,
+        setMapStyle, setSatellite, navigate, zoomByWheel, region, renderingInfo, convertTracks, cancelTrack, renderTracks, fitTracks,
         setTrackStyle, pickPhotoAt, focusPhoto, focusWGS84, cancelStartup };
     })();
   </script>

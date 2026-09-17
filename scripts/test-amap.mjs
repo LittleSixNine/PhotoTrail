@@ -14,7 +14,7 @@ async function setup(preferWebGL = true, timeout = 15000, viewport = null, initi
   class Clock extends Date { static now() { return now; } }
   const api = {
     Map: class {
-      constructor(_, options = {}) { mapInstance = this; this.zoom = options.zoom; this.center = options.center; }
+      constructor(_, options = {}) { mapInstance = this; this.zoom = options.zoom; this.center = options.center; this.mapStyle = options.mapStyle; }
       on(name, handler) { handlers[name] = handler; }
       addControl() {}
       add(marker) { for (const item of Array.isArray(marker) ? marker : [marker]) { markers.push(item); visible.add(item); } }
@@ -34,13 +34,14 @@ async function setup(preferWebGL = true, timeout = 15000, viewport = null, initi
         const [longitude, latitude] = this.center ?? [121.48, 31.23];
         return { getLng: () => longitude, getLat: () => latitude };
       }
+      setMapStyle(value) { this.mapStyle = value; }
       setRotation(value) { this.rotation = value; }
       getRotation() { return this.rotation ?? 0; }
     },
     TileLayer: { Satellite: class { show() { this.visible = true; } hide() { this.visible = false; } } },
     PlaceSearch: class { search(query, callback) { searches.push({ query, callback }); } },
     Geocoder: class { getAddress(point, callback) { addresses.push({ point, callback }); } },
-    Scale: class {}, ToolBar: class {}, Marker: class { constructor(options) { this.options = options; } },
+    Scale: class {}, ToolBar: class {}, Marker: class { constructor(options) { this.options = options; } on() {} },
     Pixel: class { constructor(x, y) { this.x = x; this.y = y; } },
     Polyline: class { constructor(options) { this.options = options; } setOptions(options) { Object.assign(this.options, options); } },
     convertFrom(point, type, callback) { conversions.push({ point, type, callback }); }
@@ -258,7 +259,7 @@ test('dragging one native photo marker returns only its stable id', async () => 
   const h = await setup();
   const photos = [{ id: 42, editable: true,
     point: { latitude: 31.23, longitude: 121.48 } }];
-  await h.geo.updateSnapshot({ revision: 1, editable: false, point: null, photos });
+  await h.geo.updateSnapshot({ revision: 1, editable: false, point: null, photos, selectedPhotoIDs: [42] });
   await tick(); completeBatch(h.conversions[0]); await tick();
   h.geo.pickPhotoAt(42, { x: 1214.8, y: 312.3 });
   h.addresses[0].callback('complete', address);
@@ -275,8 +276,8 @@ test('markers use self-contained SVG with the tip anchored to the point', async 
   assert.match(h.markers[0].options.content, /<svg/);
   assert.doesNotMatch(h.markers[0].options.content, /<img|<image|href=|src=|url\((?!#)/);
   assert.equal(h.markers[0].options.anchor, 'bottom-center');
-  assert.match(h.markers[0].options.content, /M16 42C/);
-  assert.match(h.markers[0].options.content, /viewBox="0 0 32 42"/);
+  assert.match(h.markers[0].options.content, /M9 27H25L17 45Z/);
+  assert.match(h.markers[0].options.content, /viewBox="0 0 34 45"/);
   assert.equal(h.messages.filter(m => m.type === 'pick').length, 0);
 });
 
@@ -516,4 +517,27 @@ test('persistent QPS errors stop after two retries; cancellation suppresses retr
     assert.equal(h.conversions.length, cancel ? 1 : 3);
     assert.ok(cancel ? result.cancelled : result.error);
   }
+});
+
+
+test('all official styles initialize and switch without changing the viewport or photo data', async () => {
+  for (const style of ['normal', 'dark', 'light', 'whitesmoke', 'fresh', 'grey',
+    'graffiti', 'macaron', 'blue', 'darkblue', 'wine']) {
+    const h = await setup(true, 15000, null, { mapStyle: style });
+    assert.equal(h.map.mapStyle, `amap://styles/${style}`);
+    const center = h.map.center, zoom = h.map.zoom;
+    h.geo.setMapStyle('normal');
+    h.geo.setMapStyle(style);
+    h.geo.setSatellite(true);
+    h.geo.setSatellite(false);
+    assert.equal(h.map.mapStyle, `amap://styles/${style}`);
+    assert.equal(h.map.center, center);
+    assert.equal(h.map.zoom, zoom);
+    assert.equal(h.conversions.length, 0);
+    assert.equal(h.messages.filter(m => m.type === 'pick').length, 0);
+  }
+  const h = await setup(true, 15000, null, { mapStyle: 'unknown' });
+  assert.equal(h.map.mapStyle, 'amap://styles/normal');
+  h.geo.setMapStyle('unknown');
+  assert.equal(h.map.mapStyle, 'amap://styles/normal');
 });

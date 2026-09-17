@@ -73,6 +73,7 @@ struct SettingsView: View {
     private var general: some View {
         settingsPage {
             Section("显示") {
+                AppAppearancePicker()
                 Picker("坐标格式", selection: $coordFormat) {
                     Text("十进制度").tag(CoordFormat.deg)
                     Text("度分").tag(CoordFormat.degMin)
@@ -106,6 +107,7 @@ struct SettingsView: View {
                     Text("高德地图").tag("amap")
                     Text("苹果地图").tag("apple")
                 }
+                if mapProvider == "amap" { AMapStylePicker() }
                 Toggle("卫星视图", isOn: $satellite)
                 Button("高德 API 设置…") { showAMapSettings = true }
             }
@@ -275,7 +277,8 @@ extension SettingsView {
             Coords.coordFormatKey, trackWidthKey, trackColorKey, extendedTimeKey,
             updateFileModificationTimesKey, updateGPSTimestampsKey, addTagsKey,
             finderTagKey, ImageTableView.hideInvalidImagesKey,
-            "PhotoTrailMapProvider", "PhotoTrailSatellite",
+            "PhotoTrailMapProvider", "PhotoTrailSatellite", AMapStyleName.preferenceKey,
+            AMapStyleName.lightPreferenceKey, AMapStyleName.darkPreferenceKey, AppAppearance.preferenceKey,
             SettingsPreferences.showAllPhotoLocationsKey, SettingsPreferences.mapStartupViewKey,
             SettingsPreferences.showSaveSummaryKey, "PhotoTrailPinScope",
             SettingsPreferences.doubleClickKey,

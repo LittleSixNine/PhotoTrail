@@ -12,6 +12,7 @@ struct GeoTagApp: App {
                                      didUndo: GeoTagState.didUndoRedo,
                                      didRedo: GeoTagState.didUndoRedo)
     @State private var mainWindow: NSWindow?
+    @AppStorage(AppAppearance.preferenceKey) private var appearance: AppAppearance = .system
 
     @AppStorage(Self.doNotBackupKey) var doNotBackup = false
     @AppStorage(Self.savedBookmarkKey) var savedBookmark = Data()
@@ -33,6 +34,7 @@ struct GeoTagApp: App {
                 Color.clear.frame(width: 1, height: 1)
             } else {
             ContentView()
+                .preferredColorScheme(appearance.colorScheme)
                 .background(WindowAccessor(window: $mainWindow))
                 .frame(minWidth: windowWidth, minHeight: windowHeight)
                 .onChange(of: mainWindow) {
@@ -68,6 +70,7 @@ struct GeoTagApp: App {
 
         Window(Self.adjustTimeZone, id: Self.adjustTimeZone) {
             AdjustTimezoneView()
+                .preferredColorScheme(appearance.colorScheme)
                 .frame(width: 500.0, height: 570.0)
                 .environment(store)
         }
@@ -77,6 +80,7 @@ struct GeoTagApp: App {
 
         Window(Self.showRunLog, id: Self.showRunLog) {
             RunLogView()
+                .preferredColorScheme(appearance.colorScheme)
                 .frame(width: 700, height: 500)
         }
         .windowResizability(.contentSize)
@@ -84,6 +88,7 @@ struct GeoTagApp: App {
 
         Settings {
             SettingsView()
+                .preferredColorScheme(appearance.colorScheme)
                 .environment(store)
         }
         .windowResizability(.contentSize)

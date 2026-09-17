@@ -137,7 +137,7 @@ struct PhotoThumbnailMapPin: View {
                 .overlay {
                     PhotoThumbnailPinShape()
                         .stroke(selected ? Color(red: 0.72, green: 0.04, blue: 0.04)
-                                : Color.black.opacity(0.18), lineWidth: 0.8)
+                                : Color.primary.opacity(0.18), lineWidth: 0.8)
                 }
                 .frame(width: 48, height: 58)
                 .shadow(color: .black.opacity(0.20), radius: 3, y: 1.5)
@@ -149,10 +149,10 @@ struct PhotoThumbnailMapPin: View {
             if clusterCount > 1 {
                 Text("\(clusterCount)")
                     .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundStyle(selected ? Color(red: 0.80, green: 0.06, blue: 0.05) : .primary)
+                    .foregroundStyle(selected ? Color.red : .primary)
                     .frame(minWidth: 21, minHeight: 21)
                     .background(.regularMaterial, in: Circle())
-                    .overlay(Circle().stroke(.white.opacity(0.8), lineWidth: 0.75))
+                    .overlay(Circle().stroke(Color.primary.opacity(0.18), lineWidth: 0.75))
                     .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
                     .offset(x: 20, y: -5)
             }
@@ -166,7 +166,7 @@ struct PhotoThumbnailMapPin: View {
     private var shellColors: [Color] {
         selected
             ? [Color(red: 1.0, green: 0.29, blue: 0.25), Color(red: 0.88, green: 0.05, blue: 0.04)]
-            : [.white, Color(nsColor: .windowBackgroundColor)]
+            : [Color(nsColor: .controlBackgroundColor), Color(nsColor: .windowBackgroundColor)]
     }
 }
 
@@ -179,9 +179,10 @@ struct PhotoEdgeIndicator: View {
     var body: some View {
         ZStack {
             PhotoEdgePinShape()
-                .fill(LinearGradient(colors: [.white, Color(white: 0.98)],
+                .fill(LinearGradient(colors: [Color(nsColor: .controlBackgroundColor),
+                                              Color(nsColor: .windowBackgroundColor)],
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
-                .overlay(PhotoEdgePinShape().stroke(Color.black.opacity(0.12), lineWidth: 0.6))
+                .overlay(PhotoEdgePinShape().stroke(Color.primary.opacity(0.18), lineWidth: 0.6))
                 .shadow(color: .black.opacity(0.15), radius: 2.5, y: 1)
             PhotoThumbnail(image: image, fill: true, maxDimension: 96)
                 .frame(width: 30, height: 30)

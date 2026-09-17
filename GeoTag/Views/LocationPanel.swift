@@ -103,6 +103,8 @@ struct LocationPanel: View {
                 providerOption("apple", title: "苹果地图（WGS-84）", subtitle: "海外拍摄优先")
                 providerOption("amap", title: "高德地图（GCJ-02）", subtitle: "中国大陆拍摄优先")
             }
+            AppAppearancePicker()
+            if provider == "amap" { AMapStylePicker() }
             Divider()
             Button("高德 API 设置…") { workspace.settingsPresented = true }
             Button("重新加载高德地图") { workspace.reload() }

@@ -3,6 +3,7 @@ import Foundation
 enum PhotoTrailMigration {
     static func settings() {
         let defaults = UserDefaults.standard
+        AMapStyleName.migrateLegacyPreference(in: defaults)
         for (old, new) in [
             ("GeoTagCNMapProvider", "PhotoTrailMapProvider"),
             ("GeoTagCNSetupCompleted", "PhotoTrailSetupCompleted"),

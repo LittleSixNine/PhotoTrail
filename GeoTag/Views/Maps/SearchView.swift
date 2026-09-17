@@ -34,7 +34,7 @@ struct SearchView: View {
             if expanded && !query.isEmpty {
                 resultsPanel
                     .padding(12)
-                    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 18))
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
             }
             if expanded && query.isEmpty && !recentSearches.isEmpty {
                 HStack(spacing: 6) {
