@@ -9,10 +9,7 @@ struct SaveItemCommands: Commands {
     var body: some Commands {
         CommandGroup(after: .saveItem) {
             Button("Save…", systemImage: "square.and.arrow.down.on.square") {
-                store.send(.saveRequest, undoable: false) {
-                    SaveHelper.save(store)
-                }
-                store.discardAllUndo()
+                SaveHelper.requestSave(store)
             }
             .keyboardShortcut("s")
             .disabled(saveDisabled())

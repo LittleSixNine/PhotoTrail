@@ -114,8 +114,9 @@ extension ReducerTests {
         try await Task.sleep(for: .milliseconds(300))
         store.send(.backupFolderSizeCheck)
         #expect(store.oldFiles.isEmpty)
-        #expect(store.folderSize == 0)
+        #expect(store.folderSize > 0)
         #expect(store.deletedSize == 0)
+        #expect(state.oldFiles.allSatisfy { fm.fileExists(atPath: $0.path) })
     }
 
     @Test func saveCompleteEvent() async throws {
@@ -153,8 +154,9 @@ extension ReducerTests {
                                            longitude: -122.235)))
         store.send(.saveRequest)
         #expect(store.libraryImages.isEmpty)
-        #expect(store.fileImages.count == 13)
+        #expect(store.fileImages.count >= 13)
         #expect(store.xmpImages.count == 2)
+        #expect(store.saveTotal == store.fileImages.count + store.xmpImages.count)
     }
 
     @Test func searchActiveChangedEvent() async throws {

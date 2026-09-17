@@ -8,12 +8,20 @@ import UDF
 struct MapView: View {
     @Environment(Store<GeoTagState, GeoTagEvent>.self) var store
 
+    let startupCoordinate: MapCoordinate?
     @AppStorage(Self.initialMapLatitudeKey) var initialMapLatitude = 37.7244
     @AppStorage(Self.initialMapLongitudeKey) var initialMapLongitude = -122.4381
     @AppStorage(Self.initialMapDistanceKey) var initialMapDistance = 50_000.0
+    @AppStorage(Self.lastMapLatitudeKey) private var lastMapLatitude = Double.nan
+    @AppStorage(Self.lastMapLongitudeKey) private var lastMapLongitude = Double.nan
+    @AppStorage(Self.lastMapDistanceKey) private var lastMapDistance = Double.nan
     @AppStorage(Self.savedMapStyleKey) var savedMapStyle = MapStyleName.standard.rawValue
     @AppStorage(SettingsView.trackWidthKey) var trackWidth = 0.0
     @AppStorage(SettingsView.trackColorKey) var trackColor = Color.red
+    @AppStorage(SettingsPreferences.showAllPhotoLocationsKey) private var showAllPhotoLocations = true
+    @AppStorage(SettingsPreferences.mapStartupViewKey) private var mapStartupView = SettingsPreferences.MapStartupView.device.rawValue
+    @AppStorage(SettingsPreferences.doubleClickKey) private var allowDoubleClick = true
+    @AppStorage(SettingsPreferences.dragPinKey) private var allowDragPin = true
 
     var mapFocus: FocusState<MapWithSearchView.MapFocus?>.Binding
     @Binding var searchInfo: MapWithSearchView.SearchInfo
@@ -31,6 +39,7 @@ struct MapView: View {
     @State private var mapSize = CGSize.zero
     @State private var tracks: [MapTrack] = []
     @State private var fittedTrackRevision = -1
+    @State private var startupCancelled = false
     @GestureState private var photoDrag: PhotoDrag?
 
     private struct PhotoDrag: Equatable {
@@ -55,11 +64,11 @@ struct MapView: View {
                             .onTapGesture { selectPin(group) }
                             .gesture(DragGesture(minimumDistance: 3, coordinateSpace: .named("photoMap"))
                                 .updating($photoDrag) { value, state, _ in
-                                    guard group.pins.count == 1, pin.editable else { return }
+                                    guard allowDragPin, group.pins.count == 1, pin.editable else { return }
                                     state = PhotoDrag(id: pin.id, translation: value.translation)
                                 }
                                 .onEnded { value in
-                                    guard group.pins.count == 1, pin.editable,
+                                    guard allowDragPin, group.pins.count == 1, pin.editable,
                                           let location = mapProxy.convert(value.location,
                                                                           from: .named("photoMap")) else { return }
                                     store.send(.locationForImageChanged(pin.id, location),
@@ -90,6 +99,13 @@ struct MapView: View {
                 if let distance = camera?.distance {
                     cameraDistance = distance
                 }
+                let center = context.camera.centerCoordinate
+                if MapCoordinate(latitude: center.latitude, longitude: center.longitude).isValid,
+                   context.camera.distance.isFinite, context.camera.distance > 0 {
+                    lastMapLatitude = center.latitude
+                    lastMapLongitude = center.longitude
+                    lastMapDistance = context.camera.distance
+                }
                 mapRect = context.rect
                 photoPins = Self.groupedPhotoPins(allPhotoPins, in: context.rect)
                 updateEdgePhotos(mapProxy, size: mapSize)
@@ -99,8 +115,9 @@ struct MapView: View {
                                mapStyleName: $mapStyleName)
             }
             .gesture(SpatialTapGesture(count: 2).onEnded { position in
+                startupCancelled = true
                 mapFocus.wrappedValue = nil  // get rid of any search views
-                if let id = store.mostSelected {
+                if allowDoubleClick, !store.saveInProgress, let id = store.mostSelected {
                     if let loc = mapProxy.convert(position.location, from: .local) {
                         store.send(.confirmedWGS84Location(loc),
                                    description: "双击地图设置所选照片位置") {
@@ -121,6 +138,7 @@ struct MapView: View {
             })
             .onChange(of: workspace.previewID) {
                 if let point = workspace.previewCoordinate {
+                    startupCancelled = true
                     setCameraPosition(to: Coords(latitude: point.latitude, longitude: point.longitude))
                 }
             }
@@ -132,19 +150,30 @@ struct MapView: View {
             }
             .onChange(of: searchInfo.recenterLocation) {
                 if let location = searchInfo.recenterLocation {
+                    startupCancelled = true
                     setCameraPosition(to: location)
                     searchInfo.recenterLocation = nil
+                }
+            }
+            .onChange(of: startupCoordinate) {
+                if !startupCancelled, !cameraPosition.positionedByUser,
+                   mapStartupView == SettingsPreferences.MapStartupView.device.rawValue,
+                   let startupCoordinate, startupCoordinate.isValid {
+                    setCameraPosition(to: Coords(latitude: startupCoordinate.latitude,
+                                                 longitude: startupCoordinate.longitude))
                 }
             }
             .onAppear {
                 workspace.focusPhoto = { id in
                     let metadata = store[id].metadata
                     if metadata.canDisplayAsWGS84, let location = metadata.location {
+                        startupCancelled = true
                         setCameraPosition(to: location)
                     }
                 }
                 workspace.appleNavigation = { command in
                     guard let current = camera else { return }
+                    startupCancelled = true
                     let distance: Double
                     switch command {
                     case "zoomIn": distance = max(100, current.distance / 2)
@@ -154,10 +183,16 @@ struct MapView: View {
                     cameraPosition = .camera(.init(centerCoordinate: current.centerCoordinate,
                         distance: distance, heading: command == "north" ? 0 : current.heading, pitch: current.pitch))
                 }
-                let center = CLLocationCoordinate2D(
-                    latitude: initialMapLatitude,
-                    longitude: initialMapLongitude)
-                cameraDistance = initialMapDistance
+                let last = MapCoordinate(latitude: lastMapLatitude, longitude: lastMapLongitude)
+                let hasLast = last.isValid && lastMapDistance.isFinite && lastMapDistance > 0
+                let center = startupCoordinate.flatMap { point -> Coords? in
+                    guard mapStartupView == SettingsPreferences.MapStartupView.device.rawValue,
+                          point.isValid else { return nil }
+                    return Coords(latitude: point.latitude, longitude: point.longitude)
+                } ?? (hasLast ? Coords(latitude: last.latitude, longitude: last.longitude)
+                              : Coords(latitude: initialMapLatitude, longitude: initialMapLongitude))
+                cameraDistance = hasLast ? lastMapDistance : initialMapDistance
+                startupCancelled = false
                 setCameraPosition(to: center)
                 mapStyleName = .init(rawValue: savedMapStyle) ?? .standard
             }
@@ -165,8 +200,9 @@ struct MapView: View {
                 workspace.appleNavigation = nil
                 workspace.focusPhoto = nil
             }
-            .task(id: store.mapRevision) {
-                let pins = store.visibleImages.compactMap { image -> PhotoPin? in
+            .task(id: "\(store.mapRevision):\(showAllPhotoLocations)") {
+                let pins = SettingsPreferences.displayedPhotos(store.visibleImages, selection: store.selection,
+                                                           showAll: showAllPhotoLocations).compactMap { image -> PhotoPin? in
                     guard image.metadata.canDisplayAsWGS84,
                           let location = image.metadata.location else { return nil }
                     return PhotoPin(image: image, location: location,
@@ -183,6 +219,7 @@ struct MapView: View {
                    let selected = workspace.tracks.selected {
                     let points = tracks.filter { $0.fileID == selected }.flatMap(\.coords)
                     if !points.isEmpty {
+                        startupCancelled = true
                         var rect = MKMapRect.null
                         for point in points {
                             let position = MKMapPoint(point)
@@ -200,6 +237,7 @@ struct MapView: View {
                         Color.clear.allowsHitTesting(false)
                         ForEach(edgePhotos) { marker in
                             Button {
+                                startupCancelled = true
                                 setCameraPosition(to: marker.location)
                             } label: {
                                 PhotoEdgeIndicator(image: marker.image,
@@ -233,6 +271,7 @@ extension MapView {
 
     func zoomByWheel(_ steps: Double, at point: CGPoint, proxy: MapProxy) {
         guard steps != 0, let anchor = proxy.convert(point, from: .local) else { return }
+        startupCancelled = true
         let oldDistance = cameraDistance
         let nextDistance = Self.wheelZoomDistance(oldDistance, steps: steps)
         let center = camera?.centerCoordinate ?? CLLocationCoordinate2D(
@@ -267,7 +306,8 @@ extension MapView {
     func updateEdgePhotos(_ proxy: MapProxy, size: CGSize) {
         guard size.width > 80, size.height > 80 else { edgePhotos = []; return }
         let inset: CGFloat = 36
-        edgePhotos = store.selection.compactMap { id in
+        edgePhotos = allPhotoPins.filter { store.selection.contains($0.id) }.compactMap { pin in
+            let id = pin.id
             let image = store[id]
             guard image.metadata.canDisplayAsWGS84, let location = image.metadata.location,
                   let point = proxy.convert(location, to: .local),
@@ -417,6 +457,9 @@ extension MapView {
     static let initialMapLatitudeKey = "InitialMapLatitude"
     static let initialMapLongitudeKey = "InitialMapLongitude"
     static let initialMapDistanceKey = "InitialMapDistance"
+    static let lastMapLatitudeKey = "PhotoTrailAppleLastMapLatitude"
+    static let lastMapLongitudeKey = "PhotoTrailAppleLastMapLongitude"
+    static let lastMapDistanceKey = "PhotoTrailAppleLastMapDistance"
     static let savedMapStyleKey = "SavedMapStyle"
     static let showOtherPinsKey = "ShowOtherPins"
 }

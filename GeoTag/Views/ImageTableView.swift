@@ -6,6 +6,7 @@ import UDF
 struct ImageTableView: View {
     @Environment(Store<GeoTagState, GeoTagEvent>.self) var store
     @AppStorage(Self.hideInvalidImagesKey) var hideInvalidImages = false
+    @AppStorage(Coords.coordFormatKey) private var coordFormat: CoordFormat = .deg
     @State private var filter: PhotoListFilter = .all
     @State private var selection: Set<ImageData.ID> = []
     @State private var sortOrder = [KeyPathComparator(\ImageData.name)]
@@ -88,10 +89,10 @@ struct ImageTableView: View {
                 Text(image.metadata.timestamp.isEmpty ? "—" : image.metadata.timestamp).monospacedDigit()
             }.width(min: 155, ideal: 170, max: 500)
             TableColumn("纬度", sortUsing: KeyPathComparator(\ImageData.metadata.location?.latitude)) { image in
-                Text(image.metadata.location.map { String(format: "%.6f", $0.latitude) } ?? "—").monospacedDigit()
+                Text(image.metadata.location.map { coordToString(for: $0.latitude, ref: Coords.latRef, format: coordFormat) } ?? "—").monospacedDigit()
             }.width(min: 90, ideal: 110, max: 400)
             TableColumn("经度", sortUsing: KeyPathComparator(\ImageData.metadata.location?.longitude)) { image in
-                Text(image.metadata.location.map { String(format: "%.6f", $0.longitude) } ?? "—").monospacedDigit()
+                Text(image.metadata.location.map { coordToString(for: $0.longitude, ref: Coords.lonRef, format: coordFormat) } ?? "—").monospacedDigit()
             }.width(min: 95, ideal: 115, max: 400)
         } rows: {
             ForEach(filteredImages) { TableRow($0) }

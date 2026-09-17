@@ -6,6 +6,16 @@ import Metadata
 import Testing
 
 struct PhotoGPXDocumentTests {
+    @Test func customGapSplitsOnlyBeyondThreshold() {
+        let first = image(name: "first.jpg", timestamp: "2026:09:16 08:00:00", latitude: 31, longitude: 121)
+        let exact = image(name: "exact.jpg", timestamp: "2026:09:16 08:15:00", latitude: 32, longitude: 122)
+        let beyond = image(name: "beyond.jpg", timestamp: "2026:09:16 08:30:01", latitude: 33, longitude: 123)
+        let document = PhotoGPXDocument(images: [beyond, exact, first], timeZone: .gmt,
+                                        segmentGap: 15 * 60)
+        let xml = String(decoding: document.data, as: UTF8.self)
+        #expect(xml.components(separatedBy: "<trkseg>").count - 1 == 2)
+    }
+
     @Test func exportsSortedUTCPointsAndSplitsLongGaps() throws {
         let first = image(name: "A&B.jpg", timestamp: "2026:09:16 08:00:00", latitude: 31, longitude: 121)
         let second = image(name: "later.jpg", timestamp: "2026:09:16 08:10:00", latitude: 32, longitude: 122)

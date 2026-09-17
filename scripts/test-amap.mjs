@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 
 const html = readFileSync(new URL('../GeoTag/Views/Maps/AMap.html', import.meta.url), 'utf8');
 const source = html.match(/<script>([\s\S]*?)<\/script>/)[1];
-async function setup(preferWebGL = true, timeout = 15000, viewport = null) {
+async function setup(preferWebGL = true, timeout = 15000, viewport = null, initial = {}) {
   const messages = [], addresses = [], conversions = [], handlers = {}, markers = [], searches = [];
   const notice = {}, mapElement = { clientWidth: viewport?.width ?? 0, clientHeight: viewport?.height ?? 0 };
   const visible = new Set(), fits = [], delays = [], centers = [];
@@ -53,7 +53,7 @@ async function setup(preferWebGL = true, timeout = 15000, viewport = null) {
       const timer = setTimeout(fn, timeout); timer.unref(); return timer; }, clearTimeout, document: { querySelectorAll: () => [], getElementById: id => id === 'map' ? mapElement : notice, createElement: () => ({}),
       head: { appendChild: script => queueMicrotask(() => script.onload()) } } });
   vm.runInContext(source, context);
-  await window.geoTag.start({ key: 'test-only', securityJsCode: 'test-only', preferWebGL });
+  await window.geoTag.start({ key: 'test-only', securityJsCode: 'test-only', preferWebGL, ...initial });
   return { geo: window.geoTag, messages, addresses, conversions, handlers, markers, searches,
     visible, fits, delays, centers, map: mapInstance };
 }
@@ -66,6 +66,19 @@ test('read-only state never requests a location write', async () => {
   await h.handlers.dblclick(event);
   assert.equal(h.addresses.length, 0);
   assert.equal(h.messages.filter(m => m.type === 'pick').length, 0);
+});
+
+test('disabled map gestures do not start geocoding', async () => {
+  const h = await setup();
+  const photos = [{ id: 42, editable: true,
+    point: { latitude: 31.23, longitude: 121.48 } }];
+  await h.geo.updateSnapshot({ revision: 1, editable: true, point: null, photos,
+    allowDoubleClick: false, allowDragPin: false });
+  await tick(); completeBatch(h.conversions[0]); await tick();
+  await h.handlers.dblclick(event);
+  h.geo.pickPhotoAt(42, { x: 1214.8, y: 312.3 });
+  assert.equal(h.addresses.length, 0);
+  assert.equal(h.messages.filter(m => m.type === 'pickStarted').length, 0);
 });
 
 test('new click invalidates older location response immediately', async () => {
@@ -99,6 +112,48 @@ test('selecting a photo never recenters or reconverts the map', async () => {
   await h.geo.updateSnapshot({ revision: 2, editable: true, point: null });
   assert.equal(h.conversions.length, 0);
   assert.equal(h.centers.length, 0);
+});
+
+test('startup restores a valid saved view and reports later camera changes', async () => {
+  const h = await setup(true, 15000, null,
+    { initialCenter: [120.12, 30.21], initialZoom: 14 });
+  assert.deepEqual(h.map.center, [120.12, 30.21]);
+  assert.equal(h.map.getZoom(), 14);
+  h.map.setZoomAndCenter(15, [121.48, 31.23]);
+  h.handlers.moveend();
+  const camera = h.messages.filter(message => message.type === 'camera').at(-1);
+  assert.deepEqual({ ...camera }, { type: 'camera', latitude: 31.23, longitude: 121.48, zoom: 15 });
+  assert.equal(h.messages.filter(message => message.type === 'pick').length, 0);
+});
+
+test('device startup converts WGS84 once, then only moves the map', async () => {
+  const h = await setup();
+  const focus = h.geo.focusWGS84({ latitude: 31.23, longitude: 121.48 });
+  assert.equal(h.conversions.length, 1);
+  h.conversions[0].callback('complete', { locations: [location] });
+  assert.equal(await focus, true);
+  assert.deepEqual(Array.from(h.map.center), [121.49, 31.24]);
+  assert.equal(h.map.getZoom(), 12);
+  assert.equal(h.messages.filter(message => message.type === 'pick').length, 0);
+  assert.equal(h.markers.length, 0);
+});
+
+test('late device location does not override a map view changed meanwhile', async () => {
+  const h = await setup();
+  const focus = h.geo.focusWGS84({ latitude: 31.23, longitude: 121.48 });
+  h.map.setCenter([120, 30]);
+  h.conversions[0].callback('complete', { locations: [location] });
+  assert.equal(await focus, false);
+  assert.deepEqual(h.map.center, [120, 30]);
+});
+
+test('cancelled startup does not finish a pending coordinate conversion', async () => {
+  const h = await setup();
+  const focus = h.geo.focusWGS84({ latitude: 31.23, longitude: 121.48 });
+  h.geo.cancelStartup();
+  h.conversions[0].callback('complete', { locations: [location] });
+  assert.equal(await focus, false);
+  assert.deepEqual(Array.from(h.map.center), [121.48, 31.23]);
 });
 
 test('explicit photo focus is the only selection-related recenter action', async () => {

@@ -1,5 +1,7 @@
 import Coords
 import Foundation
+import ImageData
+import Metadata
 import Testing
 import UDF
 
@@ -7,6 +9,41 @@ import UDF
 
 @MainActor
 struct SaveHelperTests {
+    @Test func cancelSaveSummaryLeavesChangesPending() {
+        let key = SettingsPreferences.showSaveSummaryKey
+        let previous = UserDefaults.standard.object(forKey: key)
+        defer {
+            if let previous { UserDefaults.standard.set(previous, forKey: key) }
+            else { UserDefaults.standard.removeObject(forKey: key) }
+        }
+        UserDefaults.standard.set(true, forKey: key)
+
+        var changed = ImageData(metadata: Metadata(source: .xmp(URL(fileURLWithPath: "/tmp/save-summary.xmp"))),
+                                name: "changed.jpg")
+        changed.metadata.location = Coords(latitude: 31.23, longitude: 121.48)
+        let unchanged = ImageData(metadata: Metadata(source: .xmp(URL(fileURLWithPath: "/tmp/unchanged.xmp"))),
+                                  name: "unchanged.jpg")
+        var state = GeoTagState()
+        state.imageData = [changed, unchanged]
+        state.unsavedChanges = true
+        let store = Store(initialState: state, reduce: GeoTagReducer())
+        var prompted = false
+
+        let started = SaveHelper.requestSave(store) { targets in
+            prompted = true
+            #expect(targets.total == 1)
+            #expect(targets.xmp == [0])
+            #expect(targets.files.isEmpty && targets.library.isEmpty)
+            return false
+        }
+
+        #expect(prompted)
+        #expect(!started)
+        #expect(!store.saveInProgress)
+        #expect(store.unsavedChanges)
+        #expect(store.saveTotal == 0)
+    }
+
     func copyTestImages(_ state: GeoTagState) throws -> URL {
         let url = URL.documentsDirectory.appending(component: UUID().uuidString,
                                                    directoryHint: .isDirectory)

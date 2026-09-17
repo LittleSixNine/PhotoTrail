@@ -167,8 +167,7 @@ struct WorkspaceSaveButton: View {
     @State private var showCompletedRing = false
     var body: some View {
         Button {
-            store.send(.saveRequest, undoable: false) { SaveHelper.save(store) }
-            store.discardAllUndo()
+            SaveHelper.requestSave(store)
         } label: {
             HStack(spacing: 7) {
                 Image(systemName: "square.and.arrow.down")
@@ -261,6 +260,7 @@ struct PhotoActionSidebar: View {
     @Environment(LocationWorkspace.self) private var workspace
     @AppStorage(SettingsView.extendedTimeKey) private var extendedTime = 120.0
     @State private var timePresented = false
+    @State private var photoGPXPresented = false
     @State private var overwriteExisting = false
     @State private var gpxError: String?
     @State private var choosingCopyDestination = false
@@ -299,8 +299,7 @@ struct PhotoActionSidebar: View {
             Button { timePresented = true } label: { actionLabel("调整拍摄时间", "clock") }
                 .disabled(!editable)
             Button {
-                let images = store.imageData.filter { store.selection.contains($0.id) }
-                createPhotoTrack(images)
+                photoGPXPresented = true
             } label: { actionLabel("生成照片 GPX", "point.topleft.down.to.point.bottomright.curvepath") }
             .disabled(!hasGPXPoints)
             Button { choosingCopyDestination = true } label: {
@@ -323,6 +322,12 @@ struct PhotoActionSidebar: View {
         .buttonStyle(.bordered).controlSize(.large).padding(20)
         .frame(width: 240).frame(maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
+        .sheet(isPresented: $photoGPXPresented) {
+            PhotoGPXOptionsView(timeZone: store.timeZone) { minutes in
+                let images = store.imageData.filter { store.selection.contains($0.id) }
+                createPhotoTrack(images, minutes: minutes)
+            }
+        }
         .sheet(isPresented: $timePresented) {
             VStack(alignment: .leading, spacing: 16) {
                 Text("调整拍摄时间").font(.title2)
@@ -356,9 +361,9 @@ struct PhotoActionSidebar: View {
         }
     }
 
-    private func createPhotoTrack(_ images: [ImageData]) {
+    private func createPhotoTrack(_ images: [ImageData], minutes: Double) {
         do {
-            let url = try PhotoGPXDocument(images: images, timeZone: store.timeZone)
+            let url = try PhotoGPXDocument(images: images, timeZone: store.timeZone, segmentGap: minutes * 60)
                 .saveToCache(timeZone: store.timeZone)
             importPhotoTrack(url, store: store, workspace: workspace)
         } catch { gpxError = error.localizedDescription }
@@ -400,6 +405,7 @@ struct PhotoDetailPage: View {
     @State private var dragStart: Double?
     @State private var confirmClearLocations = false
     @State private var gpxError: String?
+    @State private var photoGPXPresented = false
     @State private var selectionAnchor: ImageData.ID?
     @State private var choosingCopyDestination = false
     @State private var copyExportNotice: String?
@@ -500,6 +506,11 @@ struct PhotoDetailPage: View {
                         .frame(height: geometry.size.height).background(Color(nsColor: .windowBackgroundColor))
                 }.frame(height: max(100, geometry.size.height * stripRatio))
             }.frame(width: geometry.size.width, height: geometry.size.height)
+        }
+        .sheet(isPresented: $photoGPXPresented) {
+            PhotoGPXOptionsView(timeZone: store.timeZone) { minutes in
+                prepareGPX(minutes: minutes)
+            }
         }
         .confirmationDialog("清除所选照片定位？", isPresented: $confirmClearLocations) {
             Button("清除 \(store.selection.count) 张照片的定位", role: .destructive) {
@@ -620,7 +631,7 @@ private extension PhotoDetailPage {
             LocationHelper.locationFromTrack(store, extendedTime: extendedTime)
         }.disabled(!editableSelection || store.gpxTracks.isEmpty)
         Button("从所选照片新建 GPX 轨迹", systemImage: "point.topleft.down.to.point.bottomright.curvepath") {
-            prepareGPX()
+            photoGPXPresented = true
         }.disabled(!hasGPXPoints)
         Button("导出所选照片的定位副本", systemImage: "square.and.arrow.up.on.square") {
             choosingCopyDestination = true
@@ -671,9 +682,9 @@ private extension PhotoDetailPage {
         }
     }
 
-    func prepareGPX() {
+    func prepareGPX(minutes: Double) {
         do {
-            let url = try PhotoGPXDocument(images: selectedImages, timeZone: store.timeZone)
+            let url = try PhotoGPXDocument(images: selectedImages, timeZone: store.timeZone, segmentGap: minutes * 60)
                 .saveToCache(timeZone: store.timeZone)
             importPhotoTrack(url, store: store, workspace: workspace)
         } catch { gpxError = error.localizedDescription }
@@ -753,5 +764,48 @@ struct WorkspacePageSwitch: View {
         .buttonStyle(.plain)
         .accessibilityLabel(title)
         .accessibilityAddTraits(selection == value ? .isSelected : [])
+    }
+}
+
+private struct PhotoGPXOptionsView: View {
+    @Environment(\.dismiss) private var dismiss
+    let timeZone: TimeZone
+    let create: (Double) -> Void
+    @State private var minutes = ""
+
+    private var validMinutes: Double? {
+        guard let value = Double(minutes.trimmingCharacters(in: .whitespacesAndNewlines)),
+              value.isFinite, value > 0, value <= 1_000_000 else { return nil }
+        return value
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("从照片新建 GPX 轨迹").font(.title2)
+            Text("当前批次相机时区：\(timeZone.identifier)")
+                .foregroundStyle(.secondary)
+            Picker("断段间隔", selection: $minutes) {
+                ForEach(["5", "15", "30", "60"], id: \.self) { value in
+                    Text("\(value) 分钟").tag(value)
+                }
+                if !["5", "15", "30", "60"].contains(minutes) {
+                    Text("自定义").tag(minutes)
+                }
+            }
+            TextField("自定义分钟数", text: $minutes)
+            Text("仅大于此间隔时开始新轨迹段。").font(.footnote).foregroundStyle(.secondary)
+            HStack {
+                Spacer()
+                Button("取消") { dismiss() }
+                Button("创建轨迹") {
+                    if let value = validMinutes { create(value); dismiss() }
+                }.disabled(validMinutes == nil)
+            }
+        }
+        .padding(24).frame(width: 380)
+        .onAppear {
+            let value = SettingsPreferences.photoGPXGap / 60
+            minutes = value.rounded() == value ? String(Int(value)) : String(value)
+        }
     }
 }

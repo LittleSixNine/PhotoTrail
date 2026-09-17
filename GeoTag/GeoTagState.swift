@@ -11,6 +11,7 @@ struct GeoTagState {
     var version = 1
     var mapRevision = 1
     var imageData: [ImageData] = []
+    var pairingEligibleIDs: Set<ImageData.ID>?
 
     // individual images are accessed by ID.
     subscript(id: ImageData.ID?) -> ImageData {
@@ -84,7 +85,7 @@ struct GeoTagState {
     var mainWindow: NSWindow?
     var showLogWindow = false
     var showTimeZoneWindow = false
-    var timeZone = TimeZone.current
+    var timeZone = SettingsPreferences.initialCameraTimeZone
 
     // confirmation required properties
     // A confirmation may required optional data or an action

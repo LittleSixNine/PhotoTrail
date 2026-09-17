@@ -19,7 +19,8 @@
     window.geoTag = (() => {
       let map, geocoder, placeSearch, marker, previewMarker;
       let previewGeneration = 0;
-      let snapshot = { revision: 0, editable: false, point: null, photos: [], selectedPhotoIDs: [] };
+      let startup = { allowed: true, center: null, zoom: 12 };
+      let snapshot = { revision: 0, editable: false, point: null, photos: [], allowDoubleClick: true, allowDragPin: true, selectedPhotoIDs: [] };
       let sequence = 0;
       let displayGeneration = 0;
       let photoGeneration = 0, photoKey = "", photoFrame = null;
@@ -197,7 +198,7 @@
 
       function fitTracks(id) {
         const lines = id ? trackLines.get(id)?.lines : [...trackLines.values()].flatMap(entry => entry.lines);
-        if (map && lines?.length) map.setFitView(lines, false, [80, 60, 120, 60], 17);
+        if (map && lines?.length) { startup.allowed = false; map.setFitView(lines, false, [80, 60, 120, 60], 17); }
       }
 
       function cancelTrack(request) {
@@ -272,9 +273,12 @@
       }
 
       async function selectPoint(event, purpose = "apply", name = "", photoID = null) {
+        startup.allowed = false;
         const photoEditable = purpose === "photo"
           && snapshot.photos?.some(photo => photo.id === photoID && photo.editable);
-        if ((purpose === "apply" && !snapshot.editable) || (purpose === "photo" && !photoEditable)) {
+        if (((purpose === "apply" || purpose === "map") && !snapshot.editable)
+          || (purpose === "map" && snapshot.allowDoubleClick === false)
+          || (purpose === "photo" && (snapshot.allowDragPin === false || !photoEditable))) {
           status("请先选择可编辑的照片。"); return;
         }
         const revision = snapshot.revision;
@@ -319,8 +323,26 @@
 
       function focusPhoto(id) {
         const point = photoPoints.get(id);
-        if (map && point) map.setCenter([point.longitude, point.latitude]);
+        if (map && point) { startup.allowed = false; map.setCenter([point.longitude, point.latitude]); }
       }
+
+      async function focusWGS84(point) {
+        if (!map || !valid(point) || !startup.allowed) return false;
+        const before = map.getCenter(), zoom = map.getZoom();
+        if (before.getLat() !== startup.center[1] || before.getLng() !== startup.center[0]
+          || zoom !== startup.zoom) return false;
+        try {
+          const displayed = await convertGPS(point);
+          const current = map.getCenter();
+          if (!startup.allowed || current.getLat() !== before.getLat() || current.getLng() !== before.getLng()
+            || map.getZoom() !== zoom) return false;
+          startup.allowed = false;
+          map.setZoomAndCenter(12, [displayed.longitude, displayed.latitude]);
+          return true;
+        } catch (_) { return false; }
+      }
+
+      function cancelStartup() { startup.allowed = false; }
 
       function makeMarker(point, kind) {
         const label = kind === "photo" ? "照片位置" : "地点预览";
@@ -347,6 +369,7 @@
       }
 
       async function preview(point, wgs84) {
+        startup.allowed = false;
         const generation = ++previewGeneration;
         try {
           if (!valid(point)) throw new Error("坐标无效");
@@ -393,8 +416,16 @@
         const api = await timedCall(done => AMapLoader.load({
           key: config.key, version: "2.0", plugins: ["AMap.Geocoder", "AMap.PlaceSearch", "AMap.Scale"]
         }).then(value => done(null, value), () => done(new Error("地图鉴权失败"))));
-        map = new api.Map("map", { zoom: 12, center: [121.48, 31.23], viewMode: "2D",
+        const center = Array.isArray(config.initialCenter) && config.initialCenter.length === 2
+          && Number.isFinite(config.initialCenter[0]) && Number.isFinite(config.initialCenter[1])
+          && Math.abs(config.initialCenter[0]) <= 180 && Math.abs(config.initialCenter[1]) <= 90
+          ? config.initialCenter : [121.48, 31.23];
+        const zoom = Number.isFinite(config.initialZoom) && config.initialZoom >= 2
+          && config.initialZoom <= 20 ? config.initialZoom : 12;
+        map = new api.Map("map", { zoom, center, viewMode: "2D",
           resizeEnable: true, doubleClickZoom: false });
+        startup.center = center;
+        startup.zoom = zoom;
         geocoder = new api.Geocoder({ extensions: "base" });
         placeSearch = new api.PlaceSearch({ pageSize: 6, extensions: "base" });
         map.addControl(new api.Scale());
@@ -404,8 +435,16 @@
         for (const event of ["mapmove", "zoomchange"])
           map.on(event, schedulePhotoPositions);
         for (const event of ["moveend", "zoomend", "resize", "rotatechange"])
-          map.on(event, () => emitPhotoPositions(true));
-        map.on("dblclick", event => selectPoint(event));
+          map.on(event, () => {
+            emitPhotoPositions(true);
+            if (event === "moveend" || event === "zoomend") {
+              const point = map.getCenter();
+              if (point.getLat() !== startup.center[1] || point.getLng() !== startup.center[0]
+                || map.getZoom() !== startup.zoom) startup.allowed = false;
+              post({ type: "camera", latitude: point.getLat(), longitude: point.getLng(), zoom: map.getZoom() });
+            }
+          });
+        map.on("dblclick", event => selectPoint(event, "map"));
         notice.hidden = true;
         status("高德地图已就绪。点选地图或搜索地点。");
         return true;
@@ -435,6 +474,7 @@
 
       function navigate(command) {
         if (!map) return;
+        startup.allowed = false;
         if (command === "zoomIn") map.setZoom(Math.min(20, map.getZoom() + 1));
         if (command === "zoomOut") map.setZoom(Math.max(2, map.getZoom() - 1));
         if (command === "north") map.setRotation(0);
@@ -442,6 +482,7 @@
       function zoomByWheel(steps, pixel) {
         if (!map || !Number.isFinite(steps) || steps === 0
           || !pixel || !Number.isFinite(pixel.x) || !Number.isFinite(pixel.y)) return;
+        startup.allowed = false;
         const oldZoom = map.getZoom();
         const newZoom = Math.min(20, Math.max(2, oldZoom + steps * 0.22));
         if (newZoom === oldZoom) return;
@@ -480,7 +521,7 @@
       }
       return { start, updateSnapshot, convertGPS, search, preview, selectSearch, clearPreview,
         setSatellite, navigate, zoomByWheel, region, renderingInfo, convertTracks, cancelTrack, renderTracks, fitTracks,
-        setTrackStyle, pickPhotoAt, focusPhoto };
+        setTrackStyle, pickPhotoAt, focusPhoto, focusWGS84, cancelStartup };
     })();
   </script>
 </body>

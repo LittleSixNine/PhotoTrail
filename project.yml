@@ -60,7 +60,7 @@ settings:
     # build script. They are needed (?) to build the plist that the
     # script then modifies.
     CURRENT_PROJECT_VERSION: 1
-    MARKETING_VERSION: 0.3.0
+    MARKETING_VERSION: 0.3.1
   configs:
     debug:
       SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG $(inherited)
@@ -96,8 +96,8 @@ targets:
         LSApplicationCategoryType: public.app-category.photography
         NSHumanReadableCopyright: Copyright 2022-2026 Marco S Hyman
         ITSAppUsesNonExemptEncryption: NO
-        NSLocationUsageDescription: 仅在点击定位按钮时获取本机位置，用于移动地图，不修改照片
-        NSLocationWhenInUseUsageDescription: 仅在点击定位按钮时获取本机位置，用于移动地图，不修改照片
+        NSLocationUsageDescription: 打开地图或点击定位按钮时获取本机位置，用于移动地图，不修改照片
+        NSLocationWhenInUseUsageDescription: 打开地图或点击定位按钮时获取本机位置，用于移动地图，不修改照片
         NSPhotoLibraryUsageDescription: 用于读取并修改你选择的照片的拍摄时间和位置
         LSMultipleInstancesProhibited: YES
         CFBundleDocumentTypes:

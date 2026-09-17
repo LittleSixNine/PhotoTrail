@@ -12,6 +12,7 @@ struct AMapTrackTests {
         let parent = AMapWebView(snapshot: AMapSnapshot(revision: 0, point: nil,
                                                        editable: false, photos: []),
             credentials: AMapCredentials(key: "test-only", securityJsCode: "test-only"),
+            startupCoordinate: nil,
             trackRevision: 0, fitRevision: 0, trackColor: "#000000", trackWidth: 0,
             onPick: { _, _ in Issue.record("A region query must not change a photo") }, workspace: workspace)
         let coordinator = AMapWebView.Coordinator(parent)
@@ -57,6 +58,7 @@ struct AMapTrackTests {
         let parent = AMapWebView(snapshot: AMapSnapshot(revision: 0, point: nil,
                                                        editable: false, photos: []),
             credentials: AMapCredentials(key: "test-only", securityJsCode: "test-only"),
+            startupCoordinate: nil,
             trackRevision: 0, fitRevision: 0, trackColor: "#FF3B30", trackWidth: 3,
             onPick: { _, _ in Issue.record("Track display must not write photo locations") }, workspace: workspace)
         let coordinator = AMapWebView.Coordinator(parent)

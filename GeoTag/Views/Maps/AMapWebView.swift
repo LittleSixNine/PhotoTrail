@@ -8,6 +8,7 @@ import WebKit
 struct AMapWebView: NSViewRepresentable {
     let snapshot: AMapSnapshot
     let credentials: AMapCredentials
+    let startupCoordinate: MapCoordinate?
     let trackRevision: Int
     let fitRevision: Int
     let trackColor: String
@@ -40,11 +41,16 @@ struct AMapWebView: NSViewRepresentable {
 
     func updateNSView(_ view: WKWebView, context: Context) {
         let changed = context.coordinator.parent.snapshot != snapshot
+        let startupChanged = context.coordinator.parent.startupCoordinate != startupCoordinate
         let tracksChanged = context.coordinator.parent.trackRevision != trackRevision
         let styleChanged = context.coordinator.parent.trackColor != trackColor
             || context.coordinator.parent.trackWidth != trackWidth
         context.coordinator.parent = self
         if changed { context.coordinator.updateSnapshot() }
+        if startupChanged {
+            if startupCoordinate == nil { context.coordinator.cancelStartupCoordinate() }
+            else { context.coordinator.focusStartupCoordinate() }
+        }
         if styleChanged { context.coordinator.updateTrackStyle() }
         if tracksChanged { context.coordinator.updateTracks() }
     }
@@ -75,6 +81,9 @@ struct AMapWebView: NSViewRepresentable {
         private var fittedRevision = -1
         private var fittedVersion: String?
         private var sentPhotos: [AMapPhoto]?
+        private static let lastLatitudeKey = "PhotoTrailAMapLastMapLatitude"
+        private static let lastLongitudeKey = "PhotoTrailAMapLastMapLongitude"
+        private static let lastZoomKey = "PhotoTrailAMapLastMapZoom"
 
         init(_ parent: AMapWebView) { self.parent = parent }
 
@@ -123,7 +132,7 @@ struct AMapWebView: NSViewRepresentable {
             }
             parent.workspace.previewWGS84 = { [weak self] point in self?.preview(point, wgs84: true) }
             parent.workspace.moveAMapPhoto = { [weak self] id, point in
-                guard let self, !disposed, ready else { return }
+                guard let self, !disposed, ready, parent.snapshot.allowDragPin else { return }
                 browserView?.callAsyncJavaScript("window.geoTag.pickPhotoAt(id, point);",
                     arguments: ["id": id, "point": ["x": point.x, "y": point.y]],
                     in: nil, in: .page) { _ in }
@@ -193,10 +202,21 @@ struct AMapWebView: NSViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            let defaults = UserDefaults.standard
+            let center = MapCoordinate(latitude: defaults.double(forKey: Self.lastLatitudeKey),
+                                       longitude: defaults.double(forKey: Self.lastLongitudeKey))
+            let zoom = defaults.double(forKey: Self.lastZoomKey)
+            let hasLast = defaults.object(forKey: Self.lastLatitudeKey) != nil
+                && defaults.object(forKey: Self.lastLongitudeKey) != nil
+                && center.isValid && (2...20).contains(zoom)
+            let initialCenter: [Double] = hasLast ? [center.longitude, center.latitude] : [121.48, 31.23]
+            let initialZoom = hasLast ? zoom : 12
             webView.callAsyncJavaScript("return await window.geoTag.start(config);",
                                         arguments: ["config": ["key": parent.credentials.key,
                                                                 "securityJsCode": parent.credentials.securityJsCode,
-                                                                "preferWebGL": true]],
+                                                                "preferWebGL": true,
+                                                                "initialCenter": initialCenter,
+                                                                "initialZoom": initialZoom]],
                                         in: nil, in: .page) { [weak self] result in
                 guard let self, !disposed else { return }
                 switch result {
@@ -207,11 +227,25 @@ struct AMapWebView: NSViewRepresentable {
                     updateSnapshot()
                     updateTrackStyle()
                     updateTracks()
+                    focusStartupCoordinate()
 
                 case .failure:
                     report("高德地图加载失败，请检查 Key、安全密钥和网络后重新加载。")
                 }
             }
+        }
+
+        func focusStartupCoordinate() {
+            guard ready, !disposed, let point = parent.startupCoordinate, point.isValid else { return }
+            browserView?.callAsyncJavaScript("return await window.geoTag.focusWGS84(point);",
+                arguments: ["point": ["latitude": point.latitude, "longitude": point.longitude]],
+                in: nil, in: .page) { _ in }
+        }
+
+        func cancelStartupCoordinate() {
+            guard ready, !disposed else { return }
+            browserView?.callAsyncJavaScript("window.geoTag.cancelStartup();",
+                in: nil, in: .page) { _ in }
         }
 
         func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
@@ -330,6 +364,17 @@ struct AMapWebView: NSViewRepresentable {
                 parent.workspace.amapHeading = heading
                 return
             }
+            if type == "camera", let latitude = body["latitude"] as? Double,
+               let longitude = body["longitude"] as? Double,
+               let zoom = body["zoom"] as? Double,
+               MapCoordinate(latitude: latitude, longitude: longitude).isValid,
+               (2...20).contains(zoom) {
+                let defaults = UserDefaults.standard
+                defaults.set(latitude, forKey: Self.lastLatitudeKey)
+                defaults.set(longitude, forKey: Self.lastLongitudeKey)
+                defaults.set(zoom, forKey: Self.lastZoomKey)
+                return
+            }
             if type == "status", let text = body["message"] as? String {
                 report(String(text.prefix(300)))
                 return
@@ -355,12 +400,14 @@ struct AMapWebView: NSViewRepresentable {
                 return
             }
             let purpose = body["purpose"] as? String ?? "apply"
-            guard purpose == "apply" || purpose == "favorite" || purpose == "photo" else { return }
+            guard ["apply", "map", "favorite", "photo"].contains(purpose) else { return }
             let photoID = body["photoID"] as? Int
             let photoEditable = photoID.map { id in
                 parent.snapshot.photos.contains { $0.id == id && $0.editable }
             } ?? false
-            let permitted = purpose == "favorite" || (purpose == "photo" ? photoEditable : parent.snapshot.editable)
+            let permitted = purpose == "favorite"
+                || (purpose == "photo" ? parent.snapshot.allowDragPin && photoEditable
+                    : parent.snapshot.editable && (purpose != "map" || parent.snapshot.allowDoubleClick))
             if type == "pickStarted", ready, permitted,
                let revision = body["revision"] as? Int, revision == parent.snapshot.revision,
                let sequence = body["sequence"] as? Int, sequence > pickSequence {
@@ -400,7 +447,10 @@ struct AMapWebView: NSViewRepresentable {
                                          in: nil, in: .page) { [weak self] result in
                 guard let self, !disposed, generation == validationGeneration, sequence == pickSequence,
                       revision == parent.snapshot.revision,
-                      purpose == "favorite" || purpose == "photo" || parent.snapshot.editable else { return }
+                      (purpose == "favorite"
+                       || (purpose == "photo" && parent.snapshot.allowDragPin)
+                       || (parent.snapshot.editable
+                           && (purpose != "map" || parent.snapshot.allowDoubleClick))) else { return }
                 guard case .success(let value) = result,
                       let point = value as? [String: Any],
                       let latitude = point["latitude"] as? Double,

@@ -38,6 +38,11 @@ struct GeoTagReducer: Reducer, Sendable {
 
         case .addImages(let imageDatas):
             newState.imageData.append(contentsOf: imageDatas)
+            if UserDefaults.standard.object(forKey: SettingsPreferences.pairJPGRAWKey) as? Bool != false {
+                newState.pairingEligibleIDs = (newState.pairingEligibleIDs ?? []).union(imageDatas.map(\.id))
+            } else if newState.pairingEligibleIDs == nil {
+                newState.pairingEligibleIDs = []
+            }
 
         case .addressChanged(let selected, let address):
             update(&newState, selected: selected, address: address)
@@ -195,6 +200,7 @@ struct GeoTagReducer: Reducer, Sendable {
             addTrackLog(&newState, path: path, tracklog: tracklog)
 
         case .removeOldFiles:
+            checkBackupFolderSize(&newState)
             removeFiles(filesToRemove: newState.oldFiles,
                         from: newState.backupURL)
             newState.oldFiles = []

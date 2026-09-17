@@ -52,7 +52,8 @@ extension GeoTagReducer {
         guard let urlEnumerator =
             fileManager.enumerator(at: url,
                                    includingPropertiesForKeys: [.isDirectoryKey],
-                                   options: [.skipsHiddenFiles],
+                                   options: UserDefaults.standard.object(forKey: SettingsPreferences.recursiveImportKey) as? Bool == false
+                                       ? [.skipsHiddenFiles, .skipsSubdirectoryDescendants] : [.skipsHiddenFiles],
                                    errorHandler: nil) else {
                 logger.error("\(#function, privacy: .public): No enumerator for \(url, privacy: .public)")
                 return []

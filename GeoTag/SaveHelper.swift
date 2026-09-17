@@ -1,3 +1,4 @@
+import AppKit
 import ImageData
 import Imagetool
 import Metadata
@@ -11,6 +12,51 @@ enum SaveHelper {
         case saveOK                     // All changes saved
         case saveError                  // Save issue, tell user
         case saveErrorSupressWarning    // Save issue, user knows
+    }
+
+    @discardableResult
+    static func requestSave(_ store: Store<GeoTagState, GeoTagEvent>,
+                            confirm: ((SaveTargets) -> Bool)? = nil) -> Bool {
+        guard !store.saveInProgress, store.unsavedChanges else { return false }
+        let targets = SaveTargets(images: store.imageData)
+        if targets.total > 0,
+           UserDefaults.standard.bool(forKey: SettingsPreferences.showSaveSummaryKey),
+           !(confirm?(targets) ?? confirmSave(targets, backupURL: store.backupURL)) {
+            return false
+        }
+        store.send(.saveRequest, undoable: false) { save(store) }
+        store.discardAllUndo()
+        return true
+    }
+
+    private static func confirmSave(_ targets: SaveTargets, backupURL: URL?) -> Bool {
+        let localCount = targets.files.count + targets.xmp.count
+        let backupMessage: String
+        if localCount == 0 {
+            backupMessage = "本次不写入本地文件；备份设置不适用。"
+        } else if UserDefaults.standard.bool(forKey: GeoTagApp.doNotBackupKey) {
+            backupMessage = "本地文件备份：已关闭。"
+        } else if backupURL != nil {
+            backupMessage = "本地文件备份：已开启；照片图库项目不在备份范围内。"
+        } else {
+            backupMessage = "尚未设置备份文件夹，本地照片和 XMP 将无法保存；照片图库仍可能更新。"
+        }
+        let sidecarMessage = targets.files.isEmpty ||
+            !UserDefaults.standard.bool(forKey: SettingsView.createSidecarFilesKey)
+            ? "" : "\n本地照片另会尝试创建 XMP 附属文件。"
+
+        let alert = NSAlert()
+        alert.messageText = "保存 \(targets.total) 项修改？"
+        alert.informativeText = """
+            本地照片：\(targets.files.count) 项
+            已导入的 XMP：\(targets.xmp.count) 项
+            照片图库：\(targets.library.count) 项
+
+            \(backupMessage)\(sidecarMessage)
+            """
+        alert.addButton(withTitle: "保存")
+        alert.addButton(withTitle: "取消")
+        return alert.runModal() == .alertFirstButtonReturn
     }
 
     @discardableResult

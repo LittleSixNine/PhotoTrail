@@ -47,16 +47,12 @@ struct ShowHidePinView: View {
 }
 
 struct PinOptionView: View {
-    @AppStorage(MapView.showOtherPinsKey) var showOtherPins = false
+    @AppStorage(SettingsPreferences.showAllPhotoLocationsKey) var showAllPhotoLocations = true
 
     var body: some View {
-        Picker(selection: $showOtherPins) {
-            Text("Show pins for all selected items").tag(true)
-            Text("Show pin for most selected item").tag(false)
-        } label: {
-            Label("Pin view options…", systemImage: "mappin.circle")
+        Toggle(isOn: $showAllPhotoLocations) {
+            Label("在地图上显示所有照片的位置", systemImage: "mappin.circle")
         }
-        .pickerStyle(.menu)
     }
 }
 

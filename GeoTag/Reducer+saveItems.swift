@@ -6,6 +6,27 @@ import Photos
 import Phototool
 import SwiftUI
 
+struct SaveTargets {
+    var library: [Int] = []
+    var files: [Int] = []
+    var xmp: [Int] = []
+
+    init(images: [ImageData]) {
+        for index in images.indices {
+            let image = images[index]
+            guard image.updatable, image.metadata != image.original else { continue }
+            switch image.metadata.source {
+            case .photos: library.append(index)
+            case .image: files.append(index)
+            case .xmp: xmp.append(index)
+            case .copy: break
+            }
+        }
+    }
+
+    var total: Int { library.count + files.count + xmp.count }
+}
+
 extension GeoTagReducer {
 
     // save the indices of all updatable images that have changed.
@@ -13,32 +34,12 @@ extension GeoTagReducer {
 
     func save(_ state: inout GeoTagState) {
         state.saveInProgress = true
-        state.libraryImages = state.imageData.indices.filter {
-            if case .photos = state.imageData[$0].metadata.source,
-               state.imageData[$0].updatable,
-               state.imageData[$0].metadata != state.imageData[$0].original {
-                return true
-            }
-            return false
-            }
-        state.fileImages = state.imageData.indices.filter {
-            if case .image = state.imageData[$0].metadata.source,
-               state.imageData[$0].updatable,
-               state.imageData[$0].metadata != state.imageData[$0].original {
-                return true
-            }
-            return false
-        }
-        state.xmpImages = state.imageData.indices.filter {
-            if case .xmp = state.imageData[$0].metadata.source,
-               state.imageData[$0].updatable,
-               state.imageData[$0].metadata != state.imageData[$0].original {
-                return true
-            }
-            return false
-        }
+        let targets = SaveTargets(images: state.imageData)
+        state.libraryImages = targets.library
+        state.fileImages = targets.files
+        state.xmpImages = targets.xmp
         state.saveCompleted = 0
-        state.saveTotal = state.libraryImages.count + state.fileImages.count + state.xmpImages.count
+        state.saveTotal = targets.total
     }
 
     func discardChanges(_ state: inout GeoTagState) {
@@ -60,6 +61,7 @@ extension GeoTagReducer {
         }
         state.scopedURLs = []
         state.imageData = []
+        state.pairingEligibleIDs = nil
         state.locationSavedPhotoIDs = []
     }
 }

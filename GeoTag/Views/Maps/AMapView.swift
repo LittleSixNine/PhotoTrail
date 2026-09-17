@@ -15,14 +15,20 @@ struct AMapSnapshot: Codable, Equatable {
     let point: MapCoordinate?
     let editable: Bool
     let photos: [AMapPhoto]
+    var allowDoubleClick = true
+    var allowDragPin = true
     var selectedPhotoIDs: [ImageData.ID] = []
 }
 
 struct AMapView: View {
     @Environment(Store<GeoTagState, GeoTagEvent>.self) private var store
     @Environment(LocationWorkspace.self) private var workspace
+    let startupCoordinate: MapCoordinate?
     @AppStorage(SettingsView.trackWidthKey) private var trackWidth = 0.0
     @AppStorage(SettingsView.trackColorKey) private var trackColor = Color.red
+    @AppStorage(SettingsPreferences.showAllPhotoLocationsKey) private var showAllPhotoLocations = true
+    @AppStorage(SettingsPreferences.doubleClickKey) private var allowDoubleClick = true
+    @AppStorage(SettingsPreferences.dragPinKey) private var allowDragPin = true
     @State private var photos: [AMapPhoto] = []
     @GestureState private var photoDrag: PhotoDrag?
 
@@ -45,6 +51,7 @@ struct AMapView: View {
         return AMapSnapshot(revision: store.mapRevision, point: point,
                             editable: !store.saveInProgress && !store.selection.isEmpty
                             && store.selection.allSatisfy { store[$0].updatable }, photos: photos,
+                            allowDoubleClick: allowDoubleClick, allowDragPin: allowDragPin,
                             selectedPhotoIDs: store.selection.sorted())
     }
 
@@ -53,6 +60,7 @@ struct AMapView: View {
             if let credentials = workspace.credentials {
                 ZStack(alignment: .topLeading) {
                     AMapWebView(snapshot: snapshot, credentials: credentials,
+                                startupCoordinate: startupCoordinate,
                                 trackRevision: workspace.tracks.revision,
                                 fitRevision: workspace.tracks.fitRevision,
                                 trackColor: strokeColor, trackWidth: trackWidth,
@@ -79,12 +87,12 @@ struct AMapView: View {
                                 .gesture(DragGesture(minimumDistance: 3,
                                                      coordinateSpace: .named("amapOverlay"))
                                     .updating($photoDrag) { value, state, _ in
-                                        guard position.ids.count == 1, image.updatable,
+                                        guard allowDragPin, position.ids.count == 1, image.updatable,
                                               !store.saveInProgress else { return }
                                         state = PhotoDrag(id: id, translation: value.translation)
                                     }
                                     .onEnded { value in
-                                        guard position.ids.count == 1, image.updatable,
+                                        guard allowDragPin, position.ids.count == 1, image.updatable,
                                               !store.saveInProgress else { return }
                                         workspace.moveAMapPhoto?(id, value.location)
                                     })
@@ -122,8 +130,9 @@ struct AMapView: View {
         .onDisappear {
             workspace.ready = false
         }
-        .task(id: store.mapRevision) {
-            photos = store.visibleImages.compactMap { image -> AMapPhoto? in
+        .task(id: "\(store.mapRevision):\(showAllPhotoLocations)") {
+            photos = SettingsPreferences.displayedPhotos(store.visibleImages, selection: store.selection,
+                                                           showAll: showAllPhotoLocations).compactMap { image -> AMapPhoto? in
                 guard image.metadata.canDisplayAsWGS84,
                       let location = image.metadata.location else { return nil }
                 return AMapPhoto(id: image.id,

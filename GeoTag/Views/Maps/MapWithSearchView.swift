@@ -23,9 +23,13 @@ public struct MapWithSearchView: View {
     @FocusState var mapFocus: MapFocus?
     @State var searchInfo = SearchInfo()
     @State private var locator = DeviceLocation()
+    @State private var startupLocator = DeviceLocation()
+    @State private var startupCoordinate: MapCoordinate?
+    @State private var startupRequestID: UUID?
     @Environment(\.openURL) private var openURL
     @AppStorage("PhotoTrailSatellite") private var satellite = false
     @AppStorage("PhotoTrailMapProvider") private var mapProvider = "amap"
+    @AppStorage(SettingsPreferences.mapStartupViewKey) private var mapStartupView = SettingsPreferences.MapStartupView.device.rawValue
 
     private var hasMap: Bool { mapProvider != "amap" || workspace.credentials != nil }
 
@@ -33,9 +37,12 @@ public struct MapWithSearchView: View {
         GeometryReader { geometry in
             ZStack(alignment: .bottomLeading) {
                 if mapProvider == "amap" {
-                    AMapView()
+                    AMapView(startupCoordinate: startupCoordinate)
+                        .id(mapStartupView)
                 } else {
-                    MapView(mapFocus: $mapFocus, searchInfo: $searchInfo)
+                    MapView(startupCoordinate: startupCoordinate,
+                            mapFocus: $mapFocus, searchInfo: $searchInfo)
+                        .id(mapStartupView)
                 }
                 if hasMap {
                 SearchView(mapFocus: $mapFocus, searchInfo: $searchInfo,
@@ -56,7 +63,13 @@ public struct MapWithSearchView: View {
         .overlay(alignment: .bottomTrailing) {
             if hasMap {
             MapNavigationControls(heading: mapProvider == "amap" ? workspace.amapHeading : workspace.appleHeading,
-                                  locating: locator.pending, locate: { locator.request() }) { command in
+                                  locating: locator.pending, locate: {
+                startupRequestID = nil
+                startupCoordinate = nil
+                locator.request()
+            }) { command in
+                startupRequestID = nil
+                startupCoordinate = nil
                 if mapProvider == "amap" { workspace.amapNavigation?(command) }
                 else { workspace.appleNavigation?(command) }
             }.padding(16)
@@ -65,6 +78,45 @@ public struct MapWithSearchView: View {
         .onChange(of: locator.point) {
             if let point = locator.point {
                 workspace.preview(point)
+            }
+        }
+        .onChange(of: startupLocator.point) {
+            if startupRequestID != nil, let point = startupLocator.point, point.isValid {
+                startupRequestID = nil
+                startupCoordinate = point
+            }
+        }
+        .onChange(of: startupLocator.error) {
+            if startupLocator.error != nil { startupRequestID = nil }
+        }
+        .onChange(of: workspace.query) {
+            if !workspace.query.isEmpty {
+                startupRequestID = nil
+                startupCoordinate = nil
+            }
+        }
+        .onChange(of: workspace.previewID) {
+            startupRequestID = nil
+            startupCoordinate = nil
+        }
+        .onChange(of: mapStartupView) {
+            startupRequestID = nil
+            startupCoordinate = nil
+        }
+        .task(id: "\(mapProvider):\(mapStartupView):\(hasMap)") {
+            startupRequestID = nil
+            startupCoordinate = nil
+            guard hasMap, mapStartupView == SettingsPreferences.MapStartupView.device.rawValue,
+                  workspace.query.isEmpty, workspace.previewCoordinate == nil,
+                  ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] != "1" else { return }
+            let requestID = UUID()
+            startupRequestID = requestID
+            startupLocator = DeviceLocation()
+            startupLocator.request()
+            try? await Task.sleep(for: .seconds(8))
+            if startupRequestID == requestID {
+                startupRequestID = nil
+                startupCoordinate = nil
             }
         }
         .alert("本机定位", isPresented: Binding(get: { locator.error != nil }, set: {
@@ -81,6 +133,8 @@ public struct MapWithSearchView: View {
             if workspace.ready { workspace.setSatellite?(satellite) }
         }
         .onChange(of: mapProvider) {
+            startupRequestID = nil
+            startupCoordinate = nil
             if mapProvider == "amap", UserDefaults.standard.bool(forKey: SetupGuideView.completedKey) {
                 Task { await workspace.loadCredentials() }
             }

@@ -66,6 +66,7 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .tint(.blue)
         .environment(locationWorkspace)
+        .background(CredentialChangeObserver(workspace: locationWorkspace))
         .task {
             if ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] != "1" {
                 let restored = locationWorkspace.tracks.restore()
@@ -228,4 +229,19 @@ extension ContentView {
 #Preview(traits: .store) {
     ContentView()
         .frame(width: 800, height: 1000)
+}
+
+private struct CredentialChangeObserver: View {
+    let workspace: LocationWorkspace
+
+    var body: some View {
+        Color.clear
+            .allowsHitTesting(false)
+            .onReceive(NotificationCenter.default.publisher(for: .photoTrailAMapCredentialsChanged)) { notice in
+                if let credentials = notice.object as? AMapCredentials {
+                    workspace.credentials = credentials
+                    workspace.reload()
+                }
+            }
+    }
 }

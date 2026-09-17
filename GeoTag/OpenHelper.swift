@@ -68,7 +68,9 @@ enum OpenHelper {
         }
         await MainActor.run {
             store.send(.addImages(newImages))
-            store.send(.linkPairedImages)
+            if UserDefaults.standard.object(forKey: SettingsPreferences.pairJPGRAWKey) as? Bool != false {
+                store.send(.linkPairedImages)
+            }
             store.send(.sortUsingCurrentComparator)
         }
         let duration = Date.now.timeIntervalSince1970 - start

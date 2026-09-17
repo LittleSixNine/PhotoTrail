@@ -118,15 +118,16 @@ extension FormatStyle where Self == LongitudeStyle {
 
 // MARK: convert a coordinate to a string using the desired format
 
-private func coordToString(
+public func coordToString(
     for coord: Double?,
-    ref: [String]
+    ref: [String],
+    format: CoordFormat? = nil
 ) -> String {
     @AppStorage(Coords.coordFormatKey) var coordFormat: CoordFormat =
         .deg
 
     if let coord {
-        switch coordFormat {
+        switch format ?? coordFormat {
         case .deg:
             return String(format: "% 2.6f", coord)
         case .degMin:

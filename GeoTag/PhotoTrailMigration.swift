@@ -12,6 +12,11 @@ enum PhotoTrailMigration {
         ] where defaults.object(forKey: new) == nil {
             defaults.set(defaults.object(forKey: old), forKey: new)
         }
+        if defaults.object(forKey: SettingsPreferences.showAllPhotoLocationsKey) == nil,
+           let oldScope = defaults.string(forKey: "PhotoTrailPinScope") {
+            defaults.set(oldScope != "selected" && oldScope != "current",
+                         forKey: SettingsPreferences.showAllPhotoLocationsKey)
+        }
     }
 
     static func file(at newURL: URL, legacyURL: URL) {

@@ -8,9 +8,13 @@ struct LocationPanel: View {
     @Environment(LocationWorkspace.self) private var workspace
     @AppStorage("PhotoTrailMapProvider") private var provider = "amap"
     @AppStorage(SettingsView.extendedTimeKey) private var extendedTime = 120.0
+    @AppStorage(Coords.coordFormatKey) private var coordFormat: CoordFormat = .deg
+    @AppStorage(SettingsPreferences.automaticRegionKey) private var automaticRegion = true
 
     @State private var region = ""
     @State private var displayedRegionKey = ""
+    @State private var manualLookup = 0
+    @State private var manualLookupKey = ""
 
     private var regionKey: String {
         guard let point = store[store.mostSelected].metadata.location else { return "" }
@@ -37,16 +41,17 @@ struct LocationPanel: View {
             }
             .padding(12)
         return content
-        .task(id: "\(regionKey):\(provider == "amap" && workspace.ready)") {
+        .task(id: "\(regionKey):\(provider == "amap" && workspace.ready):\(automaticRegion):\(manualLookup)") {
             let key = regionKey
             displayedRegionKey = key
             region = ""
             let metadata = store[store.mostSelected].metadata
             guard let point = metadata.location, metadata.canDisplayAsWGS84 else { return }
             if let cached = workspace.regionCache[key] { region = cached; return }
+            guard automaticRegion || (manualLookup > 0 && manualLookupKey == key) else { return }
             region = "正在读取地区…"
             do {
-                try await Task.sleep(for: .milliseconds(500))
+                if automaticRegion { try await Task.sleep(for: .milliseconds(500)) }
                 let name: String
                 if provider == "amap" {
                     guard let lookup = workspace.lookupAMapRegion, workspace.ready else {
@@ -65,17 +70,20 @@ struct LocationPanel: View {
                         .compactMap({ $0 }) where !parts.contains(value) { parts.append(value) }
                     name = parts.joined(separator: " · ")
                 }
-                guard !Task.isCancelled, key == regionKey else { return }
+                guard !Task.isCancelled, key == regionKey,
+                      automaticRegion || (manualLookup > 0 && manualLookupKey == key) else { return }
                 region = name.isEmpty ? "暂无地区信息" : name
                 if !name.isEmpty {
                     if workspace.regionCache.count >= 256 { workspace.regionCache.removeAll() }
                     workspace.regionCache[key] = name
                 }
             } catch {
-                guard !Task.isCancelled, key == regionKey else { return }
+                guard !Task.isCancelled, key == regionKey,
+                      automaticRegion || (manualLookup > 0 && manualLookupKey == key) else { return }
                 region = "地区暂不可用"
             }
         }
+        .onChange(of: automaticRegion) { manualLookup = 0; manualLookupKey = "" }
         .sheet(isPresented: $workspace.settingsPresented) {
             AMapSettingsView(initialCredentials: workspace.credentials) { credentials in
                 workspace.credentials = credentials
@@ -126,12 +134,16 @@ struct LocationPanel: View {
         VStack(alignment: .leading, spacing: 6) {
             let metadata = store[store.mostSelected].metadata
             if let point = metadata.location {
-                Text(displayedRegionKey == regionKey && !region.isEmpty ? region : "正在读取地区…")
+                Text(displayedRegionKey == regionKey && !region.isEmpty ? region :
+                     (automaticRegion ? "正在读取地区…" : "点击查询地区"))
                     .font(.title3.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
+                if !automaticRegion {
+                    Button("查询地区") { manualLookupKey = regionKey; manualLookup += 1 }
+                }
                 HStack(spacing: 10) {
-                    Text("纬度 \(point.latitude, specifier: "%.6f")")
-                    Text("经度 \(point.longitude, specifier: "%.6f")")
+                    Text("纬度 \(coordToString(for: point.latitude, ref: Coords.latRef, format: coordFormat))")
+                    Text("经度 \(coordToString(for: point.longitude, ref: Coords.lonRef, format: coordFormat))")
                 }
                 .font(.caption2).monospacedDigit().foregroundStyle(.secondary)
                 .lineLimit(1).minimumScaleFactor(0.8)

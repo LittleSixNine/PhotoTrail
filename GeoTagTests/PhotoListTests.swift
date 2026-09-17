@@ -8,6 +8,39 @@ import UDF
 
 @MainActor
 struct PhotoListTests {
+    @Test func mapPhotoSwitchUsesSelectionWithoutChangingIt() {
+        let first = ImageData(metadata: Metadata(source: .copy), name: "first.jpg")
+        let second = ImageData(metadata: Metadata(source: .copy), name: "second.jpg")
+        var state = GeoTagState()
+        state.imageData = [first, second]
+        state.selection = [first.id, second.id]
+        state.mostSelected = second.id
+
+        #expect(SettingsPreferences.displayedPhotos(state.visibleImages, selection: state.selection,
+                                                     showAll: true).count == 2)
+        #expect(SettingsPreferences.displayedPhotos(state.visibleImages, selection: [second.id],
+                                                     showAll: false).map(\.id) == [second.id])
+        #expect(SettingsPreferences.displayedPhotos(state.visibleImages, selection: [],
+                                                     showAll: false).isEmpty)
+        #expect(state.selection.count == 2)
+    }
+
+    @Test func pairingOnlyLinksEligibleImports() {
+        let base = URL(fileURLWithPath: "/tmp/independent-photo")
+        let raw = ImageData(metadata: Metadata(source: .xmp(base.appendingPathExtension("DNG"))),
+                            name: "independent-photo.DNG")
+        let jpg = ImageData(metadata: Metadata(source: .xmp(base.appendingPathExtension("JPG"))),
+                            name: "independent-photo.JPG")
+        var state = GeoTagState()
+        state.imageData = [raw, jpg]
+        state.pairingEligibleIDs = [jpg.id]
+        state.linkPairedImages()
+        #expect(state.visibleImages.map(\.id) == [raw.id, jpg.id])
+        state.pairingEligibleIDs = [raw.id, jpg.id]
+        state.linkPairedImages()
+        #expect(state.visibleImages.map(\.id) == [jpg.id])
+    }
+
     @Test func pairedJPEGDisplaysOnceButSavesBothFiles() {
         let base = URL(fileURLWithPath: "/tmp/paired-photo")
         let raw = ImageData(metadata: Metadata(source: .xmp(base.appendingPathExtension("DNG"))),

@@ -20,7 +20,7 @@ extension GeoTagReducer {
 
         let propertyKeys: Set = [
             URLResourceKey.totalFileSizeKey,
-            .addedToDirectoryDateKey
+            .addedToDirectoryDateKey, .isRegularFileKey
         ]
         let fileManager = FileManager.default
         _ = url.startAccessingSecurityScopedResource()
@@ -31,10 +31,9 @@ extension GeoTagReducer {
                 includingPropertiesForKeys: Array(propertyKeys),
                 options: [.skipsHiddenFiles],
                 errorHandler: nil) else { return }
-        guard let sevenDaysAgo =
-            Calendar.current.date(
-                byAdding: .day, value: -7,
-                to: Date()) else { return }
+        let cutoff = SettingsPreferences.backupReminderDays.flatMap {
+            Calendar.current.date(byAdding: .day, value: -$0, to: Date())
+        }
 
         // starting state
         state.oldFiles = []
@@ -46,10 +45,10 @@ extension GeoTagReducer {
         while let fileUrl = urlEnumerator.nextObject() as? URL {
             guard let resources =
                     try? fileUrl.resourceValues(forKeys: propertyKeys),
-                let fileSize = resources.totalFileSize,
-                let fileDate = resources.addedToDirectoryDate else { break }
+                resources.isRegularFile == true,
+                let fileSize = resources.totalFileSize else { continue }
             state.folderSize += fileSize
-            if fileDate < sevenDaysAgo {
+            if let cutoff, let fileDate = resources.addedToDirectoryDate, fileDate < cutoff {
                 state.oldFiles.append(fileUrl)
                 state.deletedSize += fileSize
             }

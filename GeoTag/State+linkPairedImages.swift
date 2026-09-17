@@ -72,7 +72,9 @@ extension GeoTagState {
         let rawByBase = Dictionary(rawBase.map { ($0.base, $0) }, uniquingKeysWith: { first, _ in first })
 
         for jpeg in jpegBase {
-            if let raw = rawByBase[jpeg.base] {
+            if self[jpeg.id].pairedID == nil, let raw = rawByBase[jpeg.base],
+               self[raw.id].pairedID == nil,
+               pairingEligibleIDs.map({ $0.contains(jpeg.id) && $0.contains(raw.id) }) ?? true {
                 logger.notice("""
                     Pairing \(jpeg.url.lastPathComponent, privacy: .public) \
                     <> \(raw.url.lastPathComponent, privacy: .public)"

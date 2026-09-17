@@ -31,6 +31,7 @@ final class UITestGroup2: XCTestCase {
         let settingsButton = element(app, matching: settingsID)
         XCTAssert(settingsButton.exists)
         settingsButton.click()
+        app.buttons["存储"].click()
 
         let pathView = element(app, matching: pathViewID)
         XCTAssert(pathView.exists)
@@ -47,6 +48,7 @@ final class UITestGroup2: XCTestCase {
 
         // now check that the path we set is the path shown
         settingsButton.click()
+        app.buttons["存储"].click()
         pathView.click()
         XCTAssert(pathView.menuItems["tmp"].exists)
         closeButton.click()
