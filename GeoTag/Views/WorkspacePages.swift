@@ -488,6 +488,7 @@ struct PhotoDetailPage: View {
                                                 .truncationMode(.middle)
                                                 .frame(width: max(90, (geometry.size.height - 48) * 1.5))
                                         }
+                                        .contentShape(Rectangle())
                                     }
                                     .buttonStyle(.plain)
                                     .contextMenu { photoMenu(image) }

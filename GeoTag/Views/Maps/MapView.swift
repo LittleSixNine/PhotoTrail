@@ -25,6 +25,7 @@ struct MapView: View {
 
     var mapFocus: FocusState<MapWithSearchView.MapFocus?>.Binding
     @Binding var searchInfo: MapWithSearchView.SearchInfo
+    let onMapTap: () -> Void
 
     @Environment(LocationWorkspace.self) private var workspace
     @State private var cameraPosition: MapCameraPosition = .automatic
@@ -40,6 +41,8 @@ struct MapView: View {
     @State private var tracks: [MapTrack] = []
     @State private var fittedTrackRevision = -1
     @State private var startupCancelled = false
+    @State private var activeMarker: LocationMarkerPin.Kind?
+    @State private var compactDeviceMarker = false
     @GestureState private var photoDrag: PhotoDrag?
 
     private struct PhotoDrag: Equatable {
@@ -50,10 +53,19 @@ struct MapView: View {
     var body: some View {
         MapReader { mapProxy in
             Map(position: $cameraPosition) {
+                if let point = workspace.deviceCoordinate {
+                    Annotation("当前位置", coordinate: Coords(latitude: point.latitude, longitude: point.longitude),
+                               anchor: .bottom) {
+                        locationMarker(.device, point: point, name: "当前位置")
+                    }
+                    .annotationTitles(.hidden)
+                }
                 if let point = workspace.previewCoordinate {
-                    Annotation("位置预览", coordinate: Coords(latitude: point.latitude, longitude: point.longitude),
-                               anchor: .bottom) { PhotoMapPin(preview: true) }
-                        .annotationTitles(.hidden)
+                    Annotation(workspace.previewName, coordinate: Coords(latitude: point.latitude, longitude: point.longitude),
+                               anchor: .bottom) {
+                        locationMarker(.search, point: point, name: workspace.previewName)
+                    }
+                    .annotationTitles(.hidden)
                 }
                 ForEach(photoPins) { group in
                     let pin = displayPin(for: group)
@@ -61,19 +73,26 @@ struct MapView: View {
                         PhotoThumbnailMapPin(image: pin.image, selected: pin.selected,
                                              clusterCount: group.pins.count)
                             .offset(photoDrag?.id == pin.id ? photoDrag?.translation ?? .zero : .zero)
-                            .onTapGesture { selectPin(group) }
+                            .onTapGesture {
+                                onMapTap()
+                                selectPin(group)
+                            }
                             .gesture(DragGesture(minimumDistance: 3, coordinateSpace: .named("photoMap"))
                                 .updating($photoDrag) { value, state, _ in
-                                    guard allowDragPin, group.pins.count == 1, pin.editable else { return }
+                                    guard allowDragPin, pin.selected, pin.editable else { return }
                                     state = PhotoDrag(id: pin.id, translation: value.translation)
                                 }
                                 .onEnded { value in
-                                    guard allowDragPin, group.pins.count == 1, pin.editable,
-                                          let location = mapProxy.convert(value.location,
+                                    guard allowDragPin, pin.selected, pin.editable,
+                                          let anchor = mapProxy.convert(group.location,
+                                                                        to: .named("photoMap")),
+                                          let location = mapProxy.convert(
+                                            CGPoint(x: anchor.x + value.translation.width,
+                                                    y: anchor.y + value.translation.height),
                                                                           from: .named("photoMap")) else { return }
                                     store.send(.locationForImageChanged(pin.id, location),
                                                description: "拖动照片位置")
-                                })
+                                }, including: allowDragPin && pin.selected && pin.editable ? .all : .none)
                     }
                 }
                 ForEach(tracks) { track in
@@ -107,6 +126,8 @@ struct MapView: View {
                     lastMapDistance = context.camera.distance
                 }
                 mapRect = context.rect
+                compactDeviceMarker = context.rect.width
+                    * MKMetersPerMapPointAtLatitude(context.camera.centerCoordinate.latitude) > 5_000
                 photoPins = Self.groupedPhotoPins(allPhotoPins, in: context.rect)
                 updateEdgePhotos(mapProxy, size: mapSize)
             }
@@ -114,6 +135,7 @@ struct MapView: View {
                 MapContextMenu(camera: camera,
                                mapStyleName: $mapStyleName)
             }
+            .simultaneousGesture(TapGesture().onEnded { onMapTap() })
             .gesture(SpatialTapGesture(count: 2).onEnded { position in
                 startupCancelled = true
                 mapFocus.wrappedValue = nil  // get rid of any search views
@@ -138,6 +160,12 @@ struct MapView: View {
             })
             .onChange(of: workspace.previewID) {
                 if let point = workspace.previewCoordinate {
+                    startupCancelled = true
+                    setCameraPosition(to: Coords(latitude: point.latitude, longitude: point.longitude))
+                }
+            }
+            .onChange(of: workspace.deviceFocusID) {
+                if let point = workspace.deviceCoordinate {
                     startupCancelled = true
                     setCameraPosition(to: Coords(latitude: point.latitude, longitude: point.longitude))
                 }
@@ -262,6 +290,29 @@ struct MapView: View {
 // Map positioning helper functions
 
 extension MapView {
+
+    func locationMarker(_ kind: LocationMarkerPin.Kind, point: MapCoordinate,
+                        name: String) -> some View {
+        Button { onMapTap(); activeMarker = kind } label: {
+            LocationMarkerPin(kind: kind, compact: kind == .device && compactDeviceMarker)
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: Binding(get: { activeMarker == kind },
+                                      set: { if !$0 { activeMarker = nil } }), arrowEdge: .top) {
+            LocationMarkerCallout(name: name, coordinate: point,
+                canApply: !store.saveInProgress && !store.selection.isEmpty
+                    && store.selection.allSatisfy { store[$0].updatable },
+                apply: {
+                    activeMarker = nil
+                    store.send(.confirmedWGS84Location(Coords(latitude: point.latitude,
+                                                               longitude: point.longitude)),
+                               description: "写入地图定位到所选照片")
+                }, favorite: {
+                    activeMarker = nil
+                    workspace.favoriteDraft = SavedLocation(name: name, note: "", coordinate: point)
+                })
+        }
+    }
 
     // Set the camera position
     func setCameraPosition(to coords: Coords) {

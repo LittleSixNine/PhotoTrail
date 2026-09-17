@@ -125,8 +125,8 @@ struct SettingsView: View {
             }
             Section("地图直接编辑") {
                 Toggle("允许双击地图设置照片位置", isOn: $allowDoubleClick)
-                Toggle("允许拖动照片标记修改位置", isOn: $allowDragPin)
-                Text("关闭手势后仍可通过“应用”按钮设置位置。")
+                Toggle("允许拖动选中照片的标记修改位置", isOn: $allowDragPin)
+                Text("开启后拖动标记，松手即更新待保存的位置；关闭可避免误触。")
                     .font(.footnote).foregroundStyle(.secondary)
             }
             Section("地区名称") {

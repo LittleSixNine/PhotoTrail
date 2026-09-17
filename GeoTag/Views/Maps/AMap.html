@@ -9,6 +9,18 @@
     body { background: #f0f0ed; font-family: -apple-system, sans-serif; }
     #notice { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 10;
       background: #fff; color: #333; padding: 10px 14px; border-radius: 6px; pointer-events: none; }
+    .location-popup { width: 158px; box-sizing: border-box; padding: 10px; border-radius: 14px;
+      background: rgba(250,250,250,.85); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 3px 16px rgba(0,0,0,.22); color: #222; }
+    .location-popup strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      font-size: 13px; margin-bottom: 5px; }
+    .location-popup small { display: block; font: 10px ui-monospace, monospace; color: #555; margin-bottom: 8px; }
+    .location-popup .actions { display: flex; gap: 6px; }
+    .location-popup button { height: 44px; border: 1px solid rgba(90,90,90,.2); border-radius: 7px;
+      background: rgba(255,255,255,.65); color: #202020; cursor: pointer; font: 12px -apple-system, sans-serif; }
+    .location-popup button:first-child { width: 88px; }
+    .location-popup button:last-child { width: 44px; }
+    .location-popup button:disabled { opacity: .42; cursor: default; }
   </style>
 </head>
 <body>
@@ -17,8 +29,9 @@
   <script>
     "use strict";
     window.geoTag = (() => {
-      let map, geocoder, placeSearch, marker, previewMarker;
+      let map, geocoder, placeSearch, marker, previewMarker, deviceMarker, locationPopup;
       let previewGeneration = 0;
+      let deviceGeneration = 0, previewLocation = null, deviceLocation = null;
       let startup = { allowed: true, center: null, zoom: 12 };
       let snapshot = { revision: 0, editable: false, point: null, photos: [], allowDoubleClick: true, allowDragPin: true, selectedPhotoIDs: [] };
       let sequence = 0;
@@ -272,7 +285,8 @@
         return result;
       }
 
-      async function selectPoint(event, purpose = "apply", name = "", photoID = null) {
+      async function selectPoint(event, purpose = "apply", name = "", photoID = null,
+                                 originalPhotoPoint = null) {
         startup.allowed = false;
         const photoEditable = purpose === "photo"
           && snapshot.photos?.some(photo => photo.id === photoID && photo.editable);
@@ -283,7 +297,8 @@
         }
         const revision = snapshot.revision;
         const currentSequence = ++sequence;
-        post({ type: "pickStarted", revision, sequence: currentSequence, purpose });
+        post({ type: "pickStarted", revision, sequence: currentSequence, purpose,
+          photoID, originalPhotoPoint });
         status("正在校验所选位置…");
         try {
           const point = { latitude: event.lnglat.getLat(), longitude: event.lnglat.getLng() };
@@ -293,12 +308,22 @@
               const component = result && result.regeocode && result.regeocode.addressComponent;
               done(state === "complete" && component ? null : new Error("无法确认行政区"), component);
             }));
-          if (revision !== snapshot.revision || currentSequence !== sequence) return;
+          if (currentSequence !== sequence) return;
+          if (purpose === "photo") {
+            const current = snapshot.photos?.find(photo => photo.id === photoID);
+            if (!current?.editable || !originalPhotoPoint
+              || current.point.latitude !== originalPhotoPoint.latitude
+              || current.point.longitude !== originalPhotoPoint.longitude
+              || !snapshot.selectedPhotoIDs?.includes(photoID)) {
+              status("照片状态已变化，请重新拖动。"); return;
+            }
+          } else if (revision !== snapshot.revision) return;
           post({ type: "pick", revision, sequence: currentSequence,
             latitude: point.latitude, longitude: point.longitude, purpose, name, photoID,
+            originalPhotoPoint,
             adcode: String(address.adcode || "") });
         } catch (_) {
-          if (revision === snapshot.revision && currentSequence === sequence)
+          if ((purpose === "photo" || revision === snapshot.revision) && currentSequence === sequence)
             status("所选位置校验失败，未修改照片。请检查网络、凭据或服务配额。");
         }
       }
@@ -309,8 +334,7 @@
           renderPhotos(changedPhotos);
         } else next.photos = snapshot.photos || [];
         snapshot = next;
-        ++previewGeneration;
-        if (previewMarker && map) { map.remove(previewMarker); previewMarker = null; }
+        if (locationPopup) locationPopup.close();
         emitPhotoPositions(false);
         notice.hidden = true;
       }
@@ -318,7 +342,8 @@
       function pickPhotoAt(id, point) {
         if (!photoPoints.has(id) || !point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
         const location = map.containerToLngLat(new AMap.Pixel(point.x, point.y));
-        selectPoint({ lnglat: location }, "photo", "", id);
+        const original = snapshot.photos?.find(photo => photo.id === id)?.point;
+        selectPoint({ lnglat: location }, "photo", "", id, original);
       }
 
       function focusPhoto(id) {
@@ -344,31 +369,85 @@
 
       function cancelStartup() { startup.allowed = false; }
 
+      function markerContent(kind, compact = false) {
+        const device = kind === "device", scale = compact ? .5 : 1;
+        const red = device ? "#c93e37" : "#df4840";
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="${34 * scale}" height="${45 * scale}"
+          viewBox="0 0 34 45" style="display:block;filter:drop-shadow(0 2px 3px #243c494d)" role="img"
+          aria-label="${device ? "设备位置" : "搜索地点"}">
+          <path d="M9 27H25L17 45Z" fill="${red}"/>
+          <circle cx="17" cy="17" r="16" fill="${device ? "white" : red}"
+            stroke="${device ? red : "white"}" stroke-width="2.5"/>
+          <circle cx="17" cy="17" r="5" fill="${device ? red : "white"}"/></svg>`;
+      }
+
+      function deviceCompact() {
+        const bounds = map.getBounds();
+        if (!bounds) return false;
+        const west = bounds.getSouthWest(), east = bounds.getNorthEast();
+        const difference = east.getLng() - west.getLng();
+        const span = difference >= 360 ? 360 : (difference + 360) % 360;
+        const latitude = (west.getLat() + east.getLat()) / 2;
+        return span * 111320 * Math.cos(latitude * Math.PI / 180) > 5000;
+      }
+
+      function refreshDeviceSize() {
+        if (deviceMarker) {
+          deviceMarker.setContent(markerContent("device", deviceCompact()));
+          if (locationPopup) locationPopup.close();
+        }
+      }
+
+      function openLocationPopup(kind) {
+        const selected = kind === "device" ? deviceLocation : previewLocation;
+        if (!selected) return;
+        const { displayed, original, name } = selected;
+        const container = document.createElement("div");
+        container.className = "location-popup";
+        container.addEventListener("click", event => event.stopPropagation());
+        const title = document.createElement("strong");
+        title.textContent = name;
+        const subtitle = document.createElement("small");
+        subtitle.textContent = `${original.latitude.toFixed(6)}, ${original.longitude.toFixed(6)}`;
+        const actions = document.createElement("div");
+        actions.className = "actions";
+        for (const [purpose, label] of [["apply", "写入照片"], ["favorite", "收藏"]]) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = label;
+          button.disabled = purpose === "apply" && !snapshot.editable;
+          button.addEventListener("click", event => {
+            event.stopPropagation();
+            selectSearch(displayed, purpose, name);
+            locationPopup.close();
+          });
+          actions.append(button);
+        }
+        container.append(title, subtitle, actions);
+        if (locationPopup) locationPopup.close();
+        locationPopup = new AMap.InfoWindow({ isCustom: true, content: container,
+          offset: new AMap.Pixel(0, kind === "device" && deviceCompact() ? -27 : -49) });
+        locationPopup.open(map, [displayed.longitude, displayed.latitude]);
+      }
+
       function makeMarker(point, kind) {
-        const label = kind === "photo" ? "照片位置" : "地点预览";
-        const opacity = kind === "photo" ? 1 : 0.65;
-        // SVG has no bottom padding: its (16,42) tip is the bottom-center anchor.
-        const content = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42"
-          viewBox="0 0 32 42" style="display:block;opacity:${opacity}" role="img" aria-label="${label}">
-          <defs><linearGradient id="pinRed" x2="1" y2="1">
-            <stop stop-color="red"/><stop offset="1" stop-color="#e8302e"/></linearGradient></defs>
-          <path d="M16 42C12 34 0 26 0 16C0 5 5 0 16 0C27 0 32 5 32 16C32 26 20 34 16 42Z"
-            fill="url(#pinRed)"/>
-          <path d="M6 23L13 12L18 19L22 15L27 23Z" fill="white"/>
-          <circle cx="22.5" cy="9.5" r="2.5" fill="white"/>
-          <path d="M3 15C4 2 17 0 25 5" fill="none" stroke="white" stroke-opacity=".45"
-            stroke-width="1.3" stroke-linecap="round"/></svg>`;
-        return new AMap.Marker({ position: [point.longitude, point.latitude],
-          anchor: "bottom-center", content, title: label, bubble: false });
+        const pin = new AMap.Marker({ position: [point.longitude, point.latitude],
+          anchor: "bottom-center", content: markerContent(kind, kind === "device" && deviceCompact()),
+          title: kind === "device" ? "设备位置" : "搜索地点", bubble: false,
+          zIndex: kind === "device" ? 110 : 120 });
+        pin.on("click", () => { post({ type: "mapClick" }); openLocationPopup(kind); });
+        return pin;
       }
 
       function clearPreview() {
         ++previewGeneration;
         if (previewMarker && map) map.remove(previewMarker);
         previewMarker = null;
+        previewLocation = null;
+        if (locationPopup) locationPopup.close();
       }
 
-      async function preview(point, wgs84) {
+      async function preview(point, wgs84, name = "地点预览") {
         startup.allowed = false;
         const generation = ++previewGeneration;
         try {
@@ -376,11 +455,27 @@
           const displayed = wgs84 ? await convertGPS(point) : point;
           if (generation !== previewGeneration) return;
           if (previewMarker) map.remove(previewMarker);
-          previewMarker = makeMarker(displayed, "preview");
+          if (locationPopup) locationPopup.close();
+          previewLocation = { displayed, original: point, name };
+          previewMarker = makeMarker(displayed, "search");
           map.add(previewMarker);
           map.setZoomAndCenter(16, [displayed.longitude, displayed.latitude]);
-          status("浅红色标记为预览地点，尚未修改照片。");
+          status("红色标记为搜索地点，尚未修改照片。");
         } catch (_) { if (generation === previewGeneration) status("地点预览失败，请检查网络。"); }
+      }
+
+      async function setDeviceLocation(point, focus = false) {
+        const generation = ++deviceGeneration;
+        if (!valid(point) || !map) return;
+        try {
+          const displayed = await convertGPS(point);
+          if (generation !== deviceGeneration) return;
+          deviceLocation = { displayed, original: point, name: "当前位置" };
+          if (deviceMarker) map.remove(deviceMarker);
+          deviceMarker = makeMarker(displayed, "device");
+          map.add(deviceMarker);
+          if (focus) { startup.allowed = false; map.setZoomAndCenter(16, [displayed.longitude, displayed.latitude]); }
+        } catch (_) { if (generation === deviceGeneration) status("设备位置暂时无法显示，请检查网络。"); }
       }
 
       async function search(query) {
@@ -437,6 +532,7 @@
         for (const event of ["moveend", "zoomend", "resize", "rotatechange"])
           map.on(event, () => {
             emitPhotoPositions(true);
+            if (event === "zoomend" || event === "resize") refreshDeviceSize();
             if (event === "moveend" || event === "zoomend") {
               const point = map.getCenter();
               if (point.getLat() !== startup.center[1] || point.getLng() !== startup.center[0]
@@ -445,6 +541,7 @@
             }
           });
         map.on("dblclick", event => selectPoint(event, "map"));
+        map.on("click", () => { if (locationPopup) locationPopup.close(); post({ type: "mapClick" }); });
         notice.hidden = true;
         status("高德地图已就绪。点选地图或搜索地点。");
         return true;
@@ -519,7 +616,7 @@
         }
         if (satelliteLayer) enabled ? satelliteLayer.show() : satelliteLayer.hide();
       }
-      return { start, updateSnapshot, convertGPS, search, preview, selectSearch, clearPreview,
+      return { start, updateSnapshot, convertGPS, search, preview, selectSearch, clearPreview, setDeviceLocation,
         setSatellite, navigate, zoomByWheel, region, renderingInfo, convertTracks, cancelTrack, renderTracks, fitTracks,
         setTrackStyle, pickPhotoAt, focusPhoto, focusWGS84, cancelStartup };
     })();

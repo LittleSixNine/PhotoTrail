@@ -9,10 +9,13 @@ struct AMapWebView: NSViewRepresentable {
     let snapshot: AMapSnapshot
     let credentials: AMapCredentials
     let startupCoordinate: MapCoordinate?
+    var deviceCoordinate: MapCoordinate?
+    var deviceFocusID: UUID?
     let trackRevision: Int
     let fitRevision: Int
     let trackColor: String
     let trackWidth: Double
+    let onMapTap: () -> Void
     let onPick: (Int?, MapCoordinate) -> Void
     let workspace: LocationWorkspace
 
@@ -42,6 +45,8 @@ struct AMapWebView: NSViewRepresentable {
     func updateNSView(_ view: WKWebView, context: Context) {
         let changed = context.coordinator.parent.snapshot != snapshot
         let startupChanged = context.coordinator.parent.startupCoordinate != startupCoordinate
+        let deviceChanged = context.coordinator.parent.deviceCoordinate != deviceCoordinate
+        let deviceFocusChanged = context.coordinator.parent.deviceFocusID != deviceFocusID
         let tracksChanged = context.coordinator.parent.trackRevision != trackRevision
         let styleChanged = context.coordinator.parent.trackColor != trackColor
             || context.coordinator.parent.trackWidth != trackWidth
@@ -50,6 +55,9 @@ struct AMapWebView: NSViewRepresentable {
         if startupChanged {
             if startupCoordinate == nil { context.coordinator.cancelStartupCoordinate() }
             else { context.coordinator.focusStartupCoordinate() }
+        }
+        if deviceChanged || deviceFocusChanged {
+            context.coordinator.updateDeviceLocation(focus: deviceFocusChanged && deviceCoordinate != nil)
         }
         if styleChanged { context.coordinator.updateTrackStyle() }
         if tracksChanged { context.coordinator.updateTracks() }
@@ -128,9 +136,12 @@ struct AMapWebView: NSViewRepresentable {
             }
             parent.workspace.search = { [weak self] query in self?.search(query) }
             parent.workspace.previewSearch = { [weak self] result in
-                self?.preview(result.coordinate, wgs84: false)
+                self?.preview(result.coordinate, wgs84: false, name: result.name)
             }
-            parent.workspace.previewWGS84 = { [weak self] point in self?.preview(point, wgs84: true) }
+            parent.workspace.previewWGS84 = { [weak self] point in
+                guard let self else { return }
+                self.preview(point, wgs84: true, name: self.parent.workspace.previewName)
+            }
             parent.workspace.moveAMapPhoto = { [weak self] id, point in
                 guard let self, !disposed, ready, parent.snapshot.allowDragPin else { return }
                 browserView?.callAsyncJavaScript("window.geoTag.pickPhotoAt(id, point);",
@@ -158,12 +169,19 @@ struct AMapWebView: NSViewRepresentable {
             }
         }
 
-        private func preview(_ point: MapCoordinate, wgs84: Bool) {
+        private func preview(_ point: MapCoordinate, wgs84: Bool, name: String) {
             validationGeneration += 1
             guard !disposed, ready else { return }
-            browserView?.callAsyncJavaScript("return await window.geoTag.preview(point, wgs84);",
+            browserView?.callAsyncJavaScript("return await window.geoTag.preview(point, wgs84, name);",
                 arguments: ["point": ["latitude": point.latitude, "longitude": point.longitude],
-                            "wgs84": wgs84], in: nil, in: .page) { _ in }
+                            "wgs84": wgs84, "name": name], in: nil, in: .page) { _ in }
+        }
+
+        func updateDeviceLocation(focus: Bool = false) {
+            guard ready, !disposed, let point = parent.deviceCoordinate, point.isValid else { return }
+            browserView?.callAsyncJavaScript("return await window.geoTag.setDeviceLocation(point, focus);",
+                arguments: ["point": ["latitude": point.latitude, "longitude": point.longitude],
+                            "focus": focus], in: nil, in: .page) { _ in }
         }
 
         private func search(_ query: String) {
@@ -225,6 +243,7 @@ struct AMapWebView: NSViewRepresentable {
                     sentPhotos = nil
                     parent.workspace.ready = true
                     updateSnapshot()
+                    updateDeviceLocation()
                     updateTrackStyle()
                     updateTracks()
                     focusStartupCoordinate()
@@ -364,6 +383,10 @@ struct AMapWebView: NSViewRepresentable {
                 parent.workspace.amapHeading = heading
                 return
             }
+            if type == "mapClick" {
+                parent.onMapTap()
+                return
+            }
             if type == "camera", let latitude = body["latitude"] as? Double,
                let longitude = body["longitude"] as? Double,
                let zoom = body["zoom"] as? Double,
@@ -402,20 +425,29 @@ struct AMapWebView: NSViewRepresentable {
             let purpose = body["purpose"] as? String ?? "apply"
             guard ["apply", "map", "favorite", "photo"].contains(purpose) else { return }
             let photoID = body["photoID"] as? Int
-            let photoEditable = photoID.map { id in
-                parent.snapshot.photos.contains { $0.id == id && $0.editable }
-            } ?? false
+            let originalRow = body["originalPhotoPoint"] as? [String: Any]
+            let originalPoint = originalRow.flatMap { row -> MapCoordinate? in
+                guard let latitude = row["latitude"] as? Double,
+                      let longitude = row["longitude"] as? Double else { return nil }
+                return MapCoordinate(latitude: latitude, longitude: longitude)
+            }
             let permitted = purpose == "favorite"
-                || (purpose == "photo" ? parent.snapshot.allowDragPin && photoEditable
+                || (purpose == "photo" ? photoIsCurrent(photoID, original: originalPoint)
                     : parent.snapshot.editable && (purpose != "map" || parent.snapshot.allowDoubleClick))
+            if purpose == "photo", !permitted {
+                report("照片状态已变化，请重新拖动。")
+                return
+            }
             if type == "pickStarted", ready, permitted,
-               let revision = body["revision"] as? Int, revision == parent.snapshot.revision,
+               let revision = body["revision"] as? Int,
+               purpose == "photo" || revision == parent.snapshot.revision,
                let sequence = body["sequence"] as? Int, sequence > pickSequence {
                 pickSequence = sequence
                 return
             }
             guard type == "pick", ready, permitted,
-                  let revision = body["revision"] as? Int, revision == parent.snapshot.revision,
+                  let revision = body["revision"] as? Int,
+                  purpose == "photo" || revision == parent.snapshot.revision,
                   let sequence = body["sequence"] as? Int, sequence == pickSequence,
                   let latitude = body["latitude"] as? Double,
                   let longitude = body["longitude"] as? Double,
@@ -429,28 +461,42 @@ struct AMapWebView: NSViewRepresentable {
                 let wgs = try CoordinateTransform.gcj02ToWGS84(gcj, region: .mainlandChina)
                 validate(wgs, against: gcj, revision: revision, sequence: sequence,
                          purpose: purpose, name: String((body["name"] as? String ?? "").prefix(120)),
-                         photoID: photoID)
+                         photoID: photoID, originalPhotoPoint: originalPoint)
             } catch {
                 report("坐标转换失败，未修改照片位置。")
+            }
+        }
+
+        private func photoIsCurrent(_ id: Int?, original: MapCoordinate?) -> Bool {
+            guard let id, let original, original.isValid,
+                  parent.snapshot.allowDragPin, parent.snapshot.selectedPhotoIDs.contains(id) else { return false }
+            return parent.snapshot.photos.contains {
+                $0.id == id && $0.editable && $0.point == original
             }
         }
 
         // swiftlint:disable:next function_parameter_count
         private func validate(_ wgs: MapCoordinate, against gcj: MapCoordinate,
                               revision: Int, sequence: Int, purpose: String, name: String,
-                              photoID: Int?) {
+                              photoID: Int?, originalPhotoPoint: MapCoordinate?) {
             let generation = validationGeneration
             // One official forward check of the local inverse; no iterative API probing.
             browserView?.callAsyncJavaScript("return await window.geoTag.convertGPS(point);",
                                          arguments: ["point": ["latitude": wgs.latitude,
                                                                  "longitude": wgs.longitude]],
                                          in: nil, in: .page) { [weak self] result in
-                guard let self, !disposed, generation == validationGeneration, sequence == pickSequence,
-                      revision == parent.snapshot.revision,
-                      (purpose == "favorite"
-                       || (purpose == "photo" && parent.snapshot.allowDragPin)
-                       || (parent.snapshot.editable
-                           && (purpose != "map" || parent.snapshot.allowDoubleClick))) else { return }
+                guard let self, !disposed, sequence == pickSequence else { return }
+                guard generation == validationGeneration else {
+                    if purpose == "photo" { report("位置校验已取消，请重新拖动。") }
+                    return
+                }
+                guard purpose == "photo" ? photoIsCurrent(photoID, original: originalPhotoPoint)
+                    : revision == parent.snapshot.revision && (purpose == "favorite"
+                        || (parent.snapshot.editable
+                            && (purpose != "map" || parent.snapshot.allowDoubleClick))) else {
+                    if purpose == "photo" { report("照片状态已变化，请重新拖动。") }
+                    return
+                }
                 guard case .success(let value) = result,
                       let point = value as? [String: Any],
                       let latitude = point["latitude"] as? Double,

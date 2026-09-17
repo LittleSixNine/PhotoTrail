@@ -24,6 +24,7 @@ struct AMapView: View {
     @Environment(Store<GeoTagState, GeoTagEvent>.self) private var store
     @Environment(LocationWorkspace.self) private var workspace
     let startupCoordinate: MapCoordinate?
+    let onMapTap: () -> Void
     @AppStorage(SettingsView.trackWidthKey) private var trackWidth = 0.0
     @AppStorage(SettingsView.trackColorKey) private var trackColor = Color.red
     @AppStorage(SettingsPreferences.showAllPhotoLocationsKey) private var showAllPhotoLocations = true
@@ -31,10 +32,16 @@ struct AMapView: View {
     @AppStorage(SettingsPreferences.dragPinKey) private var allowDragPin = true
     @State private var photos: [AMapPhoto] = []
     @GestureState private var photoDrag: PhotoDrag?
+    @State private var pendingPhotoDrag: PendingPhotoDrag?
 
     private struct PhotoDrag: Equatable {
         let id: ImageData.ID
         let translation: CGSize
+    }
+
+    private struct PendingPhotoDrag {
+        let drag: PhotoDrag
+        let original: MapCoordinate
     }
 
     private var strokeColor: String {
@@ -61,9 +68,12 @@ struct AMapView: View {
                 ZStack(alignment: .topLeading) {
                     AMapWebView(snapshot: snapshot, credentials: credentials,
                                 startupCoordinate: startupCoordinate,
+                                deviceCoordinate: workspace.deviceCoordinate,
+                                deviceFocusID: workspace.deviceFocusID,
                                 trackRevision: workspace.tracks.revision,
                                 fitRevision: workspace.tracks.fitRevision,
                                 trackColor: strokeColor, trackWidth: trackWidth,
+                                onMapTap: onMapTap,
                                 onPick: { id, coordinate in
                         let coords = Coords(latitude: coordinate.latitude,
                                             longitude: coordinate.longitude)
@@ -82,20 +92,34 @@ struct AMapView: View {
                                                  selected: store.selection.contains(id),
                                                  clusterCount: position.ids.count)
                                 .position(x: position.x, y: position.y - 29)
-                                .offset(photoDrag?.id == id ? photoDrag?.translation ?? .zero : .zero)
-                                .onTapGesture { selectPosition(position) }
+                                .offset(photoDrag?.id == id ? photoDrag?.translation ?? .zero
+                                    : pendingPhotoDrag?.drag.id == id
+                                        ? pendingPhotoDrag?.drag.translation ?? .zero : .zero)
+                                .onTapGesture {
+                                    onMapTap()
+                                    selectPosition(position)
+                                }
                                 .gesture(DragGesture(minimumDistance: 3,
                                                      coordinateSpace: .named("amapOverlay"))
                                     .updating($photoDrag) { value, state, _ in
-                                        guard allowDragPin, position.ids.count == 1, image.updatable,
-                                              !store.saveInProgress else { return }
+                                        guard workspace.ready, allowDragPin, store.selection.contains(id),
+                                              image.updatable, !store.saveInProgress else { return }
                                         state = PhotoDrag(id: id, translation: value.translation)
                                     }
                                     .onEnded { value in
-                                        guard allowDragPin, position.ids.count == 1, image.updatable,
-                                              !store.saveInProgress else { return }
-                                        workspace.moveAMapPhoto?(id, value.location)
-                                    })
+                                        guard workspace.ready, allowDragPin, store.selection.contains(id),
+                                              image.updatable, !store.saveInProgress,
+                                              let original = image.metadata.location else { return }
+                                        pendingPhotoDrag = PendingPhotoDrag(
+                                            drag: PhotoDrag(id: id, translation: value.translation),
+                                            original: MapCoordinate(latitude: original.latitude,
+                                                                    longitude: original.longitude))
+                                        workspace.moveAMapPhoto?(
+                                            id,
+                                            CGPoint(x: position.x + value.translation.width,
+                                                    y: position.y + value.translation.height))
+                                    }, including: workspace.ready && allowDragPin && store.selection.contains(id)
+                                        && image.updatable && !store.saveInProgress ? .all : .none)
                         }
                     }
                     ForEach(workspace.amapPhotoEdges) { edge in
@@ -129,6 +153,23 @@ struct AMapView: View {
         }
         .onDisappear {
             workspace.ready = false
+            pendingPhotoDrag = nil
+        }
+        .onChange(of: store.mapRevision) {
+            guard let pending = pendingPhotoDrag else { return }
+            let location = store[pending.drag.id].metadata.location
+            if location?.latitude != pending.original.latitude
+                || location?.longitude != pending.original.longitude { pendingPhotoDrag = nil }
+        }
+        .onChange(of: workspace.status) {
+            if workspace.status.hasPrefix("位置已设置")
+                || workspace.status.contains("未修改") || workspace.status.contains("重新拖动")
+                || workspace.status.contains("请先选择可编辑") {
+                pendingPhotoDrag = nil
+            }
+        }
+        .onChange(of: workspace.ready) {
+            if !workspace.ready { pendingPhotoDrag = nil }
         }
         .task(id: "\(store.mapRevision):\(showAllPhotoLocations)") {
             photos = SettingsPreferences.displayedPhotos(store.visibleImages, selection: store.selection,

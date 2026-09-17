@@ -45,7 +45,10 @@ final class LocationWorkspace {
     var favorites: [SavedLocation] = []
     var favoriteError: String?
     var previewCoordinate: MapCoordinate?
+    var previewName = "地点预览"
     var previewID = UUID()
+    var deviceCoordinate: MapCoordinate?
+    var deviceFocusID = UUID()
     var appleHeading = 0.0
     var amapHeading = 0.0
     var amapPhotoPositions: [AMapPhotoPosition] = []
@@ -150,8 +153,9 @@ final class LocationWorkspace {
         session = UUID()
     }
 
-    func preview(_ coordinate: MapCoordinate) {
+    func preview(_ coordinate: MapCoordinate, name: String = "地点预览") {
         previewCoordinate = coordinate
+        previewName = name
         previewID = UUID()
         previewWGS84?(coordinate)
     }

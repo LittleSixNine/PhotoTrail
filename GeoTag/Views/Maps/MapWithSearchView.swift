@@ -22,6 +22,7 @@ public struct MapWithSearchView: View {
     @Environment(LocationWorkspace.self) private var workspace
     @FocusState var mapFocus: MapFocus?
     @State var searchInfo = SearchInfo()
+    @State private var searchExpanded = false
     @State private var locator = DeviceLocation()
     @State private var startupLocator = DeviceLocation()
     @State private var startupCoordinate: MapCoordinate?
@@ -37,15 +38,18 @@ public struct MapWithSearchView: View {
         GeometryReader { geometry in
             ZStack(alignment: .bottomLeading) {
                 if mapProvider == "amap" {
-                    AMapView(startupCoordinate: startupCoordinate)
+                    AMapView(startupCoordinate: startupCoordinate,
+                             onMapTap: { searchExpanded = false })
                         .id(mapStartupView)
                 } else {
                     MapView(startupCoordinate: startupCoordinate,
-                            mapFocus: $mapFocus, searchInfo: $searchInfo)
+                            mapFocus: $mapFocus, searchInfo: $searchInfo,
+                            onMapTap: { searchExpanded = false })
                         .id(mapStartupView)
                 }
                 if hasMap {
                 SearchView(mapFocus: $mapFocus, searchInfo: $searchInfo,
+                           expanded: $searchExpanded,
                            expandedWidth: min(360, max(180, geometry.size.width - 130)))
                     .padding(.leading, 16)
                     .padding(.bottom, 52)
@@ -76,13 +80,15 @@ public struct MapWithSearchView: View {
             }
         }
         .onChange(of: locator.point) {
-            if let point = locator.point {
-                workspace.preview(point)
+            if let point = locator.point, point.isValid {
+                workspace.deviceCoordinate = point
+                workspace.deviceFocusID = UUID()
             }
         }
         .onChange(of: startupLocator.point) {
             if startupRequestID != nil, let point = startupLocator.point, point.isValid {
                 startupRequestID = nil
+                workspace.deviceCoordinate = point
                 startupCoordinate = point
             }
         }
@@ -141,6 +147,7 @@ public struct MapWithSearchView: View {
             workspace.ready = false
             workspace.status = ""
             workspace.query = ""
+            workspace.previewCoordinate = nil
             workspace.selectedResult = nil
             workspace.results = []
             mapFocus = nil

@@ -1,4 +1,5 @@
 import AppKit
+import Coords
 import SwiftUI
 import ImageData
 
@@ -54,36 +55,72 @@ struct MapScrollWheelMonitor: NSViewRepresentable {
     }
 }
 
-// The drawing ends exactly at (16, 42); .bottom anchors that tip to the coordinate.
-struct PhotoMapPin: View {
-    var preview = false
+struct LocationMarkerPin: View {
+    enum Kind: Hashable { case search, device }
+    let kind: Kind
+    var compact = false
 
     var body: some View {
-        Canvas { context, _ in
-            var body = Path()
-            body.move(to: CGPoint(x: 16, y: 42))
-            body.addCurve(to: CGPoint(x: 0, y: 16), control1: CGPoint(x: 12, y: 34), control2: CGPoint(x: 0, y: 26))
-            body.addCurve(to: CGPoint(x: 16, y: 0), control1: CGPoint(x: 0, y: 5), control2: CGPoint(x: 5, y: 0))
-            body.addCurve(to: CGPoint(x: 32, y: 16), control1: CGPoint(x: 27, y: 0), control2: CGPoint(x: 32, y: 5))
-            body.addCurve(to: CGPoint(x: 16, y: 42), control1: CGPoint(x: 32, y: 26), control2: CGPoint(x: 20, y: 34))
-            body.closeSubpath()
-            let red = Color(red: 0.91, green: 0.19, blue: 0.18)
-            context.fill(body, with: .linearGradient(Gradient(colors: [.red, red]),
-                startPoint: .zero, endPoint: CGPoint(x: 32, y: 42)))
-            var mountains = Path()
-            mountains.move(to: CGPoint(x: 6, y: 23))
-            for point in [CGPoint(x: 13, y: 12), CGPoint(x: 18, y: 19),
-                          CGPoint(x: 22, y: 15), CGPoint(x: 27, y: 23)] { mountains.addLine(to: point) }
-            mountains.closeSubpath()
-            context.fill(mountains, with: .color(.white))
-            context.fill(Path(ellipseIn: CGRect(x: 20, y: 7, width: 5, height: 5)), with: .color(.white))
-            var shine = Path()
-            shine.move(to: CGPoint(x: 3, y: 15))
-            shine.addCurve(to: CGPoint(x: 25, y: 5), control1: CGPoint(x: 4, y: 2), control2: CGPoint(x: 17, y: 0))
-            context.stroke(shine, with: .color(.white.opacity(0.45)), style: StrokeStyle(lineWidth: 1.3, lineCap: .round))
-        }.frame(width: 32, height: 42)
-            .opacity(preview ? 0.65 : 1)
-            .accessibilityLabel(preview ? "地点预览" : "照片位置")
+        ZStack(alignment: .top) {
+            Path { path in
+                path.move(to: CGPoint(x: 9, y: 27))
+                path.addLine(to: CGPoint(x: 25, y: 27))
+                path.addLine(to: CGPoint(x: 17, y: 45))
+                path.closeSubpath()
+            }.fill(kind == .search ? Color(red: 0.87, green: 0.28, blue: 0.25)
+                    : Color(red: 0.79, green: 0.24, blue: 0.22))
+            Circle()
+                .fill(kind == .search ? Color(red: 0.87, green: 0.28, blue: 0.25) : .white)
+                .overlay(Circle().stroke(kind == .search ? .white : Color(red: 0.79, green: 0.24, blue: 0.22),
+                                         lineWidth: 2.5))
+                .frame(width: 34, height: 34)
+            Circle()
+                .fill(kind == .search ? .white : Color(red: 0.79, green: 0.24, blue: 0.22))
+                .frame(width: 10, height: 10)
+                .offset(y: 12)
+        }
+        .frame(width: 34, height: 45)
+        .shadow(color: .black.opacity(0.25), radius: 3, y: 2)
+        .scaleEffect(compact ? 0.5 : 1, anchor: .bottom)
+        .frame(width: compact ? 17 : 34, height: compact ? 22.5 : 45)
+        .contentShape(Rectangle())
+        .accessibilityLabel(kind == .search ? "搜索地点" : "设备位置")
+    }
+}
+
+struct LocationMarkerCallout: View {
+    let name: String
+    let coordinate: MapCoordinate
+    let canApply: Bool
+    let apply: () -> Void
+    let favorite: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+            Text(String(format: "%.6f, %.6f", coordinate.latitude, coordinate.longitude))
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(.secondary)
+            HStack(spacing: 6) {
+                Button(action: apply) {
+                    Text("写入照片")
+                        .frame(width: 88, height: 44)
+                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                        .contentShape(RoundedRectangle(cornerRadius: 8))
+                }
+                    .disabled(!canApply)
+                Button(action: favorite) {
+                    Text("收藏")
+                        .frame(width: 44, height: 44)
+                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                        .contentShape(RoundedRectangle(cornerRadius: 8))
+                }
+            }.buttonStyle(.plain)
+        }
+        .padding(10)
+        .frame(width: 158, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .shadow(color: .black.opacity(0.18), radius: 8, y: 3)
     }
 }
 

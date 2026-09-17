@@ -179,6 +179,7 @@ struct LocationPanel: View {
                             Text(favorite.name)
                             if !favorite.note.isEmpty { Text(favorite.note).font(.caption).foregroundStyle(.secondary) }
                         }.frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
                     }.buttonStyle(.plain)
                     Button("应用") {
                         store.send(.confirmedWGS84Location(Coords(latitude: favorite.coordinate.latitude,
