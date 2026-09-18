@@ -1,18 +1,19 @@
 <p align="center">
   <img src="docs/images/phototrail-icon.png" width="160" alt="PhotoTrail 图标">
 </p>
-
-<h1 align="center">PhotoTrail</h1>
+<h1 align="center">PhotoTrail-相迹</h1>
 
 <p align="center">为照片补上拍摄地点，让中国大陆的地图定位更顺手。</p>
 
-PhotoTrail 是一款 macOS 照片定位工具。部分照片元数据编辑功能源自 [marchyman/GeoTag](https://github.com/marchyman/GeoTag)；应用还支持高德与苹果地图、GPX 轨迹、逐照片缩略图标记、中国大陆坐标转换、常用地点收藏和简体中文界面。
+PhotoTrail-相迹 是一款 macOS 照片定位工具。部分照片元数据编辑功能源自 [marchyman/GeoTag](https://github.com/marchyman/GeoTag)；应用还支持高德与苹果地图、GPX 轨迹、逐照片缩略图标记、中国大陆坐标转换、常用地点收藏和简体中文界面。
 
 ## 界面预览
 
 ![照片详情：地图定位、缩略图和轨迹侧栏](docs/screenshots/photo-detail.png)
 
-*为了使轨迹和照片更突出，默认使用饱和度更低的地图样式，也内置了多种地图风格供切换。*
+*默认使用饱和度更低的地图样式使轨迹和照片更突出，也内置了多种地图风格供切换。*
+
+
 
 
 
