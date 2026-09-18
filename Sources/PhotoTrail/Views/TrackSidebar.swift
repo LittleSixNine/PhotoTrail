@@ -48,20 +48,29 @@ struct TrackSidebar: View {
                 trackRow(record)
             }
             if !library.records.isEmpty {
-                Button("选中轨迹时段的照片") { selectPhotosInTrackTime() }
+                Button("选择轨迹时段内拍摄的照片") { selectPhotosInTrackTime() }
                     .disabled(store.gpxTracks.isEmpty || store.saveInProgress || matching)
                     .help("选中拍摄时间落在任一已导入轨迹记录段内的照片")
-                Text("已选 \(store.selection.count) 张照片 · 仅可靠匹配会修改")
+                Text("已选择 \(store.selection.count) 张照片")
                     .font(.caption).foregroundStyle(.secondary)
-                Button("补齐所选照片的定位") { applyTrackLocations(overwrite: false) }
+                Divider()
+                Text("为所选照片写入定位")
+                    .font(.subheadline.weight(.medium))
+                Text("仅可靠匹配会修改。")
+                    .font(.caption).foregroundStyle(.secondary)
+                Button("补齐缺失定位") { applyTrackLocations(overwrite: false) }
                     .disabled(store.selection.isEmpty || store.gpxTracks.isEmpty
                         || store.saveInProgress || matching
                         || store.selection.allSatisfy { store[$0].metadata.location != nil })
                     .help("只处理没有定位的所选照片")
-                Button("按轨迹重设所选照片定位") { applyTrackLocations(overwrite: true) }
+                Text("仅为没有定位的照片匹配位置，不覆盖已有定位。")
+                    .font(.caption).foregroundStyle(.secondary)
+                Button("覆盖所有定位") { applyTrackLocations(overwrite: true) }
                     .disabled(store.selection.isEmpty || store.gpxTracks.isEmpty
                         || store.saveInProgress || matching)
                     .help("包括已有定位的所选照片；保存前可以撤销")
+                Text("使用轨迹位置替换已有定位；保存前可以撤销。")
+                    .font(.caption).foregroundStyle(.secondary)
                 if matching { ProgressView("正在匹配轨迹…").controlSize(.small) }
             }
             if let error = library.storageError {

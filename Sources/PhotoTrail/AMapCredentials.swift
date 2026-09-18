@@ -62,6 +62,7 @@ struct AMapSettingsView: View {
     @State private var key = ""
     @State private var code = ""
     @State private var error: String?
+    @State private var loadingCredentials = false
     var initialCredentials: AMapCredentials?
     let onSave: (AMapCredentials) -> Void
 
@@ -77,6 +78,8 @@ struct AMapSettingsView: View {
                     URL(string: "https://lbs.amap.com/api/javascript-api-v2/guide/abc/jscode")!)
             if let error { Text(error).foregroundStyle(.red) }
             HStack {
+                Button("从钥匙串读取") { loadFromKeychain() }
+                    .disabled(loadingCredentials)
                 Spacer()
                 Button("取消") { dismiss() }
                 Button("保存并加载") { save() }
@@ -100,5 +103,21 @@ struct AMapSettingsView: View {
             onSave(credentials)
             dismiss()
         } catch { self.error = error.localizedDescription }
+    }
+
+    private func loadFromKeychain() {
+        loadingCredentials = true
+        error = nil
+        Task {
+            defer { loadingCredentials = false }
+            do {
+                guard let saved = try await Task.detached(operation: { try AMapCredentials.load() }).value else {
+                    error = "钥匙串中未找到高德凭据。"
+                    return
+                }
+                key = saved.key
+                code = saved.securityJsCode
+            } catch { self.error = error.localizedDescription }
+        }
     }
 }
