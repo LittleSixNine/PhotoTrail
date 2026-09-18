@@ -17,7 +17,7 @@ struct PhotoTrailReducer: Reducer, Sendable {
                 _ event: PhotoTrailEvent) -> PhotoTrailState {
         if state.saveInProgress {
             switch event {
-            case .addressChanged, .clearImagesRequest, .deleteRequest, .discardChangesRequest,
+            case .addressChanged, .clearImagesRequest, .deleteRequest, .removeImages, .discardChangesRequest,
                  .locationChanged, .applyTrackMatches, .newTimestamp, .pasteRequest,
                  .placeSelection, .timeZoneChanged, .openCommand, .openFiles, .saveRequest:
                 return state
@@ -72,6 +72,14 @@ struct PhotoTrailReducer: Reducer, Sendable {
 
         case .clearUniqueURLs:
             newState.uniqueURLs = nil
+
+        case .removeImages(let ids):
+            let removed = ids.union(state.imageData.filter { ids.contains($0.id) }.compactMap(\.pairedID))
+            newState.imageData.removeAll { removed.contains($0.id) }
+            newState.pairingEligibleIDs?.subtract(removed)
+            newState.locationSavedPhotoIDs.subtract(removed)
+            selectionChanged(&newState, selection: state.selection.subtracting(removed))
+            newState.unsavedChanges = newState.imageData.contains { $0.hasPendingChanges }
 
         case .deleteRequest:
             delete(&newState)

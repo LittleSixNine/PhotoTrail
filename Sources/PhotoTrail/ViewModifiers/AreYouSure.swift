@@ -9,8 +9,23 @@ struct AreYouSure: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .alert("有未保存的修改", isPresented: Binding(
+                get: { presentConfirmation && store.confirmationEvent == .terminateRequest },
+                set: { presentConfirmation = $0 }
+            )) {
+                Button("继续编辑", role: .cancel) {}
+                    .keyboardShortcut(.defaultAction)
+                Button("放弃修改并退出", role: .destructive) {
+                    store.send(.terminateRequest, undoable: false) { NSApp.terminate(nil) }
+                }
+            } message: {
+                Text("退出后，尚未保存的拍摄时间、定位等修改将丢失。请先保存，或放弃修改后退出。")
+            }
             .confirmationDialog("Are you sure?",
-            isPresented: $presentConfirmation)
+            isPresented: Binding(
+                get: { presentConfirmation && store.confirmationEvent != .terminateRequest },
+                set: { presentConfirmation = $0 }
+            ))
         {
             Button("I'm sure", role: .destructive) {
                 if let event = store.confirmationEvent {
@@ -29,7 +44,7 @@ struct AreYouSure: ViewModifier {
             Text(LocalizedStringKey(message))
         }
         .onChange(of: store.presentConfirmation) {
-            presentConfirmation.toggle()
+            presentConfirmation = true
         }
     }
 }

@@ -38,6 +38,16 @@ enum LocationHelper {
             case alreadyLocated
         }
 
+        var listStatus: String {
+            switch status {
+            case .matched: "匹配成功"
+            case .ambiguous: "需检查"
+            case .unmatched: "未匹配"
+            case .missingTime: "缺少时间"
+            case .alreadyLocated: "跳过已有定位"
+            }
+        }
+
         var id: ImageData.ID
         var timestamp: TimeInterval
         var coords: Coords?

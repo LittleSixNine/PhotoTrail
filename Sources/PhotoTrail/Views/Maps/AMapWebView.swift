@@ -69,11 +69,17 @@ struct AMapWebView: NSViewRepresentable {
 
     static func dismantleNSView(_ view: WKWebView, coordinator: Coordinator) {
         coordinator.disposed = true
-        coordinator.parent.workspace.amapPhotoPositions = []
-        coordinator.parent.workspace.amapPhotoEdges = []
-        coordinator.parent.workspace.moveAMapPhoto = nil
-        coordinator.parent.workspace.focusPhoto = nil
-        coordinator.parent.workspace.zoomAMap = nil
+        let workspace = coordinator.parent.workspace
+        // A replacement can connect before SwiftUI dismantles the previous map.
+        // Only the current connection may clear the shared callbacks and overlays.
+        if workspace.amapConnectionID == coordinator.connectionID {
+            workspace.amapConnectionID = nil
+            workspace.amapPhotoPositions = []
+            workspace.amapPhotoEdges = []
+            workspace.moveAMapPhoto = nil
+            workspace.focusPhoto = nil
+            workspace.zoomAMap = nil
+        }
         view.stopLoading()
         view.configuration.userContentController.removeScriptMessageHandler(forName: "photoTrail")
         view.navigationDelegate = nil
@@ -84,6 +90,7 @@ struct AMapWebView: NSViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         var parent: AMapWebView
+        let connectionID = UUID()
         weak var browserView: WKWebView?
         var pageURL: URL?
         var disposed = false
@@ -103,6 +110,7 @@ struct AMapWebView: NSViewRepresentable {
         private var validationGeneration = 0
 
         func connect() {
+            parent.workspace.amapConnectionID = connectionID
             parent.workspace.amapNavigation = { [weak self] command in
                 guard let self, !disposed, ready else { return }
                 browserView?.callAsyncJavaScript("window.photoTrail.navigate(command);",

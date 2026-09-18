@@ -6,11 +6,7 @@ import UDF
 @main
 struct PhotoTrailApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate: AppDelegate
-    @State private var store = Store(initialState: PhotoTrailState(),
-                                     reduce: PhotoTrailReducer(),
-                                     undoEnabled: true,
-                                     didUndo: PhotoTrailState.didUndoRedo,
-                                     didRedo: PhotoTrailState.didUndoRedo)
+    @State private var store: Store<PhotoTrailState, PhotoTrailEvent>
     @State private var mainWindow: NSWindow?
     @AppStorage(AppAppearance.preferenceKey) private var appearance: AppAppearance = .system
 
@@ -22,7 +18,13 @@ struct PhotoTrailApp: App {
 
     init() {
         PhotoTrailMigration.settings()
-        appDelegate.store = store
+        let appStore = Store(initialState: PhotoTrailState(),
+                             reduce: PhotoTrailReducer(),
+                             undoEnabled: true,
+                             didUndo: PhotoTrailState.didUndoRedo,
+                             didRedo: PhotoTrailState.didUndoRedo)
+        _store = State(initialValue: appStore)
+        appDelegate.store = appStore
         appDelegate.logger.debug("Delegate store set")
         prepareForTesting()
     }
@@ -37,6 +39,7 @@ struct PhotoTrailApp: App {
                 .preferredColorScheme(appearance.colorScheme)
                 .background(WindowAccessor(window: $mainWindow))
                 .frame(minWidth: windowWidth, minHeight: windowHeight)
+                .onAppear { appDelegate.store = store }
                 .onChange(of: mainWindow) {
                     appDelegate.logger.debug("mainWindow changed")
                     mainWindow?.delegate = appDelegate

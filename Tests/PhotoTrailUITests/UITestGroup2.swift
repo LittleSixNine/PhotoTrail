@@ -77,7 +77,7 @@ final class UITestGroup2: XCTestCase {
         let testCell = element(app, matching: "L1000038.DNG")
         XCTAssert(testCell.waitForExistence(timeout: 0.300))
         testCell.rightClick()
-        let edit = element(app, matching: "Edit…")
+        let edit = app.menuItems["查看与编辑照片信息…"]
         XCTAssert(edit.exists)
         edit.click()
         let latitude = app.textFields["Latitude"]
@@ -92,7 +92,7 @@ final class UITestGroup2: XCTestCase {
 
         // copy the lat lon
         testCell.rightClick()
-        let copy = element(app, matching: "Copy", index: 1)
+        let copy = app.menuItems["复制此照片的定位"]
         XCTAssert(copy.exists)
         copy.click()
 
@@ -100,7 +100,7 @@ final class UITestGroup2: XCTestCase {
         let pasteCell = element(app, matching: "L1000050.DNG")
         XCTAssert(pasteCell.exists)
         pasteCell.rightClick()
-        let paste = element(app, matching: "Paste", index: 1)
+        let paste = app.menuItems.matching(NSPredicate(format: "label BEGINSWITH %@", "粘贴定位到这 ")).firstMatch
         XCTAssert(paste.exists)
         paste.click()
 
@@ -115,14 +115,14 @@ final class UITestGroup2: XCTestCase {
         app.activate()
 
         app.outlines[testID].firstMatch.rightClick()
-        XCTAssert(element(app, matching: "Edit…").exists)
-        XCTAssert(element(app, matching: "Cut", index: 1).exists)
-        XCTAssert(element(app, matching: "Copy", index: 1).exists)
-        XCTAssert(element(app, matching: "Paste", index: 1).exists)
-        XCTAssert(element(app, matching: "Delete", index: 1).exists)
-        XCTAssert(element(app, matching: "Show In Finder", index: 1).exists)
-        XCTAssert(element(app, matching: "Locn From Track", index: 1).exists)
-        XCTAssert(element(app, matching: "Clear Image List", index: 1).exists)
+        XCTAssert(app.menuItems["查看与编辑照片信息…"].exists)
+        XCTAssert(app.menuItems["复制此照片的定位"].exists)
+        for prefix in ["粘贴定位到这 ", "预览这 ", "从列表移除这 ", "清除这 "] {
+            XCTAssert(app.menuItems.matching(NSPredicate(format: "label BEGINSWITH %@", prefix)).firstMatch.exists)
+        }
+        XCTAssert(app.menuItems["在访达中显示原文件"].exists)
+        XCTAssertFalse(app.menuItems["Delete"].exists)
+        app.typeKey(.escape, modifierFlags: [])
 
         app.buttons["_XCUI:CloseWindow"].firstMatch.click()
     }

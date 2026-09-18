@@ -7,6 +7,52 @@ import WebKit
 
 @MainActor
 struct AMapTrackTests {
+    @Test func replacingMapKeepsNewWheelBridge() async throws {
+        let workspace = LocationWorkspace()
+        let parent = AMapWebView(snapshot: AMapSnapshot(revision: 0, point: nil,
+                                                       editable: false, photos: []),
+            credentials: AMapCredentials(key: "test-only", securityJsCode: "test-only"),
+            startupCoordinate: nil,
+            trackRevision: 0, fitRevision: 0, mapStyle: .normal, trackColor: "#000000", trackWidth: 0,
+            onMapTap: {}, onPick: { _, _ in Issue.record("Zoom must not edit photos") }, workspace: workspace)
+        let old = AMapWebView.Coordinator(parent)
+        let oldView = WKWebView()
+        old.browserView = oldView
+        old.connect()
+        workspace.reload()
+        let replacement = AMapWebView.Coordinator(parent)
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = .nonPersistent()
+        let view = WKWebView(frame: .zero, configuration: configuration)
+        replacement.browserView = view
+        replacement.pageURL = URL(string: "about:blank")
+        view.navigationDelegate = replacement
+        replacement.connect()
+        defer { AMapWebView.dismantleNSView(view, coordinator: replacement) }
+        // SwiftUI may install the replacement before dismantling the old view.
+        AMapWebView.dismantleNSView(oldView, coordinator: old)
+        let zoom = try #require(workspace.zoomAMap)
+        #expect(workspace.focusPhoto != nil)
+        #expect(workspace.moveAMapPhoto != nil)
+        view.loadHTMLString("""
+        <script>window.zoomCalls = []; window.photoTrail = {
+          start: async () => true, updateSnapshot: async () => {},
+          setMapStyle: () => {}, setTrackStyle: () => {}, renderTracks: () => {},
+          zoomByWheel: (steps, point) => window.zoomCalls.push([steps, point.x, point.y])
+        };</script>
+        """, baseURL: nil)
+        for _ in 0..<100 {
+            if workspace.ready { break }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        try #require(workspace.ready)
+        zoom(2, CGPoint(x: 100, y: 80))
+        let calls = try await view.evaluateJavaScript("JSON.stringify(window.zoomCalls)") as? String
+        #expect(calls == "[[2,100,80]]")
+        AMapWebView.dismantleNSView(view, coordinator: replacement)
+        #expect(workspace.zoomAMap == nil)
+    }
+
     @Test func regionBridgeReceivesJavaScriptValue() async throws {
         let workspace = LocationWorkspace()
         let parent = AMapWebView(snapshot: AMapSnapshot(revision: 0, point: nil,

@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var ignoredVideoNotice: Int?
     @State private var ignoredVideoNoticeID = UUID()
     @State private var inspectorPresented = false
+    @State private var batchActionsPresented = false
     @State private var setupPresented = false
     @AppStorage(SetupGuideView.completedKey) private var setupCompleted = false
 
@@ -54,10 +55,12 @@ struct ContentView: View {
                     PhotoDetailPage()
                 } else {
                     HStack(spacing: 0) {
-                        ImageTableView(inspectorPresented: $inspectorPresented) { alternateLayout = true }
+                        ImageTableView(inspectorPresented: $inspectorPresented, batchActionsPresented: $batchActionsPresented) { alternateLayout = true }
                             .accessibilityIdentifier(testIDs.imageTableViewID)
-                        Divider()
-                        PhotoActionSidebar()
+                        if batchActionsPresented {
+                            Divider()
+                            PhotoActionSidebar()
+                        }
                     }
                 }
             }
@@ -75,6 +78,9 @@ struct ContentView: View {
             locationWorkspace.tracks.synchronize(store.gpxTracks)
             if setupCompleted { await locationWorkspace.load() }
             else { setupPresented = true }
+        }
+        .onChange(of: store.trackMatches) {
+            if !store.trackMatches.isEmpty { locationWorkspace.listMatchResults = store.trackMatches }
         }
         .onChange(of: store.gpxTracks) {
             locationWorkspace.tracks.synchronize(store.gpxTracks)

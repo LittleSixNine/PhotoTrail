@@ -21,6 +21,7 @@ enum PhotoTrailEvent: Equatable {
     case clearPlaces
     case clearUniqueURLs
     case deleteRequest
+    case removeImages(Set<ImageData.ID>)
     case discardChangesRequest
     case restoreTracks([GpxTrackLog])
     case removeTrack(URL)
@@ -87,6 +88,7 @@ extension PhotoTrailEvent: CustomStringConvertible {
         case .clearPlaces: "clearPlaces"
         case .clearUniqueURLs: "clearUniqueURLs"
         case .deleteRequest: "deleteRequest"
+        case .removeImages: "removeImages"
         case .discardChangesRequest: "discardChangesRequest"
         case .restoreTracks: "restoreTracks"
         case .removeTrack: "removeTrack"

@@ -8,7 +8,8 @@ import UDF
 struct TableColumnResizeTests {
     @Test func adjacentResizeKeepsLaterBoundariesFixed() async throws {
         let store = Store(initialState: PhotoTrailState(), reduce: PhotoTrailReducer())
-        let root = ImageTableView(inspectorPresented: .constant(false)).environment(store)
+        let root = ImageTableView(inspectorPresented: .constant(false), batchActionsPresented: .constant(false))
+            .environment(store).environment(LocationWorkspace())
         let host = NSHostingView(rootView: root)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 700),
                               styleMask: [.titled], backing: .buffered, defer: false)

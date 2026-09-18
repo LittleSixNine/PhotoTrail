@@ -26,6 +26,8 @@ enum PhotoListFilter: String, CaseIterable {
     }
 }
 
+private enum FilmstripPopover { case filter, sort }
+
 enum PhotoStripSort: String, CaseIterable {
     case importOrder = "导入顺序"
     case filename = "文件名"
@@ -165,20 +167,23 @@ private final class PhotoThumbnailCache {
 struct WorkspaceSaveButton: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
     @State private var showCompletedRing = false
+    var fillsWidth = false
     var body: some View {
         Button {
             SaveHelper.requestSave(store)
         } label: {
             HStack(spacing: 7) {
                 Image(systemName: "square.and.arrow.down")
+                    .frame(width: fillsWidth ? 16 : nil)
                 Text(store.saveInProgress
                      ? "保存中 \(store.saveCompleted)/\(store.saveTotal)"
                      : "保存所有修改")
                     .monospacedDigit()
-                    .frame(minWidth: 110)
-            }.fixedSize()
+                    .frame(minWidth: fillsWidth ? nil : 110, alignment: .leading)
+            }
+            .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .leading)
         }
-        .buttonStyle(WorkspaceToolbarButtonStyle(prominent: true))
+        .buttonStyle(WorkspaceToolbarButtonStyle(prominent: !fillsWidth, outlined: fillsWidth))
         .disabled(store.saveInProgress || !store.unsavedChanges)
         .overlay {
             if store.saveInProgress || showCompletedRing {
@@ -262,6 +267,7 @@ struct PhotoActionSidebar: View {
     @State private var timePresented = false
     @State private var photoGPXPresented = false
     @State private var overwriteExisting = false
+    @State private var trackOptionsPresented = false
     @State private var gpxError: String?
     @State private var choosingCopyDestination = false
     @State private var copyExportInProgress = false
@@ -272,8 +278,10 @@ struct PhotoActionSidebar: View {
     }
 
     var body: some View {
+        VStack(spacing: 0) {
+        ScrollView {
         VStack(alignment: .leading, spacing: 14) {
-            Text("照片操作").font(.title3.bold())
+            Text("批量操作").font(.title3.bold())
             Text("已选择 \(store.selection.count) 张照片").font(.subheadline).foregroundStyle(.secondary)
             Menu {
                 if workspace.favorites.isEmpty { Text("暂无收藏，请在详情页添加") }
@@ -286,16 +294,22 @@ struct PhotoActionSidebar: View {
                 }
             } label: { actionLabel("应用收藏", "star") }
             .disabled(!editable)
-            Button {
-                LocationHelper.locationFromTrack(store, extendedTime: extendedTime,
-                                                 overwriteExisting: overwriteExisting)
-            } label: { actionLabel("从轨迹匹配", "point.3.connected.trianglepath.dotted") }
-            .disabled(!editable || store.gpxTracks.isEmpty)
-            Toggle("覆盖已有定位", isOn: $overwriteExisting)
-                .font(.caption).help("默认跳过已有 GPS 的照片；开启后仍需在预览中确认并应用。")
-            Text("匹配范围：所有已导入轨迹")
-                .font(.caption2).foregroundStyle(.secondary)
-            TrackMatchSummary()
+            DisclosureGroup("轨迹匹配", isExpanded: $trackOptionsPresented) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("匹配范围：全部已导入轨迹（\(store.gpxTracks.count) 条）")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Text("相机时区：\(store.timeZone.identifier)")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Text("轨迹端点容差：\(Int(extendedTime)) 秒，可在设置中调整")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Toggle("覆盖已有定位", isOn: $overwriteExisting).font(.caption)
+                    Button("预览所选照片的匹配结果") {
+                        LocationHelper.locationFromTrack(store, extendedTime: extendedTime,
+                                                         overwriteExisting: overwriteExisting)
+                    }.disabled(!editable || store.gpxTracks.isEmpty)
+                    TrackMatchSummary()
+                }.padding(.top, 8)
+            }
             Button { timePresented = true } label: { actionLabel("调整拍摄时间", "clock") }
                 .disabled(!editable)
             Button {
@@ -313,15 +327,24 @@ struct PhotoActionSidebar: View {
             Button { store.send(.deleteRequest, description: "清除定位") } label: {
                 actionLabel("清除定位", "mappin.slash")
             }.disabled(!editable || store.selection.allSatisfy { store[$0].metadata.location == nil })
-            Divider().padding(.vertical, 6)
-            WorkspaceSaveButton()
+        }
+        .padding(12)
+        }
+        VStack(spacing: 10) {
+            Divider()
+            WorkspaceSaveButton(fillsWidth: true)
             Button { store.undo() } label: { actionLabel("撤销", "arrow.uturn.backward") }
                 .disabled(!store.canUndo || store.saveInProgress || store.textfieldActive)
-            Spacer(minLength: 0)
         }
-        .buttonStyle(.bordered).controlSize(.large).padding(20)
-        .frame(width: 240).frame(maxHeight: .infinity)
+        .padding(12)
+        }
+        .buttonStyle(WorkspaceToolbarButtonStyle(outlined: true)).controlSize(.large)
+        .frame(width: 200).frame(maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
+        .onAppear { trackOptionsPresented = !store.trackMatches.isEmpty }
+        .onChange(of: store.trackMatches) {
+            if !store.trackMatches.isEmpty { trackOptionsPresented = true }
+        }
         .sheet(isPresented: $photoGPXPresented) {
             PhotoGPXOptionsView(timeZone: store.timeZone) { minutes in
                 let images = store.imageData.filter { store.selection.contains($0.id) }
@@ -389,7 +412,12 @@ struct PhotoActionSidebar: View {
     }
 
     private func actionLabel(_ title: String, _ icon: String) -> some View {
-        Label(title, systemImage: icon).frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 5)
+        HStack(spacing: 7) {
+            Image(systemName: icon).frame(width: 16)
+            Text(title)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 5)
     }
 }
 
@@ -401,6 +429,8 @@ struct PhotoDetailPage: View {
     @AppStorage("PhotoTrailFilmstripHeightRatio") private var stripRatio = 0.13
     @AppStorage("PhotoTrailFilmstripSort") private var stripSort = PhotoStripSort.capturedAt.rawValue
     @AppStorage("PhotoTrailFilmstripAscending") private var stripAscending = true
+    @SceneStorage("PhotoTrailFilmstripFilter") private var stripFilter: PhotoListFilter = .all
+    @State private var filmstripPopover: FilmstripPopover?
     @AppStorage(SettingsView.extendedTimeKey) private var extendedTime = 120.0
     @State private var dragStart: Double?
     @State private var confirmClearLocations = false
@@ -441,7 +471,7 @@ struct PhotoDetailPage: View {
                         }.onEnded { _ in dragStart = nil })
                     MapWithSearchView().frame(minWidth: 420, maxWidth: .infinity, maxHeight: .infinity)
                 }.frame(width: geometry.size.width,
-                        height: max(340, geometry.size.height - max(100, geometry.size.height * stripRatio) - 6))
+                        height: max(340, geometry.size.height - max(132, geometry.size.height * stripRatio) - 6))
                 Divider().frame(height: 6).contentShape(Rectangle())
                     .onHover { if $0 { NSCursor.resizeUpDown.push() } else { NSCursor.pop() } }
                     .gesture(DragGesture().onChanged { value in
@@ -450,7 +480,8 @@ struct PhotoDetailPage: View {
                             - value.translation.height / geometry.size.height))
                     }.onEnded { _ in dragStart = nil })
                 GeometryReader { geometry in
-                        HStack(spacing: 0) {
+                    ScrollViewReader { proxy in
+                        HStack(spacing: -42) {
                             ScrollView(.horizontal) {
                                 LazyHStack(spacing: 12) {
                                     ForEach(sortedImages) { image in
@@ -492,20 +523,48 @@ struct PhotoDetailPage: View {
                                     }
                                     .buttonStyle(.plain)
                                     .contextMenu { photoMenu(image) }
+                                    .id(image.id)
                                     }
-                                }.padding(14)
+                                }.padding(14).padding(.trailing, 42)
                             }.background(HorizontalFilmstripWheelMonitor())
-                            Divider()
-                            VStack {
+                            VStack(spacing: 0) {
+                                Spacer(minLength: 0)
+                                filmstripFilterMenu
+                                Spacer(minLength: 0)
                                 filmstripSortMenu
                                 Spacer(minLength: 0)
+                                Button {
+                                    if let id = currentVisiblePhotoID { proxy.scrollTo(id, anchor: .center) }
+                                } label: {
+                                    filmstripControl("回到当前", icon: "scope", menu: false)
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(currentVisiblePhotoID == nil)
+                                .help(store.mostSelected == nil ? "请先选择照片"
+                                      : currentVisiblePhotoID == nil ? "当前照片不在筛选结果中"
+                                      : "将当前照片滚动到照片条中央")
+                                Spacer(minLength: 0)
                             }
-                            .padding(.top, 9)
-                            .frame(width: 112)
-                            .background(Color(nsColor: .windowBackgroundColor))
+                            .padding(.horizontal, 2).padding(.vertical, 6)
+                            .frame(width: 124)
+                            .background(alignment: .trailing) {
+                                // Button leading edge is 2 points inside the control area.
+                                // The 80-point fade extends 40 points on either side of it.
+                                HStack(spacing: 0) {
+                                    LinearGradient(
+                                        colors: [Color(nsColor: .windowBackgroundColor).opacity(0),
+                                                 Color(nsColor: .windowBackgroundColor)],
+                                        startPoint: .leading, endPoint: .trailing
+                                    ).frame(width: 80)
+                                    Color(nsColor: .windowBackgroundColor).frame(width: 82)
+                                }
+                                .frame(width: 162)
+                                .allowsHitTesting(false)
+                            }
                         }
                         .frame(height: geometry.size.height).background(Color(nsColor: .windowBackgroundColor))
-                }.frame(height: max(100, geometry.size.height * stripRatio))
+                    }
+                }.frame(height: max(132, geometry.size.height * stripRatio))
             }.frame(width: geometry.size.width, height: geometry.size.height)
         }
         .sheet(isPresented: $photoGPXPresented) {
@@ -552,9 +611,10 @@ private extension PhotoDetailPage {
     }
 
     var sortedImages: [ImageData] {
+        let images = store.visibleImages.filter { stripFilter.includes($0) }
         let mode = PhotoStripSort(rawValue: stripSort) ?? .capturedAt
         if mode == .capturedAt {
-            let dated = store.visibleImages.map { ($0, $0.metadata.parsedDate(timeZone: store.timeZone)) }
+            let dated = images.map { ($0, $0.metadata.parsedDate(timeZone: store.timeZone)) }
             return dated.sorted { left, right in
                 let ordered: Bool
                 switch (left.1, right.1) {
@@ -566,7 +626,7 @@ private extension PhotoDetailPage {
                 return stripAscending ? ordered : !ordered && left.0.id != right.0.id
             }.map(\.0)
         }
-        return store.visibleImages.sorted { left, right in
+        return images.sorted { left, right in
             let ordered: Bool
             switch mode {
             case .importOrder:
@@ -580,16 +640,95 @@ private extension PhotoDetailPage {
         }
     }
 
-    var filmstripSortMenu: some View {
-        Menu {
-            Picker("排序方式", selection: $stripSort) {
-                ForEach(PhotoStripSort.allCases, id: \.rawValue) { Text($0.rawValue).tag($0.rawValue) }
+    var currentVisiblePhotoID: ImageData.ID? {
+        guard let id = store.mostSelected,
+              store.visibleImages.contains(where: { $0.id == id && stripFilter.includes($0) }) else { return nil }
+        return id
+    }
+
+    func popoverPresented(_ kind: FilmstripPopover) -> Binding<Bool> {
+        Binding(get: { filmstripPopover == kind }, set: { showing in
+            if showing { filmstripPopover = kind }
+            else if filmstripPopover == kind { filmstripPopover = nil }
+        })
+    }
+
+    var filmstripFilterMenu: some View {
+        Button { filmstripPopover = filmstripPopover == .filter ? nil : .filter } label: {
+            filmstripControl(stripFilter.rawValue, icon: "line.3.horizontal.decrease", menu: true)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("筛选：\(stripFilter.rawValue)")
+        .help("筛选照片：\(stripFilter.rawValue)")
+        .popover(isPresented: popoverPresented(.filter), attachmentAnchor: .rect(.bounds), arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("筛选照片").font(.caption).foregroundStyle(.secondary).padding(.horizontal, 8)
+                ForEach(PhotoListFilter.allCases, id: \.self) { option in
+                    filmstripOption(option.rawValue, selected: stripFilter == option) {
+                        stripFilter = option
+                        filmstripPopover = nil
+                    }
+                }
             }
-            Divider()
-            Button(stripAscending ? "改为降序" : "改为升序") { stripAscending.toggle() }
-        } label: {
-            Label("排序", systemImage: stripAscending ? "arrow.up" : "arrow.down")
-        }.buttonStyle(.bordered)
+            .padding(8).frame(width: 160)
+            .onExitCommand { filmstripPopover = nil }
+        }
+    }
+
+    var filmstripSortMenu: some View {
+        Button { filmstripPopover = filmstripPopover == .sort ? nil : .sort } label: {
+            filmstripControl((PhotoStripSort(rawValue: stripSort) ?? .capturedAt).rawValue,
+                             icon: "arrow.up.arrow.down", menu: true)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("排序：\((PhotoStripSort(rawValue: stripSort) ?? .capturedAt).rawValue)")
+        .help(stripAscending ? "排序：当前按升序排列" : "排序：当前按降序排列")
+        .popover(isPresented: popoverPresented(.sort), attachmentAnchor: .rect(.bounds), arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("排序规则").font(.caption).foregroundStyle(.secondary).padding(.horizontal, 8)
+                ForEach(PhotoStripSort.allCases, id: \.rawValue) { option in
+                    filmstripOption(option.rawValue, selected: stripSort == option.rawValue) {
+                        stripSort = option.rawValue
+                    }
+                }
+                Divider().padding(.vertical, 5)
+                Text("排列方向").font(.caption).foregroundStyle(.secondary).padding(.horizontal, 8)
+                filmstripOption("升序", selected: stripAscending) { stripAscending = true }
+                filmstripOption("降序", selected: !stripAscending) { stripAscending = false }
+            }
+            .padding(8).frame(width: 160)
+            .onExitCommand { filmstripPopover = nil }
+        }
+    }
+
+    func filmstripOption(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark").frame(width: 14).opacity(selected ? 1 : 0)
+                Text(title)
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(selected ? Color.blue : Color.secondary)
+            .padding(.horizontal, 8).frame(height: 28).contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    func filmstripControl(_ title: String, icon: String, menu: Bool) -> some View {
+        HStack(spacing: 3) {
+            Image(systemName: icon).frame(width: 10).foregroundStyle(.secondary)
+            Text(title).lineLimit(1).fixedSize(horizontal: true, vertical: false)
+            Spacer(minLength: 0)
+            if menu {
+                Image(systemName: "chevron.up").font(.caption2).foregroundStyle(.secondary)
+            }
+        }
+        .font(.system(size: 12))
+        .padding(.horizontal, 10).frame(width: 120, height: 32)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.9),
+                    in: RoundedRectangle(cornerRadius: 7))
+        .contentShape(RoundedRectangle(cornerRadius: 7))
     }
 
     func select(_ id: ImageData.ID) {
@@ -721,8 +860,8 @@ private extension PhotoDetailPage {
 
 struct WorkspacePageSwitch: View {
     @Binding var selection: Bool
-    var firstTitle = "列表页面"
-    var secondTitle = "详情页面"
+    var firstTitle = "照片列表"
+    var secondTitle = "地图定位"
     var firstIcon = "list.bullet"
     var secondIcon = "photo"
     var optionWidth: CGFloat = 124

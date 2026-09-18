@@ -8,6 +8,57 @@ import UDF
 
 @MainActor
 struct PhotoListTests {
+    @Test func removeFromListPreservesFilesAndCanUndoPairedPendingEdits() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let urls = ["pair.JPG", "pair.DNG", "other.JPG"].map { folder.appendingPathComponent($0) }
+        for url in urls { try Data("unchanged original".utf8).write(to: url) }
+        var state = PhotoTrailState()
+        state.imageData = urls.map { ImageData(metadata: Metadata(source: .xmp($0)), name: $0.lastPathComponent) }
+        let ids = state.imageData.map(\.id)
+        state.pairingEligibleIDs = Set(ids)
+        state.linkPairedImages()
+        state.selection = [ids[0], ids[2]]
+        state.mostSelected = ids[0]
+        let store = Store(initialState: state, reduce: PhotoTrailReducer(), undoEnabled: true)
+        let point = Coords(latitude: 31.23, longitude: 121.48)
+        store.send(.locationForImageChanged(ids[0], point))
+        store.send(.removeImages([ids[0]]))
+        #expect(store.imageData.map(\.id) == [ids[2]])
+        #expect(store.selection == [ids[2]])
+        #expect(store.mostSelected == ids[2])
+        #expect(!store.unsavedChanges)
+        for url in urls { #expect(try Data(contentsOf: url) == Data("unchanged original".utf8)) }
+        store.undo()
+        #expect(store.imageData.count == 3)
+        #expect(store[ids[0]].metadata.location == point)
+        #expect(store[ids[1]].metadata.location == point)
+        #expect(store.unsavedChanges)
+    }
+
+    @Test func removingImagesIsBlockedDuringSave() {
+        let image = ImageData(metadata: Metadata(source: .copy), name: "keep.jpg")
+        var state = PhotoTrailState()
+        state.imageData = [image]
+        state.saveInProgress = true
+        let result = PhotoTrailReducer().reduce(state, .removeImages([image.id]))
+        #expect(result.imageData.count == 1)
+    }
+
+    @Test func clearLocationKeepsThePhotoInTheList() {
+        var image = ImageData(metadata: Metadata(source: .xmp(URL(fileURLWithPath: "/tmp/clear-only.jpg"))),
+                              name: "clear-only.jpg")
+        image.metadata.location = Coords(latitude: 31.23, longitude: 121.48)
+        var state = PhotoTrailState()
+        state.imageData = [image]
+        state.selection = [image.id]
+        let result = PhotoTrailReducer().reduce(state, .deleteRequest)
+        #expect(result.imageData.map(\.id) == [image.id])
+        #expect(result[image.id].metadata.location == nil)
+        #expect(result.unsavedChanges)
+    }
+
     @Test func mapPhotoSwitchUsesSelectionWithoutChangingIt() {
         let first = ImageData(metadata: Metadata(source: .copy), name: "first.jpg")
         let second = ImageData(metadata: Metadata(source: .copy), name: "second.jpg")

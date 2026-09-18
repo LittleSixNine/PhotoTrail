@@ -2,172 +2,70 @@ import ImageData
 import SwiftUI
 import UDF
 
-// Duplicates many of the menu commands
-
 struct ContextMenuView: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) var store
     @AppStorage(SettingsView.extendedTimeKey) var extendedTime = 120.0
-
-    let context: ImageData.ID?
+    let targets: Set<ImageData.ID>
     @Binding var inspectorPresented: Bool
+    var openDetail: () -> Void
+    var showBatchActions: () -> Void
+    var remove: () -> Void
+    var clearLocations: () -> Void
+
+    private var images: [ImageData] { store.imageData.filter { targets.contains($0.id) } }
+    private var editable: Bool {
+        !images.isEmpty && !store.saveInProgress && images.allSatisfy(\.updatable)
+    }
+    private var source: ImageData? { images.count == 1 ? images.first : nil }
+    private var localURLs: [URL] {
+        images.compactMap {
+            switch $0.metadata.source {
+            case .image(let url), .xmp(let url): url
+            case .photos, .copy: nil
+            }
+        }
+    }
 
     var body: some View {
-        Group {
-            Button("Edit…", systemImage: "pencil") {
-                handleContext()
-                inspectorPresented.toggle()
-            }
-            .disabled(context == nil && store.mostSelected == nil)
-        }
-
+        Button("在地图定位页查看") { selectTargets(); openDetail() }
+            .disabled(images.isEmpty)
+        Button("查看与编辑照片信息…") { selectTargets(); inspectorPresented = true }
+            .disabled(images.count != 1)
         Divider()
-
-        Group {
-            Button("Cut", systemImage: "scissors") {
-                handleContext()
-                if let id = store.mostSelected {
-                    let pb = NSPasteboard.general
-                    pb.clearContents()
-                    pb.setString(store[id].stringRepresentation,
-                                 forType: .string)
-                    store.send(.deleteRequest)
-                }
-            }
-            .disabled(store.saveInProgress || nothingToEdit(context: context))
-
-            Button("Copy", systemImage: "document.on.document") {
-                handleContext()
-                if let id = store.mostSelected {
-                    let pb = NSPasteboard.general
-                    pb.clearContents()
-                    pb.setString(store[id].stringRepresentation,
-                                 forType: .string)
-                }
-            }
-            .disabled(nothingToEdit(context: context))
-
-            Button("Paste", systemImage: "document.on.clipboard") {
-                handleContext()
-                if let id = store.mostSelected {
-                    store.send(.pasteRequest) {
-                        let selected = store.selection
-                        Task {
-                            let address =
-                                await ReverseLocationFinder.reverseGeocode(store: store,
-                                                                           id: id)
-                            if let address {
-                                store.send(.addressChanged(selected, address),
-                                           undoable: false)
-                            }
-                        }
+        Button("复制此照片的定位", systemImage: "document.on.document") {
+            guard let source else { return }
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(source.stringRepresentation, forType: .string)
+        }.disabled(source?.metadata.location == nil)
+        Button("粘贴定位到这 \(images.count) 张照片", systemImage: "document.on.clipboard") {
+            selectTargets()
+            store.send(.pasteRequest, description: "粘贴定位") {
+                guard let id = store.mostSelected else { return }
+                let selected = store.selection
+                Task {
+                    if let address = await ReverseLocationFinder.reverseGeocode(store: store, id: id) {
+                        store.send(.addressChanged(selected, address), undoable: false)
                     }
                 }
-             }
-             .disabled(store.saveInProgress || pasteDisabled(context: context))
-
-            Button("Delete", systemImage: "trash") {
-                handleContext()
-                store.send(.deleteRequest)
             }
-            .disabled(store.saveInProgress || nothingToEdit(context: context))
-        }
-
+        }.disabled(!editable || NSPasteboard.general.string(forType: .string)
+            .flatMap { ImageData.decodeStringRep(value: $0) } == nil)
+        Button("预览这 \(images.count) 张照片的轨迹匹配") {
+            selectTargets()
+            showBatchActions()
+            LocationHelper.locationFromTrack(store, extendedTime: extendedTime)
+        }.disabled(!editable || store.gpxTracks.isEmpty)
         Divider()
-
-        Group {
-            Button("Show In Finder") {
-                handleContext()
-                showInFinder()
-            }
-            .disabled(context == nil && store.mostSelected == nil)
-
-            Button("Locn From Track") {
-                handleContext()
-                LocationHelper.locationFromTrack(store,
-                                                 extendedTime: extendedTime)
-
-            }
-            .disabled(store.saveInProgress || store.gpxTracks.isEmpty ||
-                      (context == nil && store.mostSelected == nil))
-        }
-
-        Divider()
-
-        Button("Clear Image List") {
-            store.send(.clearImagesRequest,
-                       description: "clear image list")
-        }
-        .disabled(store.saveInProgress || store.imageData.isEmpty || store.unsavedChanges)
-    }
-}
-
-extension ContextMenuView {
-    // update selection/mostselected if necessary
-    func handleContext() {
-        if let context {
-            store.send(.mostSelectedChanged(context))
-        }
-    }
-}
-
-extension ContextMenuView {
-    private func nothingToEdit(context: ImageData.ID?) -> Bool {
-        if let context {
-            return store[context].metadata.location == nil
-        }
-        if let id = store.mostSelected {
-            return store[id].metadata.location == nil
-        }
-        return true
+        Button("在访达中显示原文件") {
+            NSWorkspace.shared.activateFileViewerSelecting(localURLs)
+        }.disabled(localURLs.isEmpty)
+        Button("从列表移除这 \(images.count) 张照片…", systemImage: "minus.circle") { remove() }
+            .disabled(store.saveInProgress || images.isEmpty)
+        Button("清除这 \(images.count) 张照片的定位…", systemImage: "mappin.slash") { clearLocations() }
+            .disabled(!editable || images.allSatisfy { $0.metadata.location == nil })
     }
 
-    // must have paste data in the appropriate form and either
-    // context or mostSelected for paste to be enabled.
-
-    private func pasteDisabled(context: ImageData.ID?) -> Bool {
-        let pb = NSPasteboard.general
-        if let pasteVal = pb.string(forType: .string),
-           ImageData.decodeStringRep(value: pasteVal) != nil,
-           context != nil || store.mostSelected != nil {
-            return false
-        }
-        return true
+    private func selectTargets() {
+        store.send(.selectionChanged(targets), undoable: false)
     }
-
-    private func showInFinder() {
-        var urls: [URL] = []
-
-        for id in store.selection {
-            switch store[id].metadata.source {
-            case .image(let url), .xmp(let url):
-                urls.append(url)
-            default:
-                // not where the finder can see it
-                break
-            }
-        }
-        if !urls.isEmpty {
-            NSWorkspace.shared.activateFileViewerSelecting(urls)
-        }
-    }
-}
-
-#Preview(traits: .store) {
-    @Previewable @State var toggle = false
-    Text("Right Click to see context menu")
-        .contextMenu {
-            ContextMenuView(context: nil,
-                            inspectorPresented: $toggle)
-        }
-        .frame(width: 400, height: 400)
-}
-
-#Preview("context", traits: .store) {
-    @Previewable @State var toggle = false
-    Text("Right Click to see context menu")
-        .contextMenu {
-            ContextMenuView(context: 11,
-                            inspectorPresented: $toggle)
-        }
-        .frame(width: 400, height: 400)
 }

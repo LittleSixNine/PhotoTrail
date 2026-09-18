@@ -75,6 +75,29 @@ extension ReducerTests {
         #expect(store.presentConfirmation)
     }
 
+    @Test func quittingUsesCurrentUnsavedStateAndPreservesEdits() {
+        let store = Store(initialState: PhotoTrailState(), reduce: PhotoTrailReducer())
+        let delegate = AppDelegate()
+        delegate.store = store
+        #expect(delegate.applicationShouldTerminate(NSApplication.shared) == .terminateNow)
+
+        var image = ImageData(metadata: Metadata(source: .xmp(URL(fileURLWithPath: "/tmp/quit-check.jpg"))),
+                              name: "quit-check.jpg")
+        image.metadata.location = Coords(latitude: 31, longitude: 121)
+        var state = PhotoTrailState()
+        state.imageData = [image]
+        state.unsavedChanges = true
+        let dirtyStore = Store(initialState: state, reduce: PhotoTrailReducer())
+        delegate.store = dirtyStore
+        #expect(delegate.applicationShouldTerminate(NSApplication.shared) == .terminateCancel)
+        #expect(dirtyStore.presentConfirmation)
+        #expect(dirtyStore.unsavedChanges)
+        #expect(dirtyStore[image.id].metadata.location == image.metadata.location)
+        #expect(!delegate.windowShouldClose(NSWindow()))
+        #expect(dirtyStore.confirmationEvent == .terminateRequest)
+        #expect(dirtyStore.unsavedChanges)
+    }
+
     @Test func readTrackLogEvent() async throws {
         let store = Store(initialState: PhotoTrailState(), reduce: PhotoTrailReducer())
         let goodName = "TestTrack.GPX"

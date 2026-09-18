@@ -32,6 +32,7 @@ struct AMapPhotoEdgePosition: Identifiable, Equatable {
 
 @MainActor @Observable
 final class LocationWorkspace {
+    var listMatchResults: [LocationHelper.LocationById] = []
     var status = "选择照片后，在地图上点选拍摄地点。"
     var query = ""
     var results: [AMapSearchResult] = []
@@ -67,6 +68,7 @@ final class LocationWorkspace {
     @ObservationIgnored var previewWGS84: ((MapCoordinate) -> Void)?
     @ObservationIgnored var moveAMapPhoto: ((Int, CGPoint) -> Void)?
     @ObservationIgnored var focusPhoto: ((Int) -> Void)?
+    @ObservationIgnored var amapConnectionID: UUID?
     @ObservationIgnored var zoomAMap: ((Double, CGPoint) -> Void)?
     @ObservationIgnored private let favoritesURL: URL
     @ObservationIgnored private var didLoad = false

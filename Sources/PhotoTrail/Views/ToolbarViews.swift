@@ -79,6 +79,7 @@ struct InspectorButtonView: View {
 struct WorkspaceToolbarButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     var prominent = false
+    var outlined = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -87,6 +88,11 @@ struct WorkspaceToolbarButtonStyle: ButtonStyle {
             .padding(.horizontal, 12)
             .frame(height: 34)
             .background(prominent && isEnabled ? Color.blue : Color(nsColor: .controlBackgroundColor), in: Capsule())
+            .overlay {
+                if outlined {
+                    Capsule().strokeBorder(Color.primary.opacity(isEnabled ? 0.24 : 0.12), lineWidth: 1)
+                }
+            }
             .opacity(configuration.isPressed ? 0.75 : 1)
     }
 }
