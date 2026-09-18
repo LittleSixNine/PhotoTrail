@@ -3,7 +3,7 @@ import vm from 'node:vm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const html = readFileSync(new URL('../GeoTag/Views/Maps/AMap.html', import.meta.url), 'utf8');
+const html = readFileSync(new URL('../Sources/PhotoTrail/Views/Maps/AMap.html', import.meta.url), 'utf8');
 const source = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 async function setup(preferWebGL = true, timeout = 15000, viewport = null, initial = {}) {
   const messages = [], addresses = [], conversions = [], handlers = {}, markers = [], searches = [];
@@ -46,7 +46,7 @@ async function setup(preferWebGL = true, timeout = 15000, viewport = null, initi
     Polyline: class { constructor(options) { this.options = options; } setOptions(options) { Object.assign(this.options, options); } },
     convertFrom(point, type, callback) { conversions.push({ point, type, callback }); }
   };
-  const window = { webkit: { messageHandlers: { geoTag: { postMessage: value => messages.push(value) } } } };
+  const window = { webkit: { messageHandlers: { photoTrail: { postMessage: value => messages.push(value) } } } };
   const context = vm.createContext({ window, AMap: api, AMapLoader: { load: async () => api },
     Date: Clock, setTimeout: (fn, ms) => {
       if (ms === 5000) { queueMicrotask(fn); return; }
@@ -54,8 +54,8 @@ async function setup(preferWebGL = true, timeout = 15000, viewport = null, initi
       const timer = setTimeout(fn, timeout); timer.unref(); return timer; }, clearTimeout, document: { querySelectorAll: () => [], getElementById: id => id === 'map' ? mapElement : notice, createElement: () => ({}),
       head: { appendChild: script => queueMicrotask(() => script.onload()) } } });
   vm.runInContext(source, context);
-  await window.geoTag.start({ key: 'test-only', securityJsCode: 'test-only', preferWebGL, ...initial });
-  return { geo: window.geoTag, messages, addresses, conversions, handlers, markers, searches,
+  await window.photoTrail.start({ key: 'test-only', securityJsCode: 'test-only', preferWebGL, ...initial });
+  return { geo: window.photoTrail, messages, addresses, conversions, handlers, markers, searches,
     visible, fits, delays, centers, map: mapInstance };
 }
 const event = { lnglat: { getLat: () => 31.23, getLng: () => 121.48 } };

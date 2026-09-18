@@ -4,7 +4,7 @@ PhotoTrail also incorporates conservative matching behavior derived from the
 author's earlier PhotoTrail prototype. That source is MIT licensed; the merged
 Swift implementation was rewritten for this application and its existing tests.
 
-The forward coordinate formula in `Coords/Sources/Coords/CoordinateTransform.swift`
+The forward coordinate formula in `Packages/Coords/Sources/Coords/CoordinateTransform.swift`
 is adapted from [wandergis/coordtransform](https://github.com/wandergis/coordtransform).
 The country rectangle and the one-step inverse are not used as geographic authority.
 

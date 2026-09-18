@@ -1,10 +1,10 @@
-name: GeoTag
+name: PhotoTrail
 
 options:
   deploymentTarget:
     macOS: "26.0"
   groupOrdering:
-    - order: [GeoTag, GeoTagTests, GeoTagUITests, Packages, Products]
+    - order: [PhotoTrail, PhotoTrailTests, PhotoTrailUITests, Packages, Products]
   fileTypes:
     "icon":
       file: true 
@@ -18,31 +18,31 @@ settings:
     CODE_SIGN_STYLE: Manual
     DEAD_CODE_STRIPPING: YES
     DEVELOPMENT_ASSET_PATHS:
-      - GeoTag/DevAssets/PreviewData.swift
-      - GeoTag/DevAssets/AnotherTrack.GPX
-      - GeoTag/DevAssets/TestBadTrack.GPX
-      - GeoTag/DevAssets/TestTrack.GPX
-      - GeoTag/DevAssets/OtherPictures/788A1113.CR3
-      - GeoTag/DevAssets/OtherPictures/Berlijn-Fujifilm-X-Pro2.RAF
-      - GeoTag/DevAssets/TestPictures/IMG_7158.CR2
-      - GeoTag/DevAssets/TestPictures/IMG_7158.xmp
-      - GeoTag/DevAssets/TestPictures/IMG_7162.CR2
-      - GeoTag/DevAssets/TestPictures/IMG_7162.xmp
-      - GeoTag/DevAssets/TestPictures/L1000038.DNG
-      - GeoTag/DevAssets/TestPictures/L1000050.DNG
-      - GeoTag/DevAssets/TestPictures/L1000051.DNG
-      - GeoTag/DevAssets/TestPictures/L1000052.DNG
-      - GeoTag/DevAssets/TestPictures/P1000658.JPG
-      - GeoTag/DevAssets/TestPictures/L1000051.JPG
-      - GeoTag/DevAssets/TestPictures/P1000659.JPG
-      - GeoTag/DevAssets/TestPictures/P1000660.JPG
-      - GeoTag/DevAssets/TestPictures/P1000661.JPG
-      - GeoTag/DevAssets/TestPictures/P1000679.JPG
-      - GeoTag/DevAssets/TestPictures/P1000684.JPG
-      - GeoTag/DevAssets/TestPictures/P1000685.JPG
-      - GeoTag/DevAssets/TestPictures/P1000686.JPG
-      - GeoTag/DevAssets/TestPictures/Screenshot.png
-      - GeoTag/DevAssets/TestPictures/image.foo
+      - Sources/PhotoTrail/DevAssets/PreviewData.swift
+      - Sources/PhotoTrail/DevAssets/AnotherTrack.GPX
+      - Sources/PhotoTrail/DevAssets/TestBadTrack.GPX
+      - Sources/PhotoTrail/DevAssets/TestTrack.GPX
+      - Sources/PhotoTrail/DevAssets/OtherPictures/788A1113.CR3
+      - Sources/PhotoTrail/DevAssets/OtherPictures/Berlijn-Fujifilm-X-Pro2.RAF
+      - Sources/PhotoTrail/DevAssets/TestPictures/IMG_7158.CR2
+      - Sources/PhotoTrail/DevAssets/TestPictures/IMG_7158.xmp
+      - Sources/PhotoTrail/DevAssets/TestPictures/IMG_7162.CR2
+      - Sources/PhotoTrail/DevAssets/TestPictures/IMG_7162.xmp
+      - Sources/PhotoTrail/DevAssets/TestPictures/L1000038.DNG
+      - Sources/PhotoTrail/DevAssets/TestPictures/L1000050.DNG
+      - Sources/PhotoTrail/DevAssets/TestPictures/L1000051.DNG
+      - Sources/PhotoTrail/DevAssets/TestPictures/L1000052.DNG
+      - Sources/PhotoTrail/DevAssets/TestPictures/P1000658.JPG
+      - Sources/PhotoTrail/DevAssets/TestPictures/L1000051.JPG
+      - Sources/PhotoTrail/DevAssets/TestPictures/P1000659.JPG
+      - Sources/PhotoTrail/DevAssets/TestPictures/P1000660.JPG
+      - Sources/PhotoTrail/DevAssets/TestPictures/P1000661.JPG
+      - Sources/PhotoTrail/DevAssets/TestPictures/P1000679.JPG
+      - Sources/PhotoTrail/DevAssets/TestPictures/P1000684.JPG
+      - Sources/PhotoTrail/DevAssets/TestPictures/P1000685.JPG
+      - Sources/PhotoTrail/DevAssets/TestPictures/P1000686.JPG
+      - Sources/PhotoTrail/DevAssets/TestPictures/Screenshot.png
+      - Sources/PhotoTrail/DevAssets/TestPictures/image.foo
     DEVELOPMENT_TEAM: ""
     ENABLE_APP_SANDBOX: YES
     ENABLE_RESOURCE_ACCESS_LOCATION: YES
@@ -68,7 +68,7 @@ settings:
       VALIDATE_PRODUCT:  YES
 
 targets:
-  GeoTag:
+  PhotoTrail:
     type: application
     platform: macOS
     dependencies:
@@ -81,17 +81,15 @@ targets:
       - package: Metadata
       - package: Phototool
       - package: RunLogView
-      - package: SplitHView
-      - package: SplitVView
     sources:
-      - Supporting Files/Assets.xcassets
+      - Resources/Assets.xcassets
       - path: LICENSE
         buildPhase: resources
       - THIRD_PARTY_NOTICES.md
-      - Supporting Files/PrivacyInfo.xcprivacy
-      - GeoTag
+      - Resources/PrivacyInfo.xcprivacy
+      - Sources/PhotoTrail
     info:
-      path: Generated/Info.plist
+      path: Build/Generated/Info.plist
       properties:
         CFBundleDisplayName: PhotoTrail
         LSApplicationCategoryType: public.app-category.photography
@@ -176,25 +174,25 @@ targets:
         ENABLE_USER_SELECTED_FILES: readwrite
         GENERATE_INFOPLIST_FILE: NO
         PRODUCT_BUNDLE_IDENTIFIER: $(PHOTOTRAIL_BUNDLE_ID)
-        PRODUCT_MODULE_NAME: GeoTag
+        PRODUCT_MODULE_NAME: PhotoTrail
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     postBuildScripts:
-      - path: .buildversion.sh
+      - path: scripts/build-version.sh
         name: Build Version
         showEnvVars: NO
         basedOnDependencyAnalysis: NO
-      - path: .swiftlint.sh
+      - path: scripts/lint.sh
         name: Swift Lint
         showEnvVars: NO
         basedOnDependencyAnalysis: NO
 
-  GeoTagTests:
+  PhotoTrailTests:
     type: bundle.unit-test
     platform: macOS
     dependencies:
-      - target: GeoTag
+      - target: PhotoTrail
     sources:
-      - GeoTagTests
+      - Tests/PhotoTrailTests
     settings:
       GENERATE_INFOPLIST_FILE: YES
       PRODUCT_NAME: $(TARGET_NAME)
@@ -202,13 +200,13 @@ targets:
       TEST_HOST: "$(BUILT_PRODUCTS_DIR)/PhotoTrail.app/Contents/MacOS/PhotoTrail"
     schemes: none
 
-  GeoTagUITests:
+  PhotoTrailUITests:
     type: bundle.ui-testing
     platform: macOS
     dependencies:
-      - target: GeoTag
+      - target: PhotoTrail
     sources:
-      - GeoTagUITests
+      - Tests/PhotoTrailUITests
     settings:
       GENERATE_INFOPLIST_FILE: YES
       PRODUCT_NAME: $(TARGET_NAME)
@@ -216,10 +214,10 @@ targets:
     schemes: none
 
 schemes:
-  GeoTag:
+  PhotoTrail:
     build:
       targets:
-        GeoTag: all
+        PhotoTrail: all
     run:
       config: Debug
       # environmentVariables:
@@ -228,8 +226,8 @@ schemes:
       config: Debug
       gatherCoverageData: YES
       targets:
-        - name: GeoTagTests
-        - name: GeoTagUITests
+        - name: PhotoTrailTests
+        - name: PhotoTrailUITests
         - package: Coords/CoordsTests
         - package: Exiftool/ExiftoolTests
         - package: GpxTrackLog/GpxTrackLogTests
@@ -238,7 +236,7 @@ schemes:
         - package: Metadata/MetadataTests
         - package: Phototool/PhototoolTests
       environmentVariables:
-        ImagePath: $(SRCROOT)/GeoTag/DevAssets
+        ImagePath: $(SRCROOT)/Sources/PhotoTrail/DevAssets
         PHOTOTRAIL_OFFLINE_TESTS: "1"
     profile:
       config: Release
@@ -250,18 +248,18 @@ schemes:
   AppOnly:
     build:
       targets:
-        GeoTag: all
+        PhotoTrail: all
     run:
       config: Debug
     test:
       config: Debug
       gatherCoverageData: YES
       targets:
-        - name: GeoTagTests
+        - name: PhotoTrailTests
   Release:
     build:
       targets:
-        GeoTag: all
+        PhotoTrail: all
     run:
       config: Release
 
@@ -270,22 +268,18 @@ packages:
     url: git://snafu.org/UDF
     branch: main
   Coords:
-    path: Coords
+    path: Packages/Coords
   Exiftool:
-    path: Exiftool
+    path: Packages/Exiftool
   GpxTrackLog:
-    path: GpxTrackLog
+    path: Packages/GpxTrackLog
   Imagetool:
-    path: Imagetool
+    path: Packages/Imagetool
   ImageData:
-    path: ImageData
+    path: Packages/ImageData
   Metadata:
-    path: Metadata
+    path: Packages/Metadata
   Phototool:
-    path: Phototool
+    path: Packages/Phototool
   RunLogView:
-    path: RunLogView
-  SplitHView:
-    path: SplitHView
-  SplitVView:
-    path: SplitVView
+    path: Packages/RunLogView

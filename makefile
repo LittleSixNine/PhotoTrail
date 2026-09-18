@@ -1,42 +1,27 @@
-PROJECT = GeoTag
+.DEFAULT_GOAL := build
+.PHONY: project build test test-map test-unit test-packages clean
+NODE ?= node
 
-buildServer.json:	build
-	xcode-build-server config -scheme $(PROJECT) -project $(PROJECT).xcodeproj
+project:
+	xcodegen generate
 
-build:	$(PROJECT).xcodeproj/project.pbxproj
-	xcodebuild -scheme $(PROJECT)
+build: project
+	xcodebuild -project PhotoTrail.xcodeproj -scheme PhotoTrail \
+		-configuration Debug -destination 'platform=macOS' build
 
-$(PROJECT).xcodeproj/project.pbxproj:	project.yml
-	xcodegen -c
+test: test-map test-unit test-packages
 
-.PHONY: proj tags dap test testapp testGpxTrackLog clean
+test-map:
+	$(NODE) --test scripts/test-amap.mjs
 
-# force project file rebuild
-proj:
-	xcodegen
+test-unit: project
+	xcodebuild -project PhotoTrail.xcodeproj -scheme PhotoTrail \
+		-destination 'platform=macOS' -derivedDataPath Build/Tests \
+		PHOTOTRAIL_BUNDLE_ID=local.PhotoTrail.Validation \
+		-only-testing:PhotoTrailTests test
 
-tags:
-	/opt/homebrew/bin/ctags -R
+test-packages:
+	@set -e; for package in Packages/*; do swift test --package-path "$$package"; done
 
-dap:
-	xcodebuild -scheme $(PROJECT) -showBuildSettings 2>&1 | \
-		sed -n -E '/TARGET_BUILD_DIR/s/.* = (.*)/\1\/GeoTag.app/p' > .dap
-
-test: buildServer.json
-	xcodebuild -scheme GeoTag test > .test.out
-	xcresultparser `sed -n '/xcresult/p' .test.out`
-
-testapp: buildServer.json
-	xcodebuild -scheme AppOnly test > .test.out
-	xcresultparser `sed -n '/xcresult/p' .test.out`
-
-testGpxTrackLog: buildServer.json
-	xcodebuild -scheme GpxTrackLog test > .test.out
-	xcresultparser `sed -n '/xcresult/p' .test.out`
-
-# remove files created during the build process
-# do **not** use the -d option to git clean without excluding .jj
-clean:
-	test -d $(PROJECT).xcodeproj && xcodebuild clean || true
-	jj status
-	git clean -dfx -e .jj -e notes -e .session~
+clean: project
+	xcodebuild -project PhotoTrail.xcodeproj -scheme PhotoTrail clean

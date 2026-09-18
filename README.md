@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="design/phototrail-icon-concept-v2.png" width="160" alt="PhotoTrail 图标">
+  <img src="docs/images/phototrail-icon.png" width="160" alt="PhotoTrail 图标">
 </p>
 
 <h1 align="center">PhotoTrail</h1>
@@ -11,6 +11,10 @@ PhotoTrail 是一款 macOS 照片定位工具。部分照片元数据编辑功�
 ## 界面预览
 
 ![照片详情：地图定位、缩略图和轨迹侧栏](docs/screenshots/photo-detail.png)
+
+*为了使轨迹和照片更突出，默认使用饱和度更低的地图样式，也内置了多种地图风格供切换。*
+
+
 
 ## 为什么做这个项目
 
@@ -57,9 +61,9 @@ PhotoTrail 提供可独立安装的 [skill 模块](skill/)，无需安装 Mac Ap
 
 ## Releases · 下载与版本
 
-最新版：[PhotoTrail v0.3.6](https://github.com/LittleSixNine/PhotoTrail/releases/tag/v0.3.6)。下载 `PhotoTrail-0.3.6-macOS-universal.zip`，解压后将 `PhotoTrail.app` 拖入“应用程序”。旧版 `v0.1.0`、`v0.2.0` 是早期预览版，仅供历史参考。
+最新版：[PhotoTrail v0.3.6](https://github.com/LittleSixNine/PhotoTrail/releases/tag/v0.3.6)。下载 `PhotoTrail-0.3.6-macOS.dmg`，打开后将 `PhotoTrail.app` 拖入右侧“Applications”文件夹。旧版 `v0.1.0`、`v0.2.0` 是早期预览版，仅供历史参考。
 
-- 系统要求：由于继承原版 GeoTag 6.0.2，需要 **macOS 26 或更新版本**。
+- 系统要求：需要 **macOS 26 或更新版本**。
 - 当前安装包兼容 Apple 芯片与 Intel Mac，采用临时签名，尚未完成开发者签名与 Apple 公证；首次打开可能被 macOS 拦截。
 
 ## 基本使用
@@ -99,15 +103,17 @@ PhotoTrail 提供可独立安装的 [skill 模块](skill/)，无需安装 Mac Ap
 
 ## 开发
 
-项目基于原版 **GeoTag v6.0.2**。构建需要完整 Xcode（支持 Swift 6.2、macOS 26 SDK 或更新版本）、XcodeGen 和 SwiftLint。
+构建需要完整 Xcode（支持 Swift 6.2、macOS 26 SDK 或更新版本）、XcodeGen 和 SwiftLint。
 
 ```sh
 xcodegen generate
-xcodebuild -project GeoTag.xcodeproj -scheme GeoTag \
+xcodebuild -project PhotoTrail.xcodeproj -scheme PhotoTrail \
   -configuration Debug -destination 'platform=macOS' build
 ```
 
-测试、凭据配置和当前功能边界见 [开发说明](DEVELOPMENT.md)。
+测试、凭据配置和当前功能边界见 [开发说明](docs/DEVELOPMENT.md)。
+
+源码位于 `Sources/PhotoTrail/`，本地 Swift 包集中在 `Packages/`，应用测试位于 `Tests/`，图标和隐私清单位于 `Resources/`。`docs/` 保存说明与展示图片，`scripts/` 提供构建和测试辅助命令；`skill/` 是可独立安装的照片与 GPX 工具。
 
 ## 致谢与许可证
 
