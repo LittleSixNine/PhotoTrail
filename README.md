@@ -56,13 +56,13 @@ PhotoTrail 提供可独立安装的 [skill 模块](skill/)，无需安装 Mac Ap
 
 > 请阅读 https://raw.githubusercontent.com/LittleSixNine/PhotoTrail/phototrail/skill/INSTALL.md ，按照说明为你当前使用的 agent 安装 PhotoTrail skill，并检查运行环境。
 
-运行需要 **Python 3.11+ 和 ExifTool**，目前已在 macOS 验证。安装位置由 agent 客户端决定；只支持网页对话、无法运行本地程序的客户端不能直接执行这些功能。照片处理在本地完成，不接入地图搜索或苹果 Photos 图库；首版不提供 RAW/XMP 写入。
+运行需要 **Python 3.11+ 和 ExifTool**，目前已在 macOS 验证。安装位置由 agent 客户端决定；只支持网页对话、无法运行本地客户端。照片处理在本地完成，不接入地图搜索或苹果 Photos 图库；首版不提供 RAW/XMP 写入。
 
 功能、参数及使用边界见 [skill 使用说明](skill/SKILL.md)。skill 独立维护，不要求与 Mac App 同步更新。
 
 ## Releases · 下载与版本
 
-最新版：[PhotoTrail v0.3.7](https://github.com/LittleSixNine/PhotoTrail/releases/tag/v0.3.7)。下载 `PhotoTrail-0.3.7-macOS.dmg`，打开后将 `PhotoTrail.app` 拖入右侧“Applications”文件夹。旧版 `v0.1.0`、`v0.2.0` 是早期预览版，仅供历史参考。
+最新版：[PhotoTrail v0.3.7](https://github.com/LittleSixNine/PhotoTrail/releases/tag/v0.3.7)。
 
 - 系统要求：需要 **macOS 26 或更新版本**。
 - 当前安装包兼容 Apple 芯片与 Intel Mac，采用临时签名，尚未完成开发者签名与 Apple 公证；首次打开可能被 macOS 拦截。
