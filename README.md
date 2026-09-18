@@ -60,9 +60,9 @@ PhotoTrail 提供可独立安装的 [skill 模块](skill/)，无需安装 Mac Ap
 
 功能、参数及使用边界见 [skill 使用说明](skill/SKILL.md)。skill 独立维护，不要求与 Mac App 同步更新。
 
-## Releases · 下载与版本
+## [Releases · 下载与版本](https://github.com/LittleSixNine/PhotoTrail/releases)
 
-最新版：[PhotoTrail v0.3.7](https://github.com/LittleSixNine/PhotoTrail/releases/tag/v0.3.7)。
+[前往 Releases 页面下载最新版本并查看版本说明。](https://github.com/LittleSixNine/PhotoTrail/releases)
 
 - 系统要求：需要 **macOS 26 或更新版本**。
 - 当前安装包兼容 Apple 芯片与 Intel Mac，采用临时签名，尚未完成开发者签名与 Apple 公证；首次打开可能被 macOS 拦截。
