@@ -60,7 +60,7 @@ PhotoTrail 提供可独立安装的 [skill 模块](skill/)，无需安装 Mac Ap
 
 功能、参数及使用边界见 [skill 使用说明](skill/SKILL.md)。skill 独立维护，不要求与 Mac App 同步更新。
 
-## [Releases · 下载与版本](https://github.com/LittleSixNine/PhotoTrail/releases)
+## Releases · 下载与版本
 
 [前往 Releases 页面下载最新版本并查看版本说明。](https://github.com/LittleSixNine/PhotoTrail/releases)
 
