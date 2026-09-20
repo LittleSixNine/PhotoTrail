@@ -63,6 +63,9 @@ struct TrackDisplay: Codable, Equatable {
 @MainActor @Observable
 final class TrackLibrary {
     private(set) var records: [TrackRecord] = []
+    private(set) var activeIDs: [String] = []
+    var activeRecords: [TrackRecord] { activeIDs.compactMap { record($0) } }
+    var nextRequestID: String? { requests.min { $0.value < $1.value }?.key }
     private(set) var visible: Set<String> = []
     private(set) var selected: String?
     private(set) var states: [String: TrackConversionState] = [:]
@@ -138,7 +141,7 @@ final class TrackLibrary {
                 return record
             }
             let logs = records.filter { !$0.sourceUnavailable }.map(\.log)
-            storeIDs = Set(logs.map { $0.sourceURL.path })
+            // History is restored independently of this window.
             revision += 1
             return logs
         } catch {
@@ -148,30 +151,68 @@ final class TrackLibrary {
         }
     }
 
-    func synchronize(_ logs: [GpxTrackLog]) {
+    func synchronize(_ logs: [GpxTrackLog], amap: Bool = false) {
         let ids = Set(logs.map { $0.sourceURL.path })
-        for id in storeIDs.subtracting(ids) { remove(id, save: false) }
+        for id in storeIDs.subtracting(ids) { remove(id) }
         for log in logs {
             let id = log.sourceURL.path
+            var changed = false
             if let index = records.firstIndex(where: { $0.id == id }) {
-                guard records[index].log != log || records[index].sourceUnavailable else { continue }
-                let oldFingerprint = records[index].fingerprint
-                records[index].log = log
-                records[index].sourceUnavailable = false
-                records[index].bookmark = bookmark(for: log.sourceURL)
-                if records[index].fingerprint != oldFingerprint {
-                    records[index].converted = nil; records[index].convertedAt = nil
-                    cancel(id); visible.remove(id)
+                if records[index].log != log || records[index].sourceUnavailable {
+                    let oldFingerprint = records[index].fingerprint
+                    records[index].log = log
+                    records[index].sourceUnavailable = false
+                    records[index].bookmark = bookmark(for: log.sourceURL)
+                    changed = records[index].fingerprint != oldFingerprint
+                    if changed {
+                        records[index].converted = nil; records[index].convertedAt = nil
+                        cancel(id)
+                    }
                 }
             } else {
                 let generated = photoGeneratedURLs.remove(id) != nil || Self.isPhotoGenerated(log.sourceURL)
                 records.append(TrackRecord(log: log, bookmark: bookmark(for: log.sourceURL),
                                            origin: generated ? .photos : nil))
             }
+            if !activeIDs.contains(id) {
+                activeIDs.append(id)
+                setVisible(id, true, amap: amap)
+                if selected == nil { selected = id; fitRevision += 1 }
+            } else if changed && visible.contains(id) {
+                setVisible(id, true, amap: amap)
+            }
         }
         storeIDs = ids
         revision += 1
         persist()
+    }
+
+    // Revalidate on explicit addition; reuse valid conversions without another request.
+    // Missing sources remain preview-only and never enter photo matching.
+    func addHistory(_ id: String, amap: Bool) -> GpxTrackLog? {
+        guard !activeIDs.contains(id), let index = records.firstIndex(where: { $0.id == id }) else { return nil }
+        do {
+            let log = try GpxTrackLog(contentsOf: records[index].log.sourceURL)
+            let fingerprint = records[index].fingerprint
+            records[index].log = log
+            records[index].sourceUnavailable = false
+            if records[index].fingerprint != fingerprint {
+                records[index].converted = nil; records[index].convertedAt = nil
+            }
+        } catch { records[index].sourceUnavailable = true }
+        activeIDs.append(id)
+        select(id, amap: amap)
+        persist()
+        return records[index].sourceUnavailable ? nil : records[index].log
+    }
+
+    func changeProvider(amap: Bool) {
+        for id in Array(requests.keys) { cancel(id) }
+        if amap {
+            for record in activeRecords where visible.contains(record.id) {
+                setVisible(record.id, true, amap: true)
+            }
+        }
     }
 
     func select(_ id: String, amap: Bool) {
@@ -258,13 +299,13 @@ final class TrackLibrary {
         revision += 1
     }
 
-    func remove(_ id: String, save: Bool = true) {
+    func remove(_ id: String) {
         cancel(id)
         visible.remove(id)
-        records.removeAll { $0.id == id }
+        activeIDs.removeAll { $0 == id }
         if selected == id { selected = nil }
         revision += 1
-        if save { persist() }
+        // History and its cache remain available for re-adding.
     }
 
     func clearCache(_ id: String) {
@@ -285,7 +326,10 @@ final class TrackLibrary {
         }
     }
 
-    private func bookmark(for source: URL) -> Data? {
+}
+
+private extension TrackLibrary {
+    func bookmark(for source: URL) -> Data? {
         try? source.bookmarkData(options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess],
                                  includingResourceValuesForKeys: nil, relativeTo: nil)
     }

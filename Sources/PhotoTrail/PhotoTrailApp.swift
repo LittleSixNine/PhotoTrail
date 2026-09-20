@@ -83,6 +83,7 @@ struct PhotoTrailApp: App {
 
         Window(Self.showRunLog, id: Self.showRunLog) {
             RunLogView()
+                .background(SubtleScrollbars())
                 .preferredColorScheme(appearance.colorScheme)
                 .frame(width: 700, height: 500)
         }

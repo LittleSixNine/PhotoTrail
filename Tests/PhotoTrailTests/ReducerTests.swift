@@ -276,7 +276,10 @@ struct ReducerTests {
     @Test func finishAddingTracksEvent() async throws {
         let store = Store(initialState: PhotoTrailState(), reduce: PhotoTrailReducer())
         store.send(.finishedAddingTracks)
-        #expect(store.sheetType == .gpxFileNameSheet)
+        #expect(store.gpxImportRevision == 1)
+        store.send(.finishedAddingTracks)
+        #expect(store.gpxImportRevision == 2)
+        #expect(store.sheetType == nil)
         #expect(store.sheetError == nil)
         #expect(store.sheetMessage == nil)
     }

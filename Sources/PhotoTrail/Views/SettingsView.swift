@@ -91,6 +91,18 @@ struct SettingsView: View {
                 Text("仅用于下次新会话；当前批次仍可单独调整。")
                     .font(.footnote).foregroundStyle(.secondary)
             }
+            Section("反馈") {
+                if let url = Self.feedbackURL {
+                    Link(destination: url) {
+                        Label("反馈意见", systemImage: "envelope")
+                    }
+                    .buttonStyle(.bordered)
+                    .help("通过默认邮件应用发送反馈")
+                }
+                Text("liujiudexiaohao@gmail.com")
+                    .font(.footnote).foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+            }
             Section {
                 Button("打开启动设置向导") {
                     UserDefaults.standard.set(false, forKey: SetupGuideView.completedKey)
@@ -258,10 +270,30 @@ struct SettingsView: View {
             .padding(.horizontal, 24)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(SubtleScrollbars())
     }
 }
 
 extension SettingsView {
+    static var feedbackURL: URL? {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "未知"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "未知"
+        var components = URLComponents()
+        components.scheme = "mailto"
+        components.path = "liujiudexiaohao@gmail.com"
+        components.queryItems = [
+            URLQueryItem(name: "subject", value: "PhotoTrail Feedback"),
+            URLQueryItem(name: "body", value: """
+                问题描述或建议：
+
+
+                PhotoTrail 版本：\(version)
+                构建号：\(build)
+                """)
+        ]
+        return components.url
+    }
+
     static let createSidecarFilesKey = "CreateSidecarFiles"
     static let trackWidthKey = "TrackWidth"
     static let trackColorKey = "TrackColor"

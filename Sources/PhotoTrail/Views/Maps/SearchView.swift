@@ -173,6 +173,7 @@ struct SearchView: View {
                             }
                         }
                     }.frame(height: min(CGFloat(resultCount) * 58, 250))
+                        .background(SubtleScrollbars())
                 }
                 if provider == "amap", let result = workspace.selectedResult {
                     HStack {

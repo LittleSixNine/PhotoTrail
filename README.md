@@ -120,4 +120,4 @@ xcodebuild -project PhotoTrail.xcodeproj -scheme PhotoTrail \
 
 感谢 Marco S Hyman 开发并开源 [GeoTag](https://github.com/marchyman/GeoTag)，也感谢 [ExifTool](https://exiftool.org/) 等上游项目。
 
-本项目沿用原版的 [MIT 许可证](LICENSE)，保留原作者版权信息。坐标转换及原 PhotoTrail 规则的来源与许可见 [第三方说明](THIRD_PARTY_NOTICES.md)。PhotoTrail 是独立衍生项目，与 Apple、高德不存在官方关联。
+PhotoTrail 原创部分的使用与再分发条件见 [使用许可](LICENSE)：允许个人和工作使用及免费再分发，未经书面授权不得收费分发软件或提供付费软件访问。上游与第三方组件保留各自许可，详见 [第三方说明](THIRD_PARTY_NOTICES.md)。PhotoTrail 是独立衍生项目，与 Apple、高德不存在官方关联。

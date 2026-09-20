@@ -32,7 +32,7 @@ struct SetupGuideView: View {
                     default: readyPage
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.background(SubtleScrollbars())
             Divider()
             HStack {
                 if page > 0 {

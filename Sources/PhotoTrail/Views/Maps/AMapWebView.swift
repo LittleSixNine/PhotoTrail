@@ -351,7 +351,8 @@ struct AMapWebView: NSViewRepresentable {
                 }
             }
             for record in library.records {
-                guard let request = library.requests[record.id], activeTracks[record.id] != request,
+                guard record.id == library.nextRequestID,
+                      let request = library.requests[record.id], activeTracks[record.id] != request,
                       let data = try? JSONEncoder().encode(record.segments),
                       let segments = try? JSONSerialization.jsonObject(with: data) else { continue }
                 activeTracks[record.id] = request

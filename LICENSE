@@ -1,19 +1,52 @@
-Copyright 2014-2026 Marco S Hyman
+# PhotoTrail 免费使用与再分发许可 1.0
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished to do
-so, subject to the following conditions:
+Copyright © 2026 littlesixnine
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+## 1. 适用范围
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+本许可适用于随附本许可提供、由 littlesixnine 持有版权或有权按本许可授权的 PhotoTrail 原创代码、修改及文档，以下称“受许可内容”。
+
+GeoTag、ExifTool、其他第三方组件以及明确采用独立许可证的文件，继续适用各自的许可证。相关版权及许可见 THIRD_PARTY_NOTICES.md 和对应组件随附的许可文件。本许可不限制接收者依据其他独立有效授权已经取得的权利，也不改变第三方内容的许可条件。
+
+## 2. 允许的使用
+
+在遵守本许可的前提下，你可以免费使用、复制、研究和修改受许可内容，并免费再分发其源码、可执行文件或修改版。
+
+个人、企业及其他组织均可在日常工作和商业活动中使用软件，包括处理客户照片、管理商业摄影项目，以及对这些工作成果或服务收费。使用软件产生的照片、轨迹、元数据和其他输出，不因使用软件而受本许可的收费限制。
+
+## 3. 软件收费限制
+
+未经 littlesixnine 事先书面授权，不得利用受许可内容或包含受许可内容的版本，实施下列行为：
+
+- 销售软件副本，或为下载、安装、激活、使用软件及其功能收取费用。
+- 以付费应用、订阅、应用内购买、会员专享、付费功能解锁等形式，在 Mac App Store、其他应用商店、网站或任何渠道提供软件。
+- 将软件作为收费产品、软件合集或会员权益的一部分提供，或者以包装、下载通道、兑换码、强制捐赠等名义，将付款作为获得或使用软件的条件。
+- 部署软件供第三方远程访问，并为其访问或使用软件功能收费。
+
+更名、换图标、重新打包、修改部分代码或增加功能，不免除以上限制。
+
+作为上述收费限制的例外，独立、自愿购买的培训、技术支持或实施服务可以收费，但不得把购买服务作为获得软件副本或使用软件功能的条件。真正自愿、与获得软件或解锁功能无关的捐赠不受限制。
+
+## 4. 再分发条件
+
+再分发时，必须保留本许可、适用的版权声明和第三方许可；本许可对其中受许可内容的约束应随副本一并保留，不得被删除或削弱。
+
+修改版应明确标识为修改版，并标明修改者，不得冒充 PhotoTrail 官方发布或暗示已获得作者背书。接收者可以在本许可范围内继续使用、修改和免费再分发受许可内容。
+
+本许可不要求公开私人修改，也不要求为自行创作且不含受许可内容的独立代码采用本许可。
+
+## 5. 单独授权与标识
+
+超出本许可范围的收费分发或付费访问，需要另行取得 littlesixnine 的书面授权。版权人可以对其有权授权的内容另行授权。
+
+除合理说明软件来源所必需的使用外，本许可不授予 PhotoTrail 名称、标志或其他商标的使用权。
+
+## 6. 终止
+
+违反本许可时，本许可授予你的权利终止。终止不影响第三方依照本许可已经取得且持续遵守的权利，也不影响依据其他独立有效授权取得的权利。
+
+## 7. 免责声明
+
+在适用法律允许的最大范围内，受许可内容按“现状”提供，不附带任何明示或默示保证，包括适销性、特定用途适用性及不侵权保证。
+
+在适用法律允许的最大范围内，作者及版权人不对因使用或无法使用受许可内容而产生的索赔、损害或其他责任承担责任，无论相关责任基于合同、侵权或其他法律依据。

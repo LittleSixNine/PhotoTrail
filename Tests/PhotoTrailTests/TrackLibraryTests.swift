@@ -139,11 +139,86 @@ struct TrackLibraryTests {
         library.synchronize(state.gpxTracks)
         library.select(b.sourceURL.path, amap: false)
         #expect(library.selected == b.sourceURL.path)
-        #expect(library.displays(amap: false).first?.segments == TrackRecord(log: b).segments)
+        #expect(library.displays(amap: false).first(where: { $0.id == b.sourceURL.path })?.segments == TrackRecord(log: b).segments)
         state = reducer.reduce(state, .removeTrack(a.sourceURL))
         library.synchronize(state.gpxTracks)
-        #expect(library.records.map(\.id) == [b.sourceURL.path])
+        #expect(library.activeRecords.map(\.id) == [b.sourceURL.path])
+        #expect(library.records.count == 2)
         #expect(FileManager.default.fileExists(atPath: a.sourceURL.path))
+    }
+
+    @Test func importsQueueAutomaticallyAndFailureOrCancellationAdvances() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let logs = try ["a.gpx", "b.gpx", "c.gpx"].map { try fixture(dir, name: $0) }
+        let ids = logs.map { $0.sourceURL.path }
+        let library = TrackLibrary(url: dir.appendingPathComponent("cache.json"))
+        library.synchronize(logs, amap: true)
+        #expect(library.activeIDs == ids)
+        #expect(library.visible == Set(ids))
+        #expect(library.requests.count == 3)
+        #expect(library.nextRequestID == ids[0])
+        let stale = try #require(library.requests[ids[0]])
+        library.fail(ids[0], request: stale, reason: "测试失败")
+        #expect(library.nextRequestID == ids[1])
+        library.cancel(ids[1])
+        #expect(library.nextRequestID == ids[2])
+        library.complete(ids[0], request: stale, converted: [])
+        #expect(library.record(ids[0])?.converted == nil)
+        library.complete(ids[2], request: try #require(library.requests[ids[2]]),
+                         converted: try #require(library.record(ids[2])?.segments))
+        #expect(library.nextRequestID == nil)
+        library.synchronize(logs, amap: true)
+        #expect(library.requests.isEmpty) // Unrelated updates must not restart cancelled/failed work.
+    }
+
+    @Test func historyStartsEmptyAndReusesCacheAfterRemovalAndRestart() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let log = try fixture(dir), id = log.sourceURL.path
+        let cache = dir.appendingPathComponent("cache.json")
+        let library = TrackLibrary(url: cache)
+        library.synchronize([log], amap: true)
+        library.complete(id, request: try #require(library.requests[id]),
+                         converted: try #require(library.record(id)?.segments))
+        library.synchronize([])
+        #expect(library.activeRecords.isEmpty)
+        #expect(library.record(id)?.cacheIsCurrent == true)
+        let restored = TrackLibrary(url: cache)
+        _ = restored.restore()
+        restored.synchronize([], amap: true)
+        #expect(restored.activeRecords.isEmpty)
+        #expect(restored.requests.isEmpty)
+        #expect(restored.records.count == 1)
+        #expect(restored.addHistory(id, amap: true) == log)
+        #expect(restored.requests.isEmpty)
+        #expect(restored.visible == [id])
+        #expect(restored.addHistory(id, amap: true) == nil)
+        #expect(restored.activeRecords.count == 1)
+        restored.remove(id)
+        _ = try fixture(dir, changed: true)
+        #expect(restored.addHistory(id, amap: true) != nil)
+        #expect(restored.record(id)?.cacheIsCurrent == false)
+        #expect(restored.nextRequestID == id)
+    }
+
+    @Test func missingHistoricalSourceIsPreviewOnlyAndProviderSwitchQueuesActiveTracks() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let log = try fixture(dir), id = log.sourceURL.path
+        let library = TrackLibrary(url: dir.appendingPathComponent("cache.json"))
+        library.synchronize([log], amap: false)
+        #expect(library.requests.isEmpty)
+        library.changeProvider(amap: true)
+        #expect(library.nextRequestID == id)
+        library.complete(id, request: try #require(library.requests[id]),
+                         converted: try #require(library.record(id)?.segments))
+        library.synchronize([])
+        try FileManager.default.removeItem(at: log.sourceURL)
+        #expect(library.addHistory(id, amap: true) == nil)
+        #expect(library.record(id)?.sourceUnavailable == true)
+        #expect(library.displays(amap: true).count == 1)
+        #expect(library.requests.isEmpty)
     }
 
     @Test func thumbnailPreservesShapeAndSegmentBreaksAndTimeUsesGPXContent() throws {

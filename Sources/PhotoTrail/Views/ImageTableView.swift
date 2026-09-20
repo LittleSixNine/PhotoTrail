@@ -137,6 +137,7 @@ struct ImageTableView: View {
             ForEach(filteredImages) { TableRow($0) }
         }
         .background(IndependentTableColumns())
+        .background(SubtleScrollbars())
         .contextMenu(forSelectionType: ImageData.ID.self) { ids in
             ContextMenuView(targets: ids, inspectorPresented: $inspectorPresented,
                             openDetail: openDetail, showBatchActions: { batchActionsPresented = true },

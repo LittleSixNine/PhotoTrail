@@ -7,6 +7,7 @@ struct ContentView: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) var store
     @Environment(\.openWindow) var openWindow
 
+    @AppStorage("PhotoTrailMapProvider") private var mapProvider = "amap"
     @AppStorage(Self.alternateLayoutKey) var alternateLayout = false
 
     @State private var locationWorkspace = LocationWorkspace()
@@ -41,6 +42,15 @@ struct ContentView: View {
                 .padding(.vertical, 8)
                 .background(Color(nsColor: .controlBackgroundColor))
             }
+            if !alternateLayout && !store.gpxBadFileNames.isEmpty {
+                HStack {
+                    Text("部分 GPX 文件未能导入，请在轨迹卡片中查看。")
+                    Spacer()
+                    Button("查看") { alternateLayout = true }
+                    Button("关闭") { store.send(.gpxLoadViewClosed, undoable: false) }
+                }
+                .font(.callout).padding(12)
+            }
             if store.saveInProgress {
                 Label("正在写入照片（已处理 \(store.saveCompleted)/\(store.saveTotal)）；请勿修改定位或关闭程序，可继续浏览。",
                       systemImage: "externaldrive.fill")
@@ -72,10 +82,9 @@ struct ContentView: View {
         .background(CredentialChangeObserver(workspace: locationWorkspace))
         .task {
             if ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] != "1" {
-                let restored = locationWorkspace.tracks.restore()
-                store.send(.restoreTracks(restored), undoable: false)
+                _ = locationWorkspace.tracks.restore()
             }
-            locationWorkspace.tracks.synchronize(store.gpxTracks)
+            locationWorkspace.tracks.synchronize(store.gpxTracks, amap: mapProvider == "amap")
             if setupCompleted { await locationWorkspace.load() }
             else { setupPresented = true }
         }
@@ -83,7 +92,17 @@ struct ContentView: View {
             if !store.trackMatches.isEmpty { locationWorkspace.listMatchResults = store.trackMatches }
         }
         .onChange(of: store.gpxTracks) {
-            locationWorkspace.tracks.synchronize(store.gpxTracks)
+            locationWorkspace.tracks.synchronize(store.gpxTracks, amap: mapProvider == "amap")
+        }
+        .onChange(of: store.gpxImportRevision) {
+            let library = locationWorkspace.tracks
+            library.synchronize(store.gpxTracks, amap: mapProvider == "amap")
+            for record in library.activeRecords where store.gpxGoodFileNames.contains(record.id) {
+                library.setVisible(record.id, true, amap: mapProvider == "amap")
+            }
+        }
+        .onChange(of: mapProvider) {
+            locationWorkspace.tracks.changeProvider(amap: mapProvider == "amap")
         }
         .onChange(of: setupCompleted) {
             if !setupCompleted { setupPresented = true }

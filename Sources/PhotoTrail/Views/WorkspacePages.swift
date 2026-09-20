@@ -329,7 +329,7 @@ struct PhotoActionSidebar: View {
             }.disabled(!editable || store.selection.allSatisfy { store[$0].metadata.location == nil })
         }
         .padding(12)
-        }
+        }.background(SubtleScrollbars())
         VStack(spacing: 10) {
             Divider()
             WorkspaceSaveButton(fillsWidth: true)
@@ -460,7 +460,7 @@ struct PhotoDetailPage: View {
                         Divider()
                         LocationPanel()
                       }
-                    }.frame(width: max(260, min(geometry.size.width * leftRatio, geometry.size.width - 420)))
+                    }.background(SubtleScrollbars()).frame(width: max(260, min(geometry.size.width * leftRatio, geometry.size.width - 420)))
                         .background(Color(nsColor: .windowBackgroundColor))
                     Divider().frame(width: 6).contentShape(Rectangle())
                         .onHover { if $0 { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() } }
@@ -527,6 +527,7 @@ struct PhotoDetailPage: View {
                                     }
                                 }.padding(14).padding(.trailing, 42)
                             }.background(HorizontalFilmstripWheelMonitor())
+                                .background(SubtleScrollbars())
                             VStack(spacing: 0) {
                                 Spacer(minLength: 0)
                                 filmstripFilterMenu

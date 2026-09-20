@@ -247,7 +247,7 @@ extension ReducerTests {
         #expect(store.sheetType == .duplicateImageSheet)
 
         store.send(.sheetDismissed)
-        #expect(store.sheetType == .gpxFileNameSheet)
+        #expect(store.sheetType == nil)
 
         store.send(.sheetDismissed)
         #expect(store.sheetType == nil)

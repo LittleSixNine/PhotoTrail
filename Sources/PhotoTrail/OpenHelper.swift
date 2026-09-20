@@ -85,6 +85,7 @@ enum OpenHelper {
                 store: Store<PhotoTrailState, PhotoTrailEvent>) async {
         let gpxURLs = urls.filter { $0.pathExtension.lowercased() == "gpx" }
         guard !gpxURLs.isEmpty else { return }
+        await MainActor.run { store.send(.gpxLoadViewClosed, undoable: false) }
         var tracklogs: [(String, GpxTrackLog?)] = []
 
         let start = Date.now.timeIntervalSince1970

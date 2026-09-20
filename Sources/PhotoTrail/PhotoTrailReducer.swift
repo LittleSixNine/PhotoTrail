@@ -107,7 +107,7 @@ struct PhotoTrailReducer: Reducer, Sendable {
             newState.mapSearchActive = value
 
         case .finishedAddingTracks:
-            newState.addSheet(type: .gpxFileNameSheet)
+            newState.gpxImportRevision += 1 // Also notify for an unchanged, reimported file.
 
         case .goodGpxFile(let filename):
             newState.gpxGoodFileNames.append(filename)

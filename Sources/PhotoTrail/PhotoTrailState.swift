@@ -67,6 +67,7 @@ struct PhotoTrailState {
     var scopedURLs: [URL] = []
 
     // GPX File Loading information
+    var gpxImportRevision = 0
     var gpxTracks: [GpxTrackLog] = []
     var gpxGoodFileNames: [String] = []
     var gpxBadFileNames: [String] = []
