@@ -128,6 +128,10 @@ struct SetupGuideView: View {
                 LabeledContent("高德密钥", value: workspace.credentials == nil ? "稍后填写" : "已填写")
             }
             Divider()
+            AutomaticUpdateChecksToggle()
+            Text("发现新版时提醒你前往 GitHub 下载，下载后手动拖动替换。可随时在 PhotoTrail 菜单或设置中调整。")
+                .font(.callout).foregroundStyle(.secondary)
+            Divider()
             Text("导入照片 → 查看或设置位置 → 检查后保存")
                 .font(.headline)
             Text("设置照片位置后仍需手动保存。备份和地图设置以后都可以调整。")

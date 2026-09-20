@@ -76,3 +76,7 @@ Git 标签参与版本号计算，具体逻辑见 `scripts/build-version.sh`。�
 地图、照片写入、凭据、隐私、轨迹缓存和界面行为见 [功能与数据约定](BEHAVIOR.md)。
 
 PhotoTrail 基于 GeoTag v6.0.2 派生，仍使用其部分应用基础设施与照片处理模块；来源及许可证见根目录的 [LICENSE](../LICENSE) 和 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)。
+
+## 软件更新检查
+
+使用 URLSession 读取 GitHub 公开 Releases/latest 接口，无需令牌或额外更新框架。版本按数字分段比较，发现新版后由用户打开发布页下载 DMG、手动替换。发布流程无需 appcast.xml 或额外签名密钥；仍保留现有沙盒及 Hardened Runtime 配置。`PHOTOTRAIL_OFFLINE_TESTS=1` 禁止联网检查。

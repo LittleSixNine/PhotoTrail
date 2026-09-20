@@ -91,6 +91,7 @@ struct SettingsView: View {
                 Text("仅用于下次新会话；当前批次仍可单独调整。")
                     .font(.footnote).foregroundStyle(.secondary)
             }
+            SoftwareUpdateSection()
             Section("反馈") {
                 if let url = Self.feedbackURL {
                     Link(destination: url) {
@@ -184,27 +185,36 @@ struct SettingsView: View {
         settingsPage {
             Section("轨迹显示") {
                 ColorPicker("轨迹颜色", selection: $trackColor)
-                HStack {
+                LabeledContent("线宽") {
                     TextField("线宽", text: $trackWidthText)
-                        .frame(width: 90)
+                        .labelsHidden()
+                        .textFieldStyle(.roundedBorder)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 100)
                         .onSubmit {
                             if let value = Double(trackWidthText), value.isFinite, (0...1_000).contains(value) {
                                 trackWidth = value
                             } else { trackWidthText = String(trackWidth) }
                         }
-                    Text("线宽，0 使用默认值")
                 }
+                Text("设为 0 时使用默认线宽。")
+                    .font(.footnote).foregroundStyle(.secondary)
             }
             Section("轨迹匹配") {
-                HStack {
-                    TextField("最大点间隔", text: $extendedTimeText)
-                        .frame(width: 90)
-                        .onSubmit {
-                            if let value = Double(extendedTimeText), value.isFinite, (0...1_000_000).contains(value), value > 0 {
-                                extendedTime = value
-                            } else { extendedTimeText = String(extendedTime) }
-                        }
-                    Text("最大匹配点间隔（分钟）")
+                LabeledContent("最大匹配点间隔") {
+                    HStack(spacing: 8) {
+                        TextField("最大点间隔", text: $extendedTimeText)
+                            .labelsHidden()
+                            .textFieldStyle(.roundedBorder)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 100)
+                            .onSubmit {
+                                if let value = Double(extendedTimeText), value.isFinite, (0...1_000_000).contains(value), value > 0 {
+                                    extendedTime = value
+                                } else { extendedTimeText = String(extendedTime) }
+                            }
+                        Text("分钟").foregroundStyle(.secondary)
+                    }
                 }
             }
             Section("从照片生成 GPX") {
@@ -216,15 +226,20 @@ struct SettingsView: View {
                         Text("自定义").tag(photoGPXGap)
                     }
                 }
-                HStack {
-                    TextField("自定义分钟数", text: $gapText)
-                        .frame(width: 90)
-                        .onSubmit {
-                            if let value = Double(gapText), value.isFinite, (0...1_000_000).contains(value), value > 0 {
-                                photoGPXGap = value
-                            } else { gapText = String(photoGPXGap) }
-                        }
-                    Text("断段间隔（分钟）")
+                LabeledContent("自定义断段间隔") {
+                    HStack(spacing: 8) {
+                        TextField("自定义分钟数", text: $gapText)
+                            .labelsHidden()
+                            .textFieldStyle(.roundedBorder)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 100)
+                            .onSubmit {
+                                if let value = Double(gapText), value.isFinite, (0...1_000_000).contains(value), value > 0 {
+                                    photoGPXGap = value
+                                } else { gapText = String(photoGPXGap) }
+                            }
+                        Text("分钟").foregroundStyle(.secondary)
+                    }
                 }
                 Text("生成时可临时调整，不改变默认值。")
                     .font(.footnote).foregroundStyle(.secondary)

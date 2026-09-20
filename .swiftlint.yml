@@ -5,6 +5,7 @@ disabled_rules:
 included:
 
 excluded:
+  - Build
   - .build
   - "**/.build"
 

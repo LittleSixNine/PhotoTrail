@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         logger.info("\(#function, privacy: .public): store is \(self.store == nil ? "nil" : "set", privacy: .public)")
         NSWindow.allowsAutomaticWindowTabbing = false
+        SoftwareUpdate.shared.start()
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {

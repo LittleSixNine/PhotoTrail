@@ -63,6 +63,10 @@ struct PhotoTrailApp: App {
             }
         }
         .commands {
+            CommandGroup(after: .appInfo) {
+                CheckForUpdatesButton()
+                AutomaticUpdateChecksToggle()
+            }
             NewItemCommands(store: store)
             SaveItemCommands(store: store)
             UndoRedoCommands(store: store)
