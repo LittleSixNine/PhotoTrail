@@ -247,7 +247,8 @@ extension ReducerTests {
         let urls = store.state.previewURLs()
         store.send(.openFiles(urls))
         let openedURLs = try #require(store.uniqueURLs)
-        #expect(openedURLs.count == urls.count)
+        #expect(openedURLs.count == urls.filter(\.isSupportedPhotoImage).count)
+        #expect(openedURLs.allSatisfy { $0.isSupportedPhotoImage })
         #expect(store.sheetType == nil)
 
         // Try adding them in a store where they are allready loaded
@@ -277,6 +278,7 @@ extension ReducerTests {
             let copy = folder.appending(component: filename)
             try fm.copyItem(at: urls[ix], to: copy)
         }
+        try Data("ignore".utf8).write(to: url.appendingPathComponent("notes.txt"))
         let nextLevel = url.appending(path: "dir1/subdir/")
         try fm.createDirectory(at: nextLevel, withIntermediateDirectories: true)
         for ix in 4...6 {
@@ -284,9 +286,12 @@ extension ReducerTests {
             let copy = nextLevel.appending(component: filename)
             try fm.copyItem(at: urls[ix], to: copy)
         }
+        try Data("ignore".utf8).write(to: nextLevel.appendingPathComponent("metadata.csv"))
         loaded.send(.openFiles([url]))
         let filesLoaded = try #require(loaded.uniqueURLs)
         #expect(filesLoaded.count == 6)
+        #expect(filesLoaded.allSatisfy { $0.isSupportedPhotoImage })
+        #expect(loaded.ignoredFileCount == 2)
         #expect(loaded.sheetType == nil)
     }
 

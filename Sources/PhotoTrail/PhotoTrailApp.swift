@@ -66,6 +66,7 @@ struct PhotoTrailApp: App {
             CommandGroup(after: .appInfo) {
                 CheckForUpdatesButton()
                 AutomaticUpdateChecksToggle()
+                AutomaticUpdateDownloadsToggle()
             }
             NewItemCommands(store: store)
             SaveItemCommands(store: store)

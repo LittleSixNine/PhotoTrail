@@ -46,6 +46,17 @@ struct PhotoListTests {
         #expect(result.imageData.count == 1)
     }
 
+    @Test func unupdatableImageCanBeRemovedDirectly() {
+        let image = ImageData(metadata: Metadata(source: .copy), name: "invalid-image.foo")
+        #expect(!image.updatable)
+        var state = PhotoTrailState()
+        state.imageData = [image]
+
+        let result = PhotoTrailReducer().reduce(state, .removeImages([image.id]))
+
+        #expect(result.imageData.isEmpty)
+    }
+
     @Test func clearLocationKeepsThePhotoInTheList() {
         var image = ImageData(metadata: Metadata(source: .xmp(URL(fileURLWithPath: "/tmp/clear-only.jpg"))),
                               name: "clear-only.jpg")

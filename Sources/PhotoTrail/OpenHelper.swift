@@ -34,7 +34,7 @@ enum OpenHelper {
     static private
     func images(for urls: [URL],
                 store: Store<PhotoTrailState, PhotoTrailEvent>) async {
-        let imageURLs = urls.filter { $0.pathExtension.lowercased() != "gpx" && !$0.isVideoFile }
+        let imageURLs = urls.filter(\.isSupportedPhotoImage)
         guard !imageURLs.isEmpty else { return }
         var newImages: [ImageData] = []
 
@@ -83,7 +83,7 @@ enum OpenHelper {
     static private
     func tracks(for urls: [URL],
                 store: Store<PhotoTrailState, PhotoTrailEvent>) async {
-        let gpxURLs = urls.filter { $0.pathExtension.lowercased() == "gpx" }
+        let gpxURLs = urls.filter(\.isGPXFile)
         guard !gpxURLs.isEmpty else { return }
         await MainActor.run { store.send(.gpxLoadViewClosed, undoable: false) }
         var tracklogs: [(String, GpxTrackLog?)] = []

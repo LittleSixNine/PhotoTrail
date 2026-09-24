@@ -20,10 +20,14 @@ struct SoftwareUpdateSection: View {
                 CheckForUpdatesButton().buttonStyle(.bordered)
             }
             AutomaticUpdateChecksToggle()
-            Text("发现新版时提醒。下载 DMG 后，将 PhotoTrail 拖入应用程序文件夹完成替换。")
+            AutomaticUpdateDownloadsToggle()
+            Text("开启自动下载后，PhotoTrail 会在发现新版时下载 DMG。下次启动时点击打开安装镜像；打开后请先退出 PhotoTrail，再拖到“应用程序”文件夹完成更新。")
                 .font(.footnote).foregroundStyle(.secondary)
             if !updates.status.isEmpty {
                 Text(updates.status).font(.footnote).foregroundStyle(.secondary)
+            }
+            if let version = updates.downloadedVersion {
+                Button("打开 PhotoTrail \(version) 安装镜像", action: updates.openDownloadedUpdate)
             }
             Button(updates.latestRelease == nil ? "查看 GitHub 发布页" : "前往下载新版",
                    action: updates.openRelease)
@@ -41,5 +45,14 @@ struct AutomaticUpdateChecksToggle: View {
     var body: some View {
         Toggle("启动时检查更新", isOn: Binding(get: { updates.automaticChecks },
                                           set: updates.setAutomaticChecks))
+    }
+}
+
+struct AutomaticUpdateDownloadsToggle: View {
+    @ObservedObject private var updates = SoftwareUpdate.shared
+
+    var body: some View {
+        Toggle("自动下载更新", isOn: Binding(get: { updates.automaticDownloads },
+                                          set: updates.setAutomaticDownloads))
     }
 }

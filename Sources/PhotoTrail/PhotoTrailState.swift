@@ -63,7 +63,7 @@ struct PhotoTrailState {
     // Image import variables
     var importFiles = false
     var uniqueURLs: [URL]?
-    var ignoredVideoCount = 0
+    var ignoredFileCount = 0
     var scopedURLs: [URL] = []
 
     // GPX File Loading information

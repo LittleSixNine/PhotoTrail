@@ -79,4 +79,4 @@ PhotoTrail 基于 GeoTag v6.0.2 派生，仍使用其部分应用基础设施与
 
 ## 软件更新检查
 
-使用 URLSession 读取 GitHub 公开 Releases/latest 接口，无需令牌或额外更新框架。版本按数字分段比较，发现新版后由用户打开发布页下载 DMG、手动替换。发布流程无需 appcast.xml 或额外签名密钥；仍保留现有沙盒及 Hardened Runtime 配置。`PHOTOTRAIL_OFFLINE_TESTS=1` 禁止联网检查。
+使用 URLSession 读取 GitHub 公开 Releases/latest 接口，无需令牌或额外更新框架。版本按数字分段比较；“自动下载更新”偏好单独保存且默认关闭。启用后只下载命名及地址与版本匹配的 DMG，核对发布资产大小和 SHA-256（优先用 API digest，缺失时读取同一 Release 的 `SHA256SUMS.txt`）。DMG 放在应用沙盒的 Application Support 中；下次启动由用户打开镜像、退出应用并手动拖入“应用程序”文件夹，不执行自动替换。发布流程无需 appcast.xml 或额外签名密钥；仍保留现有沙盒及 Hardened Runtime 配置。`PHOTOTRAIL_OFFLINE_TESTS=1` 禁止联网检查和自动下载。

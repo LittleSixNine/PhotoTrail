@@ -10,8 +10,14 @@ import UniformTypeIdentifiers
 extension PhotoTrailReducer {
     func openFiles(_ state: inout PhotoTrailState, urls: [URL]) {
         // Needed to access when using the fileImporter
-        for url in urls where !url.isVideoFile && url.startAccessingSecurityScopedResource() {
-            state.scopedURLs.append(url)
+        for url in urls {
+            let startedAccess = url.startAccessingSecurityScopedResource()
+            let importable = url.isSupportedPhotoImage || url.isGPXFile || isFolder(url)
+            if startedAccess, importable {
+                state.scopedURLs.append(url)
+            } else if startedAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
         }
 
         // Get all requested URLs
@@ -19,8 +25,8 @@ extension PhotoTrailReducer {
         let requestedURLs = urls.flatMap { url in
             isFolder(url) ? urlsIn(folder: url) : [url]
         }.filter { seenPaths.insert($0.standardizedFileURL.path).inserted }
-        state.ignoredVideoCount = requestedURLs.filter(\.isVideoFile).count
-        let imageURLs = requestedURLs.filter { !$0.isVideoFile }
+        state.ignoredFileCount = requestedURLs.filter { !$0.isSupportedPhotoImage && !$0.isGPXFile }.count
+        let imageURLs = requestedURLs.filter { $0.isSupportedPhotoImage || $0.isGPXFile }
 
         // check for duplicates of URLs already known
         let processed = Set(state.imageData.map { $0.fullPath })
@@ -68,6 +74,17 @@ extension PhotoTrailReducer {
 }
 
 extension URL {
+    var isGPXFile: Bool {
+        pathExtension.lowercased() == "gpx"
+    }
+
+    var isSupportedPhotoImage: Bool {
+        let ext = pathExtension.lowercased()
+        guard !ext.isEmpty, !isGPXFile, !isVideoFile,
+              let type = UTType(filenameExtension: ext) else { return false }
+        return type.conforms(to: .image)
+    }
+
     var isVideoFile: Bool {
         let ext = pathExtension.lowercased()
         switch ext {

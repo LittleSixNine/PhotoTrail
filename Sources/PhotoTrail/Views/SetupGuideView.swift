@@ -129,7 +129,8 @@ struct SetupGuideView: View {
             }
             Divider()
             AutomaticUpdateChecksToggle()
-            Text("发现新版时提醒你前往 GitHub 下载，下载后手动拖动替换。可随时在 PhotoTrail 菜单或设置中调整。")
+            AutomaticUpdateDownloadsToggle()
+            Text("开启自动下载后，发现新版时会下载 DMG。下次启动时点击打开安装镜像；打开后请先退出 PhotoTrail，再将它拖到“应用程序”文件夹完成更新。可随时在菜单或设置中调整。")
                 .font(.callout).foregroundStyle(.secondary)
             Divider()
             Text("导入照片 → 查看或设置位置 → 检查后保存")

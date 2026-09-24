@@ -14,8 +14,8 @@ struct ContentView: View {
     @State private var sheetType: SheetType?
     @State private var importFiles = false
     @State private var spinnerEnabled = false
-    @State private var ignoredVideoNotice: Int?
-    @State private var ignoredVideoNoticeID = UUID()
+    @State private var ignoredFileNotice: Int?
+    @State private var ignoredFileNoticeID = UUID()
     @State private var inspectorPresented = false
     @State private var batchActionsPresented = false
     @State private var setupPresented = false
@@ -25,12 +25,12 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if let ignoredVideoNotice {
+            if let ignoredFileNotice {
                 HStack(spacing: 10) {
-                    Label("本次已自动忽略 \(ignoredVideoNotice) 个视频文件。视频暂不支持导入。",
-                          systemImage: "video.slash")
+                    Label("本次已跳过 \(ignoredFileNotice) 个非图片文件。GPX 轨迹仍支持导入。",
+                          systemImage: "doc.badge.ellipsis")
                     Spacer(minLength: 0)
-                    Button { self.ignoredVideoNotice = nil } label: {
+                    Button { self.ignoredFileNotice = nil } label: {
                         Image(systemName: "xmark")
                     }
                     .buttonStyle(.plain)
@@ -85,7 +85,10 @@ struct ContentView: View {
                 _ = locationWorkspace.tracks.restore()
             }
             locationWorkspace.tracks.synchronize(store.gpxTracks, amap: mapProvider == "amap")
-            if setupCompleted { await locationWorkspace.load() }
+            if setupCompleted {
+                await locationWorkspace.load()
+                SoftwareUpdate.shared.presentDownloadedUpdateIfNeeded()
+            }
             else { setupPresented = true }
         }
         .onChange(of: store.trackMatches) {
@@ -106,6 +109,9 @@ struct ContentView: View {
         }
         .onChange(of: setupCompleted) {
             if !setupCompleted { setupPresented = true }
+        }
+        .onChange(of: setupPresented) {
+            if !setupPresented { SoftwareUpdate.shared.presentDownloadedUpdateIfNeeded() }
         }
         .sheet(isPresented: $setupPresented) {
             SetupGuideView {
@@ -134,7 +140,7 @@ struct ContentView: View {
                 sheetType = store.sheetType
         }
         .onChange(of: sheetType) {
-            if sheetType == nil { scheduleIgnoredVideoNoticeDismissal() }
+            if sheetType == nil { scheduleIgnoredFileNoticeDismissal() }
         }
         .sheet(item: $sheetType, onDismiss: sheetDismissed) { sheet in
             sheet
@@ -195,38 +201,38 @@ struct ContentView: View {
     }
 
     private func importLocalFiles(_ files: [URL], description: String) {
-        ignoredVideoNotice = nil
-        ignoredVideoNoticeID = UUID()
+        ignoredFileNotice = nil
+        ignoredFileNoticeID = UUID()
         store.send(.openFiles(files), undoable: false) {
             let urls = store.uniqueURLs ?? []
-            let ignoredCount = store.ignoredVideoCount
+            let ignoredCount = store.ignoredFileCount
             store.send(.clearUniqueURLs, undoable: false)
             guard !urls.isEmpty else {
-                showIgnoredVideoNotice(ignoredCount)
+                showIgnoredFileNotice(ignoredCount)
                 return
             }
             let task = OpenHelper.open(store, urls: urls, description: description,
                                        spinnerEnabled: $spinnerEnabled)
             Task {
                 _ = await task.result
-                showIgnoredVideoNotice(ignoredCount)
+                showIgnoredFileNotice(ignoredCount)
             }
         }
     }
 
-    private func showIgnoredVideoNotice(_ count: Int) {
+    private func showIgnoredFileNotice(_ count: Int) {
         guard count > 0 else { return }
-        ignoredVideoNotice = count
-        if sheetType == nil { scheduleIgnoredVideoNoticeDismissal() }
+        ignoredFileNotice = count
+        if sheetType == nil { scheduleIgnoredFileNoticeDismissal() }
     }
 
-    private func scheduleIgnoredVideoNoticeDismissal() {
-        guard ignoredVideoNotice != nil else { return }
+    private func scheduleIgnoredFileNoticeDismissal() {
+        guard ignoredFileNotice != nil else { return }
         let id = UUID()
-        ignoredVideoNoticeID = id
+        ignoredFileNoticeID = id
         Task {
             try? await Task.sleep(for: .seconds(6))
-            if ignoredVideoNoticeID == id && sheetType == nil { ignoredVideoNotice = nil }
+            if ignoredFileNoticeID == id && sheetType == nil { ignoredFileNotice = nil }
         }
     }
 

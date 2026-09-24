@@ -111,6 +111,13 @@ struct ImageTableView: View {
             TableColumn("文件名", value: \.name) { image in
                 Text(image.name).lineLimit(1).truncationMode(.middle).help(image.fullPath)
                     .foregroundStyle(image.updatable ? .primary : .secondary)
+                    .contextMenu {
+                        ContextMenuView(targets: [image.id], inspectorPresented: $inspectorPresented,
+                                        openDetail: openDetail,
+                                        showBatchActions: { batchActionsPresented = true },
+                                        remove: { pendingRemoval = [image.id] },
+                                        clearLocations: { pendingClear = [image.id] })
+                    }
             }.width(min: 140, ideal: 220, max: 1000)
             TableColumn("拍摄时间", value: \.metadata.timestamp) { image in
                 Text(image.metadata.timestamp.isEmpty ? "—" : image.metadata.timestamp).monospacedDigit()

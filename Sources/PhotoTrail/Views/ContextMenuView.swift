@@ -28,9 +28,9 @@ struct ContextMenuView: View {
 
     var body: some View {
         Button("在地图定位页查看") { selectTargets(); openDetail() }
-            .disabled(images.isEmpty)
+            .disabled(!editable)
         Button("查看与编辑照片信息…") { selectTargets(); inspectorPresented = true }
-            .disabled(images.count != 1)
+            .disabled(images.count != 1 || !images.allSatisfy(\.updatable))
         Divider()
         Button("复制此照片的定位", systemImage: "document.on.document") {
             guard let source else { return }
