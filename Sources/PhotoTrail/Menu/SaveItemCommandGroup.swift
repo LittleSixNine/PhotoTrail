@@ -8,19 +8,19 @@ struct SaveItemCommands: Commands {
 
     var body: some Commands {
         CommandGroup(after: .saveItem) {
-            Button("Save…", systemImage: "square.and.arrow.down.on.square") {
+            Button(L10n.text("Save…"), systemImage: "square.and.arrow.down.on.square") {
                 SaveHelper.requestSave(store)
             }
             .keyboardShortcut("s")
             .disabled(saveDisabled())
 
-            Button("Discard changes", systemImage: "mappin.slash") {
+            Button(L10n.text("Discard changes"), systemImage: "mappin.slash") {
                 store.send(.discardChangesRequest,
                            description: "discard changes")
             }
             .disabled(discardChangesDisabled())
 
-            Button("Discard tracks",
+            Button(L10n.text("Discard tracks"),
                    systemImage: "stroke.line.diagonal.slash") {
                 store.send(.discardTracksRequest,
                            description: "discard tracks")
@@ -29,7 +29,7 @@ struct SaveItemCommands: Commands {
 
             Divider()
 
-            Button("Clear Image List", systemImage: "rectangle.stack.slash") {
+            Button(L10n.text("Clear Image List"), systemImage: "rectangle.stack.slash") {
                 store.send(.clearImagesRequest,
                            description: "clear image list")
             }

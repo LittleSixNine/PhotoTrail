@@ -4,6 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "Metadata",
+    defaultLocalization: "en",
     platforms: [.macOS(.v26)],
     products: [
         .library(name: "Metadata", targets: ["Metadata"])
@@ -16,7 +17,8 @@ let package = Package(
             name: "Metadata",
             dependencies: [
                 .product(name: "Coords", package: "Coords")
-            ]
+            ],
+            resources: [.process("Resources")]
         ),
         .testTarget(
             name: "MetadataTests",

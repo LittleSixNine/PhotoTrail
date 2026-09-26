@@ -22,44 +22,44 @@ struct TrackSidebar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("GPX 轨迹").font(.headline)
+                Text(L10n.text("GPX 轨迹")).font(.headline)
                 Spacer(minLength: 6)
-                Button { importing = true } label: { Label("导入", systemImage: "plus") }
-                    .help("导入 GPX 轨迹").disabled(store.saveInProgress)
+                Button { importing = true } label: { Label(L10n.text("导入"), systemImage: "plus") }
+                    .help(L10n.text("导入 GPX 轨迹")).disabled(store.saveInProgress)
                 Menu {
-                    Button("刷新全部可见轨迹") {
+                    Button(L10n.text("刷新全部可见轨迹")) {
                         for record in library.activeRecords where library.visible.contains(record.id) {
                             refresh(record.id)
                         }
                     }.disabled(library.visible.isEmpty || store.saveInProgress)
-                    Button("隐藏全部轨迹") {
+                    Button(L10n.text("隐藏全部轨迹")) {
                         for id in library.visible { library.setVisible(id, false, amap: amap) }
                     }.disabled(library.visible.isEmpty)
                 } label: { Image(systemName: "ellipsis") }
-                    .menuStyle(.borderlessButton).fixedSize().help("轨迹操作")
+                    .menuStyle(.borderlessButton).fixedSize().help(L10n.text("轨迹操作"))
             }
             Divider()
             historySection
             Divider()
-            Text("本次轨迹 · \(library.activeRecords.count)")
+            Text(L10n.text("本次轨迹 · %1$@", library.activeRecords.count))
                 .font(.subheadline.weight(.medium)).foregroundStyle(.secondary)
             if library.activeRecords.isEmpty {
-                Text("导入 GPX，或从历史记录加入轨迹。")
+                Text(L10n.text("导入 GPX，或从历史记录加入轨迹。"))
                     .font(.caption).foregroundStyle(.secondary)
             }
             if let importNotice { Text(importNotice).font(.caption).foregroundStyle(.secondary) }
             if !store.gpxBadFileNames.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Text("以下 GPX 未能导入").fontWeight(.medium)
+                        Text(L10n.text("以下 GPX 未能导入")).fontWeight(.medium)
                         Spacer()
-                        Button("关闭") { store.send(.gpxLoadViewClosed, undoable: false) }
+                        Button(L10n.text("关闭")) { store.send(.gpxLoadViewClosed, undoable: false) }
                             .buttonStyle(.borderless)
                     }
                     ForEach(store.gpxBadFileNames, id: \.self) { path in
                         Text(URL(fileURLWithPath: path).lastPathComponent).lineLimit(2)
                     }
-                    Text("文件无法读取或没有有效轨迹，请检查后重新导入。")
+                    Text(L10n.text("文件无法读取或没有有效轨迹，请检查后重新导入。"))
                 }.font(.caption).foregroundStyle(.orange)
             }
             ForEach(library.activeRecords) { record in
@@ -72,8 +72,8 @@ struct TrackSidebar: View {
             if let error = library.storageError {
                 Text(error).font(.caption).foregroundStyle(.orange)
             }
-            Text(amap ? "高德仅接收轨迹坐标用于转换；照片和 GPX 文件不上传，缓存仅存本机。"
-                      : "轨迹使用原始坐标，无需转换；缓存仅存本机。")
+            Text(amap ? L10n.text("高德仅接收轨迹坐标用于转换；照片和 GPX 文件不上传，缓存仅存本机。")
+                      : L10n.text("轨迹使用原始坐标，无需转换；缓存仅存本机。"))
                 .font(.caption2).foregroundStyle(.secondary)
         }
         .padding(12)
@@ -83,10 +83,10 @@ struct TrackSidebar: View {
                       allowsMultipleSelection: true) { result in
             guard case .success(let urls) = result else { return }
             importNotice = urls.contains { library.record($0.standardizedFileURL.path) != nil }
-                ? "已导入的文件会更新原条目，不会重复添加。" : nil
+                ? L10n.text("已导入的文件会更新原条目，不会重复添加。") : nil
             store.send(.openFiles(urls), undoable: false) {
                 if let unique = store.uniqueURLs {
-                    OpenHelper.open(store, urls: unique, description: "导入 GPX", spinnerEnabled: nil)
+                    OpenHelper.open(store, urls: unique, description: L10n.text("导入 GPX"), spinnerEnabled: nil)
                     store.send(.clearUniqueURLs, undoable: false)
                 }
             }
@@ -94,7 +94,7 @@ struct TrackSidebar: View {
         .fileExporter(isPresented: $exporting, document: exportDocument,
                       contentType: PhotoGPXDocument.contentType,
                       defaultFilename: exportFilename) { result in
-            if case .failure(let error) = result { importNotice = "导出失败：\(error.localizedDescription)" }
+            if case .failure(let error) = result { importNotice = L10n.text("导出失败：%1$@", error.localizedDescription) }
             exportDocument = nil
         }
     }
@@ -106,7 +106,7 @@ private extension TrackSidebar {
         DisclosureGroup(isExpanded: $historyExpanded) {
             VStack(alignment: .leading, spacing: 10) {
                 if library.records.isEmpty {
-                    Text("导入过的轨迹会保存在这里。").font(.caption).foregroundStyle(.secondary)
+                    Text(L10n.text("导入过的轨迹会保存在这里。")).font(.caption).foregroundStyle(.secondary)
                 }
                 ForEach(library.records.reversed()) { record in
                     HStack(spacing: 8) {
@@ -115,22 +115,22 @@ private extension TrackSidebar {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(record.name).font(.callout.weight(.medium)).lineLimit(2).truncationMode(.middle)
                             Text(record.timeRange).font(.caption2).foregroundStyle(.secondary)
-                            Text(record.cacheIsCurrent ? "已缓存" : amap ? "加入后转换" : "原始轨迹")
+                            Text(record.cacheIsCurrent ? L10n.text("已缓存") : amap ? L10n.text("加入后转换") : L10n.text("原始轨迹"))
                                 .font(.caption2).foregroundStyle(record.cacheIsCurrent ? Color.green : .secondary)
                         }.frame(maxWidth: .infinity, alignment: .leading)
-                        Button(library.activeIDs.contains(record.id) ? "已加入" : "加入") {
+                        Button(library.activeIDs.contains(record.id) ? L10n.text("已加入") : L10n.text("加入")) {
                             if let log = library.addHistory(record.id, amap: amap) {
                                 store.send(.restoreTracks([log]), undoable: false)
                             }
                         }
                         .disabled(library.activeIDs.contains(record.id) || store.saveInProgress)
-                        .accessibilityLabel("加入历史轨迹 \(record.name)")
+                        .accessibilityLabel(L10n.text("加入历史轨迹 %1$@", record.name))
                     }
                 }
             }.padding(.top, 8)
         } label: {
             HStack {
-                Label("历史记录", systemImage: "clock")
+                Label(L10n.text("历史记录"), systemImage: "clock")
                 Spacer()
                 Text("\(library.records.count)").foregroundStyle(.secondary)
             }
@@ -141,27 +141,27 @@ private extension TrackSidebar {
     private var matchingControls: some View {
         VStack(alignment: .leading, spacing: 8) {
             Button { selectPhotosInTrackTime() } label: {
-                Text("选择轨迹时段内拍摄的照片").frame(maxWidth: .infinity)
+                Text(L10n.text("选择轨迹时段内拍摄的照片")).frame(maxWidth: .infinity)
             }
             .disabled(store.gpxTracks.isEmpty || store.saveInProgress || matching)
-            .help("选中拍摄时间落在任一已导入轨迹记录段内的照片")
-            Text("已选择 \(store.selection.count) 张照片")
+            .help(L10n.text("选中拍摄时间落在任一已导入轨迹记录段内的照片"))
+            Text(L10n.text("已选择 %1$@ 张照片", store.selection.count))
                 .font(.caption).foregroundStyle(.secondary)
-            Text("为所选照片写入定位").font(.subheadline.weight(.medium)).padding(.top, 6)
+            Text(L10n.text("为所选照片写入定位")).font(.subheadline.weight(.medium)).padding(.top, 6)
             Button { applyTrackLocations(overwrite: false) } label: {
-                Text("补齐缺失定位").frame(maxWidth: .infinity)
+                Text(L10n.text("补齐缺失定位")).frame(maxWidth: .infinity)
             }
             .disabled(store.selection.isEmpty || store.gpxTracks.isEmpty || store.saveInProgress || matching
                 || store.selection.allSatisfy { store[$0].metadata.location != nil })
-            Text("仅为没有定位的照片匹配位置，不覆盖已有定位。")
+            Text(L10n.text("仅为没有定位的照片匹配位置，不覆盖已有定位。"))
                 .font(.caption).foregroundStyle(.secondary)
             Button { applyTrackLocations(overwrite: true) } label: {
-                Text("覆盖所有定位").frame(maxWidth: .infinity)
+                Text(L10n.text("覆盖所有定位")).frame(maxWidth: .infinity)
             }
             .disabled(store.selection.isEmpty || store.gpxTracks.isEmpty || store.saveInProgress || matching)
-            Text("使用轨迹位置替换已有定位；保存前可以撤销。")
+            Text(L10n.text("使用轨迹位置替换已有定位；保存前可以撤销。"))
                 .font(.caption).foregroundStyle(.secondary)
-            if matching { ProgressView("正在匹配轨迹…").controlSize(.small) }
+            if matching { ProgressView(L10n.text("正在匹配轨迹…")).controlSize(.small) }
         }
         .buttonStyle(.bordered)
         .controlSize(.large)
@@ -170,11 +170,11 @@ private extension TrackSidebar {
     private func trackRow(_ record: TrackRecord) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .top, spacing: 8) {
-                Toggle("显示 \(record.name)", isOn: Binding(
+                Toggle(L10n.text("显示 %1$@", record.name), isOn: Binding(
                     get: { library.visible.contains(record.id) },
                     set: { library.setVisible(record.id, $0, amap: amap) }))
                     .labelsHidden().toggleStyle(.checkbox)
-                    .help("显示或隐藏这条轨迹")
+                    .help(L10n.text("显示或隐藏这条轨迹"))
                     .padding(.top, 4)
                 Button { library.select(record.id, amap: amap) } label: {
                     HStack(alignment: .top, spacing: 8) {
@@ -186,7 +186,7 @@ private extension TrackSidebar {
                                 Text(record.name).font(.callout.weight(.medium))
                                     .lineLimit(2).truncationMode(.middle)
                                 if record.generatedFromPhotos {
-                                    Label("照片生成", systemImage: "photo.on.rectangle")
+                                    Label(L10n.text("照片生成"), systemImage: "photo.on.rectangle")
                                         .font(.caption2.weight(.semibold))
                                         .foregroundStyle(.blue)
                                         .padding(.horizontal, 6).padding(.vertical, 2)
@@ -195,23 +195,23 @@ private extension TrackSidebar {
                             }
                             Text(record.timeRange).font(.caption).foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
-                                .help("GPX 记录时间，按本机时区显示")
+                                .help(L10n.text("GPX 记录时间，按本机时区显示"))
                             Text(summary(record)).font(.caption).foregroundStyle(.secondary)
                         }.frame(maxWidth: .infinity, alignment: .leading)
                     }.contentShape(Rectangle())
                 }.buttonStyle(.plain)
-                    .accessibilityLabel("查看 \(record.name) 的轨迹范围")
+                    .accessibilityLabel(L10n.text("查看 %1$@ 的轨迹范围", record.name))
                     .accessibilityValue("\(record.timeRange)，\(summary(record))")
                     .accessibilityAddTraits(library.selected == record.id ? .isSelected : [])
                 Button { refresh(record.id) } label: { Image(systemName: "arrow.clockwise") }
                     .buttonStyle(.borderless)
                     .disabled(library.requests[record.id] != nil || store.saveInProgress)
-                    .help("重新读取并刷新这条轨迹")
-                    .accessibilityLabel("刷新 \(record.name)")
+                    .help(L10n.text("重新读取并刷新这条轨迹"))
+                    .accessibilityLabel(L10n.text("刷新 %1$@", record.name))
                     .padding(.top, 4)
             }
             if record.sourceUnavailable {
-                Text("原文件不可用，仍可查看已有缓存；请重新导入以匹配照片。")
+                Text(L10n.text("原文件不可用，仍可查看已有缓存；请重新导入以匹配照片。"))
                     .font(.caption).foregroundStyle(.orange)
             }
             if let state = library.states[record.id] {
@@ -220,21 +220,21 @@ private extension TrackSidebar {
                     HStack(spacing: 8) {
                         ProgressView(value: Double(completed), total: Double(max(total, 1))) {
                             Text(library.nextRequestID == record.id
-                                 ? "\(record.converted == nil ? "转换" : "刷新")中 · \(completed) / \(total) 点"
-                                 : "等待转换")
+                                 ? L10n.text("%1$@中 · %2$@ / %3$@ 点", record.converted == nil ? L10n.text("转换") : L10n.text("刷新"), completed, total)
+                                 : L10n.text("等待转换"))
                                 .font(.caption)
                         }
-                        Button("取消") { library.cancel(record.id) }.buttonStyle(.borderless)
+                        Button(L10n.text("取消")) { library.cancel(record.id) }.buttonStyle(.borderless)
                     }
-                    Text(library.nextRequestID != record.id ? "前一条完成后自动开始。"
-                         : workspace.ready ? "正在按顺序处理轨迹。" : "等待高德地图就绪…")
+                    Text(library.nextRequestID != record.id ? L10n.text("前一条完成后自动开始。")
+                         : workspace.ready ? L10n.text("正在按顺序处理轨迹。") : L10n.text("等待高德地图就绪…"))
                         .font(.caption2).foregroundStyle(.secondary)
                 case .failed(let reason):
                     HStack(alignment: .top) {
-                        Text(record.converted == nil ? "转换失败：\(reason)" : "刷新失败，保留原轨迹。\(reason)")
+                        Text(record.converted == nil ? L10n.text("转换失败：%1$@", reason) : L10n.text("刷新失败，保留原轨迹。%1$@", reason))
                             .font(.caption).foregroundStyle(.orange)
                         Spacer(minLength: 4)
-                        Button("重试") { refresh(record.id) }.buttonStyle(.borderless)
+                        Button(L10n.text("重试")) { refresh(record.id) }.buttonStyle(.borderless)
                     }
                 }
             }
@@ -244,20 +244,20 @@ private extension TrackSidebar {
                     in: RoundedRectangle(cornerRadius: 6))
         .contextMenu {
             if record.generatedFromPhotos {
-                Button("导出 GPX…", systemImage: "square.and.arrow.up") {
+                Button(L10n.text("导出 GPX…"), systemImage: "square.and.arrow.up") {
                     do {
                         exportDocument = PhotoGPXDocument(data: try Data(contentsOf: record.log.sourceURL))
                         exportFilename = record.name
                         exporting = true
-                    } catch { importNotice = "无法读取缓存轨迹：\(error.localizedDescription)" }
+                    } catch { importNotice = L10n.text("无法读取缓存轨迹：%1$@", error.localizedDescription) }
                 }.disabled(record.sourceUnavailable)
                 Divider()
             }
-            Button("清除这条轨迹的转换缓存") { library.clearCache(record.id) }
+            Button(L10n.text("清除这条轨迹的转换缓存")) { library.clearCache(record.id) }
                 .disabled(record.converted == nil)
-            Button("从操作区移除") {
+            Button(L10n.text("从操作区移除")) {
                 library.remove(record.id)
-                store.send(.removeTrack(record.log.sourceURL), description: "移除轨迹")
+                store.send(.removeTrack(record.log.sourceURL), description: L10n.text("移除轨迹"))
             }.disabled(store.saveInProgress)
         }
     }
@@ -266,8 +266,8 @@ private extension TrackSidebar {
 
 private extension TrackSidebar {
     func summary(_ record: TrackRecord) -> String {
-        let state = amap ? (record.converted == nil ? "待转换" : record.cacheIsCurrent ? "已缓存" : "待更新 · 使用旧缓存") : "原始轨迹"
-        return "\(record.points.count) 点 · \(state)"
+        let state = amap ? (record.converted == nil ? L10n.text("待转换") : record.cacheIsCurrent ? L10n.text("已缓存") : L10n.text("待更新 · 使用旧缓存")) : L10n.text("原始轨迹")
+        return L10n.text("%1$@ 点 · %2$@", record.points.count, state)
     }
 
     private func refresh(_ id: String) {
@@ -280,7 +280,7 @@ private extension TrackSidebar {
         let ids = LocationHelper.photoIDs(in: store.visibleImages, timeZone: store.timeZone,
                                           tracks: store.gpxTracks)
         store.send(.selectionChanged(ids), undoable: false)
-        importNotice = "已按全部导入轨迹的记录时段选中 \(ids.count) 张照片。"
+        importNotice = L10n.text("已按全部导入轨迹的记录时段选中 %1$@ 张照片。", ids.count)
     }
 
     private func applyTrackLocations(overwrite: Bool) {
@@ -293,17 +293,17 @@ private extension TrackSidebar {
             defer { matching = false }
             guard store.selection == selection else {
                 store.send(.locationFromTrack([]), undoable: false)
-                importNotice = "照片选择已变化，请重新操作。"
+                importNotice = L10n.text("照片选择已变化，请重新操作。")
                 return
             }
             let matched = store.trackMatches.filter { $0.status == .matched && $0.coords != nil }
             guard !matched.isEmpty else {
                 store.send(.locationFromTrack([]), undoable: false)
-                importNotice = "没有可安全匹配的照片；照片定位未修改。"
+                importNotice = L10n.text("没有可安全匹配的照片；照片定位未修改。")
                 return
             }
-            store.send(.applyTrackMatches, description: overwrite ? "按轨迹重设定位" : "按轨迹补齐定位")
-            importNotice = "已修改 \(matched.count) 张照片，另有 \(selection.count - matched.count) 张跳过；请保存修改。"
+            store.send(.applyTrackMatches, description: overwrite ? L10n.text("按轨迹重设定位") : L10n.text("按轨迹补齐定位"))
+            importNotice = L10n.text("已修改 %1$@ 张照片，另有 %2$@ 张跳过；请保存修改。", matched.count, selection.count - matched.count)
         }
     }
 }

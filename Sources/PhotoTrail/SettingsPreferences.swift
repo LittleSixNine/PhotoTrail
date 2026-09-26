@@ -19,8 +19,8 @@ enum SettingsPreferences {
         var id: Self { self }
         var title: String {
             switch self {
-            case .device: "设备当前位置"
-            case .last: "上次地图视野"
+            case .device: L10n.text("设备当前位置")
+            case .last: L10n.text("上次地图视野")
             }
         }
     }

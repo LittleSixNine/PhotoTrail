@@ -22,38 +22,38 @@ struct LatLonSectionView: View {
 
     var body: some View {
         VStack {
-            LabeledContent("Latitude:") {
-                TextField("Latitude", value: $latitude, format: .latitude)
+            LabeledContent(L10n.text("Latitude:")) {
+                TextField(L10n.text("Latitude"), value: $latitude, format: .latitude)
                     .frame(width: 200)
                     .labelsHidden()
                     .padding()
                     .focused($isFocused)
             }
 
-            LabeledContent("Longitude:") {
-                TextField("Longitude", value: $longitude, format: .longitude)
+            LabeledContent(L10n.text("Longitude:")) {
+                TextField(L10n.text("Longitude"), value: $longitude, format: .longitude)
                     .frame(width: 200)
                     .labelsHidden()
                     .padding()
                     .focused($isFocused)
             }
 
-            LabeledContent("City:") {
+            LabeledContent(L10n.text("City:")) {
                 Text(image.metadata.city ?? "?")
                     .frame(width: 200, alignment: .leading)
             }
 
-            LabeledContent("State:") {
+            LabeledContent(L10n.text("State:")) {
                 Text(image.metadata.state ?? "?")
                     .frame(width: 200, alignment: .leading)
             }
 
-            LabeledContent("Country:") {
+            LabeledContent(L10n.text("Country:")) {
                 Text(image.metadata.country ?? "?")
                     .frame(width: 200, alignment: .leading)
             }
 
-            LabeledContent("Country Code:") {
+            LabeledContent(L10n.text("Country Code:")) {
                 Text(image.metadata.countryCode ?? "?")
                     .frame(width: 200, alignment: .leading)
             }

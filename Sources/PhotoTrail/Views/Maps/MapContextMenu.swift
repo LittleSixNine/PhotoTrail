@@ -28,7 +28,7 @@ struct MapContextMenu: View {
                     initialMapDistance = camera.distance
                 }
             } label: {
-                Label("Save map location", systemImage: "location")
+                Label(L10n.text("Save map location"), systemImage: "location")
             }
             .padding()
             .disabled(camera == nil)
@@ -37,7 +37,7 @@ struct MapContextMenu: View {
 }
 
 #Preview {
-    Text("Right click to see the context menu")
+    Text(L10n.text("Right click to see the context menu"))
         .contextMenu {
             MapContextMenu(camera: nil, mapStyleName: .constant(.standard))
         }

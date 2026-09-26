@@ -16,7 +16,7 @@ struct PhotoPickerView: View {
                              matching: .images,
                              photoLibrary: .shared()) {
                     Image(systemName: "photo").frame(width: 16)
-                        .accessibilityLabel("照片图库")
+                        .accessibilityLabel(L10n.text("照片图库"))
                 }
                 .keyboardShortcut("i", modifiers: [.shift, .command])
             } else {
@@ -32,7 +32,7 @@ struct PhotoPickerView: View {
                     }
                 } label: {
                     Image(systemName: "photo").frame(width: 16)
-                        .accessibilityLabel("照片图库")
+                        .accessibilityLabel(L10n.text("照片图库"))
                 }
             }
         }
@@ -61,18 +61,15 @@ struct InspectorButtonView: View {
             presented.toggle()
         } label: {
             Image(systemName: "info.circle").frame(width: 16)
-                .accessibilityLabel("照片信息")
+                .accessibilityLabel(L10n.text("照片信息"))
         }
-        .help("显示或隐藏照片信息（⌘I）")
+        .help(L10n.text("显示或隐藏照片信息（⌘I）"))
         .keyboardShortcut("i")
     }
 }
 
 #Preview{
-    Text("""
-        Look at the toolbar of ContentView
-        to see how these sub-views are used.
-        """)
+    Text(L10n.text("Look at the toolbar of ContentView\nto see how these sub-views are used."))
         .padding()
 }
 
@@ -86,7 +83,7 @@ struct WorkspaceToolbarButtonStyle: ButtonStyle {
             .font(.system(size: 13, weight: .medium))
             .foregroundStyle(isEnabled ? (prominent ? Color.white : Color.primary) : Color.secondary)
             .padding(.horizontal, 12)
-            .frame(height: 34)
+            .frame(minHeight: 34)
             .background(prominent && isEnabled ? Color.blue : Color(nsColor: .controlBackgroundColor), in: Capsule())
             .overlay {
                 if outlined {

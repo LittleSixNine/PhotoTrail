@@ -53,7 +53,7 @@ struct AMapCredentials: Codable {
 
     struct KeychainError: LocalizedError {
         let status: OSStatus
-        var errorDescription: String? { "无法访问高德凭据的钥匙串记录（\(status)）。" }
+        var errorDescription: String? { L10n.text("无法访问高德凭据的钥匙串记录（%1$@）。", status) }
     }
 }
 
@@ -68,21 +68,21 @@ struct AMapSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("高德地图设置").font(.title2)
-            Text("填写你自己的 Web 端（JS API）凭据，保存在本机钥匙串。")
+            Text(L10n.text("高德地图设置")).font(.title2)
+            Text(L10n.text("填写你自己的 Web 端（JS API）凭据，保存在本机钥匙串。"))
             SecureField("JS API Key", text: $key)
-            SecureField("安全密钥 securityJsCode", text: $code)
-            Text("此版本用于自用开发验证。加载后，显示照片和校验选点会向高德发送经纬度；照片文件留在本机。")
+            SecureField(L10n.text("安全密钥 securityJsCode"), text: $code)
+            Text(L10n.text("此版本用于自用开发验证。加载后，显示照片和校验选点会向高德发送经纬度；照片文件留在本机。"))
                 .font(.footnote).foregroundStyle(.secondary)
-            Link("高德安全密钥说明", destination:
+            Link(L10n.text("高德安全密钥说明"), destination:
                     URL(string: "https://lbs.amap.com/api/javascript-api-v2/guide/abc/jscode")!)
             if let error { Text(error).foregroundStyle(.red) }
             HStack {
-                Button("从钥匙串读取") { loadFromKeychain() }
+                Button(L10n.text("从钥匙串读取")) { loadFromKeychain() }
                     .disabled(loadingCredentials)
                 Spacer()
-                Button("取消") { dismiss() }
-                Button("保存并加载") { save() }
+                Button(L10n.text("取消")) { dismiss() }
+                Button(L10n.text("保存并加载")) { save() }
                     .buttonStyle(.borderedProminent)
                     .disabled(key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                               || code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -112,7 +112,7 @@ struct AMapSettingsView: View {
             defer { loadingCredentials = false }
             do {
                 guard let saved = try await Task.detached(operation: { try AMapCredentials.load() }).value else {
-                    error = "钥匙串中未找到高德凭据。"
+                    error = L10n.text("钥匙串中未找到高德凭据。")
                     return
                 }
                 key = saved.key

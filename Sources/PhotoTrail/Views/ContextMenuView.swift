@@ -27,19 +27,19 @@ struct ContextMenuView: View {
     }
 
     var body: some View {
-        Button("在地图定位页查看") { selectTargets(); openDetail() }
+        Button(L10n.text("在地图定位页查看")) { selectTargets(); openDetail() }
             .disabled(!editable)
-        Button("查看与编辑照片信息…") { selectTargets(); inspectorPresented = true }
+        Button(L10n.text("查看与编辑照片信息…")) { selectTargets(); inspectorPresented = true }
             .disabled(images.count != 1 || !images.allSatisfy(\.updatable))
         Divider()
-        Button("复制此照片的定位", systemImage: "document.on.document") {
+        Button(L10n.text("复制此照片的定位"), systemImage: "document.on.document") {
             guard let source else { return }
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(source.stringRepresentation, forType: .string)
         }.disabled(source?.metadata.location == nil)
-        Button("粘贴定位到这 \(images.count) 张照片", systemImage: "document.on.clipboard") {
+        Button(L10n.text("粘贴定位到这 %1$@ 张照片", images.count), systemImage: "document.on.clipboard") {
             selectTargets()
-            store.send(.pasteRequest, description: "粘贴定位") {
+            store.send(.pasteRequest, description: L10n.text("粘贴定位")) {
                 guard let id = store.mostSelected else { return }
                 let selected = store.selection
                 Task {
@@ -50,18 +50,18 @@ struct ContextMenuView: View {
             }
         }.disabled(!editable || NSPasteboard.general.string(forType: .string)
             .flatMap { ImageData.decodeStringRep(value: $0) } == nil)
-        Button("预览这 \(images.count) 张照片的轨迹匹配") {
+        Button(L10n.text("预览这 %1$@ 张照片的轨迹匹配", images.count)) {
             selectTargets()
             showBatchActions()
             LocationHelper.locationFromTrack(store, extendedTime: extendedTime)
         }.disabled(!editable || store.gpxTracks.isEmpty)
         Divider()
-        Button("在访达中显示原文件") {
+        Button(L10n.text("在访达中显示原文件")) {
             NSWorkspace.shared.activateFileViewerSelecting(localURLs)
         }.disabled(localURLs.isEmpty)
-        Button("从列表移除这 \(images.count) 张照片…", systemImage: "minus.circle") { remove() }
+        Button(L10n.text("从列表移除这 %1$@ 张照片…", images.count), systemImage: "minus.circle") { remove() }
             .disabled(store.saveInProgress || images.isEmpty)
-        Button("清除这 \(images.count) 张照片的定位…", systemImage: "mappin.slash") { clearLocations() }
+        Button(L10n.text("清除这 %1$@ 张照片的定位…", images.count), systemImage: "mappin.slash") { clearLocations() }
             .disabled(!editable || images.allSatisfy { $0.metadata.location == nil })
     }
 

@@ -33,29 +33,24 @@ enum SaveHelper {
         let localCount = targets.files.count + targets.xmp.count
         let backupMessage: String
         if localCount == 0 {
-            backupMessage = "本次不写入本地文件；备份设置不适用。"
+            backupMessage = L10n.text("本次不写入本地文件；备份设置不适用。")
         } else if UserDefaults.standard.bool(forKey: PhotoTrailApp.doNotBackupKey) {
-            backupMessage = "本地文件备份：已关闭。"
+            backupMessage = L10n.text("本地文件备份：已关闭。")
         } else if backupURL != nil {
-            backupMessage = "本地文件备份：已开启；照片图库项目不在备份范围内。"
+            backupMessage = L10n.text("本地文件备份：已开启；照片图库项目不在备份范围内。")
         } else {
-            backupMessage = "尚未设置备份文件夹，本地照片和 XMP 将无法保存；照片图库仍可能更新。"
+            backupMessage = L10n.text("尚未设置备份文件夹，本地照片和 XMP 将无法保存；照片图库仍可能更新。")
         }
         let sidecarMessage = targets.files.isEmpty ||
             !UserDefaults.standard.bool(forKey: SettingsView.createSidecarFilesKey)
-            ? "" : "\n本地照片另会尝试创建 XMP 附属文件。"
+            ? "" : L10n.text("\n本地照片另会尝试创建 XMP 附属文件。")
 
         let alert = NSAlert()
-        alert.messageText = "保存 \(targets.total) 项修改？"
-        alert.informativeText = """
-            本地照片：\(targets.files.count) 项
-            已导入的 XMP：\(targets.xmp.count) 项
-            照片图库：\(targets.library.count) 项
-
-            \(backupMessage)\(sidecarMessage)
-            """
-        alert.addButton(withTitle: "保存")
-        alert.addButton(withTitle: "取消")
+        alert.messageText = L10n.text("保存 %1$@ 项修改？", targets.total)
+        alert.informativeText = L10n.text(
+            "本地照片：%1$@ 项\n已导入的 XMP：%2$@ 项\n照片图库：%3$@ 项\n\n%4$@%5$@", targets.files.count, targets.xmp.count, targets.library.count, backupMessage, sidecarMessage)
+        alert.addButton(withTitle: L10n.text("保存"))
+        alert.addButton(withTitle: L10n.text("取消"))
         return alert.runModal() == .alertFirstButtonReturn
     }
 

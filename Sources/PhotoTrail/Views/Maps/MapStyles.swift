@@ -36,10 +36,10 @@ struct MapStylePicker: View {
     var body: some View {
         Picker(selection: $mapStyleName) {
             ForEach(MapStyleName.allCases) { style in
-                Text(LocalizedStringKey(style.rawValue)).tag(style)
+                Text(L10n.text(style.rawValue)).tag(style)
             }
         } label: {
-            Label("Map style…", systemImage: "map")
+            Label(L10n.text("Map style…"), systemImage: "map")
         }
         .pickerStyle(.menu)
     }
@@ -61,17 +61,17 @@ enum AMapStyleName: String, CaseIterable, Identifiable {
     var id: Self { self }
     var title: String {
         switch self {
-        case .normal: "标准"
-        case .dark: "幻影黑"
-        case .light: "月光银"
-        case .whitesmoke: "远山黛"
-        case .fresh: "草色青"
-        case .grey: "雅士灰"
-        case .graffiti: "涂鸦"
-        case .macaron: "马卡龙"
-        case .blue: "靛青蓝"
-        case .darkblue: "极夜蓝"
-        case .wine: "酱籽"
+        case .normal: L10n.text("标准")
+        case .dark: L10n.text("幻影黑")
+        case .light: L10n.text("月光银")
+        case .whitesmoke: L10n.text("远山黛")
+        case .fresh: L10n.text("草色青")
+        case .grey: L10n.text("雅士灰")
+        case .graffiti: L10n.text("涂鸦")
+        case .macaron: L10n.text("马卡龙")
+        case .blue: L10n.text("靛青蓝")
+        case .darkblue: L10n.text("极夜蓝")
+        case .wine: L10n.text("酱籽")
         }
     }
 }
@@ -88,7 +88,7 @@ struct AMapStylePicker: View {
     private var styles = AMapStylePreferences()
 
     var body: some View {
-        Picker("高德地图配色", selection: styles.selection) {
+        Picker(L10n.text("高德地图配色"), selection: styles.selection) {
             ForEach(AMapStyleName.allCases) { style in
                 Text(style.title).tag(style)
             }

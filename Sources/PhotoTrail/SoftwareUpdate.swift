@@ -51,9 +51,9 @@ final class SoftwareUpdate: ObservableObject {
 
     func presentDownloadedUpdateIfNeeded() {
         guard !showedDownloadedNotice, let version = downloadedVersion else { return }
-        let message = "新版已下载。打开磁盘映像后，请先退出 PhotoTrail，再将 PhotoTrail 拖到“应用程序”文件夹中完成更新。"
-        guard showNotice(title: "PhotoTrail \(version) 已下载", message: message,
-                         primaryTitle: "打开安装镜像", primaryAction: { [weak self] in
+        let message = L10n.text("新版已下载。打开磁盘映像后，请先退出 PhotoTrail，再将 PhotoTrail 拖到“应用程序”文件夹中完成更新。")
+        guard showNotice(title: L10n.text("PhotoTrail %1$@ 已下载", version), message: message,
+                         primaryTitle: L10n.text("打开安装镜像"), primaryAction: { [weak self] in
                              self?.openDownloadedUpdate()
                          }) else { return }
         showedDownloadedNotice = true
@@ -87,7 +87,7 @@ final class SoftwareUpdate: ObservableObject {
         guard let version = downloadedVersion,
               let downloadedDigest,
               let fileURL = Self.downloadURL(directory: updatesDirectory, tagName: version) else {
-            status = "没有找到已下载的安装镜像，请重新检查更新。"
+            status = L10n.text("没有找到已下载的安装镜像，请重新检查更新。")
             return
         }
         Task {
@@ -97,7 +97,7 @@ final class SoftwareUpdate: ObservableObject {
                 }
                 guard NSWorkspace.shared.open(fileURL) else { throw UpdateError.openFailed }
             } catch {
-                status = "无法打开已下载的安装镜像：\(error.localizedDescription)"
+                status = L10n.text("无法打开已下载的安装镜像：%1$@", error.localizedDescription)
             }
         }
     }
@@ -105,7 +105,7 @@ final class SoftwareUpdate: ObservableObject {
     private func check(manual: Bool) async {
         guard canCheck else { return }
         checking = true
-        status = "正在检查更新…"
+        status = L10n.text("正在检查更新…")
         defer { checking = false }
         do {
             let url = URL(string: "https://api.github.com/repos/LittleSixNine/PhotoTrail/releases/latest")!
@@ -121,29 +121,29 @@ final class SoftwareUpdate: ObservableObject {
             defaults.set(checkedAt, forKey: "PhotoTrailLastUpdateCheck")
             if let release = latestRelease {
                 if downloadedVersion == release.tagName {
-                    status = "新版已下载，下次启动时可打开安装镜像。"
+                    status = L10n.text("新版已下载，下次启动时可打开安装镜像。")
                 } else if automaticDownloads {
                     startDownload(release)
                 } else {
-                    status = "发现新版本 \(release.tagName)，可前往 GitHub 下载。"
+                    status = L10n.text("发现新版本 %1$@，可前往 GitHub 下载。", release.tagName)
                     if manual || automaticChecks {
                         let notes = release.body.map { String($0.prefix(2_000)) } ?? ""
-                        showNotice(title: "PhotoTrail \(release.tagName) 可供下载",
-                                   message: "请先下载并打开 DMG，退出 PhotoTrail，再将应用拖到“应用程序”文件夹完成更新。\n\n" + notes,
-                                   primaryTitle: "前往下载", primaryAction: { [weak self] in
+                        showNotice(title: L10n.text("PhotoTrail %1$@ 可供下载", release.tagName),
+                                   message: L10n.text("请先下载并打开 DMG，退出 PhotoTrail，再将应用拖到“应用程序”文件夹完成更新。\n\n") + notes,
+                                   primaryTitle: L10n.text("前往下载"), primaryAction: { [weak self] in
                                        self?.openRelease()
                                    })
                     }
                 }
             } else {
-                status = "当前没有可用的新版本。"
-                if manual { showNotice(title: "当前没有可用的新版本", message: "当前版本：\(current)") }
+                status = L10n.text("当前没有可用的新版本。")
+                if manual { showNotice(title: L10n.text("当前没有可用的新版本"), message: L10n.text("当前版本：%1$@", current)) }
             }
         } catch {
-            status = "暂时无法检查更新，请稍后重试，也可直接查看 GitHub 发布页。"
+            status = L10n.text("暂时无法检查更新，请稍后重试，也可直接查看 GitHub 发布页。")
             if manual {
-                showNotice(title: "暂时无法检查更新", message: status,
-                           primaryTitle: "前往发布页", primaryAction: { [weak self] in
+                showNotice(title: L10n.text("暂时无法检查更新"), message: status,
+                           primaryTitle: L10n.text("前往发布页"), primaryAction: { [weak self] in
                                NSWorkspace.shared.open(Self.releasesURL)
                                self?.status = ""
                            })
@@ -157,11 +157,11 @@ final class SoftwareUpdate: ObservableObject {
         guard let fileName = Self.dmgFileName(tagName: release.tagName),
               let asset = release.assets?.first(where: { $0.name == fileName }),
               Self.validatedAssetURL(asset, release: release, fileName: fileName) != nil else {
-            status = "找不到有效的 DMG 下载项，可前往 GitHub 发布页下载。"
+            status = L10n.text("找不到有效的 DMG 下载项，可前往 GitHub 发布页下载。")
             return
         }
         downloading = true
-        status = "正在自动下载 PhotoTrail \(release.tagName)…"
+        status = L10n.text("正在自动下载 PhotoTrail %1$@…", release.tagName)
         downloadTask = Task { await download(release, asset: asset, fileName: fileName) }
     }
 
@@ -199,11 +199,11 @@ final class SoftwareUpdate: ObservableObject {
             downloadedDigest = expectedDigest
             defaults.set(release.tagName, forKey: Self.downloadedVersionKey)
             defaults.set(expectedDigest, forKey: Self.downloadedDigestKey)
-            status = "PhotoTrail \(release.tagName) 已下载；下次启动时可打开安装镜像。"
+            status = L10n.text("PhotoTrail %1$@ 已下载；下次启动时可打开安装镜像。", release.tagName)
         } catch is CancellationError {
-            status = "已取消自动下载。"
+            status = L10n.text("已取消自动下载。")
         } catch {
-            status = "自动下载失败：\(error.localizedDescription)。可前往 GitHub 手动下载。"
+            status = L10n.text("自动下载失败：%1$@。可前往 GitHub 手动下载。", error.localizedDescription)
         }
     }
 
@@ -254,8 +254,8 @@ final class SoftwareUpdate: ObservableObject {
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = message
-        alert.addButton(withTitle: primaryTitle ?? "好")
-        if primaryAction != nil { alert.addButton(withTitle: "稍后") }
+        alert.addButton(withTitle: primaryTitle ?? L10n.text("好"))
+        if primaryAction != nil { alert.addButton(withTitle: L10n.text("稍后")) }
         alert.beginSheetModal(for: window) { response in
             if response == .alertFirstButtonReturn { primaryAction?() }
         }
@@ -387,12 +387,12 @@ extension SoftwareUpdate {
 
         var errorDescription: String? {
             switch self {
-            case .invalidAsset: "发布信息中的安装镜像无效"
-            case .missingChecksum: "缺少有效的 SHA-256 校验值"
-            case .badResponse: "下载服务器返回异常"
-            case .sizeMismatch: "下载文件大小不匹配"
-            case .checksumMismatch: "下载文件校验失败"
-            case .openFailed: "macOS 未能打开磁盘映像"
+            case .invalidAsset: L10n.text("发布信息中的安装镜像无效")
+            case .missingChecksum: L10n.text("缺少有效的 SHA-256 校验值")
+            case .badResponse: L10n.text("下载服务器返回异常")
+            case .sizeMismatch: L10n.text("下载文件大小不匹配")
+            case .checksumMismatch: L10n.text("下载文件校验失败")
+            case .openFailed: L10n.text("macOS 未能打开磁盘映像")
             }
         }
     }

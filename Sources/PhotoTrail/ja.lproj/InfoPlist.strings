@@ -1,0 +1,3 @@
+"NSLocationUsageDescription" = "地図を開いたときや現在地ボタンを押したときに、デバイスの位置を地図の中心に表示します。写真は変更しません。";
+"NSLocationWhenInUseUsageDescription" = "地図を開いたときや現在地ボタンを押したときに、デバイスの位置を地図の中心に表示します。写真は変更しません。";
+"NSPhotoLibraryUsageDescription" = "選択した写真の撮影日時と位置情報を読み取り、更新します。";

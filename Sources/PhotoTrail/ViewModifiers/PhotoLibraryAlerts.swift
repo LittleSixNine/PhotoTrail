@@ -5,15 +5,11 @@ struct PhotoLibraryEnabledAlert: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .alert("Photo Library Access Allowed",
+            .alert(L10n.text("Photo Library Access Allowed"),
                    isPresented: $libraryEnabled) {
                 // default action
             } message: {
-                Text("""
-                    Access to your Photos Library is now enabled. Click \
-                    on the toolbar button or use Shift-⌘I to select images \
-                    from the library.
-                    """)
+                Text(L10n.text("Access to your Photos Library is now enabled. Click on the toolbar button or use Shift-⌘I to select images from the library."))
             }
     }
 }
@@ -23,18 +19,15 @@ struct PhotoLibraryDisabledAlert: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .alert("Photo Library Access Denied",
+            .alert(L10n.text("Photo Library Access Denied"),
                    isPresented: $libraryDisabled) {
                 // default action
             } message: {
-                Text("""
-                    Access to your Photos Library was denied. If you gave \
-                    access to the program quit and re-launch PhotoTrail to \
-                    make sure it is using the current state. If that does \
-                    not resolve the issue open the Privacy and Security \
-                    tab of System Settings and select Photos. Make sure \
-                    PhotoTrail has full access.
-                    """)
+                Text(L10n.text("""
+                    Access to your Photos Library was denied. If you gave access to the program quit and re-launch Photo\
+                    Trail to make sure it is using the current state. If that does not resolve the issue open the Privac\
+                    y and Security tab of System Settings and select Photos. Make sure PhotoTrail has full access.
+                    """))
             }
     }
 }

@@ -33,7 +33,7 @@ struct PathView: NSViewRepresentable {
         pathControl.url = url
         pathControl.pathStyle = .popUp
         pathControl.delegate = context.coordinator
-        pathControl.placeholderString = "选择照片备份文件夹"
+        pathControl.placeholderString = L10n.text("选择照片备份文件夹")
         pathControl.target = context.coordinator
         pathControl.action = #selector(Coordinator.action)
         return pathControl

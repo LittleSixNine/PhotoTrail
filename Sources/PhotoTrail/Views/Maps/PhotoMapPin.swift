@@ -84,7 +84,7 @@ struct LocationMarkerPin: View {
         .scaleEffect(compact ? 0.5 : 1, anchor: .bottom)
         .frame(width: compact ? 17 : 34, height: compact ? 22.5 : 45)
         .contentShape(Rectangle())
-        .accessibilityLabel(kind == .search ? "搜索地点" : "设备位置")
+        .accessibilityLabel(kind == .search ? L10n.text("搜索地点") : L10n.text("设备位置"))
     }
 }
 
@@ -103,14 +103,14 @@ struct LocationMarkerCallout: View {
                 .foregroundStyle(.secondary)
             HStack(spacing: 6) {
                 Button(action: apply) {
-                    Text("写入照片")
+                    Text(L10n.text("写入照片"))
                         .frame(width: 88, height: 44)
                         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 8))
                         .contentShape(RoundedRectangle(cornerRadius: 8))
                 }
                     .disabled(!canApply)
                 Button(action: favorite) {
-                    Text("收藏")
+                    Text(L10n.text("收藏"))
                         .frame(width: 44, height: 44)
                         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 8))
                         .contentShape(RoundedRectangle(cornerRadius: 8))
@@ -159,7 +159,7 @@ struct PhotoThumbnailMapPin: View {
         }
         .frame(width: 50, height: 58)
         .contentShape(Rectangle())
-        .accessibilityLabel("照片 \(image.name) 的位置")
+        .accessibilityLabel(L10n.text("照片 %1$@ 的位置", image.name))
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
@@ -206,7 +206,7 @@ struct PhotoEdgeIndicator: View {
                    value: pointing)
         .onAppear { pointing = !reduceMotion }
         .onChange(of: reduceMotion) { pointing = !reduceMotion }
-        .accessibilityLabel("所选照片位于地图外：\(image.name)")
+        .accessibilityLabel(L10n.text("所选照片位于地图外：%1$@", image.name))
     }
 
     private func rotatedOffset(length: CGFloat) -> CGSize {

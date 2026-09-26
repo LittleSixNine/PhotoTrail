@@ -39,9 +39,9 @@ struct ShowHidePinView: View {
 
     var body: some View {
         if hideInvalidImages {
-            Label("Show Disabled Files", systemImage: "eye")
+            Label(L10n.text("Show Disabled Files"), systemImage: "eye")
         } else {
-            Label("Hide Disabled Files", systemImage: "eye.slash")
+            Label(L10n.text("Hide Disabled Files"), systemImage: "eye.slash")
         }
     }
 }
@@ -51,7 +51,7 @@ struct PinOptionView: View {
 
     var body: some View {
         Toggle(isOn: $showAllPhotoLocations) {
-            Label("在地图上显示所有照片的位置", systemImage: "mappin.circle")
+            Label(L10n.text("在地图上显示所有照片的位置"), systemImage: "mappin.circle")
         }
     }
 }
@@ -60,7 +60,7 @@ struct AlternateLayoutOptionView: View {
     @AppStorage(ContentView.alternateLayoutKey) var alternateLayout = false
 
     var body: some View {
-        Label(alternateLayout ? "切换到列表页" : "切换到详情页",
+        Label(alternateLayout ? L10n.text("切换到列表页") : L10n.text("切换到详情页"),
               systemImage: "arrow.left.arrow.right.square")
     }
 }

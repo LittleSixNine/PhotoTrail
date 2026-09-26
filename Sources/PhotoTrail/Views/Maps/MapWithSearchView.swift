@@ -59,7 +59,7 @@ public struct MapWithSearchView: View {
         }
         .overlay(alignment: .topLeading) {
             if hasMap {
-            WorkspacePageSwitch(selection: $satellite, firstTitle: "标准", secondTitle: "卫星",
+            WorkspacePageSwitch(selection: $satellite, firstTitle: L10n.text("标准"), secondTitle: L10n.text("卫星"),
                                 firstIcon: "map", secondIcon: "globe", optionWidth: 76, usesGlass: true)
                 .padding(16)
             }
@@ -125,14 +125,14 @@ public struct MapWithSearchView: View {
                 startupCoordinate = nil
             }
         }
-        .alert("本机定位", isPresented: Binding(get: { locator.error != nil }, set: {
+        .alert(L10n.text("本机定位"), isPresented: Binding(get: { locator.error != nil }, set: {
             if !$0 { locator.error = nil }
         })) {
-            Button("苹果定位说明") {
+            Button(L10n.text("苹果定位说明")) {
                 openURL(URL(string: "https://support.apple.com/zh-cn/guide/mac-help/mh35873/mac")!)
                 locator.error = nil
             }
-            Button("好", role: .cancel) { locator.error = nil }
+            Button(L10n.text("好"), role: .cancel) { locator.error = nil }
         } message: { Text(locator.error ?? "") }
         .onChange(of: satellite) { workspace.setSatellite?(satellite) }
         .onChange(of: workspace.ready) {

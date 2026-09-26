@@ -30,12 +30,13 @@ struct PhotoGPXDocument: FileDocument {
         startDate = firstDate
         endDate = lastDate
         let rangeFormatter = DateFormatter()
-        rangeFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        rangeFormatter.locale = L10n.locale
+        rangeFormatter.setLocalizedDateFormatFromTemplate("yyyyMMddHHmmss")
         rangeFormatter.timeZone = timeZone
         if let firstDate, let lastDate {
             timeRange = "\(rangeFormatter.string(from: firstDate)) – \(rangeFormatter.string(from: lastDate))"
         } else {
-            timeRange = "无有效时间"
+            timeRange = L10n.text("无有效时间")
         }
         data = Data(Self.xml(points: points, segmentGap: segmentGap).utf8)
     }
@@ -44,7 +45,7 @@ struct PhotoGPXDocument: FileDocument {
         data = configuration.file.regularFileContents ?? Data()
         exportedCount = 0
         skippedCount = 0
-        timeRange = "无有效时间"
+        timeRange = L10n.text("无有效时间")
         startDate = nil
         endDate = nil
     }
@@ -53,25 +54,27 @@ struct PhotoGPXDocument: FileDocument {
         self.data = data
         exportedCount = 0
         skippedCount = 0
-        timeRange = "无有效时间"
+        timeRange = L10n.text("无有效时间")
         startDate = nil
         endDate = nil
     }
 
     func suggestedFilename(timeZone: TimeZone, createdAt: Date = .now) -> String {
         let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
         formatter.timeZone = timeZone
         formatter.dateFormat = "yyyyMMdd-HHmm"
-        let start = startDate.map(formatter.string(from:)) ?? "未知时间"
+        let start = startDate.map(formatter.string(from:)) ?? L10n.text("未知时间")
         let end: String
         if let startDate, let endDate {
             var calendar = Calendar(identifier: .gregorian)
             calendar.timeZone = timeZone
             formatter.dateFormat = calendar.isDate(startDate, inSameDayAs: endDate) ? "HHmm" : "yyyyMMdd-HHmm"
             end = formatter.string(from: endDate)
-        } else { end = "未知时间" }
+        } else { end = L10n.text("未知时间") }
         formatter.dateFormat = "yyyyMMdd-HHmmss"
-        return "照片轨迹_生成\(formatter.string(from: createdAt))_\(exportedCount)点_\(start)-\(end).gpx"
+        return L10n.text("照片轨迹_生成%1$@_%2$@点_%3$@-%4$@.gpx", formatter.string(from: createdAt), exportedCount, start, end)
     }
 
     func saveToCache(timeZone: TimeZone, createdAt: Date = .now) throws -> URL {

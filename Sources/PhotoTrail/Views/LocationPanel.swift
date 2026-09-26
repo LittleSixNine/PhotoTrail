@@ -18,7 +18,7 @@ struct LocationPanel: View {
 
     private var regionKey: String {
         guard let point = store[store.mostSelected].metadata.location else { return "" }
-        return "\(provider):\(point.latitude):\(point.longitude)"
+        return "\(L10n.language.rawValue):\(provider):\(point.latitude):\(point.longitude)"
     }
 
     private var editable: Bool {
@@ -29,7 +29,7 @@ struct LocationPanel: View {
         @Bindable var workspace = workspace
         let content = VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text("当前位置").font(.headline)
+                    Text(L10n.text("当前位置")).font(.headline)
                     Spacer()
                     mapSettings
                 }
@@ -49,20 +49,20 @@ struct LocationPanel: View {
             guard let point = metadata.location, metadata.canDisplayAsWGS84 else { return }
             if let cached = workspace.regionCache[key] { region = cached; return }
             guard automaticRegion || (manualLookup > 0 && manualLookupKey == key) else { return }
-            region = "正在读取地区…"
+            region = L10n.text("正在读取地区…")
             do {
                 if automaticRegion { try await Task.sleep(for: .milliseconds(500)) }
                 let name: String
                 if provider == "amap" {
                     guard let lookup = workspace.lookupAMapRegion, workspace.ready else {
-                        region = "地图就绪后读取地区"
+                        region = L10n.text("地图就绪后读取地区")
                         return
                     }
                     name = try await lookup(MapCoordinate(latitude: point.latitude, longitude: point.longitude))
                 } else {
                     guard let request = MKReverseGeocodingRequest(location:
                         CLLocation(latitude: point.latitude, longitude: point.longitude)) else { return }
-                    request.preferredLocale = Locale(identifier: "zh_CN")
+                    request.preferredLocale = L10n.locale
                     let items = try await request.mapItems
                     let place = items.first?.placemark
                     var parts: [String] = []
@@ -72,7 +72,7 @@ struct LocationPanel: View {
                 }
                 guard !Task.isCancelled, key == regionKey,
                       automaticRegion || (manualLookup > 0 && manualLookupKey == key) else { return }
-                region = name.isEmpty ? "暂无地区信息" : name
+                region = name.isEmpty ? L10n.text("暂无地区信息") : name
                 if !name.isEmpty {
                     if workspace.regionCache.count >= 256 { workspace.regionCache.removeAll() }
                     workspace.regionCache[key] = name
@@ -80,7 +80,7 @@ struct LocationPanel: View {
             } catch {
                 guard !Task.isCancelled, key == regionKey,
                       automaticRegion || (manualLookup > 0 && manualLookupKey == key) else { return }
-                region = "地区暂不可用"
+                region = L10n.text("地区暂不可用")
             }
         }
         .onChange(of: automaticRegion) { manualLookup = 0; manualLookupKey = "" }
@@ -99,15 +99,15 @@ struct LocationPanel: View {
 
     private var mapSettings: some View {
         Menu {
-            Menu("地图来源") {
-                providerOption("apple", title: "苹果地图（WGS-84）", subtitle: "海外拍摄优先")
-                providerOption("amap", title: "高德地图（GCJ-02）", subtitle: "中国大陆拍摄优先")
+            Menu(L10n.text("地图来源")) {
+                providerOption("apple", title: L10n.text("苹果地图（WGS-84）"), subtitle: L10n.text("海外拍摄优先"))
+                providerOption("amap", title: L10n.text("高德地图（GCJ-02）"), subtitle: L10n.text("中国大陆拍摄优先"))
             }
             AppAppearancePicker()
             if provider == "amap" { AMapStylePicker() }
             Divider()
-            Button("高德 API 设置…") { workspace.settingsPresented = true }
-            Button("重新加载高德地图") { workspace.reload() }
+            Button(L10n.text("高德 API 设置…")) { workspace.settingsPresented = true }
+            Button(L10n.text("重新加载高德地图")) { workspace.reload() }
                 .disabled(provider != "amap" || workspace.credentials == nil)
         } label: {
             ZStack(alignment: .bottomTrailing) {
@@ -119,8 +119,8 @@ struct LocationPanel: View {
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
-        .help("地图设置")
-        .accessibilityLabel("地图设置")
+        .help(L10n.text("地图设置"))
+        .accessibilityLabel(L10n.text("地图设置"))
     }
 
     private func providerOption(_ value: String, title: String, subtitle: String) -> some View {
@@ -137,25 +137,25 @@ struct LocationPanel: View {
             let metadata = store[store.mostSelected].metadata
             if let point = metadata.location {
                 Text(displayedRegionKey == regionKey && !region.isEmpty ? region :
-                     (automaticRegion ? "正在读取地区…" : "点击查询地区"))
+                     (automaticRegion ? L10n.text("正在读取地区…") : L10n.text("点击查询地区")))
                     .font(.title3.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
                 if !automaticRegion {
-                    Button("查询地区") { manualLookupKey = regionKey; manualLookup += 1 }
+                    Button(L10n.text("查询地区")) { manualLookupKey = regionKey; manualLookup += 1 }
                 }
                 HStack(spacing: 10) {
-                    Text("纬度 \(coordToString(for: point.latitude, ref: Coords.latRef, format: coordFormat))")
-                    Text("经度 \(coordToString(for: point.longitude, ref: Coords.lonRef, format: coordFormat))")
+                    Text(L10n.text("纬度 %1$@", coordToString(for: point.latitude, ref: Coords.latRef, format: coordFormat)))
+                    Text(L10n.text("经度 %1$@", coordToString(for: point.longitude, ref: Coords.lonRef, format: coordFormat)))
                 }
                 .font(.caption2).monospacedDigit().foregroundStyle(.secondary)
                 .lineLimit(1).minimumScaleFactor(0.8)
             } else {
-                Text("暂无定位").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
+                Text(L10n.text("暂无定位")).font(.title3.weight(.semibold)).foregroundStyle(.secondary)
             }
             if !workspace.status.isEmpty,
-               !workspace.status.hasPrefix("高德地图已就绪"),
-               !workspace.status.hasPrefix("选择照片后"),
-               !workspace.status.hasPrefix("在地图点选") {
+               !workspace.status.hasPrefix(L10n.text("高德地图已就绪")),
+               !workspace.status.hasPrefix(L10n.text("选择照片后")),
+               !workspace.status.hasPrefix(L10n.text("在地图点选")) {
                 Text(workspace.status).font(.caption).foregroundStyle(.secondary)
             }
         }.textSelection(.enabled)
@@ -164,16 +164,16 @@ struct LocationPanel: View {
     private var favoritesSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("收藏地点").font(.headline)
+                Text(L10n.text("收藏地点")).font(.headline)
                 Spacer()
-                Button("收藏照片位置") { favoritePhoto() }
+                Button(L10n.text("收藏照片位置")) { favoritePhoto() }
                     .disabled(store[store.mostSelected].metadata.location == nil)
             }
             if let error = workspace.favoriteError {
                 Text(error).font(.caption).foregroundStyle(.red)
-                Button("重试读取") { workspace.loadFavorites() }
+                Button(L10n.text("重试读取")) { workspace.loadFavorites() }
             }
-            if workspace.favorites.isEmpty { Text("收藏常用地点，方便下次直接应用。").font(.caption).foregroundStyle(.secondary) }
+            if workspace.favorites.isEmpty { Text(L10n.text("收藏常用地点，方便下次直接应用。")).font(.caption).foregroundStyle(.secondary) }
             ForEach(workspace.favorites) { favorite in
                 HStack {
                     Button { workspace.preview(favorite.coordinate) } label: {
@@ -183,23 +183,23 @@ struct LocationPanel: View {
                         }.frame(maxWidth: .infinity, alignment: .leading)
                             .contentShape(Rectangle())
                     }.buttonStyle(.plain)
-                    Button("应用") {
+                    Button(L10n.text("应用")) {
                         store.send(.confirmedWGS84Location(Coords(latitude: favorite.coordinate.latitude,
                                                                  longitude: favorite.coordinate.longitude)),
-                                   description: "应用收藏地点")
-                        workspace.status = "已应用收藏位置，请保存照片。"
+                                   description: L10n.text("应用收藏地点"))
+                        workspace.status = L10n.text("已应用收藏位置，请保存照片。")
                     }.disabled(!editable)
                     Menu {
-                        Button("编辑名称和备注") { workspace.favoriteDraft = favorite }
-                        Button("删除收藏", role: .destructive) {
+                        Button(L10n.text("编辑名称和备注")) { workspace.favoriteDraft = favorite }
+                        Button(L10n.text("删除收藏"), role: .destructive) {
                             do {
                                 try workspace.deleteFavorite(favorite.id)
                             } catch {
-                                workspace.status = "删除收藏失败，原记录已保留。"
+                                workspace.status = L10n.text("删除收藏失败，原记录已保留。")
                             }
                         }
                     } label: { Image(systemName: "ellipsis.circle") }
-                    .menuStyle(.borderlessButton).fixedSize().help("管理收藏")
+                    .menuStyle(.borderlessButton).fixedSize().help(L10n.text("管理收藏"))
                 }
             }
         }
@@ -209,7 +209,7 @@ struct LocationPanel: View {
         let metadata = store[store.mostSelected].metadata
         guard let point = metadata.location else { return }
         guard metadata.gpsMapDatum?.isEmpty == false, metadata.canDisplayAsWGS84 else {
-            workspace.status = "原照片坐标系尚未确认，请在高德搜索或重新选点后收藏。"
+            workspace.status = L10n.text("原照片坐标系尚未确认，请在高德搜索或重新选点后收藏。")
             return
         }
         workspace.favoriteDraft = SavedLocation(name: "", note: "",
@@ -226,16 +226,16 @@ private struct FavoriteEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("收藏地点").font(.title2)
-            TextField("名称，例如家", text: $favorite.name)
-            TextField("备注（可选）", text: $favorite.note, axis: .vertical)
+            Text(L10n.text("收藏地点")).font(.title2)
+            TextField(L10n.text("名称，例如家"), text: $favorite.name)
+            TextField(L10n.text("备注（可选）"), text: $favorite.note, axis: .vertical)
             if let error { Text(error).foregroundStyle(.red) }
             HStack {
                 Spacer()
-                Button("取消") { dismiss() }
-                Button("保存收藏") {
+                Button(L10n.text("取消")) { dismiss() }
+                Button(L10n.text("保存收藏")) {
                     favorite.name = favorite.name.trimmingCharacters(in: .whitespacesAndNewlines)
-                    do { try workspace.saveFavorite(favorite); dismiss() } catch { self.error = "收藏保存失败，原记录已保留。" }
+                    do { try workspace.saveFavorite(favorite); dismiss() } catch { self.error = L10n.text("收藏保存失败，原记录已保留。") }
                 }.disabled(favorite.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }

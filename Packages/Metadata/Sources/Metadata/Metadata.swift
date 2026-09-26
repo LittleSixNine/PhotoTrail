@@ -138,12 +138,12 @@ extension Metadata {
         location?.formatted(.longitude) ?? ""
     }
     public var formattedElevation: String {
-        var value = String(localized: "Elevation: ")
+        var value = PackageLocalization.text("Elevation: ")
         if let elevation {
             value += String(format: "% 4.2f", elevation)
-            value += String(localized: " meters")
+            value += PackageLocalization.text(" meters")
         } else {
-            value += String(localized: "Unknown")
+            value += PackageLocalization.text("Unknown")
         }
         return value
     }

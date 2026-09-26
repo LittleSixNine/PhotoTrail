@@ -91,9 +91,7 @@ extension PhotoTrailReducer {
                 state.addSheet(
                     type: .unexpectedErrorSheet,
                     error: error.localizedDescription,
-                    message: """
-                        无法保存备份文件夹的访问权限： \(url.path)
-                        """
+                    message: L10n.text("无法保存备份文件夹的访问权限： %1$@", url.path)
                 )
             }
         } else {

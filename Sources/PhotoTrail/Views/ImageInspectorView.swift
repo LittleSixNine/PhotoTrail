@@ -14,7 +14,7 @@ struct ImageInspectorView: View {
             ContentUnavailableView {
                 Image(systemName: "magnifyingglass.circle")
             } description: {
-                Text("Please select an image")
+                Text(L10n.text("Please select an image"))
             }
         }
     }

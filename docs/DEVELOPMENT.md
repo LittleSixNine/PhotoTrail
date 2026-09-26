@@ -1,5 +1,7 @@
 # PhotoTrail 开发说明
 
+**简体中文** · [English](i18n/DEVELOPMENT.en.md)
+
 ## 环境与构建
 
 需要支持 Swift 6.2、macOS 26 或更新 SDK 的完整 Xcode，以及 XcodeGen。安装 SwiftLint 后会在构建时运行代码检查；未安装时构建脚本给出提示。地图脚本测试需要 Node.js 20 或更新版本；可通过 `make test-map NODE=/path/to/node` 指定可执行文件。
@@ -53,10 +55,11 @@ xcodebuild -project PhotoTrail.xcodeproj -scheme PhotoTrail \
 ## 测试
 
 ```sh
+make test-localization # 七语言文案、占位符、资源及文档链接
 make test-map   # 高德网页桥接测试
 make test-unit  # 应用逻辑单元测试，不运行界面操作
 make test-packages # 各本地 Swift 包的测试
-make test      # 上述三项
+make test      # 上述四项
 ```
 
 也可以单独运行某个包的测试，例如 `swift test --package-path Packages/Coords`。
@@ -80,3 +83,13 @@ PhotoTrail 基于 GeoTag v6.0.2 派生，仍使用其部分应用基础设施与
 ## 软件更新检查
 
 使用 URLSession 读取 GitHub 公开 Releases/latest 接口，无需令牌或额外更新框架。版本按数字分段比较；“自动下载更新”偏好单独保存且默认关闭。启用后只下载命名及地址与版本匹配的 DMG，核对发布资产大小和 SHA-256（优先用 API digest，缺失时读取同一 Release 的 `SHA256SUMS.txt`）。DMG 放在应用沙盒的 Application Support 中；下次启动由用户打开镜像、退出应用并手动拖入“应用程序”文件夹，不执行自动替换。发布流程无需 appcast.xml 或额外签名密钥；仍保留现有沙盒及 Hardened Runtime 配置。`PHOTOTRAIL_OFFLINE_TESTS=1` 禁止联网检查和自动下载。
+
+## 多语言维护
+
+支持 `zh-Hans`、`en`、`zh-Hant`、`ja`、`ko`、`es`、`pt-BR`。未知系统语言回退到英语；葡萄牙语各地区匹配到巴西葡萄牙语。`Localization.swift` 管理应用语言、资源查找和首启地图默认值，不依赖在线翻译服务。
+
+界面文案集中在 `Sources/PhotoTrail/Localizable.xcstrings`，权限提示在各语言的 `InfoPlist.strings`，Metadata 和 RunLogView 使用各自包资源。新增文案须补齐七语言，使用完整语句和位置占位符，不拼接句子；计数优先使用“数量：n”等不依赖单复数的标签，新增需要复数语法的句子时使用原生 String Catalog 复数规则和数值参数。
+
+高德网页在文档开始时接收 JSON 编码的文案。桥接错误码、服务错误白名单、持久化枚举原始值、GPX/XML 与 JSON 字段、坐标协议、扩展名和 Skill 命令参数不随语言变化。README 和 Skill 使用指南提供七语言互链；新增功能时同步对应页面。开发说明提供中英两版，许可英文译文仅供参考，原始许可和第三方授权不变。
+
+引导语言立即切换；系统菜单、权限提示及缓存窗口需要保存工作并重新打开应用。`LocalizationUITests` 提供七语言引导与设置检查；使用独立 bundle ID 和离线模式，Debug 专用 `-LOCALIZATIONPREVIEW` 可在不读取私人数据的情况下展示界面。界面测试需要可交互的 macOS 会话。

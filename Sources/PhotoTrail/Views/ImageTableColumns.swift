@@ -20,7 +20,7 @@ struct NameView: View {
                         : .secondary
             )
             .truncationMode(.middle)
-            .help("Full path: \(image.fullPath)")
+            .help(L10n.text("Full path: %1$@", image.fullPath))
     }
 }
 

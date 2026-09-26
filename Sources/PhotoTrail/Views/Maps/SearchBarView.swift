@@ -19,7 +19,7 @@ struct SearchBarView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.primary)
-                    TextField(" Search location", text: $searchInfo.searchText)
+                    TextField(L10n.text(" Search location"), text: $searchInfo.searchText)
                         .disableAutocorrection(true)
                         .focusEffectDisabled()
                         .focused(mapFocus, equals: .search)

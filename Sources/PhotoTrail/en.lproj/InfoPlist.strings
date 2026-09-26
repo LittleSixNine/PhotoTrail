@@ -1,0 +1,3 @@
+"NSLocationUsageDescription" = "Use your device location to center the map when it opens or when you click the location button. This does not change your photos.";
+"NSLocationWhenInUseUsageDescription" = "Use your device location to center the map when it opens or when you click the location button. This does not change your photos.";
+"NSPhotoLibraryUsageDescription" = "Read and update the capture times and locations of the photos you select.";

@@ -10,18 +10,18 @@ struct AdjustTimezoneView: View {
 
     var body: some View {
         VStack {
-            Text("Specify Camera Time Zone")
+            Text(L10n.text("Specify Camera Time Zone"))
                 .font(.largeTitle)
                 .padding(.top)
 
-            Text("匹配照片和轨迹时，请选择相机拍摄时所用的时区。默认使用本机时区。\n\n开启更新 GPS 时间后，程序也会用此时区将拍摄时间转换为 UTC，再保存到照片。")
+            Text(L10n.text("匹配照片和轨迹时，请选择相机拍摄时所用的时区。默认使用本机时区。\n\n开启更新 GPS 时间后，程序也会用此时区将拍摄时间转换为 UTC，再保存到照片。"))
             .fixedSize(horizontal: false, vertical: true)
             .padding()
 
             Divider()
 
             Form {
-                LabeledContent("Current Camera Time Zone:") {
+                LabeledContent(L10n.text("Current Camera Time Zone:")) {
                     VStack(alignment: .leading) {
                         Text(currentZone.rawValue)
                         Text(currentZone.timeZone.identifier)
@@ -29,9 +29,9 @@ struct AdjustTimezoneView: View {
                 }
                 .padding(.bottom)
 
-                LabeledContent("Desired Camera Time Zone:") {
+                LabeledContent(L10n.text("Desired Camera Time Zone:")) {
                     VStack(alignment: .leading) {
-                        Picker("Desired Camera Time Zone",
+                        Picker(L10n.text("Desired Camera Time Zone"),
                                selection: $selectedZone) {
                             ForEach(TimeZoneName.allCases) { zone in
                                 Text(zone.rawValue)
@@ -51,12 +51,12 @@ struct AdjustTimezoneView: View {
 
             HStack(alignment: .bottom) {
                 Spacer()
-                Button("Cancel") {
+                Button(L10n.text("Cancel")) {
                     NSApplication.shared.keyWindow?.close()
                 }
                 .keyboardShortcut(.cancelAction)
 
-                Button("Change") {
+                Button(L10n.text("Change")) {
                     if currentZone != selectedZone {
                         currentZone = selectedZone
                         timeZone = selectedZone.timeZone

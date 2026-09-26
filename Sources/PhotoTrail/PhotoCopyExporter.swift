@@ -27,8 +27,8 @@ enum PhotoCopyExporter {
 
         var errorDescription: String? {
             switch self {
-            case .outputInsideSource: "输出目录不能位于源照片目录内。"
-            case .noLocalFiles: "选中的照片没有可导出的本地文件。"
+            case .outputInsideSource: L10n.text("输出目录不能位于源照片目录内。")
+            case .noLocalFiles: L10n.text("选中的照片没有可导出的本地文件。")
             }
         }
     }
@@ -54,20 +54,20 @@ enum PhotoCopyExporter {
             guard let source = sourceURL(for: image) else {
                 skipped += 1
                 results.append(Item(source: image.name, status: "skipped",
-                                    reason: "仅支持本地照片文件。"))
+                                    reason: L10n.text("仅支持本地照片文件。")))
                 continue
             }
             guard image.metadata.location != nil, image.metadata.canDisplayAsWGS84 else {
                 skipped += 1
                 results.append(Item(source: source.path, status: "skipped",
-                                    reason: "照片缺少已确认的 WGS-84 定位。"))
+                                    reason: L10n.text("照片缺少已确认的 WGS-84 定位。")))
                 continue
             }
             let values = try? source.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
             guard values?.isRegularFile == true, values?.isSymbolicLink != true else {
                 skipped += 1
                 results.append(Item(source: source.path, status: "skipped",
-                                    reason: "源文件不可用或为符号链接。"))
+                                    reason: L10n.text("源文件不可用或为符号链接。")))
                 continue
             }
 
@@ -75,7 +75,7 @@ enum PhotoCopyExporter {
                 .dropFirst(commonRoot.pathComponents.count))
             let target = relative.reduce(output) { $0.appendingPathComponent($1) }
             var item = Item(source: source.path, output: target.path,
-                            status: "failed", reason: "副本写入或回读验证失败。")
+                            status: "failed", reason: L10n.text("副本写入或回读验证失败。"))
             do {
                 let originalHash = try digest(source)
                 try fileManager.createDirectory(at: target.deletingLastPathComponent(),
@@ -96,7 +96,7 @@ enum PhotoCopyExporter {
                     throw CocoaError(.fileWriteUnknown)
                 }
                 item.status = "written"
-                item.reason = "已写入副本并回读验证；源文件哈希未改变。"
+                item.reason = L10n.text("已写入副本并回读验证；源文件哈希未改变。")
                 written += 1
             } catch {
                 try? fileManager.removeItem(at: target)
@@ -125,6 +125,8 @@ enum PhotoCopyExporter {
 
     private static func availableOutput(in destination: URL, fileManager: FileManager) -> URL {
         let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
         formatter.dateFormat = "yyyyMMdd-HHmmss"
         let base = "PhotoTrail Export \(formatter.string(from: .now))"
         var candidate = destination.appendingPathComponent(base, isDirectory: true)

@@ -1,0 +1,3 @@
+"NSLocationUsageDescription" = "Usa la ubicación del dispositivo para centrar el mapa al abrirlo o pulsar el botón de ubicación. No modifica las fotos.";
+"NSLocationWhenInUseUsageDescription" = "Usa la ubicación del dispositivo para centrar el mapa al abrirlo o pulsar el botón de ubicación. No modifica las fotos.";
+"NSPhotoLibraryUsageDescription" = "Leer y actualizar las fechas de captura y ubicaciones de las fotos que selecciones.";

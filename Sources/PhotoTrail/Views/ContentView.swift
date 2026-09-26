@@ -7,6 +7,7 @@ struct ContentView: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) var store
     @Environment(\.openWindow) var openWindow
 
+    @AppStorage(L10n.languageKey) private var language = L10n.language.rawValue
     @AppStorage("PhotoTrailMapProvider") private var mapProvider = "amap"
     @AppStorage(Self.alternateLayoutKey) var alternateLayout = false
 
@@ -27,14 +28,14 @@ struct ContentView: View {
         VStack(spacing: 0) {
             if let ignoredFileNotice {
                 HStack(spacing: 10) {
-                    Label("本次已跳过 \(ignoredFileNotice) 个非图片文件。GPX 轨迹仍支持导入。",
+                    Label(L10n.text("本次已跳过 %1$@ 个非图片文件。GPX 轨迹仍支持导入。", ignoredFileNotice),
                           systemImage: "doc.badge.ellipsis")
                     Spacer(minLength: 0)
                     Button { self.ignoredFileNotice = nil } label: {
                         Image(systemName: "xmark")
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("关闭提示")
+                    .accessibilityLabel(L10n.text("关闭提示"))
                 }
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -44,15 +45,15 @@ struct ContentView: View {
             }
             if !alternateLayout && !store.gpxBadFileNames.isEmpty {
                 HStack {
-                    Text("部分 GPX 文件未能导入，请在轨迹卡片中查看。")
+                    Text(L10n.text("部分 GPX 文件未能导入，请在轨迹卡片中查看。"))
                     Spacer()
-                    Button("查看") { alternateLayout = true }
-                    Button("关闭") { store.send(.gpxLoadViewClosed, undoable: false) }
+                    Button(L10n.text("查看")) { alternateLayout = true }
+                    Button(L10n.text("关闭")) { store.send(.gpxLoadViewClosed, undoable: false) }
                 }
                 .font(.callout).padding(12)
             }
             if store.saveInProgress {
-                Label("正在写入照片（已处理 \(store.saveCompleted)/\(store.saveTotal)）；请勿修改定位或关闭程序，可继续浏览。",
+                Label(L10n.text("正在写入照片（已处理 %1$@/%2$@）；请勿修改定位或关闭程序，可继续浏览。", store.saveCompleted, store.saveTotal),
                       systemImage: "externaldrive.fill")
                     .font(.callout.weight(.medium))
                     .foregroundStyle(.blue)
@@ -74,7 +75,8 @@ struct ContentView: View {
                     }
                 }
             }
-            .overlay { if spinnerEnabled { ProgressView("正在导入照片…") } }
+            .id(language)
+            .overlay { if spinnerEnabled { ProgressView(L10n.text("正在导入照片…")) } }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .tint(.blue)
@@ -179,7 +181,7 @@ struct ContentView: View {
                 Button { store.send(.openCommand, undoable: false) } label: {
                     HStack(spacing: 7) {
                         Image(systemName: "plus")
-                        Text("导入照片")
+                        Text(L10n.text("导入照片"))
                     }.fixedSize()
                 }
                 .labelStyle(.titleAndIcon)

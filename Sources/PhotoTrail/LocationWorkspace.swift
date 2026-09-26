@@ -33,7 +33,7 @@ struct AMapPhotoEdgePosition: Identifiable, Equatable {
 @MainActor @Observable
 final class LocationWorkspace {
     var listMatchResults: [LocationHelper.LocationById] = []
-    var status = "选择照片后，在地图上点选拍摄地点。"
+    var status = L10n.text("选择照片后，在地图上点选拍摄地点。")
     var query = ""
     var results: [AMapSearchResult] = []
     var searching = false
@@ -46,7 +46,7 @@ final class LocationWorkspace {
     var favorites: [SavedLocation] = []
     var favoriteError: String?
     var previewCoordinate: MapCoordinate?
-    var previewName = "地点预览"
+    var previewName = L10n.text("地点预览")
     var previewID = UUID()
     var deviceCoordinate: MapCoordinate?
     var deviceFocusID = UUID()
@@ -115,7 +115,7 @@ final class LocationWorkspace {
             favorites = saved
             favoriteError = nil
         } catch {
-            favoriteError = "收藏文件读取失败，原文件已保留。"
+            favoriteError = L10n.text("收藏文件读取失败，原文件已保留。")
         }
     }
 
@@ -155,7 +155,7 @@ final class LocationWorkspace {
         session = UUID()
     }
 
-    func preview(_ coordinate: MapCoordinate, name: String = "地点预览") {
+    func preview(_ coordinate: MapCoordinate, name: String = L10n.text("地点预览")) {
         previewCoordinate = coordinate
         previewName = name
         previewID = UUID()

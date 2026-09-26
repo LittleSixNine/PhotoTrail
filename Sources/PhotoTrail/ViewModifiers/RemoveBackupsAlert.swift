@@ -8,21 +8,17 @@ struct RemoveBackupsAlert: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .alert("Delete old backup files?", isPresented: $removeBackups) {
-                Button("Delete", role: .destructive) {
+            .alert(L10n.text("Delete old backup files?"), isPresented: $removeBackups) {
+                Button(L10n.text("Delete"), role: .destructive) {
                     store.send(.removeOldFiles, undoable: false)
                 }
-                Button("Cancel", role: .cancel) {}
+                Button(L10n.text("Cancel"), role: .cancel) {}
                     .keyboardShortcut(.defaultAction)
             } message: {
-                Text("""
-                    备份文件夹：
-                    \(store.backupURL?.path ?? "未知")
-
-                    当前占用 \(store.folderSize / 1_000_000) MB。
-                    其中 \(store.oldFiles.count) 个备份已超过 \(reminderDays) 天，占用 \(store.deletedSize / 1_000_000) MB。
-                    是否删除这些旧备份？
-                    """)
+                Text(L10n.text(
+                    "备份文件夹：\n%1$@\n\n当前占用 %2$@ MB。\n其中 %3$@ 个备份已超过 %4$@ 天，占用 %5$@ MB。\n是否删除这些旧备份？",
+                    store.backupURL?.path ?? L10n.text("未知"), store.folderSize / 1_000_000,
+                    store.oldFiles.count, reminderDays, store.deletedSize / 1_000_000))
             }
         .onChange(of: reminderDays) {
             removeBackups = false

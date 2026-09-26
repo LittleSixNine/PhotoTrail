@@ -9,25 +9,25 @@ struct AreYouSure: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .alert("有未保存的修改", isPresented: Binding(
+            .alert(L10n.text("有未保存的修改"), isPresented: Binding(
                 get: { presentConfirmation && store.confirmationEvent == .terminateRequest },
                 set: { presentConfirmation = $0 }
             )) {
-                Button("继续编辑", role: .cancel) {}
+                Button(L10n.text("继续编辑"), role: .cancel) {}
                     .keyboardShortcut(.defaultAction)
-                Button("放弃修改并退出", role: .destructive) {
+                Button(L10n.text("放弃修改并退出"), role: .destructive) {
                     store.send(.terminateRequest, undoable: false) { NSApp.terminate(nil) }
                 }
             } message: {
-                Text("退出后，尚未保存的拍摄时间、定位等修改将丢失。请先保存，或放弃修改后退出。")
+                Text(L10n.text("退出后，尚未保存的拍摄时间、定位等修改将丢失。请先保存，或放弃修改后退出。"))
             }
-            .confirmationDialog("Are you sure?",
+            .confirmationDialog(L10n.text("Are you sure?"),
             isPresented: Binding(
                 get: { presentConfirmation && store.confirmationEvent != .terminateRequest },
                 set: { presentConfirmation = $0 }
             ))
         {
-            Button("I'm sure", role: .destructive) {
+            Button(L10n.text("I'm sure"), role: .destructive) {
                 if let event = store.confirmationEvent {
                     store.send(event, undoable: false) {
                         if event == .terminateRequest {
@@ -37,7 +37,7 @@ struct AreYouSure: ViewModifier {
                 }
             }
             .keyboardShortcut(.defaultAction)
-            Button("Cancel", role: .cancel) {}
+            Button(L10n.text("Cancel"), role: .cancel) {}
                 .keyboardShortcut(.cancelAction)
         } message: {
             let message = store.confirmationMessage ?? ""

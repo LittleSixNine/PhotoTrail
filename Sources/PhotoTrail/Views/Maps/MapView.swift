@@ -54,9 +54,9 @@ struct MapView: View {
         MapReader { mapProxy in
             Map(position: $cameraPosition) {
                 if let point = workspace.deviceCoordinate {
-                    Annotation("当前位置", coordinate: Coords(latitude: point.latitude, longitude: point.longitude),
+                    Annotation(L10n.text("当前位置"), coordinate: Coords(latitude: point.latitude, longitude: point.longitude),
                                anchor: .bottom) {
-                        locationMarker(.device, point: point, name: "当前位置")
+                        locationMarker(.device, point: point, name: L10n.text("当前位置"))
                     }
                     .annotationTitles(.hidden)
                 }
@@ -91,7 +91,7 @@ struct MapView: View {
                                                     y: anchor.y + value.translation.height),
                                                                           from: .named("photoMap")) else { return }
                                     store.send(.locationForImageChanged(pin.id, location),
-                                               description: "拖动照片位置")
+                                               description: L10n.text("拖动照片位置"))
                                 }, including: allowDragPin && pin.selected && pin.editable ? .all : .none)
                     }
                 }
@@ -142,7 +142,7 @@ struct MapView: View {
                 if allowDoubleClick, !store.saveInProgress, let id = store.mostSelected {
                     if let loc = mapProxy.convert(position.location, from: .local) {
                         store.send(.confirmedWGS84Location(loc),
-                                   description: "双击地图设置所选照片位置") {
+                                   description: L10n.text("双击地图设置所选照片位置")) {
                             // remember the current selection
                             let selected = store.selection
                             Task {
@@ -274,7 +274,7 @@ struct MapView: View {
                             }
                             .buttonStyle(.plain)
                             .position(marker.point)
-                            .help("在地图中显示 \(marker.image.name)")
+                            .help(L10n.text("在地图中显示 %1$@", marker.image.name))
                         }
                     }
                     .task(id: geometry.size) {
@@ -306,7 +306,7 @@ extension MapView {
                     activeMarker = nil
                     store.send(.confirmedWGS84Location(Coords(latitude: point.latitude,
                                                                longitude: point.longitude)),
-                               description: "写入地图定位到所选照片")
+                               description: L10n.text("写入地图定位到所选照片"))
                 }, favorite: {
                     activeMarker = nil
                     workspace.favoriteDraft = SavedLocation(name: name, note: "", coordinate: point)

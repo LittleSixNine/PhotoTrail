@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 
 const html = readFileSync(new URL('../Sources/PhotoTrail/Views/Maps/AMap.html', import.meta.url), 'utf8');
 const source = html.match(/<script>([\s\S]*?)<\/script>/)[1];
-async function setup(preferWebGL = true, timeout = 15000, viewport = null, initial = {}) {
+async function setup(preferWebGL = true, timeout = 15000, viewport = null, initial = {}, localization = null) {
   const messages = [], addresses = [], conversions = [], handlers = {}, markers = [], searches = [];
   const notice = {}, mapElement = { clientWidth: viewport?.width ?? 0, clientHeight: viewport?.height ?? 0 };
   const visible = new Set(), fits = [], delays = [], centers = [];
@@ -46,17 +46,17 @@ async function setup(preferWebGL = true, timeout = 15000, viewport = null, initi
     Polyline: class { constructor(options) { this.options = options; } setOptions(options) { Object.assign(this.options, options); } },
     convertFrom(point, type, callback) { conversions.push({ point, type, callback }); }
   };
-  const window = { webkit: { messageHandlers: { photoTrail: { postMessage: value => messages.push(value) } } } };
+  const window = { photoTrailLocalization: localization, webkit: { messageHandlers: { photoTrail: { postMessage: value => messages.push(value) } } } };
   const context = vm.createContext({ window, AMap: api, AMapLoader: { load: async () => api },
     Date: Clock, setTimeout: (fn, ms) => {
       if (ms === 5000) { queueMicrotask(fn); return; }
       if (ms !== 15000) { delays.push(ms); now += ms; queueMicrotask(fn); return; }
-      const timer = setTimeout(fn, timeout); timer.unref(); return timer; }, clearTimeout, document: { querySelectorAll: () => [], getElementById: id => id === 'map' ? mapElement : notice, createElement: () => ({}),
+      const timer = setTimeout(fn, timeout); timer.unref(); return timer; }, clearTimeout, document: { documentElement: {}, title: "", querySelectorAll: () => [], getElementById: id => id === 'map' ? mapElement : notice, createElement: () => ({}),
       head: { appendChild: script => queueMicrotask(() => script.onload()) } } });
   vm.runInContext(source, context);
   await window.photoTrail.start({ key: 'test-only', securityJsCode: 'test-only', preferWebGL, ...initial });
   return { geo: window.photoTrail, messages, addresses, conversions, handlers, markers, searches,
-    visible, fits, delays, centers, map: mapInstance };
+    visible, fits, delays, centers, map: mapInstance, document: context.document };
 }
 const event = { lnglat: { getLat: () => 31.23, getLng: () => 121.48 } };
 const address = { regeocode: { addressComponent: { adcode: '310101' } } };
@@ -464,7 +464,7 @@ test('conversion timeout is retryable and late callbacks do not render', async (
   const h = await setup(true, 10);
   const job = h.geo.convertTracks([track(2)], 1);
   await new Promise(resolve => setTimeout(resolve, 30));
-  assert.equal((await job).error, '服务响应超时');
+  assert.equal((await job).error, 'service_timeout');
   completeBatch(h.conversions[0]); await tick();
   assert.equal(h.visible.size, 0);
 });
@@ -480,9 +480,9 @@ test('long tracks stay sequential and bounded without dropping points', async ()
 
 test('service diagnostics never expose arbitrary response payloads', async () => {
   for (const [result, expected] of [
-    [{ info: 'DAILY_QUERY_OVER_LIMIT' }, '高德服务：DAILY_QUERY_OVER_LIMIT'],
-    ['INVALID_USER_KEY', '高德服务：INVALID_USER_KEY'],
-    [{ info: 'https://example.invalid/?key=secret&locations=1,2' }, '高德坐标转换失败']
+    [{ info: 'DAILY_QUERY_OVER_LIMIT' }, 'amap_service:DAILY_QUERY_OVER_LIMIT'],
+    ['INVALID_USER_KEY', 'amap_service:INVALID_USER_KEY'],
+    [{ info: 'https://example.invalid/?key=secret&locations=1,2' }, 'amap_conversion_failed']
   ]) {
     const h = await setup();
     const job = h.geo.convertTracks([track(2)], 1); await tick();
@@ -540,4 +540,19 @@ test('all official styles initialize and switch without changing the viewport or
   assert.equal(h.map.mapStyle, 'amap://styles/normal');
   h.geo.setMapStyle('unknown');
   assert.equal(h.map.mapStyle, 'amap://styles/normal');
+});
+
+// The translated display and the machine-readable errors must stay independent.
+test('localized web messages preserve literals and never become protocol errors', async () => {
+  const ready = 'Ready "quoted" <text> & 100% 日本語';
+  const h = await setup(true, 15000, null, {}, { language: 'ja', strings: {
+    'PhotoTrail 地图': 'PhotoTrail マップ',
+    '正在加载高德地图…': '読み込み中…',
+    '高德地图已就绪。点选地图或搜索地点。': ready
+  } });
+  assert.equal(h.document.documentElement.lang, 'ja');
+  assert.equal(h.document.title, 'PhotoTrail マップ');
+  assert.ok(h.messages.some(m => m.type === 'status' && m.message === ready));
+  const result = await h.geo.convertTracks([[{latitude: 100, longitude: 1}]], 777);
+  assert.equal(result.error, 'invalid_track_coordinate');
 });

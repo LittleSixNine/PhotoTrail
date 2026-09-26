@@ -31,7 +31,7 @@ public struct RunLogView: View {
                             copyLog = true
                         }
                     } label: {
-                        Text("Refresh list")
+                        Text(PackageLocalization.text("Refresh list"))
                             .padding(.horizontal)
                     }
                     .accessibilityIdentifier(testIDs.refreshID)
@@ -44,7 +44,7 @@ public struct RunLogView: View {
                             forType: .string)
                         copyLog = false
                     } label: {
-                        Text(copyLog ? String(localized: "Copy") : String(localized: "Copied!"))
+                        Text(copyLog ? PackageLocalization.text("Copy") : PackageLocalization.text("Copied!"))
                             .padding(.horizontal)
                     }
                     .accessibilityIdentifier(testIDs.copyID)

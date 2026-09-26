@@ -8,7 +8,7 @@ struct NewItemCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
-            Button("Open…", systemImage: "arrow.up.forward.app") {
+            Button(L10n.text("Open…"), systemImage: "arrow.up.forward.app") {
                 store.send(.openCommand, undoable: false)
             }
             .keyboardShortcut("o")

@@ -13,7 +13,7 @@ struct PasteboardCommands: Commands {
     var body: some Commands {
          CommandGroup(replacing: .pasteboard) {
             Group {
-                Button("Cut", systemImage: "scissors") {
+                Button(L10n.text("Cut"), systemImage: "scissors") {
                     if store.textfieldActive {
                         NSApp.sendAction(#selector(NSText.cut(_:)),
                                          to: nil, from: nil)
@@ -25,13 +25,13 @@ struct PasteboardCommands: Commands {
                 .keyboardShortcut("x")
                 .disabled(store.saveInProgress || cutCopyDisabled())
 
-                Button("Copy", systemImage: "document.on.document") {
+                Button(L10n.text("Copy"), systemImage: "document.on.document") {
                     copy()
                 }
                 .keyboardShortcut("c")
                 .disabled(cutCopyDisabled())
 
-                Button("Paste", systemImage: "document.on.clipboard") {
+                Button(L10n.text("Paste"), systemImage: "document.on.clipboard") {
                     if store.textfieldActive {
                         NSApp.sendAction(#selector(NSText.paste(_:)),
                                          to: nil, from: nil)
@@ -55,7 +55,7 @@ struct PasteboardCommands: Commands {
                 .keyboardShortcut("v")
                 .disabled(store.saveInProgress || pasteDisabled())
 
-                Button("Delete", systemImage: "trash") {
+                Button(L10n.text("Delete"), systemImage: "trash") {
                     if store.textfieldActive {
                         NSApp.sendAction(#selector(NSText.delete(_:)),
                                          to: nil, from: nil)
@@ -66,7 +66,7 @@ struct PasteboardCommands: Commands {
                 .keyboardShortcut(.delete, modifiers: [])
                 .disabled(store.saveInProgress || deleteDisabled())
 
-                Button("Select All", systemImage: "character.textbox") {
+                Button(L10n.text("Select All"), systemImage: "character.textbox") {
                     if store.textfieldActive {
                         NSApp.sendAction(#selector(NSText.selectAll(_:)),
                                          to: nil, from: nil)
@@ -81,13 +81,13 @@ struct PasteboardCommands: Commands {
             Divider()
 
             Group {
-                Button("Find (table)...") {
+                Button(L10n.text("Find (table)...")) {
                     store.send(.searchActiveChanged(true), undoable: false)
                 }
                 .keyboardShortcut("f", modifiers: [.shift, .command])
                 .disabled(store.imageData.isEmpty)
 
-                Button("Find (map)...") {
+                Button(L10n.text("Find (map)...")) {
                     store.send(.findInMap(true), undoable: false)
                 }
                 .keyboardShortcut("f")
@@ -96,21 +96,21 @@ struct PasteboardCommands: Commands {
             Divider()
 
             Group {
-                Button("Show In Finder") {
+                Button(L10n.text("Show In Finder")) {
                     // this command does not update state and therefore
                     // need not go through the reducer.
                     showInFinder()
                 }
                 .disabled(showInFinderDisabled())
 
-                Button("Locn From Track") {
+                Button(L10n.text("Locn From Track")) {
                     LocationHelper.locationFromTrack(store,
                                                      extendedTime: extendedTime)
                 }
                 .keyboardShortcut("l")
                 .disabled(store.saveInProgress || locnFromTrackDisabled())
 
-                Button("Specify Time Zone…") {
+                Button(L10n.text("Specify Time Zone…")) {
                     store.send(.changeTimeZone, undoable: false)
                 }
             }

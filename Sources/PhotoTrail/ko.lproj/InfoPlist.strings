@@ -1,0 +1,3 @@
+"NSLocationUsageDescription" = "지도를 열거나 위치 버튼을 누를 때 기기 위치로 지도를 이동합니다. 사진은 변경하지 않습니다.";
+"NSLocationWhenInUseUsageDescription" = "지도를 열거나 위치 버튼을 누를 때 기기 위치로 지도를 이동합니다. 사진은 변경하지 않습니다.";
+"NSPhotoLibraryUsageDescription" = "선택한 사진의 촬영 시간과 위치를 읽고 수정합니다.";

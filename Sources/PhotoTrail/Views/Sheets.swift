@@ -46,27 +46,26 @@ struct GpxLoadView: View {
     var body: some View {
         VStack(alignment: .leading) {
             if store.gpxGoodFileNames.count > 0 {
-                Text("GPX Files Loaded")
+                Text(L10n.text("GPX Files Loaded"))
                     .font(.title)
                 List(store.gpxGoodFileNames, id: \.self) { Text($0) }
                     .frame(maxHeight: .infinity)
-                Text("轨迹已加载。请在详情页左栏勾选轨迹，或点击轨迹行查看范围。")
+                Text(L10n.text("轨迹已加载。请在详情页左栏勾选轨迹，或点击轨迹行查看范围。"))
                 .lineLimit(nil)
                 .padding()
             }
             if store.gpxBadFileNames.count > 0 {
-                Text("GPX Files NOT Loaded")
+                Text(L10n.text("GPX Files NOT Loaded"))
                     .font(.title)
                 List(store.gpxBadFileNames, id: \.self) { Text($0) }
                     .frame(maxHeight: .infinity)
-                Text("No valid tracks found in above GPX file(s).")
+                Text(L10n.text("No valid tracks found in above GPX file(s)."))
                     .font(.title)
                     .padding()
-                Text("""
-                    Either no tracks could be found or the GPX file was \
-                    corrupted such that it could not be properly processed. \
-                    Any track log information in the file has been ignored.
-                    """)
+                Text(L10n.text("""
+                    Either no tracks could be found or the GPX file was corrupted such that it could not be properly pro\
+                    cessed. Any track log information in the file has been ignored.
+                    """))
                 .lineLimit(nil)
                 .padding([.leading, .bottom, .trailing])
             }
@@ -83,13 +82,10 @@ struct GpxLoadView: View {
 struct DuplicateImageView: View {
     var body: some View {
         VStack {
-            Text("One or more files not opened")
+            Text(L10n.text("One or more files not opened"))
                 .font(.title)
                 .padding()
-            Text("""
-                One or more files were not opened. Unopened files were \
-                duplicates of files previously opened for editing.
-                """)
+            Text(L10n.text("One or more files were not opened. Unopened files were duplicates of files previously opened for editing."))
             .lineLimit(nil)
             .padding(.bottom, 40)
         }
@@ -101,15 +97,13 @@ struct DuplicateImageView: View {
 struct NoBackupFolderView: View {
     var body: some View {
         VStack {
-            Text("Image backup folder can not be found")
+            Text(L10n.text("Image backup folder can not be found"))
                 .font(.title)
                 .padding()
-            Text("""
-                Image backups are enabled but no backup folder is \
-                specified or the specified folder can no longer be found. \
-                Please open the program settings window (⌘ ,) and select \
-                a folder for image backups.
-                """)
+            Text(L10n.text("""
+                Image backups are enabled but no backup folder is specified or the specified folder can no longer be \
+                 found. Please open the program settings window (⌘ ,) and select a folder for image backups.
+                """))
             .lineLimit(nil)
             .padding(.bottom, 40)
         }
@@ -120,13 +114,10 @@ struct NoBackupFolderView: View {
 struct SavingUpdatesView: View {
     var body: some View {
         VStack {
-            Text("Save in progress")
+            Text(L10n.text("Save in progress"))
                 .font(.title)
                 .padding()
-            Text("""
-                Image updates are still being processed.  Please wait \
-                for the updates to complete before quitting PhotoTrail.
-                """)
+            Text(L10n.text("Image updates are still being processed.  Please wait for the updates to complete before quitting PhotoTrail."))
             .lineLimit(nil)
             .padding(.bottom, 40)
         }
@@ -137,14 +128,13 @@ struct SavingUpdatesView: View {
 struct SaveErrorView: View {
     var body: some View {
         VStack {
-            Text("One or more files could not be saved")
+            Text(L10n.text("One or more files could not be saved"))
                 .font(.title)
                 .padding()
-            Text("""
-                Changes to one or more images could not be sucessfully \
-                saved for unexpected reasons. The run log -- **Show log...** \
-                in the **Help** menu -- may contain more information.
-                """)
+            Text(L10n.text("""
+                Changes to one or more images could not be sucessfully saved for unexpected reasons. The run log -- \
+                **Show log...** in the **Help** menu -- may contain more information.
+                """))
                 .lineLimit(nil)
                 .padding(.bottom, 40)
         }
@@ -158,7 +148,7 @@ struct UnexpectedErrorView: View {
 
     var body: some View {
         VStack {
-            Text("Unexpected Error")
+            Text(L10n.text("Unexpected Error"))
                 .font(.title)
                 .padding()
             if let message = store.sheetMessage {
@@ -186,7 +176,7 @@ struct DismissModifier: ViewModifier {
         VStack(alignment: .leading) {
             HStack {
                 Spacer()
-                Button("Dismiss") {
+                Button(L10n.text("Dismiss")) {
                     dismiss()
                 }
                 .accessibilityIdentifier(testIDs.dismissButtonID)

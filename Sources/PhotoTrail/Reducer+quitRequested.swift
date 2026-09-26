@@ -9,7 +9,7 @@ extension PhotoTrailReducer {
         }
 
         if state.unsavedChanges {
-            state.confirmationMessage = "仍有未保存的修改，退出后会丢失。确认退出？"
+            state.confirmationMessage = L10n.text("仍有未保存的修改，退出后会丢失。确认退出？")
             state.confirmationEvent = .terminateRequest
             state.presentConfirmation.toggle()
         }

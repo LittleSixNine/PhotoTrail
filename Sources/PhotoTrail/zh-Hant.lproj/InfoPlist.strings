@@ -1,0 +1,3 @@
+"NSLocationUsageDescription" = "打開地圖或點擊定位按鈕時獲取本機位置，用於移動地圖，不修改照片";
+"NSLocationWhenInUseUsageDescription" = "打開地圖或點擊定位按鈕時獲取本機位置，用於移動地圖，不修改照片";
+"NSPhotoLibraryUsageDescription" = "用於讀取並修改你選擇的照片的拍攝時間和位置";

@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PhotoTrail 地图</title>
+  <title>PhotoTrail Map</title>
   <style>
     :root { color-scheme: light dark;
       --map-background: #f0f0ed; --panel: #fff; --text: #222; --secondary: #555;
@@ -18,27 +18,33 @@
     body { background: var(--map-background); font-family: -apple-system, sans-serif; }
     #notice { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 10;
       background: var(--panel); color: var(--text); padding: 10px 14px; border-radius: 6px; pointer-events: none; }
-    .location-popup { width: 158px; box-sizing: border-box; padding: 10px; border-radius: 14px;
+    .location-popup { width: max-content; min-width: 200px; max-width: 300px; box-sizing: border-box; padding: 10px; border-radius: 14px;
       background: var(--popup); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
       box-shadow: 0 3px 16px var(--shadow); color: var(--text); }
     .location-popup strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
       font-size: 13px; margin-bottom: 5px; }
     .location-popup small { display: block; font: 10px ui-monospace, monospace; color: var(--secondary); margin-bottom: 8px; }
     .location-popup .actions { display: flex; gap: 6px; }
-    .location-popup button { height: 44px; border: 1px solid var(--border); border-radius: 7px;
+    .location-popup button { min-height: 44px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 7px;
       background: var(--button); color: var(--text); cursor: pointer; font: 12px -apple-system, sans-serif; }
-    .location-popup button:first-child { width: 88px; }
-    .location-popup button:last-child { width: 44px; }
+    .location-popup button:first-child { flex: 1; }
+    .location-popup button:last-child { min-width: 44px; }
     .location-popup button:focus-visible { outline: 2px solid Highlight; outline-offset: 2px; }
     .location-popup button:disabled { opacity: .42; cursor: default; }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div id="notice">正在加载高德地图…</div>
+  <div id="notice"></div>
   <script>
     "use strict";
     window.photoTrail = (() => {
+      const locale = window.photoTrailLocalization ?? { language: "en", strings: {} };
+      const t = key => locale.strings[key] ?? key;
+      const escapeAttribute = value => value.replace(/&/g, "&amp;").replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      if (document.documentElement) document.documentElement.lang = locale.language;
+      if (document.title !== undefined) document.title = t("PhotoTrail 地图");
       let map, geocoder, placeSearch, marker, previewMarker, deviceMarker, locationPopup;
       let previewGeneration = 0;
       let deviceGeneration = 0, previewLocation = null, deviceLocation = null;
@@ -51,6 +57,7 @@
       const photoPoints = new Map();
       const photoCoordinateCache = new Map();
       const notice = document.getElementById("notice");
+      notice.textContent = t("正在加载高德地图…");
       const post = body => window.webkit.messageHandlers.photoTrail.postMessage(body);
       const status = message => { notice.textContent = message; post({ type: "status", message }); };
       const valid = point => point && Number.isFinite(point.latitude) && Number.isFinite(point.longitude)
@@ -58,7 +65,7 @@
 
       function timedCall(register) {
         return new Promise((resolve, reject) => {
-          const timer = setTimeout(() => reject(new Error("服务响应超时")), 15000);
+          const timer = setTimeout(() => reject(new Error("service_timeout")), 15000);
           register((error, value) => {
             clearTimeout(timer);
             if (error) reject(error); else resolve(value);
@@ -67,12 +74,12 @@
       }
 
       async function convertGPS(point) {
-        if (!valid(point)) throw new Error("坐标无效");
+        if (!valid(point)) throw new Error("invalid_coordinate");
         return timedCall(done => AMap.convertFrom([point.longitude, point.latitude], "gps", (state, result) => {
           const location = result && result.locations && result.locations[0];
-          if (state !== "complete" || !location) return done(new Error("坐标转换失败"));
+          if (state !== "complete" || !location) return done(new Error("coordinate_conversion_failed"));
           const converted = { latitude: location.getLat(), longitude: location.getLng() };
-          done(valid(converted) ? null : new Error("返回坐标无效"), converted);
+          done(valid(converted) ? null : new Error("invalid_response_coordinate"), converted);
         }));
       }
 
@@ -166,10 +173,10 @@
             const converted = await timedCall(done => AMap.convertFrom(
               batch.map(([, entry]) => [entry.point.longitude, entry.point.latitude]), "gps", (state, result) => {
                 if (state !== "complete" || result?.locations?.length !== batch.length)
-                  return done(new Error("照片坐标转换失败"));
+                  return done(new Error("photo_conversion_failed"));
                 const points = result.locations.map(point => ({
                   latitude: point.getLat(), longitude: point.getLng() }));
-                done(points.every(valid) ? null : new Error("返回坐标无效"), points);
+                done(points.every(valid) ? null : new Error("invalid_response_coordinate"), points);
               }));
             if (generation !== photoGeneration) return;
             batch.forEach(([coordinateKey, entry], index) => {
@@ -183,7 +190,7 @@
         } catch (_) {
           if (generation === photoGeneration) {
             photoPoints.clear(); emitPhotoPositions(true);
-            status("部分照片位置显示失败；原照片数据未改变。请检查网络或服务配额。");
+            status(t("部分照片位置显示失败；原照片数据未改变。请检查网络或服务配额。"));
           }
         }
       }
@@ -239,7 +246,7 @@
           const report = () => post({ type: "tracks", request, completed, total });
           try {
             if (!Array.isArray(segments) || !segments.every(segment => Array.isArray(segment)
-              && segment.length >= 2 && segment.every(valid))) throw new Error("轨迹坐标无效");
+              && segment.length >= 2 && segment.every(valid))) throw new Error("invalid_track_coordinate");
             total = segments.reduce((count, segment) => count + segment.length, 0);
             report();
             const paths = [];
@@ -260,15 +267,15 @@
                         if (state !== "complete") {
                           const code = typeof result === "string" ? result : result?.info;
                           return done(new Error(/^[A-Z][A-Z0-9_]{0,79}$/.test(code ?? "")
-                            ? `高德服务：${code}` : "高德坐标转换失败"));
+                            ? `amap_service:${code}` : "amap_conversion_failed"));
                         }
                         if (result?.locations?.length !== batch.length)
-                          return done(new Error("高德返回的坐标数量不完整"));
+                          return done(new Error("incomplete_coordinates"));
                         try {
                           const converted = result.locations.map(point => ({
                             latitude: point.getLat(), longitude: point.getLng() }));
-                          done(converted.every(valid) ? null : new Error("返回坐标无效"), converted);
-                        } catch (_) { done(new Error("返回坐标无效")); }
+                          done(converted.every(valid) ? null : new Error("invalid_response_coordinate"), converted);
+                        } catch (_) { done(new Error("invalid_response_coordinate")); }
                       }));
                     break;
                   } catch (error) {
@@ -287,8 +294,8 @@
             return { segments: paths };
           } catch (error) {
             if (job.cancelled) return { cancelled: true };
-            return { error: /^(服务响应超时|轨迹坐标无效|返回坐标无效|高德坐标转换失败|高德返回的坐标数量不完整|高德服务：[A-Z][A-Z0-9_]{0,79})$/.test(error?.message ?? "")
-              ? error.message : "轨迹转换失败" };
+            return { error: /^(service_timeout|invalid_track_coordinate|invalid_response_coordinate|amap_conversion_failed|incomplete_coordinates|amap_service:[A-Z][A-Z0-9_]{0,79})$/.test(error?.message ?? "")
+              ? error.message : "track_conversion_failed" };
           } finally { trackJobs.delete(request); }
         });
         trackRequest = result.catch(() => {});
@@ -303,20 +310,20 @@
         if (((purpose === "apply" || purpose === "map") && !snapshot.editable)
           || (purpose === "map" && snapshot.allowDoubleClick === false)
           || (purpose === "photo" && (snapshot.allowDragPin === false || !photoEditable))) {
-          status("请先选择可编辑的照片。"); return;
+          status(t("请先选择可编辑的照片。")); return;
         }
         const revision = snapshot.revision;
         const currentSequence = ++sequence;
         post({ type: "pickStarted", revision, sequence: currentSequence, purpose,
           photoID, originalPhotoPoint });
-        status("正在校验所选位置…");
+        status(t("正在校验所选位置…"));
         try {
           const point = { latitude: event.lnglat.getLat(), longitude: event.lnglat.getLng() };
-          if (!valid(point)) throw new Error("坐标无效");
+          if (!valid(point)) throw new Error("invalid_coordinate");
           const address = await timedCall(done => geocoder.getAddress([point.longitude, point.latitude],
             (state, result) => {
               const component = result && result.regeocode && result.regeocode.addressComponent;
-              done(state === "complete" && component ? null : new Error("无法确认行政区"), component);
+              done(state === "complete" && component ? null : new Error("unknown_region"), component);
             }));
           if (currentSequence !== sequence) return;
           if (purpose === "photo") {
@@ -325,7 +332,7 @@
               || current.point.latitude !== originalPhotoPoint.latitude
               || current.point.longitude !== originalPhotoPoint.longitude
               || !snapshot.selectedPhotoIDs?.includes(photoID)) {
-              status("照片状态已变化，请重新拖动。"); return;
+              status(t("照片状态已变化，请重新拖动。")); return;
             }
           } else if (revision !== snapshot.revision) return;
           post({ type: "pick", revision, sequence: currentSequence,
@@ -334,7 +341,7 @@
             adcode: String(address.adcode || "") });
         } catch (_) {
           if ((purpose === "photo" || revision === snapshot.revision) && currentSequence === sequence)
-            status("所选位置校验失败，未修改照片。请检查网络、凭据或服务配额。");
+            status(t("所选位置校验失败，未修改照片。请检查网络、凭据或服务配额。"));
         }
       }
 
@@ -384,7 +391,7 @@
         const red = device ? "#c93e37" : "#df4840";
         return `<svg xmlns="http://www.w3.org/2000/svg" width="${34 * scale}" height="${45 * scale}"
           viewBox="0 0 34 45" style="display:block;filter:drop-shadow(0 2px 3px #243c494d)" role="img"
-          aria-label="${device ? "设备位置" : "搜索地点"}">
+          aria-label="${escapeAttribute(device ? t("设备位置") : t("搜索地点"))}">
           <path d="M9 27H25L17 45Z" fill="${red}"/>
           <circle cx="17" cy="17" r="16" fill="${device ? "white" : red}"
             stroke="${device ? red : "white"}" stroke-width="2.5"/>
@@ -421,7 +428,7 @@
         subtitle.textContent = `${original.latitude.toFixed(6)}, ${original.longitude.toFixed(6)}`;
         const actions = document.createElement("div");
         actions.className = "actions";
-        for (const [purpose, label] of [["apply", "写入照片"], ["favorite", "收藏"]]) {
+        for (const [purpose, label] of [["apply", t("写入照片")], ["favorite", t("收藏")]]) {
           const button = document.createElement("button");
           button.type = "button";
           button.textContent = label;
@@ -443,7 +450,7 @@
       function makeMarker(point, kind) {
         const pin = new AMap.Marker({ position: [point.longitude, point.latitude],
           anchor: "bottom-center", content: markerContent(kind, kind === "device" && deviceCompact()),
-          title: kind === "device" ? "设备位置" : "搜索地点", bubble: false,
+          title: kind === "device" ? t("设备位置") : t("搜索地点"), bubble: false,
           zIndex: kind === "device" ? 110 : 120 });
         pin.on("click", () => { post({ type: "mapClick" }); openLocationPopup(kind); });
         return pin;
@@ -457,11 +464,11 @@
         if (locationPopup) locationPopup.close();
       }
 
-      async function preview(point, wgs84, name = "地点预览") {
+      async function preview(point, wgs84, name = t("地点预览")) {
         startup.allowed = false;
         const generation = ++previewGeneration;
         try {
-          if (!valid(point)) throw new Error("坐标无效");
+          if (!valid(point)) throw new Error("invalid_coordinate");
           const displayed = wgs84 ? await convertGPS(point) : point;
           if (generation !== previewGeneration) return;
           if (previewMarker) map.remove(previewMarker);
@@ -470,8 +477,8 @@
           previewMarker = makeMarker(displayed, "search");
           map.add(previewMarker);
           map.setZoomAndCenter(16, [displayed.longitude, displayed.latitude]);
-          status("红色标记为搜索地点，尚未修改照片。");
-        } catch (_) { if (generation === previewGeneration) status("地点预览失败，请检查网络。"); }
+          status(t("红色标记为搜索地点，尚未修改照片。"));
+        } catch (_) { if (generation === previewGeneration) status(t("地点预览失败，请检查网络。")); }
       }
 
       async function setDeviceLocation(point, focus = false) {
@@ -480,24 +487,24 @@
         try {
           const displayed = await convertGPS(point);
           if (generation !== deviceGeneration) return;
-          deviceLocation = { displayed, original: point, name: "当前位置" };
+          deviceLocation = { displayed, original: point, name: t("当前位置") };
           if (deviceMarker) map.remove(deviceMarker);
           deviceMarker = makeMarker(displayed, "device");
           map.add(deviceMarker);
           if (focus) { startup.allowed = false; map.setZoomAndCenter(16, [displayed.longitude, displayed.latitude]); }
-        } catch (_) { if (generation === deviceGeneration) status("设备位置暂时无法显示，请检查网络。"); }
+        } catch (_) { if (generation === deviceGeneration) status(t("设备位置暂时无法显示，请检查网络。")); }
       }
 
       async function search(query) {
         if (!query.trim()) return [];
         const results = await timedCall(done => placeSearch.search(query, (state, result) => {
           if (state === "no_data") return done(null, []);
-          if (state !== "complete") return done(new Error("搜索失败"));
+          if (state !== "complete") return done(new Error("search_failed"));
           done(null, result?.poiList?.pois || []);
         }));
         return results.filter(poi => poi.location && valid({
           latitude: poi.location.getLat(), longitude: poi.location.getLng()
-        })).map((poi, index) => ({ id: String(poi.id || index), name: String(poi.name || "未命名地点"),
+        })).map((poi, index) => ({ id: String(poi.id || index), name: String(poi.name || t("未命名地点")),
           address: [poi.pname, poi.cityname, poi.adname, poi.address]
             .filter(value => typeof value === "string" && value).join(" "),
           latitude: poi.location.getLat(), longitude: poi.location.getLng() }));
@@ -515,12 +522,12 @@
           const script = document.createElement("script");
           script.src = "https://webapi.amap.com/loader.js";
           script.onload = () => done(null);
-          script.onerror = () => done(new Error("地图加载器不可用"));
+          script.onerror = () => done(new Error("loader_unavailable"));
           document.head.appendChild(script);
         });
         const api = await timedCall(done => AMapLoader.load({
           key: config.key, version: "2.0", plugins: ["AMap.Geocoder", "AMap.PlaceSearch", "AMap.Scale"]
-        }).then(value => done(null, value), () => done(new Error("地图鉴权失败"))));
+        }).then(value => done(null, value), () => done(new Error("authentication_failed"))));
         const center = Array.isArray(config.initialCenter) && config.initialCenter.length === 2
           && Number.isFinite(config.initialCenter[0]) && Number.isFinite(config.initialCenter[1])
           && Math.abs(config.initialCenter[0]) <= 180 && Math.abs(config.initialCenter[1]) <= 90
@@ -553,7 +560,7 @@
         map.on("dblclick", event => selectPoint(event, "map"));
         map.on("click", () => { if (locationPopup) locationPopup.close(); post({ type: "mapClick" }); });
         notice.hidden = true;
-        status("高德地图已就绪。点选地图或搜索地点。");
+        status(t("高德地图已就绪。点选地图或搜索地点。"));
         return true;
       }
 
@@ -612,7 +619,7 @@
       async function region(point) {
         const displayed = await convertGPS(point);
         const result = await timedCall(done => geocoder.getAddress([displayed.longitude, displayed.latitude],
-          (state, value) => state === "complete" ? done(null, value) : done(new Error("地区查询失败"))));
+          (state, value) => state === "complete" ? done(null, value) : done(new Error("region_lookup_failed"))));
         const address = result?.regeocode?.addressComponent || {};
         return [...new Set([address.province, address.city, address.district]
           .filter(value => typeof value === "string" && value.length))].join(" · ");

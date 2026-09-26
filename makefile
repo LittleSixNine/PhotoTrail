@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := build
-.PHONY: project build test test-map test-unit test-packages clean
+.PHONY: project build test test-localization test-map test-unit test-packages clean
 NODE ?= node
 
 project:
@@ -9,7 +9,10 @@ build: project
 	xcodebuild -project PhotoTrail.xcodeproj -scheme PhotoTrail \
 		-configuration Debug -destination 'platform=macOS' build
 
-test: test-map test-unit test-packages
+test: test-localization test-map test-unit test-packages
+
+test-localization:
+	python3 scripts/test-localization.py
 
 test-map:
 	$(NODE) --test scripts/test-amap.mjs

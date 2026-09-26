@@ -8,14 +8,14 @@ struct HelpCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .help) {
-            Link(destination: URL(string: "https://github.com/LittleSixNine/PhotoTrail")!) {
-                Label("PhotoTrail Help…", systemImage: "link")
+            Link(destination: L10n.helpURL) {
+                Label(L10n.text("PhotoTrail Help…"), systemImage: "link")
             }
             Divider()
             Link(destination: URL(string: "https://github.com/LittleSixNine/PhotoTrail/issues")!) {
-                Label("Report a bug…", systemImage: "link")
+                Label(L10n.text("Report a bug…"), systemImage: "link")
             }
-            Button("Show log…", systemImage: "list.clipboard") {
+            Button(L10n.text("Show log…"), systemImage: "list.clipboard") {
                 store.send(.toggleLogWindow, undoable: false)
             }
         }

@@ -1,6 +1,8 @@
 name: PhotoTrail
 
 options:
+  developmentLanguage: en
+  knownRegions: [en, zh-Hans, zh-Hant, ja, ko, es, pt-BR]
   deploymentTarget:
     macOS: "26.0"
   groupOrdering:
@@ -60,7 +62,7 @@ settings:
     # build script. They are needed (?) to build the plist that the
     # script then modifies.
     CURRENT_PROJECT_VERSION: 1
-    MARKETING_VERSION: 0.3.7
+    MARKETING_VERSION: 0.4.0
   configs:
     debug:
       SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG $(inherited)
@@ -254,6 +256,9 @@ schemes:
     test:
       config: Debug
       gatherCoverageData: YES
+      environmentVariables:
+        ImagePath: $(SRCROOT)/Sources/PhotoTrail/DevAssets
+        PHOTOTRAIL_OFFLINE_TESTS: "1"
       targets:
         - name: PhotoTrailTests
   Release:

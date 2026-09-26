@@ -40,11 +40,11 @@ enum LocationHelper {
 
         var listStatus: String {
             switch status {
-            case .matched: "匹配成功"
-            case .ambiguous: "需检查"
-            case .unmatched: "未匹配"
-            case .missingTime: "缺少时间"
-            case .alreadyLocated: "跳过已有定位"
+            case .matched: L10n.text("匹配成功")
+            case .ambiguous: L10n.text("需检查")
+            case .unmatched: L10n.text("未匹配")
+            case .missingTime: L10n.text("缺少时间")
+            case .alreadyLocated: L10n.text("跳过已有定位")
             }
         }
 
@@ -72,14 +72,14 @@ enum LocationHelper {
             if metadata.location != nil && !overwriteExisting {
                 locations.append(LocationById(id: id, timestamp: 0, coords: nil, elevation: nil,
                                               status: .alreadyLocated,
-                                              reason: "照片已有定位，默认不覆盖。"))
+                                              reason: L10n.text("照片已有定位，默认不覆盖。")))
             } else if let date = metadata.parsedDate(timeZone: timeZone) {
                 locations.append(LocationById(id: id, timestamp: date.timeIntervalSince1970,
                                               coords: nil, elevation: nil))
             } else {
                 locations.append(LocationById(id: id, timestamp: 0, coords: nil, elevation: nil,
                                               status: .missingTime,
-                                              reason: "拍摄时间缺失或格式错误。"))
+                                              reason: L10n.text("拍摄时间缺失或格式错误。")))
             }
         }
         let task = Task {
@@ -111,14 +111,14 @@ enum LocationHelper {
                 case .matched(let result): matches.append((result, track.sourceURL))
                 case .ambiguous(let reason):
                     ambiguous = true
-                    reasons.append(reason)
-                case .unmatched(let reason): reasons.append(reason)
+                    reasons.append(L10n.text(reason))
+                case .unmatched(let reason): reasons.append(L10n.text(reason))
                 }
             }
             guard !ambiguous, let first = matches.first else {
                 var result = input
                 result.status = ambiguous ? .ambiguous : .unmatched
-                result.reason = reasons.first ?? "没有可用轨迹。"
+                result.reason = reasons.first ?? L10n.text("没有可用轨迹。")
                 return (ix, result)
             }
             let origin = CLLocation(latitude: first.0.coordinate.latitude,
@@ -129,7 +129,7 @@ enum LocationHelper {
             }) else {
                 var result = input
                 result.status = .ambiguous
-                result.reason = "多个轨迹在该时间对应不同位置，需选择轨迹来源。"
+                result.reason = L10n.text("多个轨迹在该时间对应不同位置，需选择轨迹来源。")
                 return (ix, result)
             }
             var result = input
@@ -138,7 +138,7 @@ enum LocationHelper {
             result.elevation = first.0.elevation
             result.method = first.0.method
             result.sourceURL = first.1
-            result.reason = first.0.reason
+            result.reason = L10n.text(first.0.reason)
             return (ix, result)
         }
 

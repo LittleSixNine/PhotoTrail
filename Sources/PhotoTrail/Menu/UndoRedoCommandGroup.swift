@@ -8,7 +8,7 @@ struct UndoRedoCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .undoRedo) {
-            Button("Undo",
+            Button(L10n.text("Undo"),
                    systemImage: "arrow.uturn.backward") {
                 if !store.textfieldActive {
                     store.undo()
@@ -17,7 +17,7 @@ struct UndoRedoCommands: Commands {
             .keyboardShortcut("z")
             .disabled(store.textfieldActive || store.saveInProgress || !store.canUndo)
 
-            Button("Redo",
+            Button(L10n.text("Redo"),
                    systemImage: "arrow.uturn.forward") {
                 if !store.textfieldActive {
                     store.redo()

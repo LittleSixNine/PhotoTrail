@@ -24,7 +24,7 @@ final class DeviceLocation: NSObject, @preconcurrency CLLocationManagerDelegate 
         case .authorizedAlways, .authorizedWhenInUse: manager.requestLocation()
         default:
             pending = false
-            error = "无法获取本机位置，请在系统设置的定位服务中允许 PhotoTrail 使用定位。"
+            error = L10n.text("无法获取本机位置，请在系统设置的定位服务中允许 PhotoTrail 使用定位。")
         }
     }
 
@@ -47,11 +47,11 @@ final class DeviceLocation: NSObject, @preconcurrency CLLocationManagerDelegate 
     static func explanation(for error: Error) -> String {
         switch (error as? CLError)?.code {
         case .denied:
-            return "定位权限不可用。请在系统设置 → 隐私与安全性 → 定位服务中，开启定位服务并允许 PhotoTrail 使用定位。"
+            return L10n.text("定位权限不可用。请在系统设置 → 隐私与安全性 → 定位服务中，开启定位服务并允许 PhotoTrail 使用定位。")
         case .network:
-            return "定位服务遇到网络错误。请检查网络连接后重试。Mac 还需要开启 Wi‑Fi 来辅助定位，即使正在通过网线联网。"
+            return L10n.text("定位服务遇到网络错误。请检查网络连接后重试。Mac 还需要开启 Wi‑Fi 来辅助定位，即使正在通过网线联网。")
         default:
-            return "系统暂时无法确定本机位置。Mac 会利用附近的 Wi‑Fi 信息定位；即使通过网线联网，也请确认 Wi‑Fi 已开启，然后重试。"
+            return L10n.text("系统暂时无法确定本机位置。Mac 会利用附近的 Wi‑Fi 信息定位；即使通过网线联网，也请确认 Wi‑Fi 已开启，然后重试。")
         }
     }
 }

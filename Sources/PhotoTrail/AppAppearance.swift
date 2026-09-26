@@ -10,9 +10,9 @@ enum AppAppearance: String, CaseIterable, Identifiable {
     var id: Self { self }
     var title: String {
         switch self {
-        case .system: "跟随系统"
-        case .light: "亮色"
-        case .dark: "暗色"
+        case .system: L10n.text("跟随系统")
+        case .light: L10n.text("亮色")
+        case .dark: L10n.text("暗色")
         }
     }
     var colorScheme: ColorScheme? {
@@ -28,7 +28,7 @@ struct AppAppearancePicker: View {
     @AppStorage(AppAppearance.preferenceKey) private var appearance: AppAppearance = .system
 
     var body: some View {
-        Picker("界面外观", selection: $appearance) {
+        Picker(L10n.text("界面外观"), selection: $appearance) {
             ForEach(AppAppearance.allCases) { option in
                 Text(option.title).tag(option)
             }

@@ -39,7 +39,7 @@ enum PhotoStripSort: String, CaseIterable {
     workspace.tracks.markPhotoGenerated(url)
     store.send(.openFiles([url]), undoable: false) {
         if let urls = store.uniqueURLs {
-            OpenHelper.open(store, urls: urls, description: "导入照片轨迹", spinnerEnabled: nil)
+            OpenHelper.open(store, urls: urls, description: L10n.text("导入照片轨迹"), spinnerEnabled: nil)
             store.send(.clearUniqueURLs, undoable: false)
         }
     }
@@ -97,8 +97,8 @@ struct PhotoSaveStatus: View {
         Image(systemName: image.hasPendingChanges ? "square.and.arrow.down" : "checkmark.circle.fill")
             .font(.system(size: 18))
             .foregroundStyle(image.hasPendingChanges ? Color.orange : Color.green)
-            .help(image.hasPendingChanges ? "有修改，待保存" : "已保存")
-            .accessibilityLabel(image.hasPendingChanges ? "待保存" : "已保存")
+            .help(image.hasPendingChanges ? L10n.text("有修改，待保存") : L10n.text("已保存"))
+            .accessibilityLabel(image.hasPendingChanges ? L10n.text("待保存") : L10n.text("已保存"))
     }
 }
 
@@ -129,7 +129,7 @@ struct PhotoThumbnail: View {
                     .padding(.horizontal, 4).padding(.vertical, 2)
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 3))
                     .padding(3)
-                    .accessibilityLabel("JPG 和 RAW 双文件")
+                    .accessibilityLabel(L10n.text("JPG 和 RAW 双文件"))
             }
         }
         .task(id: "\(image.id)-\(Int(maxDimension))") {
@@ -176,8 +176,8 @@ struct WorkspaceSaveButton: View {
                 Image(systemName: "square.and.arrow.down")
                     .frame(width: fillsWidth ? 16 : nil)
                 Text(store.saveInProgress
-                     ? "保存中 \(store.saveCompleted)/\(store.saveTotal)"
-                     : "保存所有修改")
+                     ? L10n.text("保存中 %1$@/%2$@", store.saveCompleted, store.saveTotal)
+                     : L10n.text("保存所有修改"))
                     .monospacedDigit()
                     .frame(minWidth: fillsWidth ? nil : 110, alignment: .leading)
             }
@@ -211,7 +211,7 @@ struct WorkspaceSaveButton: View {
                 }
             }
         }
-        .help("保存全部待保存修改")
+        .help(L10n.text("保存全部待保存修改"))
     }
 }
 
@@ -224,9 +224,9 @@ struct TrackMatchSummary: View {
             let review = store.trackMatches.filter { $0.status == .ambiguous }.count
             let skipped = store.trackMatches.count - matched - review
             VStack(alignment: .leading, spacing: 6) {
-                Text("匹配预览：可应用 \(matched) · 需检查 \(review) · 跳过 \(skipped)")
+                Text(L10n.text("匹配预览：可应用 %1$@ · 需检查 %2$@ · 跳过 %3$@", matched, review, skipped))
                     .font(.caption).foregroundStyle(.secondary)
-                DisclosureGroup("查看逐张结果") {
+                DisclosureGroup(L10n.text("查看逐张结果")) {
                     ForEach(store.trackMatches.prefix(10)) { result in
                         VStack(alignment: .leading, spacing: 2) {
                             Text(store[result.id].name).font(.caption.weight(.medium)).lineLimit(1)
@@ -235,12 +235,12 @@ struct TrackMatchSummary: View {
                         }.padding(.vertical, 2)
                     }
                     if store.trackMatches.count > 10 {
-                        Text("另有 \(store.trackMatches.count - 10) 张")
+                        Text(L10n.text("另有 %1$@ 张", store.trackMatches.count - 10))
                             .font(.caption2).foregroundStyle(.secondary)
                     }
                 }.font(.caption)
-                Button("应用 \(matched) 个可靠匹配") {
-                    store.send(.applyTrackMatches, description: "应用轨迹匹配")
+                Button(L10n.text("应用 %1$@ 个可靠匹配", matched)) {
+                    store.send(.applyTrackMatches, description: L10n.text("应用轨迹匹配"))
                 }.disabled(matched == 0 || store.saveInProgress)
             }
         }
@@ -249,11 +249,11 @@ struct TrackMatchSummary: View {
     private func detail(_ result: LocationHelper.LocationById) -> String {
         let status: String
         switch result.status {
-        case .matched: status = result.method == .recorded ? "精确记录点" : "线性插值"
-        case .ambiguous: status = "需检查"
-        case .unmatched: status = "未匹配"
-        case .missingTime: status = "缺少时间"
-        case .alreadyLocated: status = "已有定位"
+        case .matched: status = result.method == .recorded ? L10n.text("精确记录点") : L10n.text("线性插值")
+        case .ambiguous: status = L10n.text("需检查")
+        case .unmatched: status = L10n.text("未匹配")
+        case .missingTime: status = L10n.text("缺少时间")
+        case .alreadyLocated: status = L10n.text("已有定位")
         }
         let source = result.sourceURL.map { " · \($0.lastPathComponent)" } ?? ""
         return "\(status)\(source) · \(result.reason)"
@@ -281,51 +281,51 @@ struct PhotoActionSidebar: View {
         VStack(spacing: 0) {
         ScrollView {
         VStack(alignment: .leading, spacing: 14) {
-            Text("批量操作").font(.title3.bold())
-            Text("已选择 \(store.selection.count) 张照片").font(.subheadline).foregroundStyle(.secondary)
+            Text(L10n.text("批量操作")).font(.title3.bold())
+            Text(L10n.text("已选择 %1$@ 张照片", store.selection.count)).font(.subheadline).foregroundStyle(.secondary)
             Menu {
-                if workspace.favorites.isEmpty { Text("暂无收藏，请在详情页添加") }
+                if workspace.favorites.isEmpty { Text(L10n.text("暂无收藏，请在详情页添加")) }
                 ForEach(workspace.favorites) { favorite in
                     Button(favorite.name) {
                         store.send(.confirmedWGS84Location(Coords(latitude: favorite.coordinate.latitude,
                                                                  longitude: favorite.coordinate.longitude)),
-                                   description: "应用收藏地点")
+                                   description: L10n.text("应用收藏地点"))
                     }
                 }
-            } label: { actionLabel("应用收藏", "star") }
+            } label: { actionLabel(L10n.text("应用收藏"), "star") }
             .disabled(!editable)
-            DisclosureGroup("轨迹匹配", isExpanded: $trackOptionsPresented) {
+            DisclosureGroup(L10n.text("轨迹匹配"), isExpanded: $trackOptionsPresented) {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("匹配范围：全部已导入轨迹（\(store.gpxTracks.count) 条）")
+                    Text(L10n.text("匹配范围：全部已导入轨迹（%1$@ 条）", store.gpxTracks.count))
                         .font(.caption).foregroundStyle(.secondary)
-                    Text("相机时区：\(store.timeZone.identifier)")
+                    Text(L10n.text("相机时区：%1$@", store.timeZone.identifier))
                         .font(.caption).foregroundStyle(.secondary)
-                    Text("轨迹端点容差：\(Int(extendedTime)) 秒，可在设置中调整")
+                    Text(L10n.text("轨迹端点容差：%1$@ 秒，可在设置中调整", Int(extendedTime)))
                         .font(.caption).foregroundStyle(.secondary)
-                    Toggle("覆盖已有定位", isOn: $overwriteExisting).font(.caption)
-                    Button("预览所选照片的匹配结果") {
+                    Toggle(L10n.text("覆盖已有定位"), isOn: $overwriteExisting).font(.caption)
+                    Button(L10n.text("预览所选照片的匹配结果")) {
                         LocationHelper.locationFromTrack(store, extendedTime: extendedTime,
                                                          overwriteExisting: overwriteExisting)
                     }.disabled(!editable || store.gpxTracks.isEmpty)
                     TrackMatchSummary()
                 }.padding(.top, 8)
             }
-            Button { timePresented = true } label: { actionLabel("调整拍摄时间", "clock") }
+            Button { timePresented = true } label: { actionLabel(L10n.text("调整拍摄时间"), "clock") }
                 .disabled(!editable)
             Button {
                 photoGPXPresented = true
-            } label: { actionLabel("生成照片 GPX", "point.topleft.down.to.point.bottomright.curvepath") }
+            } label: { actionLabel(L10n.text("生成照片 GPX"), "point.topleft.down.to.point.bottomright.curvepath") }
             .disabled(!hasGPXPoints)
             Button { choosingCopyDestination = true } label: {
-                actionLabel("导出定位副本", "square.and.arrow.up.on.square")
+                actionLabel(L10n.text("导出定位副本"), "square.and.arrow.up.on.square")
             }.disabled(!hasCopyCandidates || copyExportInProgress)
-            if copyExportInProgress { ProgressView("正在写入并回读验证…").controlSize(.small) }
+            if copyExportInProgress { ProgressView(L10n.text("正在写入并回读验证…")).controlSize(.small) }
             if let copyExportNotice {
                 Text(copyExportNotice).font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Button { store.send(.deleteRequest, description: "清除定位") } label: {
-                actionLabel("清除定位", "mappin.slash")
+            Button { store.send(.deleteRequest, description: L10n.text("清除定位")) } label: {
+                actionLabel(L10n.text("清除定位"), "mappin.slash")
             }.disabled(!editable || store.selection.allSatisfy { store[$0].metadata.location == nil })
         }
         .padding(12)
@@ -333,7 +333,7 @@ struct PhotoActionSidebar: View {
         VStack(spacing: 10) {
             Divider()
             WorkspaceSaveButton(fillsWidth: true)
-            Button { store.undo() } label: { actionLabel("撤销", "arrow.uturn.backward") }
+            Button { store.undo() } label: { actionLabel(L10n.text("撤销"), "arrow.uturn.backward") }
                 .disabled(!store.canUndo || store.saveInProgress || store.textfieldActive)
         }
         .padding(12)
@@ -353,16 +353,16 @@ struct PhotoActionSidebar: View {
         }
         .sheet(isPresented: $timePresented) {
             VStack(alignment: .leading, spacing: 16) {
-                Text("调整拍摄时间").font(.title2)
-                Text("多选时，将相同的时间差应用到全部选中照片。").font(.callout)
+                Text(L10n.text("调整拍摄时间")).font(.title2)
+                Text(L10n.text("多选时，将相同的时间差应用到全部选中照片。")).font(.callout)
                 DateTimeSectionView(image: store[store.mostSelected])
-                HStack { Spacer(); Button("完成") { timePresented = false } }
+                HStack { Spacer(); Button(L10n.text("完成")) { timePresented = false } }
             }.padding(24).frame(width: 460)
                 .onDisappear { store.send(.textfieldFocusChanged(false), undoable: false) }
         }
-        .alert("生成照片 GPX 失败", isPresented: Binding(get: { gpxError != nil }, set: {
+        .alert(L10n.text("生成照片 GPX 失败"), isPresented: Binding(get: { gpxError != nil }, set: {
             if !$0 { gpxError = nil }
-        })) { Button("好") { gpxError = nil } } message: { Text(gpxError ?? "") }
+        })) { Button(L10n.text("好")) { gpxError = nil } } message: { Text(gpxError ?? "") }
         .fileImporter(isPresented: $choosingCopyDestination,
                       allowedContentTypes: [.folder], allowsMultipleSelection: false) { result in
             guard case .success(let urls) = result, let destination = urls.first else { return }
@@ -375,9 +375,9 @@ struct PhotoActionSidebar: View {
                 do {
                     let report = try await PhotoCopyExporter.export(
                         images: images, destination: destination, timeZone: store.timeZone)
-                    copyExportNotice = "导出完成：成功 \(report.written)，跳过 \(report.skipped)，失败 \(report.failed)。报告保存在输出目录。"
+                    copyExportNotice = L10n.text("导出完成：成功 %1$@，跳过 %2$@，失败 %3$@。报告保存在输出目录。", report.written, report.skipped, report.failed)
                 } catch {
-                    copyExportNotice = "导出失败：\(error.localizedDescription)"
+                    copyExportNotice = L10n.text("导出失败：%1$@", error.localizedDescription)
                 }
                 copyExportInProgress = false
             }
@@ -414,7 +414,7 @@ struct PhotoActionSidebar: View {
     private func actionLabel(_ title: String, _ icon: String) -> some View {
         HStack(spacing: 7) {
             Image(systemName: icon).frame(width: 16)
-            Text(title)
+            Text(title).fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 5)
@@ -512,7 +512,7 @@ struct PhotoDetailPage: View {
                                                             .overlay(Circle().stroke(.white, lineWidth: 1.5))
                                                             .shadow(color: .black.opacity(0.18), radius: 1, y: 0.5)
                                                             .offset(y: -5)
-                                                            .help("导入时已包含定位信息")
+                                                            .help(L10n.text("导入时已包含定位信息"))
                                                     }
                                                 }
                                             Text(image.name).font(.caption).lineLimit(1)
@@ -537,13 +537,13 @@ struct PhotoDetailPage: View {
                                 Button {
                                     if let id = currentVisiblePhotoID { proxy.scrollTo(id, anchor: .center) }
                                 } label: {
-                                    filmstripControl("回到当前", icon: "scope", menu: false)
+                                    filmstripControl(L10n.text("回到当前"), icon: "scope", menu: false)
                                 }
                                 .buttonStyle(.plain)
                                 .disabled(currentVisiblePhotoID == nil)
-                                .help(store.mostSelected == nil ? "请先选择照片"
-                                      : currentVisiblePhotoID == nil ? "当前照片不在筛选结果中"
-                                      : "将当前照片滚动到照片条中央")
+                                .help(store.mostSelected == nil ? L10n.text("请先选择照片")
+                                      : currentVisiblePhotoID == nil ? L10n.text("当前照片不在筛选结果中")
+                                      : L10n.text("将当前照片滚动到照片条中央"))
                                 Spacer(minLength: 0)
                             }
                             .padding(.horizontal, 2).padding(.vertical, 6)
@@ -573,17 +573,17 @@ struct PhotoDetailPage: View {
                 prepareGPX(minutes: minutes)
             }
         }
-        .confirmationDialog("清除所选照片定位？", isPresented: $confirmClearLocations) {
-            Button("清除 \(store.selection.count) 张照片的定位", role: .destructive) {
-                store.send(.deleteRequest, description: "清除所选照片定位")
+        .confirmationDialog(L10n.text("清除所选照片定位？"), isPresented: $confirmClearLocations) {
+            Button(L10n.text("清除 %1$@ 张照片的定位", store.selection.count), role: .destructive) {
+                store.send(.deleteRequest, description: L10n.text("清除所选照片定位"))
             }
-            Button("取消", role: .cancel) {}
+            Button(L10n.text("取消"), role: .cancel) {}
         } message: {
-            Text("照片将进入待保存状态；保存前仍可撤销。")
+            Text(L10n.text("照片将进入待保存状态；保存前仍可撤销。"))
         }
-        .alert("生成照片 GPX 失败", isPresented: Binding(get: { gpxError != nil }, set: {
+        .alert(L10n.text("生成照片 GPX 失败"), isPresented: Binding(get: { gpxError != nil }, set: {
             if !$0 { gpxError = nil }
-        })) { Button("好") { gpxError = nil } } message: { Text(gpxError ?? "") }
+        })) { Button(L10n.text("好")) { gpxError = nil } } message: { Text(gpxError ?? "") }
         .fileImporter(isPresented: $choosingCopyDestination,
                       allowedContentTypes: [.folder], allowsMultipleSelection: false) { result in
             guard case .success(let urls) = result, let destination = urls.first else { return }
@@ -595,14 +595,14 @@ struct PhotoDetailPage: View {
                 do {
                     let report = try await PhotoCopyExporter.export(
                         images: images, destination: destination, timeZone: store.timeZone)
-                    copyExportNotice = "导出完成：成功 \(report.written)，跳过 \(report.skipped)，失败 \(report.failed)。"
-                } catch { copyExportNotice = "导出失败：\(error.localizedDescription)" }
+                    copyExportNotice = L10n.text("导出完成：成功 %1$@，跳过 %2$@，失败 %3$@。", report.written, report.skipped, report.failed)
+                } catch { copyExportNotice = L10n.text("导出失败：%1$@", error.localizedDescription) }
                 copyExportInProgress = false
             }
         }
-        .alert("导出定位副本", isPresented: Binding(get: { copyExportNotice != nil }, set: {
+        .alert(L10n.text("导出定位副本"), isPresented: Binding(get: { copyExportNotice != nil }, set: {
             if !$0 { copyExportNotice = nil }
-        })) { Button("好") { copyExportNotice = nil } } message: { Text(copyExportNotice ?? "") }
+        })) { Button(L10n.text("好")) { copyExportNotice = nil } } message: { Text(copyExportNotice ?? "") }
     }
 }
 
@@ -656,16 +656,16 @@ private extension PhotoDetailPage {
 
     var filmstripFilterMenu: some View {
         Button { filmstripPopover = filmstripPopover == .filter ? nil : .filter } label: {
-            filmstripControl(stripFilter.rawValue, icon: "line.3.horizontal.decrease", menu: true)
+            filmstripControl(L10n.text(stripFilter.rawValue), icon: "line.3.horizontal.decrease", menu: true)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("筛选：\(stripFilter.rawValue)")
-        .help("筛选照片：\(stripFilter.rawValue)")
+        .accessibilityLabel(L10n.text("筛选：%1$@", L10n.text(stripFilter.rawValue)))
+        .help(L10n.text("筛选照片：%1$@", L10n.text(stripFilter.rawValue)))
         .popover(isPresented: popoverPresented(.filter), attachmentAnchor: .rect(.bounds), arrowEdge: .bottom) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("筛选照片").font(.caption).foregroundStyle(.secondary).padding(.horizontal, 8)
+                Text(L10n.text("筛选照片")).font(.caption).foregroundStyle(.secondary).padding(.horizontal, 8)
                 ForEach(PhotoListFilter.allCases, id: \.self) { option in
-                    filmstripOption(option.rawValue, selected: stripFilter == option) {
+                    filmstripOption(L10n.text(option.rawValue), selected: stripFilter == option) {
                         stripFilter = option
                         filmstripPopover = nil
                     }
@@ -678,24 +678,24 @@ private extension PhotoDetailPage {
 
     var filmstripSortMenu: some View {
         Button { filmstripPopover = filmstripPopover == .sort ? nil : .sort } label: {
-            filmstripControl((PhotoStripSort(rawValue: stripSort) ?? .capturedAt).rawValue,
+            filmstripControl(L10n.text((PhotoStripSort(rawValue: stripSort) ?? .capturedAt).rawValue),
                              icon: "arrow.up.arrow.down", menu: true)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("排序：\((PhotoStripSort(rawValue: stripSort) ?? .capturedAt).rawValue)")
-        .help(stripAscending ? "排序：当前按升序排列" : "排序：当前按降序排列")
+        .accessibilityLabel(L10n.text("排序：%1$@", L10n.text((PhotoStripSort(rawValue: stripSort) ?? .capturedAt).rawValue)))
+        .help(stripAscending ? L10n.text("排序：当前按升序排列") : L10n.text("排序：当前按降序排列"))
         .popover(isPresented: popoverPresented(.sort), attachmentAnchor: .rect(.bounds), arrowEdge: .bottom) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("排序规则").font(.caption).foregroundStyle(.secondary).padding(.horizontal, 8)
+                Text(L10n.text("排序规则")).font(.caption).foregroundStyle(.secondary).padding(.horizontal, 8)
                 ForEach(PhotoStripSort.allCases, id: \.rawValue) { option in
-                    filmstripOption(option.rawValue, selected: stripSort == option.rawValue) {
+                    filmstripOption(L10n.text(option.rawValue), selected: stripSort == option.rawValue) {
                         stripSort = option.rawValue
                     }
                 }
                 Divider().padding(.vertical, 5)
-                Text("排列方向").font(.caption).foregroundStyle(.secondary).padding(.horizontal, 8)
-                filmstripOption("升序", selected: stripAscending) { stripAscending = true }
-                filmstripOption("降序", selected: !stripAscending) { stripAscending = false }
+                Text(L10n.text("排列方向")).font(.caption).foregroundStyle(.secondary).padding(.horizontal, 8)
+                filmstripOption(L10n.text("升序"), selected: stripAscending) { stripAscending = true }
+                filmstripOption(L10n.text("降序"), selected: !stripAscending) { stripAscending = false }
             }
             .padding(8).frame(width: 160)
             .onExitCommand { filmstripPopover = nil }
@@ -755,33 +755,33 @@ private extension PhotoDetailPage {
     }
 
     @ViewBuilder func photoMenu(_ source: ImageData) -> some View {
-        Button("在地图中显示", systemImage: "map") { workspace.focusPhoto?(source.id) }
+        Button(L10n.text("在地图中显示"), systemImage: "map") { workspace.focusPhoto?(source.id) }
             .disabled(source.metadata.location == nil)
         Divider()
-        Button("复制定位信息", systemImage: "document.on.document") {
+        Button(L10n.text("复制定位信息"), systemImage: "document.on.document") {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(source.stringRepresentation, forType: .string)
         }.disabled(source.metadata.location == nil)
-        Button("粘贴定位到所选照片", systemImage: "document.on.clipboard") { pasteLocation() }
+        Button(L10n.text("粘贴定位到所选照片"), systemImage: "document.on.clipboard") { pasteLocation() }
             .disabled(!editableSelection || pastedLocation == nil)
-        Button("将此照片的位置应用到所选的 \(store.selection.count) 张照片",
+        Button(L10n.text("将此照片的位置应用到所选的 %1$@ 张照片", store.selection.count),
                systemImage: "arrow.trianglehead.branch") { applyLocation(from: source) }
             .disabled(!editableSelection || source.metadata.location == nil)
         Divider()
-        Button("使用 GPX 为所选照片匹配位置", systemImage: "point.3.connected.trianglepath.dotted") {
+        Button(L10n.text("使用 GPX 为所选照片匹配位置"), systemImage: "point.3.connected.trianglepath.dotted") {
             LocationHelper.locationFromTrack(store, extendedTime: extendedTime)
         }.disabled(!editableSelection || store.gpxTracks.isEmpty)
-        Button("从所选照片新建 GPX 轨迹", systemImage: "point.topleft.down.to.point.bottomright.curvepath") {
+        Button(L10n.text("从所选照片新建 GPX 轨迹"), systemImage: "point.topleft.down.to.point.bottomright.curvepath") {
             photoGPXPresented = true
         }.disabled(!hasGPXPoints)
-        Button("导出所选照片的定位副本", systemImage: "square.and.arrow.up.on.square") {
+        Button(L10n.text("导出所选照片的定位副本"), systemImage: "square.and.arrow.up.on.square") {
             choosingCopyDestination = true
         }.disabled(!hasCopyCandidates || copyExportInProgress)
         Divider()
-        Button("清除所选照片定位…", systemImage: "mappin.slash", role: .destructive) {
+        Button(L10n.text("清除所选照片定位…"), systemImage: "mappin.slash", role: .destructive) {
             confirmClearLocations = true
         }.disabled(!editableSelection || selectedImages.allSatisfy { $0.metadata.location == nil })
-        Button("在访达中显示", systemImage: "folder") { showInFinder() }
+        Button(L10n.text("在访达中显示"), systemImage: "folder") { showInFinder() }
             .disabled(!hasLocalFiles)
     }
 
@@ -796,12 +796,12 @@ private extension PhotoDetailPage {
 
     func pasteLocation() {
         guard let (coordinate, elevation) = pastedLocation else { return }
-        apply(coordinate, elevation: elevation, description: "粘贴定位到所选照片")
+        apply(coordinate, elevation: elevation, description: L10n.text("粘贴定位到所选照片"))
     }
 
     func applyLocation(from source: ImageData) {
         guard let coordinate = source.metadata.location else { return }
-        apply(coordinate, elevation: source.metadata.elevation, description: "应用照片定位到所选照片")
+        apply(coordinate, elevation: source.metadata.elevation, description: L10n.text("应用照片定位到所选照片"))
     }
 
     func apply(_ coordinate: Coords, elevation: Double?, description: String) {
@@ -861,8 +861,8 @@ private extension PhotoDetailPage {
 
 struct WorkspacePageSwitch: View {
     @Binding var selection: Bool
-    var firstTitle = "照片列表"
-    var secondTitle = "地图定位"
+    var firstTitle = L10n.text("照片列表")
+    var secondTitle = L10n.text("地图定位")
     var firstIcon = "list.bullet"
     var secondIcon = "photo"
     var optionWidth: CGFloat = 124
@@ -922,23 +922,23 @@ private struct PhotoGPXOptionsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("从照片新建 GPX 轨迹").font(.title2)
-            Text("当前批次相机时区：\(timeZone.identifier)")
+            Text(L10n.text("从照片新建 GPX 轨迹")).font(.title2)
+            Text(L10n.text("当前批次相机时区：%1$@", timeZone.identifier))
                 .foregroundStyle(.secondary)
-            Picker("断段间隔", selection: $minutes) {
+            Picker(L10n.text("断段间隔"), selection: $minutes) {
                 ForEach(["5", "15", "30", "60"], id: \.self) { value in
-                    Text("\(value) 分钟").tag(value)
+                    Text(L10n.text("%1$@ 分钟", value)).tag(value)
                 }
                 if !["5", "15", "30", "60"].contains(minutes) {
-                    Text("自定义").tag(minutes)
+                    Text(L10n.text("自定义")).tag(minutes)
                 }
             }
-            TextField("自定义分钟数", text: $minutes)
-            Text("仅大于此间隔时开始新轨迹段。").font(.footnote).foregroundStyle(.secondary)
+            TextField(L10n.text("自定义分钟数"), text: $minutes)
+            Text(L10n.text("仅大于此间隔时开始新轨迹段。")).font(.footnote).foregroundStyle(.secondary)
             HStack {
                 Spacer()
-                Button("取消") { dismiss() }
-                Button("创建轨迹") {
+                Button(L10n.text("取消")) { dismiss() }
+                Button(L10n.text("创建轨迹")) {
                     if let value = validMinutes { create(value); dismiss() }
                 }.disabled(validMinutes == nil)
             }

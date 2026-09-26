@@ -35,13 +35,13 @@ struct TrackRecord: Codable, Identifiable, Equatable {
     }
     var timeRange: String {
         let times = points.filter(\.hasRecordedTime).map(\.timeFromEpoch).filter(\.isFinite)
-        guard let first = times.min(), let last = times.max() else { return "无记录时间" }
+        guard let first = times.min(), let last = times.max() else { return L10n.text("无记录时间") }
         let start = Date(timeIntervalSince1970: first), end = Date(timeIntervalSince1970: last)
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_CN")
-        formatter.dateFormat = "yyyy/MM/dd HH:mm"
+        formatter.locale = L10n.locale
+        formatter.setLocalizedDateFormatFromTemplate("yyyyMMddHHmm")
         let startText = formatter.string(from: start)
-        if Calendar.current.isDate(start, inSameDayAs: end) { formatter.dateFormat = "HH:mm" }
+        if Calendar.current.isDate(start, inSameDayAs: end) { formatter.setLocalizedDateFormatFromTemplate("HHmm") }
         return "\(startText)–\(formatter.string(from: end))"
     }
     static func valid(_ converted: [[MapCoordinate]], for source: [[MapCoordinate]]) -> Bool {
@@ -146,7 +146,7 @@ final class TrackLibrary {
             return logs
         } catch {
             unreadable = true
-            storageError = "轨迹缓存无法读取，原文件已保留。可重新导入轨迹；本次转换结果仅在内存中保留。"
+            storageError = L10n.text("轨迹缓存无法读取，原文件已保留。可重新导入轨迹；本次转换结果仅在内存中保留。")
             return []
         }
     }
@@ -248,7 +248,7 @@ final class TrackLibrary {
             persist()
             return log
         } catch {
-            states[id] = .failed("无法读取原 GPX，请重新导入；已有缓存保留。")
+            states[id] = .failed(L10n.text("无法读取原 GPX，请重新导入；已有缓存保留。"))
             return nil
         }
     }
@@ -256,7 +256,7 @@ final class TrackLibrary {
     func start(_ id: String) {
         guard let record = record(id), !record.segments.isEmpty,
               record.segments.flatMap({ $0 }).allSatisfy(\.isValid) else {
-            states[id] = .failed("没有有效线段可显示。")
+            states[id] = .failed(L10n.text("没有有效线段可显示。"))
             return
         }
         sequence += 1
@@ -280,7 +280,7 @@ final class TrackLibrary {
     func complete(_ id: String, request: Int, converted: [[MapCoordinate]]) {
         guard requests[id] == request, let index = records.firstIndex(where: { $0.id == id }) else { return }
         guard TrackRecord.valid(converted, for: records[index].segments) else {
-            fail(id, request: request, reason: "高德返回的轨迹数据不完整。")
+            fail(id, request: request, reason: L10n.text("高德返回的轨迹数据不完整。"))
             return
         }
         records[index].converted = converted
@@ -351,6 +351,6 @@ private extension TrackLibrary {
             try JSONEncoder().encode(Archive(records: records)).write(to: url, options: .atomic)
             try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
             storageError = nil
-        } catch { storageError = "缓存保存失败，本次仍可查看；下次启动可能需要重新转换。" }
+        } catch { storageError = L10n.text("缓存保存失败，本次仍可查看；下次启动可能需要重新转换。") }
     }
 }

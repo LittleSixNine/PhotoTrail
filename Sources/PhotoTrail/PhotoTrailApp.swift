@@ -10,6 +10,8 @@ struct PhotoTrailApp: App {
     @State private var mainWindow: NSWindow?
     @AppStorage(AppAppearance.preferenceKey) private var appearance: AppAppearance = .system
 
+    @AppStorage(L10n.languageKey) private var language = L10n.language.rawValue
+
     @AppStorage(Self.doNotBackupKey) var doNotBackup = false
     @AppStorage(Self.savedBookmarkKey) var savedBookmark = Data()
 
@@ -18,6 +20,11 @@ struct PhotoTrailApp: App {
 
     init() {
         PhotoTrailMigration.settings()
+        if ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] == "1" {
+            let code = ProcessInfo.processInfo.environment["PHOTOTRAIL_TEST_LANGUAGE"] ?? "zh-Hans"
+            if let language = AppLanguage(rawValue: code) { L10n.select(language) }
+        }
+        L10n.configureDefaults()
         let appStore = Store(initialState: PhotoTrailState(),
                              reduce: PhotoTrailReducer(),
                              undoEnabled: true,
@@ -31,7 +38,7 @@ struct PhotoTrailApp: App {
 
     var body: some Scene {
         Window("PhotoTrail", id: "main") {
-            if ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] == "1" {
+            if ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] == "1" && !Self.localizationPreview {
                 // Unit tests use the app bundle, not its interactive window or private state.
                 Color.clear.frame(width: 1, height: 1)
             } else {
@@ -46,6 +53,7 @@ struct PhotoTrailApp: App {
                     store.send(.mainWindowChange(mainWindow), undoable: false)
                 }
                 .task {
+                    guard ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] != "1" else { return }
                     if !doNotBackup {
                         if !savedBookmark.isEmpty {
                             store.send(.initBackupURL, undoable: false) {
@@ -60,6 +68,7 @@ struct PhotoTrailApp: App {
                     store.send(.initPlaces(savedPlaces), undoable: false)
                 }
                 .environment(store)
+                .environment(\.locale, Locale(identifier: language))
             }
         }
         .commands {
@@ -81,6 +90,7 @@ struct PhotoTrailApp: App {
                 .preferredColorScheme(appearance.colorScheme)
                 .frame(width: 500.0, height: 570.0)
                 .environment(store)
+                .environment(\.locale, Locale(identifier: language))
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
@@ -88,6 +98,7 @@ struct PhotoTrailApp: App {
 
         Window(Self.showRunLog, id: Self.showRunLog) {
             RunLogView()
+                .environment(\.locale, Locale(identifier: language))
                 .background(SubtleScrollbars())
                 .preferredColorScheme(appearance.colorScheme)
                 .frame(width: 700, height: 500)
@@ -99,6 +110,7 @@ struct PhotoTrailApp: App {
             SettingsView()
                 .preferredColorScheme(appearance.colorScheme)
                 .environment(store)
+                .environment(\.locale, Locale(identifier: language))
         }
         .windowResizability(.contentSize)
 
@@ -108,14 +120,22 @@ struct PhotoTrailApp: App {
 // Window ids
 
 extension PhotoTrailApp {
-    static var adjustTimeZone = "Change Time Zone"
-    static var showRunLog = "PhotoTrail Run/Debug Log"
+    static var adjustTimeZone = L10n.text("Change Time Zone")
+    static var showRunLog = L10n.text("PhotoTrail Run/Debug Log")
 }
 
 // Special handling for UI testing.  Various flags may be passed to
 // force the app into a specific state before running tests.
 
 extension PhotoTrailApp {
+    static var localizationPreview: Bool {
+#if DEBUG
+        CommandLine.arguments.contains("-LOCALIZATIONPREVIEW")
+#else
+        false
+#endif
+    }
+
     private func prepareForTesting() {
 #if DEBUG
         if CommandLine.arguments.contains("-UIINIT") {

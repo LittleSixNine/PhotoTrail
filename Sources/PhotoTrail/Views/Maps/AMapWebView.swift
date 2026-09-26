@@ -25,6 +25,8 @@ struct AMapWebView: NSViewRepresentable {
     func makeNSView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .nonPersistent()
+        configuration.userContentController.addUserScript(WKUserScript(
+            source: L10n.mapScript, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         configuration.userContentController.add(context.coordinator, name: "photoTrail")
         let view = WKWebView(frame: .zero, configuration: configuration)
         view.underPageBackgroundColor = .windowBackgroundColor
@@ -39,7 +41,7 @@ struct AMapWebView: NSViewRepresentable {
             context.coordinator.pageURL = url
             view.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
         } else {
-            context.coordinator.report("地图页面缺失，请重新构建应用。")
+            context.coordinator.report(L10n.text("地图页面缺失，请重新构建应用。"))
         }
         return view
     }
@@ -208,7 +210,7 @@ struct AMapWebView: NSViewRepresentable {
                 parent.workspace.searching = false
                 guard case .success(let value) = response, let rows = value as? [[String: Any]] else {
                     parent.workspace.results = []
-                    report("搜索失败，请检查网络或服务配额。")
+                    report(L10n.text("搜索失败，请检查网络或服务配额。"))
                     return
                 }
                 parent.workspace.results = rows.compactMap { row in
@@ -220,7 +222,7 @@ struct AMapWebView: NSViewRepresentable {
                     return AMapSearchResult(id: id, name: name, address: row["address"] as? String ?? "",
                                             coordinate: point)
                 }
-                report(parent.workspace.results.isEmpty ? "没有找到地点，请补充城市或详细名称。" : "选择搜索结果可预览位置。")
+                report(parent.workspace.results.isEmpty ? L10n.text("没有找到地点，请补充城市或详细名称。") : L10n.text("选择搜索结果可预览位置。"))
             }
         }
 
@@ -263,7 +265,7 @@ struct AMapWebView: NSViewRepresentable {
                     focusStartupCoordinate()
 
                 case .failure:
-                    report("高德地图加载失败，请检查 Key、安全密钥和网络后重新加载。")
+                    report(L10n.text("高德地图加载失败，请检查 Key、安全密钥和网络后重新加载。"))
                 }
             }
         }
@@ -368,11 +370,11 @@ struct AMapWebView: NSViewRepresentable {
                             return
                         }
                         if let error = body["error"] as? String {
-                            library.fail(id, request: request, reason: error)
+                            library.fail(id, request: request, reason: L10n.mapError(error))
                             return
                         }
                     }
-                    library.fail(id, request: request, reason: "地图未能完成转换，请重试。")
+                    library.fail(id, request: request, reason: L10n.text("地图未能完成转换，请重试。"))
                 }
             }
         }
@@ -456,7 +458,7 @@ struct AMapWebView: NSViewRepresentable {
                 || (purpose == "photo" ? photoIsCurrent(photoID, original: originalPoint)
                     : parent.snapshot.editable && (purpose != "map" || parent.snapshot.allowDoubleClick))
             if purpose == "photo", !permitted {
-                report("照片状态已变化，请重新拖动。")
+                report(L10n.text("照片状态已变化，请重新拖动。"))
                 return
             }
             if type == "pickStarted", ready, permitted,
@@ -474,7 +476,7 @@ struct AMapWebView: NSViewRepresentable {
                   let longitude = body["longitude"] as? Double,
                   let code = body["adcode"] as? String else { return }
             guard CoordinateTransform.isMainlandAdministrativeCode(code) else {
-                report("该点不在本原型支持的大陆行政区内，未修改照片位置。")
+                report(L10n.text("该点不在本原型支持的大陆行政区内，未修改照片位置。"))
                 return
             }
             let gcj = MapCoordinate(latitude: latitude, longitude: longitude)
@@ -484,7 +486,7 @@ struct AMapWebView: NSViewRepresentable {
                          purpose: purpose, name: String((body["name"] as? String ?? "").prefix(120)),
                          photoID: photoID, originalPhotoPoint: originalPoint)
             } catch {
-                report("坐标转换失败，未修改照片位置。")
+                report(L10n.text("坐标转换失败，未修改照片位置。"))
             }
         }
 
@@ -508,34 +510,34 @@ struct AMapWebView: NSViewRepresentable {
                                          in: nil, in: .page) { [weak self] result in
                 guard let self, !disposed, sequence == pickSequence else { return }
                 guard generation == validationGeneration else {
-                    if purpose == "photo" { report("位置校验已取消，请重新拖动。") }
+                    if purpose == "photo" { report(L10n.text("位置校验已取消，请重新拖动。")) }
                     return
                 }
                 guard purpose == "photo" ? photoIsCurrent(photoID, original: originalPhotoPoint)
                     : revision == parent.snapshot.revision && (purpose == "favorite"
                         || (parent.snapshot.editable
                             && (purpose != "map" || parent.snapshot.allowDoubleClick))) else {
-                    if purpose == "photo" { report("照片状态已变化，请重新拖动。") }
+                    if purpose == "photo" { report(L10n.text("照片状态已变化，请重新拖动。")) }
                     return
                 }
                 guard case .success(let value) = result,
                       let point = value as? [String: Any],
                       let latitude = point["latitude"] as? Double,
                       let longitude = point["longitude"] as? Double else {
-                    report("高德坐标校验失败，未修改照片位置。请检查网络与服务配额。")
+                    report(L10n.text("高德坐标校验失败，未修改照片位置。请检查网络与服务配额。"))
                     return
                 }
                 let projected = MapCoordinate(latitude: latitude, longitude: longitude)
                 guard projected.isValid, projected.distance(to: gcj) <= 5 else {
-                    report("该点的转换误差超过 5 米，未修改照片位置。")
+                    report(L10n.text("该点的转换误差超过 5 米，未修改照片位置。"))
                     return
                 }
                 if purpose == "favorite" {
                     parent.workspace.favoriteDraft = SavedLocation(name: name, note: "", coordinate: wgs)
-                    report("地点已校验，可保存收藏。")
+                    report(L10n.text("地点已校验，可保存收藏。"))
                 } else {
                     parent.onPick(photoID, wgs)
-                    report("位置已设置，请保存照片。")
+                    report(L10n.text("位置已设置，请保存照片。"))
                 }
             }
         }

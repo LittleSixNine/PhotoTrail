@@ -57,7 +57,7 @@ struct SearchView: View {
                         }
                         .buttonStyle(.plain)
                         .glassEffect(.regular.interactive(), in: Capsule())
-                        .accessibilityLabel("最近搜索：\(term)")
+                        .accessibilityLabel(L10n.text("最近搜索：%1$@", term))
                     }
                 }
                 .frame(width: expandedWidth, alignment: .leading)
@@ -70,10 +70,10 @@ struct SearchView: View {
                     Image(systemName: "magnifyingglass")
                         .frame(width: 44, height: 44)
                         .contentShape(Circle())
-                }.buttonStyle(.plain).help("搜索地点")
-                    .accessibilityLabel("展开地点搜索")
+                }.buttonStyle(.plain).help(L10n.text("搜索地点"))
+                    .accessibilityLabel(L10n.text("展开地点搜索"))
                 if expanded {
-                    TextField("搜索地点", text: $query)
+                    TextField(L10n.text("搜索地点"), text: $query)
                         .textFieldStyle(.plain)
                         .focused(mapFocus, equals: .search)
                         .onSubmit { rememberSearch(query) }
@@ -84,8 +84,8 @@ struct SearchView: View {
                     } label: {
                         Image(systemName: "xmark").frame(width: 40, height: 44)
                             .contentShape(Rectangle())
-                    }.buttonStyle(.plain).help("收起搜索")
-                        .accessibilityLabel("收起地点搜索")
+                    }.buttonStyle(.plain).help(L10n.text("收起搜索"))
+                        .accessibilityLabel(L10n.text("收起地点搜索"))
                         .transition(.opacity)
                 }
             }
@@ -132,10 +132,10 @@ struct SearchView: View {
                     let response = try await MKLocalSearch(request: request).start()
                     guard !Task.isCancelled else { return }
                     searchInfo.searchResponse = response.mapItems.map { Place(from: $0) }
-                    if searchInfo.searchResponse.isEmpty { error = "未找到地点，请补充城市或名称。" }
+                    if searchInfo.searchResponse.isEmpty { error = L10n.text("未找到地点，请补充城市或名称。") }
                 } catch {
                     guard !Task.isCancelled else { return }
-                    self.error = "搜索失败，请检查网络后重试。"
+                    self.error = L10n.text("搜索失败，请检查网络后重试。")
                 }
                 searching = false
             }
@@ -144,7 +144,7 @@ struct SearchView: View {
 
     private var resultsPanel: some View {
         VStack(alignment: .leading, spacing: 10) {
-                if searching || workspace.searching { ProgressView("搜索中…").controlSize(.small) }
+                if searching || workspace.searching { ProgressView(L10n.text("搜索中…")).controlSize(.small) }
                 if let error { Text(error).font(.caption).foregroundStyle(.secondary) }
                 if resultCount > 0 {
                     ScrollView {
@@ -177,12 +177,12 @@ struct SearchView: View {
                 }
                 if provider == "amap", let result = workspace.selectedResult {
                     HStack {
-                        Button("应用到照片") { workspace.chooseSearch?(result, "apply") }
+                        Button(L10n.text("应用到照片")) { workspace.chooseSearch?(result, "apply") }
                             .disabled(!editable || !workspace.ready)
-                        Button("收藏地点") { workspace.chooseSearch?(result, "favorite") }
+                        Button(L10n.text("收藏地点")) { workspace.chooseSearch?(result, "favorite") }
                     }
                 } else if let place = searchInfo.selection {
-                    Button("应用到照片") {
+                    Button(L10n.text("应用到照片")) {
                         store.send(.placeSelection(place))
                         store.send(.locationChanged(place.coordinate.coord2D), description: "search selection")
                     }.disabled(!editable)

@@ -52,7 +52,7 @@ struct IndependentTableColumns: NSViewRepresentable {
                     handle.boundary = index
                     handle.setAccessibilityElement(true)
                     handle.setAccessibilityRole(.splitter)
-                    handle.setAccessibilityLabel("调整\(found.tableColumns[index].title)列宽")
+                    handle.setAccessibilityLabel(L10n.text("调整%1$@列宽", found.tableColumns[index].title))
                     header.addSubview(handle)
                     return handle
                 }

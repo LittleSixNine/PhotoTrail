@@ -1,3 +1,5 @@
+**简体中文** · [English](docs/i18n/README.en.md) · [繁體中文](docs/i18n/README.zh-Hant.md) · [日本語](docs/i18n/README.ja.md) · [한국어](docs/i18n/README.ko.md) · [Español](docs/i18n/README.es.md) · [Português do Brasil](docs/i18n/README.pt-BR.md)
+
 <p align="center">
   <img src="docs/images/phototrail-icon.png" width="160" alt="PhotoTrail 图标">
 </p>
@@ -5,7 +7,7 @@
 
 <p align="center">为照片补上拍摄地点，让中国大陆的地图定位更顺手。</p>
 
-PhotoTrail-相迹 是一款 macOS 照片定位工具。部分照片元数据编辑功能源自 [marchyman/GeoTag](https://github.com/marchyman/GeoTag)；应用还支持高德与苹果地图、GPX 轨迹、逐照片缩略图标记、中国大陆坐标转换、常用地点收藏和简体中文界面。
+PhotoTrail-相迹 是一款 macOS 照片定位工具。部分照片元数据编辑功能源自 [marchyman/GeoTag](https://github.com/marchyman/GeoTag)；应用还支持高德与苹果地图、GPX 轨迹、逐照片缩略图标记、中国大陆坐标转换、常用地点收藏和七种界面语言。
 
 ## 界面预览
 
@@ -21,7 +23,15 @@ PhotoTrail-相迹 是一款 macOS 照片定位工具。部分照片元数据编�
 
 日常生活中有很多通过地图选点，为相机照片和胶片扫描文件补上拍摄位置的需求。但部分工具未正确衔接中国大陆地图坐标体系，容易出现显示偏移，也很难标注正确的位置。
 
-为了减少坐标体系混用造成的偏移，PhotoTrail 在 GeoTag 原版基础上加入高德地图、坐标转换、地点收藏和中文界面；列表页提供先预览、再应用的保守轨迹匹配流程。
+为了减少坐标体系混用造成的偏移，PhotoTrail 在 GeoTag 原版基础上加入高德地图、坐标转换、地点收藏和多语言界面；列表页提供先预览、再应用的保守轨迹匹配流程。
+
+## 语言
+
+支持简体中文、English、繁體中文、日本語、한국어、Español 和 Português do Brasil。首次引导先选择语言：简体中文默认高德地图，其他语言默认 Apple 地图；地图步骤仍可手动选择。已有用户的地图偏好保留。
+
+以后可在设置中修改语言；保存工作并重新打开应用后，所有窗口及系统提示使用新语言。界面语言不改变相机时区或照片时间。地图底图和地点名称的语言由地图服务决定。
+
+源码可能包含尚未发布的改动，下载安装包前请查看对应 Release 是否已包含七语言支持。
 
 ## 功能
 
@@ -56,9 +66,9 @@ PhotoTrail 提供可独立安装的 [skill 模块](skill/)，无需安装 Mac Ap
 
 > 请阅读 https://raw.githubusercontent.com/LittleSixNine/PhotoTrail/phototrail/skill/INSTALL.md ，按照说明为你当前使用的 agent 安装 PhotoTrail skill，并检查运行环境。
 
-运行需要 **Python 3.11+ 和 ExifTool**，目前已在 macOS 验证。安装位置由 agent 客户端决定；只支持网页对话、无法运行本地客户端。照片处理在本地完成，不接入地图搜索或苹果 Photos 图库；首版不提供 RAW/XMP 写入。
+运行需要 **Python 3.11+ 和 ExifTool**，目前已在 macOS 验证。安装位置由 agent 客户端决定；仅支持网页对话、不能访问本地文件或运行程序的 agent 无法完成处理。照片处理在本地完成，不接入地图搜索或苹果 Photos 图库；首版不提供 RAW/XMP 写入。
 
-功能、参数及使用边界见 [skill 使用说明](skill/SKILL.md)。skill 独立维护，不要求与 Mac App 同步更新。
+七语言安装入口见 [Skill 使用指南](docs/i18n/SKILL.zh-Hans.md)，详细参数及使用边界见 [skill 使用说明](skill/SKILL.md)。skill 独立维护，不要求与 Mac App 同步更新。
 
 ## Releases · 下载与版本
 
@@ -69,7 +79,7 @@ PhotoTrail 提供可独立安装的 [skill 模块](skill/)，无需安装 Mac Ap
 
 ## 基本使用
 
-1. 首次启动依次完成“照片备份 → 地图服务 → 确认开始”三步引导；可以返回上一步调整，高德密钥可以稍后填写。打开照片，或把文件拖入窗口。
+1. 首次启动依次完成“语言 → 照片备份 → 地图服务 → 确认开始”四步引导；可以返回上一步调整，高德密钥可以稍后填写。打开照片，或把文件拖入窗口。
 2. 若使用高德地图，在详情页的地图设置菜单中通过“高德 API 设置”填写自己的 **Web 端 JS API Key** 和 **securityJsCode**；也可选择苹果地图。
 3. 选中需要定位的照片，在地图上点选，或搜索地点并点击“应用”。
 4. 检查位置后保存。搜索结果的预览不会修改照片；应用位置后仍需手动保存。
