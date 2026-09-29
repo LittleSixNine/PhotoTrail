@@ -52,12 +52,10 @@ public enum MetadataTagUpdateError: Error {
     case readbackFailed(underlying: any Error)
     case readbackMismatch(tag: MetadataTag)
 
-    public var resultIsUnknown: Bool {
-        switch self {
-        case .writeFailed: false
-        case .readbackFailed, .readbackMismatch: true
-        }
-    }
+    // ExifTool may have changed part or all of the file before any process
+    // error is reported, so every failure after the write starts is unknown
+    // until the requested tags are read again.
+    public var resultIsUnknown: Bool { true }
 }
 
 private enum MetadataTagValueKind: Equatable {

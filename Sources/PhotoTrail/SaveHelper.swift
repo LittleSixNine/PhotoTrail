@@ -1,4 +1,5 @@
 import AppKit
+import Exiftool
 import ImageData
 import Imagetool
 import Metadata
@@ -12,6 +13,52 @@ enum SaveHelper {
         case saveOK                     // All changes saved
         case saveError                  // Save issue, tell user
         case saveErrorSupressWarning    // Save issue, user knows
+    }
+
+    enum MetadataTagSaveStatus: Equatable {
+        case saved
+        case failed
+        case resultUnknown
+    }
+
+    nonisolated static func saveMetadataTags(
+        image: URL,
+        changes: [MetadataTag: MetadataTagChange]
+    ) -> MetadataTagSaveStatus {
+        saveMetadataTags(
+            image: image,
+            changes: changes,
+            update: { try Exiftool.helper.update(image: $0, changes: $1) },
+            readback: { try Exiftool.helper.metadataTags($0, from: $1) })
+    }
+
+    nonisolated static func saveMetadataTags(
+        image: URL,
+        changes: [MetadataTag: MetadataTagChange],
+        update: (URL, [MetadataTag: MetadataTagChange]) throws -> [MetadataTag: MetadataTagValue],
+        readback: (Set<MetadataTag>, URL) throws -> [MetadataTag: MetadataTagValue]
+    ) -> MetadataTagSaveStatus {
+        do {
+            _ = try update(image, changes)
+            return .saved
+        } catch let error as MetadataTagUpdateError where error.resultIsUnknown {
+            guard let values = try? readback(Set(changes.keys), image) else {
+                return .resultUnknown
+            }
+            for (tag, change) in changes {
+                switch change {
+                case .set(let expected) where values[tag] != expected:
+                    return .resultUnknown
+                case .remove where values[tag] != nil:
+                    return .resultUnknown
+                default:
+                    break
+                }
+            }
+            return .saved
+        } catch {
+            return .failed
+        }
     }
 
     @discardableResult

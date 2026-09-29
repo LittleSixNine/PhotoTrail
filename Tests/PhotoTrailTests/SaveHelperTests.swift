@@ -10,6 +10,54 @@ import UDF
 
 @MainActor
 struct SaveHelperTests {
+    @Test func metadataTagSaveReconcilesUnknownWithoutReplayingWrite() {
+        enum ControlledFailure: Error { case validation, readback }
+        let image = URL(fileURLWithPath: "/tmp/metadata-tag-save.xmp")
+        let changes: [MetadataTag: MetadataTagChange] = [
+            .subject: .set(.list(["existing", "appended"]))
+        ]
+        var updateCount = 0
+        var readbackCount = 0
+
+        let reconciled = SaveHelper.saveMetadataTags(
+            image: image,
+            changes: changes,
+            update: { _, _ in
+                updateCount += 1
+                throw MetadataTagUpdateError.readbackFailed(
+                    underlying: ControlledFailure.readback)
+            },
+            readback: { _, _ in
+                readbackCount += 1
+                return [.subject: .list(["existing", "appended"])]
+            })
+        #expect(reconciled == .saved)
+        #expect(updateCount == 1)
+        #expect(readbackCount == 1)
+
+        let unknown = SaveHelper.saveMetadataTags(
+            image: image,
+            changes: changes,
+            update: { _, _ in
+                throw MetadataTagUpdateError.writeFailed(
+                    underlying: ControlledFailure.readback)
+            },
+            readback: { _, _ in [.subject: .list(["third value"])] })
+        #expect(unknown == .resultUnknown)
+
+        var validationReadbackCount = 0
+        let failed = SaveHelper.saveMetadataTags(
+            image: image,
+            changes: changes,
+            update: { _, _ in throw ControlledFailure.validation },
+            readback: { _, _ in
+                validationReadbackCount += 1
+                return [:]
+            })
+        #expect(failed == .failed)
+        #expect(validationReadbackCount == 0)
+    }
+
     @Test func cancelSaveSummaryLeavesChangesPending() {
         let key = SettingsPreferences.showSaveSummaryKey
         let previous = UserDefaults.standard.object(forKey: key)

@@ -86,7 +86,7 @@ struct MetadataTagTests {
                 Issue.record("Expected write failure, got \(error)")
                 return
             }
-            #expect(!error.resultIsUnknown)
+            #expect(error.resultIsUnknown)
         }
 
         do {
