@@ -64,6 +64,10 @@ extension Sandbox {
 
 extension Sandbox {
     public func makeSidecarFile() throws {
+        guard !sidecarExists else {
+            throw CocoaError(.fileWriteFileExists,
+                             userInfo: [NSFilePathErrorKey: xmpURL.path])
+        }
         NSFileCoordinator.addFilePresenter(xmpPresenter)
         defer {
             NSFileCoordinator.removeFilePresenter(xmpPresenter)

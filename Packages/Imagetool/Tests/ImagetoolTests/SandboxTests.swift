@@ -99,6 +99,26 @@ struct SandboxTests {
         }
     }
 
+    @Test func makeSidecarDoesNotReplaceExistingFile() async throws {
+        let image = try #require(
+            Bundle.module.url(forResource: "262M1559", withExtension: "DNG"))
+        let sidecar = try #require(
+            Bundle.module.url(forResource: "262M1559", withExtension: "xmp"))
+        let folder = try makeTestFolder(andCopy: image)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let imageCopy = folder.appending(component: image.lastPathComponent)
+        let sidecarCopy = folder.appending(component: sidecar.lastPathComponent)
+        try FileManager.default.copyItem(at: sidecar, to: sidecarCopy)
+        let before = try Data(contentsOf: sidecarCopy)
+        let sandbox = try Sandbox(for: imageCopy)
+        defer { sandbox.removeSandboxFolder() }
+
+        #expect(throws: CocoaError.self) {
+            try sandbox.makeSidecarFile()
+        }
+        #expect(try Data(contentsOf: sidecarCopy) == before)
+    }
+
     @Test func backupFile() async throws {
         // Copy test image to test folder
         let url = try #require(

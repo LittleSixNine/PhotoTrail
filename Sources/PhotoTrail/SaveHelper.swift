@@ -177,19 +177,21 @@ enum SaveHelper {
             var sidecarCreated = false
             do {
                 let sandbox = try Sandbox(for: imageURL)
-                if createSidecarFiles {
-                    try sandbox.makeSidecarFile()
-                    sidecarCreated = true
-                }
                 if let backupURL {
                     try await sandbox.makeImageBackup(backupURL)
                 }
-                try await sandbox.saveChanges(from: metadata,
+                var savedMetadata = metadata
+                if createSidecarFiles {
+                    try sandbox.makeSidecarFile()
+                    sidecarCreated = true
+                    savedMetadata = metadata.xmp()
+                }
+                try await sandbox.saveChanges(from: savedMetadata,
                                               timeZone: timeZone)
                 if tagFiles {
                     try await sandbox.setTag(name: tagName)
                 }
-                return TaskInfo(id: id, metadata: metadata,
+                return TaskInfo(id: id, metadata: savedMetadata,
                                 sidecarCreated: sidecarCreated,
                                 status: true)
             } catch {

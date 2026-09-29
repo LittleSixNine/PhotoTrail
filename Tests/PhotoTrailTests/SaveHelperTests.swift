@@ -1,4 +1,5 @@
 import Coords
+import Exiftool
 import Foundation
 import ImageData
 import Metadata
@@ -71,6 +72,45 @@ struct SaveHelperTests {
         try fm.createDirectory(at: backupURL,
                                withIntermediateDirectories: true)
         store.send(.backupURLChanged(backupURL))
+    }
+
+    @Test func firstSidecarSaveWritesXmpAndLeavesImageMetadataUnchanged() async throws {
+        let preview = PhotoTrailState(forPreview: true)
+        let source = try #require(preview.imageData.compactMap { image -> URL? in
+            guard case .image(let url) = image.metadata.source,
+                  url.pathExtension.lowercased() == "jpg" else { return nil }
+            return url
+        }.first)
+        let folder = URL.temporaryDirectory.appending(component: UUID().uuidString,
+                                                       directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: folder,
+                                                withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let imageURL = folder.appending(component: source.lastPathComponent)
+        try FileManager.default.copyItem(at: source, to: imageURL)
+
+        let original = Exiftool.helper.metadata(from: nil, primaryURL: imageURL)
+        var edited = original
+        edited.dateTimeCreated = "2030:01:02 03:04:05"
+        let image = ImageData(metadata: edited, name: imageURL.lastPathComponent)
+        var state = PhotoTrailState()
+        state.imageData = [image]
+        let store = Store(initialState: state, reduce: PhotoTrailReducer())
+
+        let status = await SaveHelper.saveToImageTasks(
+            store, [image.id: edited], true, nil, nil, false, "PhotoTrail")
+
+        #expect(status == .saveOK)
+        let sidecarURL = imageURL.deletingPathExtension().appendingPathExtension("xmp")
+        #expect(FileManager.default.fileExists(atPath: sidecarURL.path))
+        let imageAfter = Exiftool.helper.metadata(from: nil, primaryURL: imageURL)
+        let sidecarAfter = Exiftool.helper.metadata(from: sidecarURL, primaryURL: imageURL)
+        #expect(imageAfter.dateTimeCreated == original.dateTimeCreated)
+        #expect(sidecarAfter.dateTimeCreated == edited.dateTimeCreated)
+        guard case .xmp = store[image.id].metadata.source else {
+            Issue.record("Successful first sidecar save did not switch the in-memory source")
+            return
+        }
     }
 
     @Test func saveHelperTest() async throws {
