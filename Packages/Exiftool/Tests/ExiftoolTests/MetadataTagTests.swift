@@ -136,6 +136,9 @@ struct MetadataTagTests {
         defer { try? FileManager.default.removeItem(at: folder) }
         let xmpCopy = folder.appending(component: xmp.lastPathComponent)
         try FileManager.default.copyItem(at: xmp, to: xmpCopy)
+        let imageCopy = folder.appending(component: image.lastPathComponent)
+        let imageBytesBefore = try Data(contentsOf: imageCopy)
+        let protectedBefore = try protectedMetadata(from: imageCopy)
         try Exiftool.helper.run([
             "-q", "-overwrite_original_in_place",
             "-XMP-dc:Description-x-default=Original default",
@@ -164,6 +167,8 @@ struct MetadataTagTests {
         #expect(try textValue("XMP-dc:Description-zh-CN", from: xmpCopy) == chineseBefore)
         #expect(try textValue("XMP-dc:Description-en-US", from: xmpCopy) == englishBefore)
         #expect(try Exiftool.helper.metadataTags([.creator], from: xmpCopy)[.creator] == creatorBefore)
+        #expect(try Data(contentsOf: imageCopy) == imageBytesBefore)
+        #expect(try protectedMetadata(from: imageCopy) == protectedBefore)
 
         let removeReadback = try Exiftool.helper.update(image: xmpCopy,
             changes: [
@@ -176,14 +181,16 @@ struct MetadataTagTests {
         #expect(try textValue("XMP-dc:Description-zh-CN", from: xmpCopy) == chineseBefore)
         #expect(try textValue("XMP-dc:Description-en-US", from: xmpCopy) == englishBefore)
         #expect(try Exiftool.helper.metadataTags([.creator], from: xmpCopy)[.creator] == creatorBefore)
+        #expect(try Data(contentsOf: imageCopy) == imageBytesBefore)
+        #expect(try protectedMetadata(from: imageCopy) == protectedBefore)
     }
 
     @Test(arguments: [
         ("alldata", "jpg"),
         ("IMG_5654", "HEIC")
     ])
-    func creatorRoundTripsInImageFile(name: String,
-                                      extension ext: String) throws {
+    func editableTagsRoundTripInImageFile(name: String,
+                                          extension ext: String) throws {
         let fixture = try #require(
             Bundle.module.url(forResource: name, withExtension: ext))
         let folder = try makeTestFolder(andCopy: fixture)
@@ -193,19 +200,33 @@ struct MetadataTagTests {
         let metadataBefore = Exiftool.helper.metadata(from: nil,
                                                       primaryURL: image)
         let creators = ["六九，摄影师\n第二行", "Alice \"A\""]
+        let description = "说明，第二行\n包含中文"
+        let subjects = ["Travel", "北京", "comma,word", "line\nbreak"]
 
         let setReadback = try Exiftool.helper.update(
-            image: image, changes: [.creator: .set(.list(creators))])
+            image: image, changes: [
+                .creator: .set(.list(creators)),
+                .descriptionDefault: .set(.text(description)),
+                .subject: .set(.list(subjects))
+            ])
 
         #expect(setReadback[.creator] == .list(creators))
+        #expect(setReadback[.descriptionDefault] == .text(description))
+        #expect(setReadback[.subject] == .list(subjects))
         #expect(try protectedMetadata(from: image) == protectedBefore)
         #expect(Exiftool.helper.metadata(from: nil,
                                         primaryURL: image) == metadataBefore)
 
         let removeReadback = try Exiftool.helper.update(
-            image: image, changes: [.creator: .remove])
+            image: image, changes: [
+                .creator: .remove,
+                .descriptionDefault: .remove,
+                .subject: .remove
+            ])
 
         #expect(removeReadback[.creator] == nil)
+        #expect(removeReadback[.descriptionDefault] == nil)
+        #expect(removeReadback[.subject] == nil)
         #expect(try protectedMetadata(from: image) == protectedBefore)
         #expect(Exiftool.helper.metadata(from: nil,
                                         primaryURL: image) == metadataBefore)
