@@ -80,14 +80,7 @@ extension Sandbox {
     // follow symbolic links reference the original file instead of using
     // the link in the sandbox.
 
-    public func makeBackupFile(backupFolder: URL) async throws {
-        // sidecar files get special handling
-
-        if sidecarExists {
-            try await makeSidecarBackup(backupFolder)
-            return
-        }
-
+    public func makeImageBackup(_ backupFolder: URL) async throws {
         let fileName = orgURL.lastPathComponent
         let saveFileURL = backupName(for: fileName, in: backupFolder)
 

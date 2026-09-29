@@ -123,8 +123,8 @@ struct SandboxTests {
                                                 withIntermediateDirectories: true)
 
         // make a backup file twice to verify backup naming
-        try await sandbox.makeBackupFile(backupFolder: backupFolder)
-        try await sandbox.makeBackupFile(backupFolder: backupFolder)
+        try await sandbox.makeImageBackup(backupFolder)
+        try await sandbox.makeImageBackup(backupFolder)
 
         // verify the backup folder contains both copies
         let contents =
@@ -134,7 +134,7 @@ struct SandboxTests {
         #expect(contents.count == 2)
     }
 
-    @Test func backupSidecar() async throws {
+    @Test func backupTargetsStayExplicitWhenBothFilesExist() async throws {
         // Copy test image to test folder
         let url = try #require(
             Bundle.module.url(forResource: "262M1559",
@@ -150,7 +150,7 @@ struct SandboxTests {
                               withExtension: "xmp"))
         let xmpName = xmp.lastPathComponent
         let xmpCopy = testFolder.appending(component: xmpName)
-        try FileManager.default.copyItem(at: url, to: xmpCopy)
+        try FileManager.default.copyItem(at: xmp, to: xmpCopy)
 
         // make a sandbox for the image and sidecar
         let name = url.lastPathComponent
@@ -164,16 +164,22 @@ struct SandboxTests {
         let backupFolder = testFolder.appending(component: "backup/")
         try FileManager.default.createDirectory(at: backupFolder,
                                                 withIntermediateDirectories: true)
-        // make a backup file twice to verify backup naming
-        try await sandbox.makeBackupFile(backupFolder: backupFolder)
-        try await sandbox.makeBackupFile(backupFolder: backupFolder)
+        // Back up each physical target twice to verify both target selection
+        // and collision-safe naming.
+        try await sandbox.makeImageBackup(backupFolder)
+        try await sandbox.makeImageBackup(backupFolder)
+        try await sandbox.makeSidecarBackup(backupFolder)
+        try await sandbox.makeSidecarBackup(backupFolder)
 
-        // verify the backup folder contains both copies of the XMP file
+        // Verify neither target is substituted merely because a sidecar exists.
         let contents =
             try FileManager.default.contentsOfDirectory(at: backupFolder,
                                                         includingPropertiesForKeys: nil)
+        #expect(contents.contains { $0.lastPathComponent == name })
+        #expect(contents.contains { $0.lastPathComponent == "262M1559-1.DNG" })
         #expect(contents.contains { $0.lastPathComponent == xmpName })
-        #expect(contents.count == 2)
+        #expect(contents.contains { $0.lastPathComponent == "262M1559-1.xmp" })
+        #expect(contents.count == 4)
     }
 
     @Test func saveImage() async throws {

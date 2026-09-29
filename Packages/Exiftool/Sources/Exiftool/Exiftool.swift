@@ -376,6 +376,24 @@ extension Exiftool {
 // returns any data read; might be zero sized
 
 extension Exiftool {
+    private final class ProcessOutput: @unchecked Sendable {
+        private let lock = NSLock()
+        private var stdout = Data()
+        private var stderr = Data()
+
+        func setStdout(_ data: Data) {
+            lock.withLock { stdout = data }
+        }
+
+        func setStderr(_ data: Data) {
+            lock.withLock { stderr = data }
+        }
+
+        func data() -> (stdout: Data, stderr: Data) {
+            lock.withLock { (stdout, stderr) }
+        }
+    }
+
     @discardableResult
     func run(_ args: [String]) throws -> Data {
         #if LOG_ARGS
@@ -389,19 +407,34 @@ extension Exiftool {
         exiftool.executableURL = url
         exiftool.arguments = args
         try exiftool.run()
+
+        let output = ProcessOutput()
+        let readers = DispatchGroup()
+        readers.enter()
+        DispatchQueue.global().async {
+            output.setStdout(pipe.fileHandleForReading.readDataToEndOfFile())
+            readers.leave()
+        }
+        readers.enter()
+        DispatchQueue.global().async {
+            output.setStderr(err.fileHandleForReading.readDataToEndOfFile())
+            readers.leave()
+        }
+
         exiftool.waitUntilExit()
-        logFrom(pipe: err)
+        readers.wait()
+        let data = output.data()
+        log(data.stderr)
         let status = Int(exiftool.terminationStatus)
         if exiftool.terminationStatus != 0 {
             throw ExiftoolError.runFailed(code: status)
         }
-        return pipe.fileHandleForReading.availableData
+        return data.stdout
     }
 
-    // Write log data from a pipe
+    // Write stderr data to the log.
 
-    private func logFrom(pipe: Pipe) {
-        let data = pipe.fileHandleForReading.availableData
+    private func log(_ data: Data) {
         if data.count > 0,
             let string = String(data: data, encoding: String.Encoding.utf8) {
             Self.logger.warning("stderr: \(string, privacy: .public)")

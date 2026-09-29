@@ -182,7 +182,7 @@ enum SaveHelper {
                     sidecarCreated = true
                 }
                 if let backupURL {
-                    try await sandbox.makeBackupFile(backupFolder: backupURL)
+                    try await sandbox.makeImageBackup(backupURL)
                 }
                 try await sandbox.saveChanges(from: metadata,
                                               timeZone: timeZone)

@@ -35,6 +35,11 @@ struct ExiftoolTests {
         print("Using Exiftool version: \(version)")
     }
 
+    @Test func largeOutputDoesNotBlock() throws {
+        let data = try Exiftool.helper.run(["-listx", "-EXIF:all"])
+        #expect(data.count > 64 * 1_024)
+    }
+
     // Check for writable and not writable file types where
     // writable is defined as can be read by core graphics
     // and updated by exiftool. There are file types that could
