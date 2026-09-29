@@ -119,6 +119,27 @@ struct SandboxTests {
         #expect(try Data(contentsOf: sidecarCopy) == before)
     }
 
+    @Test func firstSidecarSaveLeavesImageBytesUnchanged() async throws {
+        let image = try #require(
+            Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
+        let folder = try makeTestFolder(andCopy: image)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let imageCopy = folder.appending(component: image.lastPathComponent)
+        let before = try Data(contentsOf: imageCopy)
+        let sandbox = try Sandbox(for: imageCopy)
+        defer { sandbox.removeSandboxFolder() }
+        var metadata = Imagetool.metadata(from: imageCopy)
+        metadata.dateTimeCreated = "2030:01:02 03:04:05"
+
+        try sandbox.makeSidecarFile()
+        try await sandbox.saveChanges(from: metadata.xmp(), timeZone: nil)
+
+        #expect(try Data(contentsOf: imageCopy) == before)
+        let updatedMetadata = Exiftool.helper.metadata(from: sandbox.xmpURL,
+                                                       primaryURL: imageCopy)
+        #expect(updatedMetadata.dateTimeCreated == metadata.dateTimeCreated)
+    }
+
     @Test func backupFile() async throws {
         // Copy test image to test folder
         let url = try #require(
