@@ -1,6 +1,114 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "查看元数据…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "View metadata…" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "查看元数据…" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "檢視中繼資料…" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "メタデータを表示…" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "메타데이터 보기…" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Ver metadatos…" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Ver metadados…" } }
+      }
+    },
+    "元数据（只读）": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Metadata (read-only)" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "元数据（只读）" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "中繼資料（唯讀）" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "メタデータ（読み取り専用）" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "메타데이터(읽기 전용)" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Metadatos (solo lectura)" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Metadados (somente leitura)" } }
+      }
+    },
+    "作者": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Creator" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "作者" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "作者" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "作成者" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "작성자" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Autor" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Autor" } }
+      }
+    },
+    "说明": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Description" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "说明" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "說明" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "説明" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "설명" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Descripción" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Descrição" } }
+      }
+    },
+    "关键词": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Keywords" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "关键词" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "關鍵字" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "キーワード" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "키워드" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Palabras clave" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Palavras-chave" } }
+      }
+    },
+    "部分照片无法读取描述元数据；暂不汇总字段。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Descriptive metadata could not be read for some photos; fields are not summarized." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "部分照片无法读取描述元数据；暂不汇总字段。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "部分照片無法讀取描述性中繼資料；暫不彙總欄位。" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "一部の写真の説明メタデータを読み取れないため、項目を集計できません。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "일부 사진의 설명 메타데이터를 읽을 수 없어 항목을 요약하지 않습니다." } },
+        "es": { "stringUnit": { "state": "translated", "value": "No se pudieron leer los metadatos descriptivos de algunas fotos; no se resumen los campos." } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Não foi possível ler os metadados descritivos de algumas fotos; os campos não foram resumidos." } }
+      }
+    },
+    "重新读取元数据": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Reload metadata" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "重新读取元数据" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "重新讀取中繼資料" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "メタデータを再読み込み" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "메타데이터 다시 읽기" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Volver a leer metadatos" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Recarregar metadados" } }
+      }
+    },
+    "未填写": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Not set" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "未填写" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "未填寫" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "未入力" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "입력되지 않음" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Sin definir" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Não definido" } }
+      }
+    },
+    "多个值（%1$@/%2$@ 张有值）": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Multiple values (%1$@ of %2$@ photos have a value)" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "多个值（%1$@/%2$@ 张有值）" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "多個值（%1$@/%2$@ 張有值）" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "複数の値（%2$@枚中%1$@枚に値あり）" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "여러 값(%2$@장 중 %1$@장에 값 있음)" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Varios valores (%1$@ de %2$@ fotos tienen un valor)" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Vários valores (%1$@ de %2$@ fotos têm um valor)" } }
+      }
+    },
     "The metadata was saved, but the Finder tag could not be added.": {
       "extractionState": "manual",
       "localizations": {

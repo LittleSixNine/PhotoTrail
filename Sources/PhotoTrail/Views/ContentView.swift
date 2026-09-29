@@ -24,6 +24,14 @@ struct ContentView: View {
 
     private let testIDs = TestIDs.ContentView.self
 
+    @ViewBuilder private var inspectorContent: some View {
+        if alternateLayout {
+            ImageInspectorView()
+        } else {
+            MetadataListInspectorView()
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             if let ignoredFileNotice {
@@ -150,7 +158,7 @@ struct ContentView: View {
         .areYouSure()  // confirmations
         .removeBackupsAlert()  // Alert: Remove Old Backup files
         .inspector(isPresented: $inspectorPresented) {
-            ImageInspectorView()
+            inspectorContent
                 .inspectorColumnWidth(min: 300, ideal: 400, max: 500)
                 .accessibilityIdentifier(testIDs.imageInspectorViewID)
         }
