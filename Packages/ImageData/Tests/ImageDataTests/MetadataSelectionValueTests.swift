@@ -31,4 +31,23 @@ struct MetadataSelectionValueTests {
         #expect(MetadataSelectionValue.summarize([[tag: alice], [tag: bob]], tag: tag)
                 == .mixed(present: 2, total: 2))
     }
+
+    @Test func inspectionVersionChangesWhenTargetChanges() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory,
+                                                withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let image = directory.appendingPathComponent("image.jpg")
+
+        #expect(MetadataInspectionFileVersion.read(nil) == .unavailable)
+        #expect(MetadataInspectionFileVersion.read(image) == .missing)
+        try Data("one".utf8).write(to: image)
+        let first = MetadataInspectionFileVersion.read(image)
+        #expect(first != .missing)
+        try Data("another value".utf8).write(to: image)
+        #expect(MetadataInspectionFileVersion.read(image) != first)
+        try FileManager.default.removeItem(at: image)
+        #expect(MetadataInspectionFileVersion.read(image) == .missing)
+    }
 }

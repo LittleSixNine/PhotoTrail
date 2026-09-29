@@ -16,7 +16,9 @@ private enum MetadataInspectionRead: Sendable {
 
 struct MetadataListInspectorView: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
+    @Environment(\.scenePhase) private var scenePhase
     @State private var results: [ImageData.ID: MetadataInspectionRead] = [:]
+    @State private var observedVersions: [MetadataInspectionFileVersion] = []
     @State private var loading = false
     @State private var loadID = UUID()
     @State private var revision = 0
@@ -38,6 +40,15 @@ struct MetadataListInspectorView: View {
         LoadKey(ids: selected.map(\.id),
                 urls: selected.map(\.metadataInspectionURL),
                 revision: revision)
+    }
+
+    private var selectedVersions: [MetadataInspectionFileVersion] {
+        selected.map { MetadataInspectionFileVersion.read($0.metadataInspectionURL) }
+    }
+
+    private func reloadIfFilesChanged() {
+        guard selectedVersions != observedVersions else { return }
+        revision += 1
     }
 
     private var completeValues: [[MetadataTag: MetadataTagValue]]? {
@@ -139,10 +150,18 @@ struct MetadataListInspectorView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
         }
+        .onReceive(Timer.publish(every: 5, on: .main, in: .common).autoconnect()) { _ in
+            if scenePhase == .active { reloadIfFilesChanged() }
+        }
+        .onChange(of: scenePhase) {
+            if scenePhase == .active { reloadIfFilesChanged() }
+        }
         .task(id: loadKey) {
             let requests = selected.map {
                 MetadataInspectionRequest(id: $0.id, url: $0.metadataInspectionURL)
             }
+            let versions = selectedVersions
+            observedVersions = versions
             let token = UUID()
             loadID = token
             results = [:]
@@ -173,6 +192,10 @@ struct MetadataListInspectorView: View {
                 worker.cancel()
             }
             guard !Task.isCancelled, loadID == token else { return }
+            if selectedVersions != versions {
+                revision += 1
+                return
+            }
             results = loaded
             loading = false
         }
