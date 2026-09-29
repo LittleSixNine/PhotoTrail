@@ -1,10 +1,32 @@
-import Foundation
+import Darwin
 import Exiftool
+import Foundation
 import Metadata
 import Testing
 @testable import Imagetool
 
 struct SandboxTests {
+
+    func setExtendedAttribute(_ data: Data, name: String, at url: URL) throws {
+        let result = data.withUnsafeBytes { bytes in
+            setxattr(url.path, name, bytes.baseAddress, data.count, 0, 0)
+        }
+        guard result == 0 else { throw POSIXError(.init(rawValue: errno)!) }
+    }
+
+    func extendedAttribute(name: String, at url: URL) throws -> Data? {
+        let size = getxattr(url.path, name, nil, 0, 0, 0)
+        if size < 0 {
+            if errno == ENOATTR { return nil }
+            throw POSIXError(.init(rawValue: errno)!)
+        }
+        var data = Data(count: size)
+        let read = data.withUnsafeMutableBytes { bytes in
+            getxattr(url.path, name, bytes.baseAddress, size, 0, 0)
+        }
+        guard read == size else { throw POSIXError(.init(rawValue: errno)!) }
+        return data
+    }
 
     // return the url of a folder in the standard temporaryDirectory
     // used to hold files that will be modified by tests
@@ -257,6 +279,77 @@ struct SandboxTests {
         #expect(contents.contains { $0.lastPathComponent == xmpName })
         #expect(contents.contains { $0.lastPathComponent == "262M1559-1.xmp" })
         #expect(contents.count == 4)
+    }
+
+    @Test func backupRestoreContentAndAttributeBoundary() async throws {
+        let image = try #require(
+            Bundle.module.url(forResource: "262M1559", withExtension: "DNG"))
+        let sidecar = try #require(
+            Bundle.module.url(forResource: "262M1559", withExtension: "xmp"))
+        let folder = try makeTestFolder(andCopy: image)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        var imageCopy = folder.appending(component: image.lastPathComponent)
+        var sidecarCopy = folder.appending(component: sidecar.lastPathComponent)
+        try FileManager.default.copyItem(at: sidecar, to: sidecarCopy)
+        let sandbox = try Sandbox(for: imageCopy)
+        defer { sandbox.removeSandboxFolder() }
+        let backupFolder = folder.appending(component: "backup", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: backupFolder,
+                                                withIntermediateDirectories: true)
+
+        let attributeName = "com.phototrail.backup-test"
+        let attributeValue = Data("attribute value".utf8)
+        let tag = "PhotoTrail Backup Test"
+        var dates = URLResourceValues()
+        dates.creationDate = Date(timeIntervalSince1970: 1_700_000_000)
+        dates.contentModificationDate = Date(timeIntervalSince1970: 1_700_000_100)
+        try imageCopy.setResourceValues(dates)
+        try sidecarCopy.setResourceValues(dates)
+        try await sandbox.setTag(name: tag)
+        try (sidecarCopy as NSURL).setResourceValue([tag], forKey: .tagNamesKey)
+        try setExtendedAttribute(attributeValue, name: attributeName, at: imageCopy)
+        try setExtendedAttribute(attributeValue, name: attributeName, at: sidecarCopy)
+        let imageBytes = try Data(contentsOf: imageCopy)
+        let sidecarBytes = try Data(contentsOf: sidecarCopy)
+        let imageDates = try imageCopy.resourceValues(
+            forKeys: [.creationDateKey, .contentModificationDateKey])
+
+        try await sandbox.makeImageBackup(backupFolder)
+        try await sandbox.makeSidecarBackup(backupFolder)
+        let imageBackup = backupFolder.appending(component: image.lastPathComponent)
+        let sidecarBackup = backupFolder.appending(component: sidecar.lastPathComponent)
+
+        #expect(try Data(contentsOf: imageBackup) == imageBytes)
+        #expect(try extendedAttribute(name: attributeName, at: imageBackup) == attributeValue)
+        #expect(try imageBackup.resourceValues(forKeys: [.tagNamesKey]).tagNames?.contains(tag) == true)
+        let backupDates = try imageBackup.resourceValues(
+            forKeys: [.creationDateKey, .contentModificationDateKey])
+        #expect(backupDates.creationDate == imageDates.creationDate)
+        #expect(backupDates.contentModificationDate == imageDates.contentModificationDate)
+
+        // Sidecar backup uses coordinated data read/write: bytes are
+        // recoverable, but filesystem metadata is outside that contract.
+        #expect(try Data(contentsOf: sidecarBackup) == sidecarBytes)
+        #expect(try extendedAttribute(name: attributeName, at: sidecarBackup) == nil)
+        #expect(try sidecarBackup.resourceValues(forKeys: [.tagNamesKey]).tagNames?.contains(tag) != true)
+
+        try Data("damaged image".utf8).write(to: imageCopy)
+        try Data("damaged sidecar".utf8).write(to: sidecarCopy)
+        try FileManager.default.removeItem(at: imageCopy)
+        try FileManager.default.removeItem(at: sidecarCopy)
+        try FileManager.default.copyItem(at: imageBackup, to: imageCopy)
+        try FileManager.default.copyItem(at: sidecarBackup, to: sidecarCopy)
+
+        #expect(try Data(contentsOf: imageCopy) == imageBytes)
+        #expect(try Data(contentsOf: sidecarCopy) == sidecarBytes)
+        #expect(try extendedAttribute(name: attributeName, at: imageCopy) == attributeValue)
+        #expect(try imageCopy.resourceValues(forKeys: [.tagNamesKey]).tagNames?.contains(tag) == true)
+        let restoredDates = try imageCopy.resourceValues(
+            forKeys: [.creationDateKey, .contentModificationDateKey])
+        #expect(restoredDates.creationDate == imageDates.creationDate)
+        #expect(restoredDates.contentModificationDate == imageDates.contentModificationDate)
+        #expect(try extendedAttribute(name: attributeName, at: sidecarCopy) == nil)
+        #expect(try sidecarCopy.resourceValues(forKeys: [.tagNamesKey]).tagNames?.contains(tag) != true)
     }
 
     @Test func saveImage() async throws {
