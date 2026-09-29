@@ -9,6 +9,9 @@ public struct Exiftool: Sendable {
 
     public enum ExiftoolError: Error {
         case runFailed(code: Int)
+        case invalidTagValue(tag: String)
+        case invalidTagOutput
+        case tagVerificationFailed(tag: String)
     }
 
     // URL of the embedded version of ExifTool
@@ -29,12 +32,100 @@ public struct Exiftool: Sendable {
     }
 }
 
+public enum MetadataTag: String, Sendable {
+    case creator = "XMP-dc:Creator"
+}
+
+public enum MetadataTagChange: Equatable, Sendable {
+    case set([String])
+    case remove
+}
+
 // Define a logger for the package
 
 extension Exiftool {
     static let logger =
         Logger(subsystem: Bundle.main.bundleIdentifier ?? "ExiftoolTest",
                category: "ExifTool")
+}
+
+// Read and write only the explicitly requested editable tags. This path is
+// separate from the existing date/location update so unrelated fields are not
+// included in an edit.
+
+extension Exiftool {
+    public func metadataTags(_ tags: Set<MetadataTag>,
+                             from image: URL) throws -> [MetadataTag: [String]] {
+        guard !tags.isEmpty else { return [:] }
+        let sortedTags = tags.sorted { $0.rawValue < $1.rawValue }
+        var args = ["-j", "-G1"]
+        args += sortedTags.map { "-\($0.rawValue)" }
+        args.append(image.path)
+        let data = try run(args)
+        guard let entries = try JSONSerialization
+            .jsonObject(with: data) as? [[String: Any]],
+              let entry = entries.first else {
+            throw ExiftoolError.invalidTagOutput
+        }
+
+        var result: [MetadataTag: [String]] = [:]
+        for tag in sortedTags {
+            switch entry[tag.rawValue] {
+            case let value as String:
+                result[tag] = [value]
+            case let values as [String]:
+                result[tag] = values
+            case nil:
+                break
+            default:
+                throw ExiftoolError.invalidTagOutput
+            }
+        }
+        return result
+    }
+
+    public func update(
+        image: URL,
+        changes: [MetadataTag: MetadataTagChange]
+    ) throws -> [MetadataTag: [String]] {
+        guard !changes.isEmpty else { return [:] }
+        let sortedChanges = changes.sorted { $0.key.rawValue < $1.key.rawValue }
+        let values = sortedChanges.flatMap { change -> [String] in
+            if case .set(let values) = change.value { return values }
+            return []
+        }
+        var separator = UUID().uuidString
+        while values.contains(where: { $0.contains(separator) }) {
+            separator = UUID().uuidString
+        }
+        var args = ["-q", "-overwrite_original_in_place", "-sep", separator]
+        for (tag, change) in sortedChanges {
+            switch change {
+            case .set(let values):
+                guard !values.isEmpty else {
+                    throw ExiftoolError.invalidTagValue(tag: tag.rawValue)
+                }
+                args.append("-\(tag.rawValue)=\(values.joined(separator: separator))")
+            case .remove:
+                args.append("-\(tag.rawValue)=")
+            }
+        }
+        args.append(image.path)
+        try run(args)
+
+        let readback = try metadataTags(Set(changes.keys), from: image)
+        for (tag, change) in changes {
+            switch change {
+            case .set(let values) where readback[tag] != values:
+                throw ExiftoolError.tagVerificationFailed(tag: tag.rawValue)
+            case .remove where readback[tag] != nil:
+                throw ExiftoolError.tagVerificationFailed(tag: tag.rawValue)
+            default:
+                break
+            }
+        }
+        return readback
+    }
 }
 
 // Run the embedded exiftool to get its version. Used
