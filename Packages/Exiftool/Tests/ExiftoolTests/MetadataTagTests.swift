@@ -11,6 +11,15 @@ struct MetadataTagTests {
         ])
     }
 
+    func textValue(_ tag: String, from image: URL) throws -> String? {
+        let data = try Exiftool.helper.run(["-s3", "-\(tag)", image.path])
+        guard var value = String(data: data, encoding: .utf8), !value.isEmpty else {
+            return nil
+        }
+        if value.last == "\n" { value.removeLast() }
+        return value.isEmpty ? nil : value
+    }
+
     @Test func creatorSetReadbackAndRemovalAffectOnlyRequestedTag() async throws {
         let image = try #require(
             Bundle.module.url(forResource: "262M1559", withExtension: "DNG"))
@@ -26,9 +35,9 @@ struct MetadataTagTests {
         let creators = ["六九，摄影师\n第二行", "Alice \"A\""]
 
         let setReadback = try Exiftool.helper.update(
-            image: xmpCopy, changes: [.creator: .set(creators)])
+            image: xmpCopy, changes: [.creator: .set(.list(creators))])
 
-        #expect(setReadback[.creator] == creators)
+        #expect(setReadback[.creator] == .list(creators))
         #expect(Exiftool.helper.metadata(from: xmpCopy,
                                         primaryURL: imageCopy) == metadataBefore)
 
@@ -40,13 +49,72 @@ struct MetadataTagTests {
                                         primaryURL: imageCopy) == metadataBefore)
     }
 
-    @Test func creatorRejectsAmbiguousEmptySet() throws {
+    @Test func tagsRejectInvalidValues() throws {
         let xmp = try #require(
             Bundle.module.url(forResource: "262M1559", withExtension: "xmp"))
         #expect(throws: Exiftool.ExiftoolError.self) {
             try Exiftool.helper.update(image: xmp,
-                                       changes: [.creator: .set([])])
+                                       changes: [.creator: .set(.list([]))])
         }
+        #expect(throws: Exiftool.ExiftoolError.self) {
+            try Exiftool.helper.update(
+                image: xmp, changes: [.descriptionDefault: .set(.text(""))])
+        }
+        #expect(throws: Exiftool.ExiftoolError.self) {
+            try Exiftool.helper.update(
+                image: xmp, changes: [.creator: .set(.text("Alice"))])
+        }
+    }
+
+    @Test func defaultDescriptionPreservesLanguagesAndSubjectRoundTrips() throws {
+        let image = try #require(
+            Bundle.module.url(forResource: "262M1559", withExtension: "DNG"))
+        let xmp = try #require(
+            Bundle.module.url(forResource: "262M1559", withExtension: "xmp"))
+        let folder = try makeTestFolder(andCopy: image)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let xmpCopy = folder.appending(component: xmp.lastPathComponent)
+        try FileManager.default.copyItem(at: xmp, to: xmpCopy)
+        try Exiftool.helper.run([
+            "-q", "-overwrite_original_in_place",
+            "-XMP-dc:Description-x-default=Original default",
+            "-XMP-dc:Description-zh-CN=原始中文",
+            "-XMP-dc:Description-en-US=Original English",
+            xmpCopy.path
+        ])
+        let creatorBefore = try Exiftool.helper
+            .metadataTags([.creator], from: xmpCopy)[.creator]
+        let chineseBefore = try textValue("XMP-dc:Description-zh-CN",
+                                          from: xmpCopy)
+        let englishBefore = try textValue("XMP-dc:Description-en-US",
+                                          from: xmpCopy)
+        let description = "更新，含逗号\n第二行"
+        let subjects = ["Travel", "travel", "北京", "é", "e\u{301}",
+                        "comma,word", "line\nbreak"]
+
+        let setReadback = try Exiftool.helper.update(image: xmpCopy,
+            changes: [
+                .descriptionDefault: .set(.text(description)),
+                .subject: .set(.list(subjects))
+            ])
+
+        #expect(setReadback[.descriptionDefault] == .text(description))
+        #expect(setReadback[.subject] == .list(subjects))
+        #expect(try textValue("XMP-dc:Description-zh-CN", from: xmpCopy) == chineseBefore)
+        #expect(try textValue("XMP-dc:Description-en-US", from: xmpCopy) == englishBefore)
+        #expect(try Exiftool.helper.metadataTags([.creator], from: xmpCopy)[.creator] == creatorBefore)
+
+        let removeReadback = try Exiftool.helper.update(image: xmpCopy,
+            changes: [
+                .descriptionDefault: .remove,
+                .subject: .remove
+            ])
+
+        #expect(removeReadback[.descriptionDefault] == nil)
+        #expect(removeReadback[.subject] == nil)
+        #expect(try textValue("XMP-dc:Description-zh-CN", from: xmpCopy) == chineseBefore)
+        #expect(try textValue("XMP-dc:Description-en-US", from: xmpCopy) == englishBefore)
+        #expect(try Exiftool.helper.metadataTags([.creator], from: xmpCopy)[.creator] == creatorBefore)
     }
 
     @Test(arguments: [
@@ -66,9 +134,9 @@ struct MetadataTagTests {
         let creators = ["六九，摄影师\n第二行", "Alice \"A\""]
 
         let setReadback = try Exiftool.helper.update(
-            image: image, changes: [.creator: .set(creators)])
+            image: image, changes: [.creator: .set(.list(creators))])
 
-        #expect(setReadback[.creator] == creators)
+        #expect(setReadback[.creator] == .list(creators))
         #expect(try protectedMetadata(from: image) == protectedBefore)
         #expect(Exiftool.helper.metadata(from: nil,
                                         primaryURL: image) == metadataBefore)

@@ -34,11 +34,39 @@ public struct Exiftool: Sendable {
 
 public enum MetadataTag: String, Sendable {
     case creator = "XMP-dc:Creator"
+    case descriptionDefault = "XMP-dc:Description-x-default"
+    case subject = "XMP-dc:Subject"
+}
+
+public enum MetadataTagValue: Equatable, Sendable {
+    case text(String)
+    case list([String])
 }
 
 public enum MetadataTagChange: Equatable, Sendable {
-    case set([String])
+    case set(MetadataTagValue)
     case remove
+}
+
+private enum MetadataTagValueKind: Equatable {
+    case text
+    case list
+}
+
+private extension MetadataTag {
+    var valueKind: MetadataTagValueKind {
+        switch self {
+        case .creator, .subject: .list
+        case .descriptionDefault: .text
+        }
+    }
+
+    var readName: String {
+        switch self {
+        case .descriptionDefault: "XMP-dc:Description"
+        default: rawValue
+        }
+    }
 }
 
 // Define a logger for the package
@@ -55,11 +83,11 @@ extension Exiftool {
 
 extension Exiftool {
     public func metadataTags(_ tags: Set<MetadataTag>,
-                             from image: URL) throws -> [MetadataTag: [String]] {
+                             from image: URL) throws -> [MetadataTag: MetadataTagValue] {
         guard !tags.isEmpty else { return [:] }
         let sortedTags = tags.sorted { $0.rawValue < $1.rawValue }
         var args = ["-j", "-G1"]
-        args += sortedTags.map { "-\($0.rawValue)" }
+        args += sortedTags.map { "-\($0.readName)" }
         args.append(image.path)
         let data = try run(args)
         guard let entries = try JSONSerialization
@@ -68,15 +96,18 @@ extension Exiftool {
             throw ExiftoolError.invalidTagOutput
         }
 
-        var result: [MetadataTag: [String]] = [:]
+        var result: [MetadataTag: MetadataTagValue] = [:]
         for tag in sortedTags {
-            switch entry[tag.rawValue] {
-            case let value as String:
-                result[tag] = [value]
-            case let values as [String]:
-                result[tag] = values
-            case nil:
-                break
+            let value = entry[tag.readName]
+            switch (tag.valueKind, value) {
+            case (.text, let value as String):
+                result[tag] = .text(value)
+            case (.list, let value as String):
+                result[tag] = .list([value])
+            case (.list, let values as [String]):
+                result[tag] = .list(values)
+            case (_, nil):
+                continue
             default:
                 throw ExiftoolError.invalidTagOutput
             }
@@ -87,11 +118,11 @@ extension Exiftool {
     public func update(
         image: URL,
         changes: [MetadataTag: MetadataTagChange]
-    ) throws -> [MetadataTag: [String]] {
+    ) throws -> [MetadataTag: MetadataTagValue] {
         guard !changes.isEmpty else { return [:] }
         let sortedChanges = changes.sorted { $0.key.rawValue < $1.key.rawValue }
         let values = sortedChanges.flatMap { change -> [String] in
-            if case .set(let values) = change.value { return values }
+            if case .set(.list(let values)) = change.value { return values }
             return []
         }
         var separator = UUID().uuidString
@@ -101,8 +132,13 @@ extension Exiftool {
         var args = ["-q", "-overwrite_original_in_place", "-sep", separator]
         for (tag, change) in sortedChanges {
             switch change {
-            case .set(let values):
-                guard !values.isEmpty else {
+            case .set(.text(let value)):
+                guard tag.valueKind == .text, !value.isEmpty else {
+                    throw ExiftoolError.invalidTagValue(tag: tag.rawValue)
+                }
+                args.append("-\(tag.rawValue)=\(value)")
+            case .set(.list(let values)):
+                guard tag.valueKind == .list, !values.isEmpty else {
                     throw ExiftoolError.invalidTagValue(tag: tag.rawValue)
                 }
                 args.append("-\(tag.rawValue)=\(values.joined(separator: separator))")
@@ -116,7 +152,7 @@ extension Exiftool {
         let readback = try metadataTags(Set(changes.keys), from: image)
         for (tag, change) in changes {
             switch change {
-            case .set(let values) where readback[tag] != values:
+            case .set(let value) where readback[tag] != value:
                 throw ExiftoolError.tagVerificationFailed(tag: tag.rawValue)
             case .remove where readback[tag] != nil:
                 throw ExiftoolError.tagVerificationFailed(tag: tag.rawValue)
