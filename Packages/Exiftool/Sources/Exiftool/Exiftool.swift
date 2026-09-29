@@ -11,7 +11,6 @@ public struct Exiftool: Sendable {
         case runFailed(code: Int)
         case invalidTagValue(tag: String)
         case invalidTagOutput
-        case tagVerificationFailed(tag: String)
     }
 
     // URL of the embedded version of ExifTool
@@ -46,6 +45,19 @@ public enum MetadataTagValue: Equatable, Sendable {
 public enum MetadataTagChange: Equatable, Sendable {
     case set(MetadataTagValue)
     case remove
+}
+
+public enum MetadataTagUpdateError: Error {
+    case writeFailed(underlying: any Error)
+    case readbackFailed(underlying: any Error)
+    case readbackMismatch(tag: MetadataTag)
+
+    public var resultIsUnknown: Bool {
+        switch self {
+        case .writeFailed: false
+        case .readbackFailed, .readbackMismatch: true
+        }
+    }
 }
 
 private enum MetadataTagValueKind: Equatable {
@@ -119,14 +131,27 @@ extension Exiftool {
         image: URL,
         changes: [MetadataTag: MetadataTagChange]
     ) throws -> [MetadataTag: MetadataTagValue] {
+        try update(
+            image: image,
+            changes: changes,
+            write: { try run($0) },
+            readback: { tags, image in try metadataTags(tags, from: image) })
+    }
+
+    func update(
+        image: URL,
+        changes: [MetadataTag: MetadataTagChange],
+        write: ([String]) throws -> Void,
+        readback: (Set<MetadataTag>, URL) throws -> [MetadataTag: MetadataTagValue]
+    ) throws -> [MetadataTag: MetadataTagValue] {
         guard !changes.isEmpty else { return [:] }
         let sortedChanges = changes.sorted { $0.key.rawValue < $1.key.rawValue }
-        let values = sortedChanges.flatMap { change -> [String] in
+        let listValues = sortedChanges.flatMap { change -> [String] in
             if case .set(.list(let values)) = change.value { return values }
             return []
         }
         var separator = UUID().uuidString
-        while values.contains(where: { $0.contains(separator) }) {
+        while listValues.contains(where: { $0.contains(separator) }) {
             separator = UUID().uuidString
         }
         var args = ["-q", "-overwrite_original_in_place", "-sep", separator]
@@ -147,20 +172,29 @@ extension Exiftool {
             }
         }
         args.append(image.path)
-        try run(args)
+        do {
+            try write(args)
+        } catch {
+            throw MetadataTagUpdateError.writeFailed(underlying: error)
+        }
 
-        let readback = try metadataTags(Set(changes.keys), from: image)
+        let values: [MetadataTag: MetadataTagValue]
+        do {
+            values = try readback(Set(changes.keys), image)
+        } catch {
+            throw MetadataTagUpdateError.readbackFailed(underlying: error)
+        }
         for (tag, change) in changes {
             switch change {
-            case .set(let value) where readback[tag] != value:
-                throw ExiftoolError.tagVerificationFailed(tag: tag.rawValue)
-            case .remove where readback[tag] != nil:
-                throw ExiftoolError.tagVerificationFailed(tag: tag.rawValue)
+            case .set(let value) where values[tag] != value:
+                throw MetadataTagUpdateError.readbackMismatch(tag: tag)
+            case .remove where values[tag] != nil:
+                throw MetadataTagUpdateError.readbackMismatch(tag: tag)
             default:
                 break
             }
         }
-        return readback
+        return values
     }
 }
 

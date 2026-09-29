@@ -66,6 +66,67 @@ struct MetadataTagTests {
         }
     }
 
+    @Test func updateClassifiesWriteAndReadbackFailures() throws {
+        enum ControlledFailure: Error { case write, readback }
+        let fixture = try #require(
+            Bundle.module.url(forResource: "262M1559", withExtension: "xmp"))
+        let folder = try makeTestFolder(andCopy: fixture)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let xmp = folder.appending(component: fixture.lastPathComponent)
+
+        do {
+            _ = try Exiftool.helper.update(
+                image: xmp,
+                changes: [.creator: .set(.list(["Alice"]))],
+                write: { _ in throw ControlledFailure.write },
+                readback: { _, _ in [:] })
+            Issue.record("Expected write failure")
+        } catch let error as MetadataTagUpdateError {
+            guard case .writeFailed = error else {
+                Issue.record("Expected write failure, got \(error)")
+                return
+            }
+            #expect(!error.resultIsUnknown)
+        }
+
+        do {
+            _ = try Exiftool.helper.update(
+                image: xmp,
+                changes: [.creator: .set(.list(["Alice"]))],
+                write: { _ in },
+                readback: { _, _ in [.creator: .list(["Bob"])] })
+            Issue.record("Expected readback mismatch")
+        } catch let error as MetadataTagUpdateError {
+            guard case .readbackMismatch(tag: .creator) = error else {
+                Issue.record("Expected creator mismatch, got \(error)")
+                return
+            }
+            #expect(error.resultIsUnknown)
+        }
+
+        let finalSubjects = ["existing", "appended"]
+
+        do {
+            _ = try Exiftool.helper.update(
+                image: xmp,
+                changes: [.subject: .set(.list(finalSubjects))],
+                write: { try Exiftool.helper.run($0) },
+                readback: { _, _ in throw ControlledFailure.readback })
+            Issue.record("Expected readback failure")
+        } catch let error as MetadataTagUpdateError {
+            guard case .readbackFailed = error else {
+                Issue.record("Expected readback failure, got \(error)")
+                return
+            }
+            #expect(error.resultIsUnknown)
+        }
+
+        // Reconcile the absolute final value after an unknown result. Do not
+        // replay the relative append that produced it.
+        let reconciled = try Exiftool.helper.metadataTags([.subject], from: xmp)
+        #expect(reconciled[.subject] == .list(finalSubjects))
+    }
+
     @Test func defaultDescriptionPreservesLanguagesAndSubjectRoundTrips() throws {
         let image = try #require(
             Bundle.module.url(forResource: "262M1559", withExtension: "DNG"))
