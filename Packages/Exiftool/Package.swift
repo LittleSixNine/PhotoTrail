@@ -22,6 +22,7 @@ let package = Package(
                     ],
                     resources: [
                         .copy("nowrite.typ"),
+                        .copy("alldata.jpg"),
                         .copy("262M1559.DNG"),
                         .copy("262M1559.xmp"),
                         .copy("IMG_5654.HEIC")

@@ -4,6 +4,13 @@ import Testing
 @testable import Exiftool
 
 struct MetadataTagTests {
+    func protectedMetadata(from image: URL) throws -> Data {
+        try Exiftool.helper.run([
+            "-j", "-G1", "-n", "-EXIF:All", "-ICC_Profile:All",
+            "-MakerNotes:All", image.path
+        ])
+    }
+
     @Test func creatorSetReadbackAndRemovalAffectOnlyRequestedTag() async throws {
         let image = try #require(
             Bundle.module.url(forResource: "262M1559", withExtension: "DNG"))
@@ -40,5 +47,38 @@ struct MetadataTagTests {
             try Exiftool.helper.update(image: xmp,
                                        changes: [.creator: .set([])])
         }
+    }
+
+    @Test(arguments: [
+        ("alldata", "jpg"),
+        ("IMG_5654", "HEIC")
+    ])
+    func creatorRoundTripsInImageFile(name: String,
+                                      extension ext: String) throws {
+        let fixture = try #require(
+            Bundle.module.url(forResource: name, withExtension: ext))
+        let folder = try makeTestFolder(andCopy: fixture)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let image = folder.appending(component: fixture.lastPathComponent)
+        let protectedBefore = try protectedMetadata(from: image)
+        let metadataBefore = Exiftool.helper.metadata(from: nil,
+                                                      primaryURL: image)
+        let creators = ["六九，摄影师\n第二行", "Alice \"A\""]
+
+        let setReadback = try Exiftool.helper.update(
+            image: image, changes: [.creator: .set(creators)])
+
+        #expect(setReadback[.creator] == creators)
+        #expect(try protectedMetadata(from: image) == protectedBefore)
+        #expect(Exiftool.helper.metadata(from: nil,
+                                        primaryURL: image) == metadataBefore)
+
+        let removeReadback = try Exiftool.helper.update(
+            image: image, changes: [.creator: .remove])
+
+        #expect(removeReadback[.creator] == nil)
+        #expect(try protectedMetadata(from: image) == protectedBefore)
+        #expect(Exiftool.helper.metadata(from: nil,
+                                        primaryURL: image) == metadataBefore)
     }
 }
