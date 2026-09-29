@@ -140,6 +140,42 @@ struct SandboxTests {
         #expect(updatedMetadata.dateTimeCreated == metadata.dateTimeCreated)
     }
 
+    @Test func firstSidecarSaveCanRetryAfterWriteFailure() async throws {
+        let image = try #require(
+            Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
+        let folder = try makeTestFolder(andCopy: image)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let imageCopy = folder.appending(component: image.lastPathComponent)
+        let imageBefore = try Data(contentsOf: imageCopy)
+        let sidecar = imageCopy.deletingPathExtension()
+                               .appendingPathExtension(xmpExtension)
+        let sandbox = try Sandbox(for: imageCopy)
+        defer { sandbox.removeSandboxFolder() }
+        var metadata = Imagetool.metadata(from: imageCopy)
+        metadata.dateTimeCreated = "2030:01:02 03:04:05"
+
+        try sandbox.makeSidecarFile()
+        try FileManager.default.setAttributes([.posixPermissions: 0o000],
+                                              ofItemAtPath: sidecar.path)
+        var failed = false
+        do {
+            try await sandbox.saveChanges(from: metadata.xmp(), timeZone: nil)
+        } catch {
+            failed = true
+        }
+        #expect(failed)
+        #expect(FileManager.default.fileExists(atPath: sidecar.path))
+        #expect(try Data(contentsOf: imageCopy) == imageBefore)
+
+        try FileManager.default.setAttributes([.posixPermissions: 0o600],
+                                              ofItemAtPath: sidecar.path)
+        try await sandbox.saveChanges(from: metadata.xmp(), timeZone: nil)
+        let retriedMetadata = Exiftool.helper.metadata(from: sandbox.xmpURL,
+                                                       primaryURL: imageCopy)
+        #expect(retriedMetadata.dateTimeCreated == metadata.dateTimeCreated)
+        #expect(try Data(contentsOf: imageCopy) == imageBefore)
+    }
+
     @Test func backupFile() async throws {
         // Copy test image to test folder
         let url = try #require(
