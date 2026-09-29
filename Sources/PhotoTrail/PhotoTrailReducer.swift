@@ -225,6 +225,10 @@ struct PhotoTrailReducer: Reducer, Sendable {
                 newState.addSheet(type: .saveErrorSheet)
             case .saveErrorSupressWarning:
                 break
+            case .saveTagError:
+                newState.unsavedChanges = false
+                newState.addSheet(type: .unexpectedErrorSheet,
+                                  message: L10n.text("The metadata was saved, but the Finder tag could not be added."))
             }
 
         case .saveProgress(let completed):

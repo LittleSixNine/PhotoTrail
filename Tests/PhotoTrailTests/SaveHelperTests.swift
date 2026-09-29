@@ -10,6 +10,41 @@ import UDF
 
 @MainActor
 struct SaveHelperTests {
+    @Test nonisolated func finderTagFailureDoesNotUndoSavedMetadata() async {
+        enum ControlledFailure: Error { case save, tag }
+        var saveCount = 0
+        var tagCount = 0
+        let outcome = await SaveHelper.saveThenTag(
+            save: { saveCount += 1 },
+            tag: { tagCount += 1; throw ControlledFailure.tag })
+        #expect(outcome == .savedWithoutTag)
+        #expect(saveCount == 1 && tagCount == 1)
+
+        let failed = await SaveHelper.saveThenTag(
+            save: { throw ControlledFailure.save },
+            tag: { tagCount += 1 })
+        #expect(failed == .failed)
+        #expect(tagCount == 1)
+    }
+
+    @Test func finderTagFailureMarksMetadataSavedInState() {
+        var edited = ImageData(
+            metadata: Metadata(source: .xmp(URL(fileURLWithPath: "/tmp/tag-failure.xmp"))),
+            name: "tag-failure.jpg")
+        edited.metadata.location = Coords(latitude: 31.23, longitude: 121.48)
+        var state = PhotoTrailState()
+        state.imageData = [edited]
+        state.unsavedChanges = true
+        let store = Store(initialState: state, reduce: PhotoTrailReducer())
+        store.send(.saveRequest)
+        store.send(.imageSaved(edited.id, edited.metadata))
+        store.send(.saveComplete(.saveTagError))
+
+        #expect(!store.unsavedChanges)
+        #expect(store[edited.id].original == store[edited.id].metadata)
+        #expect(store.sheetType == .unexpectedErrorSheet)
+    }
+
     @Test func metadataTagSaveReconcilesUnknownWithoutReplayingWrite() {
         enum ControlledFailure: Error { case validation, readback }
         let image = URL(fileURLWithPath: "/tmp/metadata-tag-save.xmp")

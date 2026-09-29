@@ -1,6 +1,18 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "The metadata was saved, but the Finder tag could not be added.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "The metadata was saved, but the Finder tag could not be added." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "元数据已保存，但未能添加 Finder 标签。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "元資料已儲存，但無法加入 Finder 標籤。" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "メタデータは保存されましたが、Finderタグを追加できませんでした。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "메타데이터는 저장되었지만 Finder 태그를 추가하지 못했습니다." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Se guardaron los metadatos, pero no se pudo añadir la etiqueta de Finder." } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Os metadados foram salvos, mas não foi possível adicionar a etiqueta do Finder." } }
+      }
+    },
     "\n本地照片另会尝试创建 XMP 附属文件。": {
       "extractionState": "manual",
       "localizations": {

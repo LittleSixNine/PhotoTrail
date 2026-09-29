@@ -5,6 +5,7 @@ import Metadata
 import Testing
 @testable import Imagetool
 
+// swiftlint:disable:next type_body_length
 struct SandboxTests {
 
     func setExtendedAttribute(_ data: Data, name: String, at url: URL) throws {

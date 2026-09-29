@@ -13,6 +13,33 @@ enum SaveHelper {
         case saveOK                     // All changes saved
         case saveError                  // Save issue, tell user
         case saveErrorSupressWarning    // Save issue, user knows
+        case saveTagError               // Metadata saved, optional Finder tag failed
+    }
+
+    enum FileSaveOutcome {
+        case failed
+        case saved
+        case savedWithoutTag
+
+        var metadataSaved: Bool { self != .failed }
+    }
+
+    nonisolated static func saveThenTag(
+        save: () async throws -> Void,
+        tag: (() async throws -> Void)?
+    ) async -> FileSaveOutcome {
+        do {
+            try await save()
+        } catch {
+            return .failed
+        }
+        guard let tag else { return .saved }
+        do {
+            try await tag()
+            return .saved
+        } catch {
+            return .savedWithoutTag
+        }
     }
 
     enum MetadataTagSaveStatus: Equatable {
@@ -130,10 +157,12 @@ enum SaveHelper {
             let sendStatus: SaveStatus =
                 if status.allSatisfy({ $0 == .saveOK }) {
                     .saveOK
+                } else if status.contains(.saveError) {
+                    .saveError
                 } else if status.contains(.saveErrorSupressWarning) {
                     .saveErrorSupressWarning
                 } else {
-                    .saveError
+                    .saveTagError
                 }
             store.send(.saveComplete(sendStatus), undoable: false)
         }
@@ -208,7 +237,7 @@ enum SaveHelper {
             let id: ImageData.ID
             let metadata: Metadata
             let sidecarCreated: Bool
-            let status: Bool
+            let outcome: FileSaveOutcome
         }
 
         var taskInfos: [TaskInfo] = []
@@ -218,7 +247,7 @@ enum SaveHelper {
             let metadata = info[id]!
             guard case .image(let imageURL) = metadata.source else {
                 return TaskInfo(id: id, metadata: metadata,
-                                sidecarCreated: false, status: false)
+                                sidecarCreated: false, outcome: .failed)
             }
 
             var sidecarCreated = false
@@ -233,18 +262,17 @@ enum SaveHelper {
                     sidecarCreated = true
                     savedMetadata = metadata.xmp()
                 }
-                try await sandbox.saveChanges(from: savedMetadata,
-                                              timeZone: timeZone)
-                if tagFiles {
-                    try await sandbox.setTag(name: tagName)
-                }
+                let outcome = await saveThenTag(
+                    save: { try await sandbox.saveChanges(from: savedMetadata,
+                                                          timeZone: timeZone) },
+                    tag: tagFiles ? { try await sandbox.setTag(name: tagName) } : nil)
                 return TaskInfo(id: id, metadata: savedMetadata,
                                 sidecarCreated: sidecarCreated,
-                                status: true)
+                                outcome: outcome)
             } catch {
                 return TaskInfo(id: id, metadata: metadata,
                                 sidecarCreated: sidecarCreated,
-                                status: false)
+                                outcome: .failed)
             }
         }
 
@@ -271,11 +299,15 @@ enum SaveHelper {
                 if taskInfo.sidecarCreated {
                     store.send(.sidecarCreated(taskInfo.id), undoable: false)
                 }
-                if taskInfo.status {
+                if taskInfo.outcome.metadataSaved {
                     store.send(.imageSaved(taskInfo.id, taskInfo.metadata),
                                undoable: false)
-                } else {
+                }
+                if taskInfo.outcome == .failed {
                     saveStatus = .saveError
+                } else if taskInfo.outcome == .savedWithoutTag,
+                          saveStatus == .saveOK {
+                    saveStatus = .saveTagError
                 }
             }
         }
@@ -292,7 +324,7 @@ enum SaveHelper {
         struct TaskInfo {
             let id: ImageData.ID
             let metadata: Metadata
-            let status: Bool
+            let outcome: FileSaveOutcome
         }
 
         var taskInfos: [TaskInfo] = []
@@ -302,7 +334,7 @@ enum SaveHelper {
             let metadata = info[id]!
             guard case .xmp(let imageURL) = metadata.source else {
                 return TaskInfo(id: id, metadata: metadata,
-                                status: false)
+                                outcome: .failed)
             }
 
             do {
@@ -310,16 +342,15 @@ enum SaveHelper {
                 if let backupURL {
                     try await sandbox.makeSidecarBackup(backupURL)
                 }
-                try await sandbox.saveChanges(from: metadata,
-                                              timeZone: timeZone)
-                if tagFiles {
-                    try await sandbox.setTag(name: tagName)
-                }
+                let outcome = await saveThenTag(
+                    save: { try await sandbox.saveChanges(from: metadata,
+                                                          timeZone: timeZone) },
+                    tag: tagFiles ? { try await sandbox.setTag(name: tagName) } : nil)
                 return TaskInfo(id: id, metadata: metadata,
-                                status: true)
+                                outcome: outcome)
             } catch {
                 return TaskInfo(id: id, metadata: metadata,
-                                status: false)
+                                outcome: .failed)
             }
         }
 
@@ -345,11 +376,15 @@ enum SaveHelper {
         // Update state from the created TaskInfo on MainActor
         await MainActor.run {
             for taskInfo in taskInfos {
-                if taskInfo.status {
+                if taskInfo.outcome.metadataSaved {
                     store.send(.imageSaved(taskInfo.id, taskInfo.metadata),
                                undoable: false)
-                } else {
+                }
+                if taskInfo.outcome == .failed {
                     saveStatus = .saveError
+                } else if taskInfo.outcome == .savedWithoutTag,
+                          saveStatus == .saveOK {
+                    saveStatus = .saveTagError
                 }
             }
         }
