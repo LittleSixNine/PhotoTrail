@@ -1,6 +1,102 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "图像文件：%1$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Image file: %1$@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "图像文件：%1$@" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "影像檔案：%1$@" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "画像ファイル：%1$@" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "이미지 파일: %1$@" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Archivo de imagen: %1$@" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Arquivo de imagem: %1$@" } }
+      }
+    },
+    "XMP 附属文件：%1$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "XMP sidecar: %1$@" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "XMP 附属文件：%1$@" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "XMP 附屬檔案：%1$@" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "XMPサイドカーファイル：%1$@" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "XMP 사이드카 파일: %1$@" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Archivo auxiliar XMP: %1$@" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Arquivo auxiliar XMP: %1$@" } }
+      }
+    },
+    "照片图库项目暂不支持读取这些描述字段。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "These descriptive fields are not yet available for Photos library items." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "照片图库项目暂不支持读取这些描述字段。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "照片圖庫項目暫不支援讀取這些描述欄位。" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "写真ライブラリの項目では、これらの説明項目をまだ読み取れません。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "사진 보관함 항목에서는 아직 이 설명 필드를 읽을 수 없습니다." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Estos campos descriptivos aún no están disponibles para elementos de Fotos." } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Esses campos descritivos ainda não estão disponíveis para itens do Fotos." } }
+      }
+    },
+    "此条目没有可读取的本地文件。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "This item has no readable local file." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "此条目没有可读取的本地文件。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "此項目沒有可讀取的本機檔案。" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "この項目には読み取り可能なローカルファイルがありません。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "이 항목에는 읽을 수 있는 로컬 파일이 없습니다." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Este elemento no tiene un archivo local legible." } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Este item não tem um arquivo local legível." } }
+      }
+    },
+    "读取来源：图像 %1$@ 张，XMP %2$@ 张，非本地 %3$@ 张。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Sources: %1$@ image files, %2$@ XMP sidecars, %3$@ nonlocal items." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "读取来源：图像 %1$@ 张，XMP %2$@ 张，非本地 %3$@ 张。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "讀取來源：影像 %1$@ 張、XMP %2$@ 張、非本機 %3$@ 項。" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "読み取り元：画像%1$@件、XMP%2$@件、ローカル以外%3$@件。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "읽기 출처: 이미지 %1$@개, XMP %2$@개, 비로컬 %3$@개." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Orígenes: %1$@ imágenes, %2$@ archivos XMP y %3$@ elementos no locales." } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Fontes: %1$@ imagens, %2$@ arquivos XMP e %3$@ itens não locais." } }
+      }
+    },
+    "搜索元数据字段": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Search metadata fields" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "搜索元数据字段" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "搜尋中繼資料欄位" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "メタデータ項目を検索" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "메타데이터 필드 검색" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Buscar campos de metadatos" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Buscar campos de metadados" } }
+      }
+    },
+    "没有匹配的字段": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "No matching fields" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "没有匹配的字段" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "沒有符合的欄位" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "一致する項目がありません" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "일치하는 필드 없음" } },
+        "es": { "stringUnit": { "state": "translated", "value": "No hay campos coincidentes" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Nenhum campo correspondente" } }
+      }
+    },
+    "读取失败：%1$@ 张；请检查来源文件。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Could not read %1$@ photos; check the source files." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "读取失败：%1$@ 张；请检查来源文件。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "讀取失敗：%1$@ 張；請檢查來源檔案。" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "%1$@枚の写真を読み取れませんでした。元のファイルを確認してください。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "사진 %1$@장을 읽지 못했습니다. 원본 파일을 확인하세요." } },
+        "es": { "stringUnit": { "state": "translated", "value": "No se pudieron leer %1$@ fotos; revise los archivos de origen." } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Não foi possível ler %1$@ fotos; verifique os arquivos de origem." } }
+      }
+    },
     "查看元数据…": {
       "extractionState": "manual",
       "localizations": {

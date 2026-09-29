@@ -10,7 +10,8 @@ private struct MetadataInspectionRequest: Sendable {
 
 private enum MetadataInspectionRead: Sendable {
     case values([MetadataTag: MetadataTagValue])
-    case unavailable
+    case unsupported
+    case failed
 }
 
 struct MetadataListInspectorView: View {
@@ -19,6 +20,9 @@ struct MetadataListInspectorView: View {
     @State private var loading = false
     @State private var loadID = UUID()
     @State private var revision = 0
+    @State private var fieldQuery = ""
+
+    private let fields: [MetadataTag] = [.creator, .descriptionDefault, .subject]
 
     private struct LoadKey: Hashable {
         let ids: [ImageData.ID]
@@ -44,6 +48,55 @@ struct MetadataListInspectorView: View {
         return values.count == selected.count ? values : nil
     }
 
+    private var visibleFields: [MetadataTag] {
+        guard !fieldQuery.isEmpty else { return fields }
+        return fields.filter {
+            $0.rawValue.localizedCaseInsensitiveContains(fieldQuery)
+                || label(for: $0).localizedCaseInsensitiveContains(fieldQuery)
+        }
+    }
+
+    private func label(for tag: MetadataTag) -> String {
+        switch tag {
+        case .creator: L10n.text("作者")
+        case .descriptionDefault: L10n.text("说明")
+        case .subject: L10n.text("关键词")
+        }
+    }
+
+    private var sourceDescription: String {
+        if selected.count == 1, let image = selected.first {
+            switch image.metadata.source {
+            case .image(let url):
+                return L10n.text("图像文件：%1$@", url.lastPathComponent)
+            case .xmp(let url):
+                return L10n.text("XMP 附属文件：%1$@", url.lastPathComponent)
+            case .photos:
+                return L10n.text("照片图库项目暂不支持读取这些描述字段。")
+            case .copy:
+                return L10n.text("此条目没有可读取的本地文件。")
+            }
+        }
+        let imageCount = selected.filter {
+            if case .image = $0.metadata.source { return true }
+            return false
+        }.count
+        let sidecarCount = selected.filter {
+            if case .xmp = $0.metadata.source { return true }
+            return false
+        }.count
+        return L10n.text("读取来源：图像 %1$@ 张，XMP %2$@ 张，非本地 %3$@ 张。",
+                         imageCount, sidecarCount, selected.count - imageCount - sidecarCount)
+    }
+
+    private var readFailureCount: Int {
+        selected.filter {
+            guard let result = results[$0.id] else { return false }
+            if case .failed = result { return true }
+            return false
+        }.count
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -54,19 +107,31 @@ struct MetadataListInspectorView: View {
                 } else {
                     Text(L10n.text("已选择 %1$@ 张照片", selected.count))
                         .foregroundStyle(.secondary)
+                    Text(sourceDescription)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextField(L10n.text("搜索元数据字段"), text: $fieldQuery)
                     if loading {
                         ProgressView()
                     } else if let values = completeValues {
-                        VStack(alignment: .leading, spacing: 12) {
-                            field(L10n.text("作者"), tag: .creator, values: values)
-                            Divider()
-                            field(L10n.text("说明"), tag: .descriptionDefault, values: values)
-                            Divider()
-                            field(L10n.text("关键词"), tag: .subject, values: values)
+                        if visibleFields.isEmpty {
+                            Text(L10n.text("没有匹配的字段"))
+                                .foregroundStyle(.secondary)
+                        } else {
+                            VStack(alignment: .leading, spacing: 12) {
+                                ForEach(visibleFields, id: \.rawValue) { tag in
+                                    field(label(for: tag), tag: tag, values: values)
+                                    if tag != visibleFields.last { Divider() }
+                                }
+                            }
                         }
                     } else {
                         Text(L10n.text("部分照片无法读取描述元数据；暂不汇总字段。"))
                             .foregroundStyle(.secondary)
+                        if readFailureCount > 0 {
+                            Text(L10n.text("读取失败：%1$@ 张；请检查来源文件。", readFailureCount))
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     Button(L10n.text("重新读取元数据")) { revision += 1 }
                 }
@@ -89,7 +154,7 @@ struct MetadataListInspectorView: View {
                 for request in requests {
                     guard !Task.isCancelled else { break }
                     guard let url = request.url else {
-                        loaded[request.id] = .unavailable
+                        loaded[request.id] = .unsupported
                         continue
                     }
                     do {
@@ -97,7 +162,7 @@ struct MetadataListInspectorView: View {
                             [.creator, .descriptionDefault, .subject], from: url)
                         loaded[request.id] = .values(tags)
                     } catch {
-                        loaded[request.id] = .unavailable
+                        loaded[request.id] = .failed
                     }
                 }
                 return loaded
