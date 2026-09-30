@@ -42,6 +42,11 @@ public enum MetadataTagValue: Equatable, Sendable {
     case list([String])
 }
 
+public enum LegacyCreatorTag: String, Sendable {
+    case exifArtist = "IFD0:Artist"
+    case iptcByline = "IPTC:By-line"
+}
+
 public enum MetadataTagChange: Equatable, Sendable {
     case set(MetadataTagValue)
     case remove
@@ -87,11 +92,33 @@ extension Exiftool {
                category: "ExifTool")
 }
 
-// Read and write only the explicitly requested editable tags. This path is
-// separate from the existing date/location update so unrelated fields are not
-// included in an edit.
+// Keep descriptive-tag reads separate from the existing date/location update.
+// Only MetadataTag is writable; compatibility creator fields stay read-only.
 
 extension Exiftool {
+    // Read compatibility fields without adding them to the editable whitelist.
+    public func legacyCreatorTags(from image: URL) throws -> [LegacyCreatorTag: [String]] {
+        let data = try run(["-j", "-G1", "-EXIF:Artist", "-IPTC:By-line", image.path])
+        guard let entries = try JSONSerialization.jsonObject(with: data) as? [[String: Any]],
+              let entry = entries.first else {
+            throw ExiftoolError.invalidTagOutput
+        }
+        var result: [LegacyCreatorTag: [String]] = [:]
+        for tag in [LegacyCreatorTag.exifArtist, .iptcByline] {
+            switch entry[tag.rawValue] {
+            case nil:
+                continue
+            case let value as String:
+                result[tag] = [value]
+            case let values as [String]:
+                result[tag] = values
+            default:
+                throw ExiftoolError.invalidTagOutput
+            }
+        }
+        return result
+    }
+
     public func metadataTags(_ tags: Set<MetadataTag>,
                              from image: URL) throws -> [MetadataTag: MetadataTagValue] {
         guard !tags.isEmpty else { return [:] }

@@ -4,6 +4,27 @@ import Testing
 @testable import Exiftool
 
 struct MetadataTagTests {
+    @Test func legacyCreatorReadKeepsSourcesSeparateAndDoesNotWrite() throws {
+        let fixture = try #require(
+            Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
+        let folder = try makeTestFolder(andCopy: fixture)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let image = folder.appending(component: fixture.lastPathComponent)
+        try Exiftool.helper.run([
+            "-q", "-overwrite_original_in_place",
+            "-EXIF:Artist=EXIF Alice", "-IPTC:By-line=IPTC Bob", image.path
+        ])
+        let beforeRead = try Data(contentsOf: image)
+
+        let values = try Exiftool.helper.legacyCreatorTags(from: image)
+
+        #expect(values[.exifArtist] == ["EXIF Alice"])
+        #expect(values[.iptcByline] == ["IPTC Bob"])
+        #expect(try Exiftool.helper.metadataTags([.creator], from: image)[.creator]
+                == .list(["Marco S Hyman"]))
+        #expect(try Data(contentsOf: image) == beforeRead)
+    }
+
     func protectedMetadata(from image: URL) throws -> Data {
         try Exiftool.helper.run([
             "-j", "-G1", "-n", "-EXIF:All", "-ICC_Profile:All",
