@@ -40,12 +40,17 @@ struct MetadataCreatorEditTests {
         }
         let first = ImageData(metadata: Metadata(source: .xmp(firstURL)), name: "first.dng")
         let second = ImageData(metadata: Metadata(source: .xmp(secondURL)), name: "second.dng")
-        let firstVersion = MetadataInspectionFileVersion.read(first.metadataInspectionURL)
-        let secondVersion = MetadataInspectionFileVersion.read(second.metadataInspectionURL)
-        let readings = [(image: first, value: MetadataCreatorValue.names(["Alice"]),
-                         version: firstVersion),
-                        (image: second, value: MetadataCreatorValue.absent,
-                         version: secondVersion)]
+        let firstSidecar = try #require(first.metadataInspectionURL)
+        let secondSidecar = try #require(second.metadataInspectionURL)
+        func snapshot(_ url: URL, creator: MetadataTagValue? = nil) throws -> MetadataInspectionSnapshot {
+            try MetadataInspectionSnapshot.read([.creator], from: url) { _, _ in
+                creator.map { [.creator: $0] } ?? [:]
+            }
+        }
+        let firstSnapshot = try snapshot(firstSidecar, creator: .list(["Alice"]))
+        let secondSnapshot = try snapshot(secondSidecar)
+        let readings = [(image: first, snapshot: firstSnapshot),
+                        (image: second, snapshot: secondSnapshot)]
 
         let plan = try MetadataCreatorEditPlan.prepare(
             readings, action: .fillMissing(["Bob"]))
@@ -53,44 +58,54 @@ struct MetadataCreatorEditTests {
         #expect(plan.items[0].change == nil)
         #expect(plan.items[1].change == .set(.list(["Bob"])))
         #expect(plan.items[1].target == second.metadataInspectionURL)
-        #expect(plan.items[1].version == secondVersion)
+        #expect(plan.items[0].original == .names(["Alice"]))
+        #expect(plan.items[1].version == secondSnapshot.version)
 
         try Data("changed sidecar".utf8).write(to: second.metadataInspectionURL!)
         #expect(throws: MetadataCreatorPlanError.self) {
             try MetadataCreatorEditPlan.prepare(readings, action: .set(["Bob"]))
         }
-        let duplicate = [(image: first, value: MetadataCreatorValue.absent,
-                          version: firstVersion),
-                         (image: first, value: MetadataCreatorValue.absent,
-                          version: firstVersion)]
+        #expect(throws: MetadataCreatorPlanError.self) {
+            try MetadataCreatorEditPlan.prepare(
+                [(image: second, snapshot: firstSnapshot)], action: .set(["Bob"]))
+        }
+        let duplicate = [(image: first, snapshot: firstSnapshot),
+                         (image: first, snapshot: firstSnapshot)]
         #expect(throws: MetadataCreatorPlanError.self) {
             try MetadataCreatorEditPlan.prepare(duplicate, action: .set(["Bob"]))
         }
-        let firstSidecar = try #require(first.metadataInspectionURL)
-        let secondSidecar = try #require(second.metadataInspectionURL)
         try FileManager.default.removeItem(at: secondSidecar)
         try FileManager.default.linkItem(at: firstSidecar, to: secondSidecar)
+        let linkedFirst = try snapshot(firstSidecar)
+        let linkedSecond = try snapshot(secondSidecar)
         #expect(throws: MetadataCreatorPlanError.self) {
             try MetadataCreatorEditPlan.prepare(
-                [(image: first, value: .absent,
-                  version: MetadataInspectionFileVersion.read(firstSidecar)),
-                 (image: second, value: .absent,
-                  version: MetadataInspectionFileVersion.read(secondSidecar))],
+                [(image: first, snapshot: linkedFirst),
+                 (image: second, snapshot: linkedSecond)],
                 action: .set(["Bob"]))
         }
         let copy = ImageData(metadata: Metadata(source: .copy), name: "copy")
         #expect(throws: MetadataCreatorPlanError.self) {
             try MetadataCreatorEditPlan.prepare(
-                [(image: copy, value: .absent, version: .unavailable)],
+                [(image: copy, snapshot: linkedFirst)],
                 action: .set(["Bob"]))
         }
         let rawInline = ImageData(metadata: Metadata(source: .image(firstURL)),
                                   name: "first.dng")
         #expect(throws: MetadataCreatorPlanError.self) {
             try MetadataCreatorEditPlan.prepare(
-                [(image: rawInline, value: .absent,
-                  version: MetadataInspectionFileVersion.read(firstURL))],
+                [(image: rawInline, snapshot: linkedFirst)],
                 action: .set(["Bob"]))
+        }
+        let invalid = try snapshot(firstSidecar, creator: .text("wrong type"))
+        #expect(throws: MetadataCreatorPlanError.self) {
+            try MetadataCreatorEditPlan.prepare(
+                [(image: first, snapshot: invalid)], action: .set(["Bob"]))
+        }
+        let unreadCreator = try MetadataInspectionSnapshot.read([.subject], from: firstSidecar) { _, _ in [:] }
+        #expect(throws: MetadataCreatorPlanError.self) {
+            try MetadataCreatorEditPlan.prepare(
+                [(image: first, snapshot: unreadCreator)], action: .fillMissing(["Bob"]))
         }
     }
 }

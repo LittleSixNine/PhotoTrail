@@ -27,6 +27,34 @@ public enum MetadataInspectionFileVersion: Equatable, Sendable {
     }
 }
 
+public enum MetadataInspectionError: Error {
+    case sourceChanged
+}
+
+public struct MetadataInspectionSnapshot: Sendable {
+    public let url: URL
+    public let requestedTags: Set<MetadataTag>
+    public let values: [MetadataTag: MetadataTagValue]
+    public let version: MetadataInspectionFileVersion
+
+    public static func read(_ tags: Set<MetadataTag>, from url: URL) throws -> Self {
+        try read(tags, from: url, using: Exiftool.helper.metadataTags)
+    }
+
+    static func read(
+        _ tags: Set<MetadataTag>, from url: URL,
+        using readTags: (Set<MetadataTag>, URL) throws -> [MetadataTag: MetadataTagValue]
+    ) throws -> Self {
+        let before = MetadataInspectionFileVersion.read(url)
+        guard case .file = before else { throw MetadataInspectionError.sourceChanged }
+        let values = try readTags(tags, url)
+        guard MetadataInspectionFileVersion.read(url) == before else {
+            throw MetadataInspectionError.sourceChanged
+        }
+        return Self(url: url, requestedTags: tags, values: values, version: before)
+    }
+}
+
 public extension ImageData {
     var metadataInspectionURL: URL? {
         switch metadata.source {

@@ -10,7 +10,7 @@ private struct MetadataInspectionRequest: Sendable {
 }
 
 private enum MetadataInspectionRead: Sendable {
-    case values([MetadataTag: MetadataTagValue], [LegacyCreatorTag: [String]]?)
+    case values(MetadataInspectionSnapshot, [LegacyCreatorTag: [String]]?)
     case unsupported
     case failed
 }
@@ -56,8 +56,8 @@ struct MetadataListInspectorView: View {
 
     private var completeValues: [[MetadataTag: MetadataTagValue]]? {
         let values = selected.compactMap { image -> [MetadataTag: MetadataTagValue]? in
-            guard case .values(let tags, _) = results[image.id] else { return nil }
-            return tags
+            guard case .values(let snapshot, _) = results[image.id] else { return nil }
+            return snapshot.values
         }
         return values.count == selected.count ? values : nil
     }
@@ -201,10 +201,10 @@ struct MetadataListInspectorView: View {
                         continue
                     }
                     do {
-                        let tags = try Exiftool.helper.metadataTags(
+                        let snapshot = try MetadataInspectionSnapshot.read(
                             [.creator, .descriptionDefault, .subject], from: url)
                         let legacy = try? Exiftool.helper.legacyCreatorTags(from: imageURL)
-                        loaded[request.id] = .values(tags, legacy)
+                        loaded[request.id] = .values(snapshot, legacy)
                     } catch {
                         loaded[request.id] = .failed
                     }

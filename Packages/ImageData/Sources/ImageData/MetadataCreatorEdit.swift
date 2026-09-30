@@ -41,6 +41,7 @@ public enum MetadataCreatorPlanError: Error {
     case unavailableTarget
     case sourceChanged
     case duplicateTarget
+    case invalidValue
 }
 
 public struct MetadataCreatorEditPlan: Sendable {
@@ -54,11 +55,10 @@ public struct MetadataCreatorEditPlan: Sendable {
 
     public let items: [Item]
 
-    // Supply the version captured with each successful read, not a fresh
-    // version paired with a stale value. The selection order is frozen here.
+    // A snapshot binds the successful read to its file version. The selection
+    // order is frozen here.
     public static func prepare(
-        _ readings: [(image: ImageData, value: MetadataCreatorValue,
-                     version: MetadataInspectionFileVersion)],
+        _ readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)],
         action: MetadataCreatorEditAction
     ) throws -> Self {
         struct FileID: Hashable {
@@ -80,16 +80,27 @@ public struct MetadataCreatorEditPlan: Sendable {
                   let target = reading.image.metadataInspectionURL else {
                 throw MetadataCreatorPlanError.unavailableTarget
             }
-            guard case .file(let device, let inode, _, _, _, _, _) = reading.version,
-                  MetadataInspectionFileVersion.read(target) == reading.version else {
+            guard reading.snapshot.url.standardizedFileURL == target.standardizedFileURL,
+                  reading.snapshot.requestedTags.contains(.creator),
+                  case .file(let device, let inode, _, _, _, _, _) = reading.snapshot.version,
+                  MetadataInspectionFileVersion.read(target) == reading.snapshot.version else {
                 throw MetadataCreatorPlanError.sourceChanged
             }
             guard seen.insert(FileID(device: device, inode: inode)).inserted else {
                 throw MetadataCreatorPlanError.duplicateTarget
             }
+            let value: MetadataCreatorValue
+            switch reading.snapshot.values[.creator] {
+            case nil:
+                value = .absent
+            case .list(let names) where !names.isEmpty:
+                value = .names(names)
+            default:
+                throw MetadataCreatorPlanError.invalidValue
+            }
             items.append(Item(id: reading.image.id, target: target,
-                              original: reading.value, version: reading.version,
-                              change: try action.change(from: reading.value)))
+                              original: value, version: reading.snapshot.version,
+                              change: try action.change(from: value)))
         }
         return Self(items: items)
     }

@@ -65,6 +65,38 @@ struct MetadataSelectionValueTests {
         #expect(MetadataInspectionFileVersion.read(image) == .missing)
     }
 
+    @Test func inspectionSnapshotBindsValuesToAnUnchangedFileVersion() throws {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: folder,
+                                                withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let url = folder.appendingPathComponent("photo.xmp")
+        try Data("before".utf8).write(to: url)
+        let expected: [MetadataTag: MetadataTagValue] = [.creator: .list(["Alice"])]
+
+        let snapshot = try MetadataInspectionSnapshot.read([.creator], from: url) { tags, target in
+            #expect(tags == [.creator])
+            #expect(target == url)
+            return expected
+        }
+        #expect(snapshot.values == expected)
+        #expect(snapshot.url == url)
+        #expect(snapshot.requestedTags == [.creator])
+        #expect(snapshot.version == MetadataInspectionFileVersion.read(url))
+
+        #expect(throws: MetadataInspectionError.self) {
+            try MetadataInspectionSnapshot.read([.creator], from: url) { _, _ in
+                try Data("changed during read".utf8).write(to: url)
+                return expected
+            }
+        }
+        try FileManager.default.removeItem(at: url)
+        #expect(throws: MetadataInspectionError.self) {
+            try MetadataInspectionSnapshot.read([.creator], from: url) { _, _ in expected }
+        }
+    }
+
     @Test func sidecarInspectionTracksSidecarInsteadOfImage() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
