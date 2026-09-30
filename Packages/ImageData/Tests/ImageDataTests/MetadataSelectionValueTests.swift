@@ -14,7 +14,21 @@ struct MetadataSelectionValueTests {
 
         #expect(image.metadataInspectionURL == imageURL)
         #expect(sidecar.metadataInspectionURL == sidecarURL)
+        #expect(sidecar.metadataCreatorImageURL == imageURL)
         #expect(unavailable.metadataInspectionURL == nil)
+    }
+
+    @Test func creatorSourcesKeepMissingSeparateFromConflicts() {
+        let alice = MetadataTagValue.list(["Alice"])
+        let legacy: [LegacyCreatorTag: [String]] = [.exifArtist: ["Alice"],
+                                                    .iptcByline: ["Bob"]]
+        #expect(MetadataSelectionValue.summarize([[:], legacy], tag: .exifArtist)
+                == .mixed(present: 1, total: 2))
+        #expect(MetadataSelectionValue.creatorSourcesConflict(xmp: alice,
+                                                               legacy: legacy))
+        #expect(!MetadataSelectionValue.creatorSourcesConflict(
+            xmp: alice, legacy: [.exifArtist: ["Alice"]]))
+        #expect(!MetadataSelectionValue.creatorSourcesConflict(xmp: nil, legacy: [:]))
     }
 
     @Test func selectionKeepsMissingDistinctFromMixedValues() {
@@ -64,11 +78,16 @@ struct MetadataSelectionValueTests {
         let image = ImageData(metadata: Metadata(source: .xmp(imageURL)), name: "photo.jpg")
         let originalImageVersion = MetadataInspectionFileVersion.read(imageURL)
         let firstSidecarVersion = MetadataInspectionFileVersion.read(image.metadataInspectionURL)
+        let firstVersions = image.metadataInspectionVersions
 
         try Data("second value".utf8).write(to: sidecarURL)
 
         #expect(image.metadataInspectionURL == sidecarURL)
         #expect(MetadataInspectionFileVersion.read(imageURL) == originalImageVersion)
         #expect(MetadataInspectionFileVersion.read(image.metadataInspectionURL) != firstSidecarVersion)
+        let afterSidecarChange = image.metadataInspectionVersions
+        #expect(afterSidecarChange != firstVersions)
+        try Data("changed image bytes".utf8).write(to: imageURL)
+        #expect(image.metadataInspectionVersions != afterSidecarChange)
     }
 }

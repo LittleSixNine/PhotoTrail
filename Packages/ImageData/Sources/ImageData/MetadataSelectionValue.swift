@@ -36,6 +36,22 @@ public extension ImageData {
         case .photos, .copy: nil
         }
     }
+
+    var metadataCreatorImageURL: URL? {
+        switch metadata.source {
+        case .image(let url), .xmp(let url): url
+        case .photos, .copy: nil
+        }
+    }
+
+    var metadataInspectionVersions: [MetadataInspectionFileVersion] {
+        let target = metadataInspectionURL
+        var versions = [MetadataInspectionFileVersion.read(target)]
+        if metadataCreatorImageURL != target {
+            versions.append(MetadataInspectionFileVersion.read(metadataCreatorImageURL))
+        }
+        return versions
+    }
 }
 
 public enum MetadataSelectionValue: Equatable, Sendable {
@@ -47,13 +63,31 @@ public enum MetadataSelectionValue: Equatable, Sendable {
     // Pass only successful reads; a read error must be shown separately.
     public static func summarize(_ values: [[MetadataTag: MetadataTagValue]],
                                  tag: MetadataTag) -> Self {
+        summarize(values.map { $0[tag] })
+    }
+
+    public static func summarize(_ values: [[LegacyCreatorTag: [String]]],
+                                 tag: LegacyCreatorTag) -> Self {
+        summarize(values.map { $0[tag].map(MetadataTagValue.list) })
+    }
+
+    private static func summarize(_ values: [MetadataTagValue?]) -> Self {
         guard !values.isEmpty else { return .unselected }
-        let present = values.compactMap { $0[tag] }
+        let present = values.compactMap { $0 }
         guard !present.isEmpty else { return .absent }
         guard present.count == values.count,
               present.dropFirst().allSatisfy({ $0 == present[0] }) else {
             return .mixed(present: present.count, total: values.count)
         }
         return .uniform(present[0])
+    }
+
+    public static func creatorSourcesConflict(
+        xmp: MetadataTagValue?, legacy: [LegacyCreatorTag: [String]]
+    ) -> Bool {
+        var sources = legacy.values.filter { !$0.isEmpty }
+        if case .list(let names) = xmp, !names.isEmpty { sources.append(names) }
+        guard let first = sources.first else { return false }
+        return sources.dropFirst().contains { $0 != first }
     }
 }

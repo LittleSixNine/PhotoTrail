@@ -133,6 +133,30 @@
         "pt-BR": { "stringUnit": { "state": "translated", "value": "Autor" } }
       }
     },
+    "作者来源冲突：%1$@ 张。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Creator sources conflict: %1$@ photos." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "作者来源冲突：%1$@ 张。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "作者來源衝突：%1$@ 張。" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "作成者の情報源が一致しない写真：%1$@枚。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "작성자 출처가 일치하지 않는 사진: %1$@장." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Fotos con autores distintos según el origen: %1$@." } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Fotos com autores divergentes entre fontes: %1$@." } }
+      }
+    },
+    "兼容作者来源读取失败：%1$@ 张。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Could not read legacy creator sources for %1$@ photos." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "兼容作者来源读取失败：%1$@ 张。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "相容作者來源讀取失敗：%1$@ 張。" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "%1$@枚の写真で従来の作成者情報を読み取れませんでした。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "사진 %1$@장의 이전 작성자 출처를 읽지 못했습니다." } },
+        "es": { "stringUnit": { "state": "translated", "value": "No se pudieron leer las fuentes de autor heredadas de %1$@ fotos." } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Não foi possível ler as fontes de autor antigas de %1$@ fotos." } }
+      }
+    },
     "说明": {
       "extractionState": "manual",
       "localizations": {

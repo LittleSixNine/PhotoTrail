@@ -6,10 +6,11 @@ import UDF
 private struct MetadataInspectionRequest: Sendable {
     let id: ImageData.ID
     let url: URL?
+    let creatorImageURL: URL?
 }
 
 private enum MetadataInspectionRead: Sendable {
-    case values([MetadataTag: MetadataTagValue])
+    case values([MetadataTag: MetadataTagValue], [LegacyCreatorTag: [String]]?)
     case unsupported
     case failed
 }
@@ -29,6 +30,7 @@ struct MetadataListInspectorView: View {
     private struct LoadKey: Hashable {
         let ids: [ImageData.ID]
         let urls: [URL?]
+        let creatorImageURLs: [URL?]
         let revision: Int
     }
 
@@ -39,11 +41,12 @@ struct MetadataListInspectorView: View {
     private var loadKey: LoadKey {
         LoadKey(ids: selected.map(\.id),
                 urls: selected.map(\.metadataInspectionURL),
+                creatorImageURLs: selected.map(\.metadataCreatorImageURL),
                 revision: revision)
     }
 
     private var selectedVersions: [MetadataInspectionFileVersion] {
-        selected.map { MetadataInspectionFileVersion.read($0.metadataInspectionURL) }
+        selected.flatMap(\.metadataInspectionVersions)
     }
 
     private func reloadIfFilesChanged() {
@@ -53,8 +56,16 @@ struct MetadataListInspectorView: View {
 
     private var completeValues: [[MetadataTag: MetadataTagValue]]? {
         let values = selected.compactMap { image -> [MetadataTag: MetadataTagValue]? in
-            guard case .values(let tags) = results[image.id] else { return nil }
+            guard case .values(let tags, _) = results[image.id] else { return nil }
             return tags
+        }
+        return values.count == selected.count ? values : nil
+    }
+
+    private var completeLegacyValues: [[LegacyCreatorTag: [String]]]? {
+        let values = selected.compactMap { image -> [LegacyCreatorTag: [String]]? in
+            guard case .values(_, let legacy) = results[image.id] else { return nil }
+            return legacy
         }
         return values.count == selected.count ? values : nil
     }
@@ -64,6 +75,9 @@ struct MetadataListInspectorView: View {
         return fields.filter {
             $0.rawValue.localizedCaseInsensitiveContains(fieldQuery)
                 || label(for: $0).localizedCaseInsensitiveContains(fieldQuery)
+                || ($0 == .creator && [LegacyCreatorTag.exifArtist, .iptcByline]
+                    .contains { $0.rawValue.localizedCaseInsensitiveContains(fieldQuery) })
+                || ($0 == .creator && "EXIF:Artist".localizedCaseInsensitiveContains(fieldQuery))
         }
     }
 
@@ -106,6 +120,13 @@ struct MetadataListInspectorView: View {
             guard let result = results[$0.id] else { return false }
             if case .failed = result { return true }
             return false
+        }.count
+    }
+
+    private var legacyReadFailureCount: Int {
+        selected.filter {
+            guard case .values(_, let legacy) = results[$0.id] else { return false }
+            return legacy == nil
         }.count
     }
 
@@ -159,7 +180,8 @@ struct MetadataListInspectorView: View {
         }
         .task(id: loadKey) {
             let requests = selected.map {
-                MetadataInspectionRequest(id: $0.id, url: $0.metadataInspectionURL)
+                MetadataInspectionRequest(id: $0.id, url: $0.metadataInspectionURL,
+                                          creatorImageURL: $0.metadataCreatorImageURL)
             }
             let versions = selectedVersions
             observedVersions = versions
@@ -173,14 +195,16 @@ struct MetadataListInspectorView: View {
                 var loaded: [ImageData.ID: MetadataInspectionRead] = [:]
                 for request in requests {
                     guard !Task.isCancelled else { break }
-                    guard let url = request.url else {
+                    guard let url = request.url,
+                          let imageURL = request.creatorImageURL else {
                         loaded[request.id] = .unsupported
                         continue
                     }
                     do {
                         let tags = try Exiftool.helper.metadataTags(
                             [.creator, .descriptionDefault, .subject], from: url)
-                        loaded[request.id] = .values(tags)
+                        let legacy = try? Exiftool.helper.legacyCreatorTags(from: imageURL)
+                        loaded[request.id] = .values(tags, legacy)
                     } catch {
                         loaded[request.id] = .failed
                     }
@@ -205,13 +229,41 @@ struct MetadataListInspectorView: View {
     private func field(_ label: String, tag: MetadataTag,
                        values: [[MetadataTag: MetadataTagValue]]) -> some View {
         let summary = MetadataSelectionValue.summarize(values, tag: tag)
-        return LabeledContent(label) {
-            VStack(alignment: .trailing, spacing: 3) {
-                Text(display(summary))
-                    .multilineTextAlignment(.trailing)
-                    .textSelection(.enabled)
-                Text(tag.rawValue).font(.caption2).foregroundStyle(.secondary)
+        return VStack(alignment: .leading, spacing: 8) {
+            LabeledContent(label) {
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text(display(summary))
+                        .multilineTextAlignment(.trailing)
+                        .textSelection(.enabled)
+                    Text(tag.rawValue).font(.caption2).foregroundStyle(.secondary)
+                }
             }
+            if tag == .creator { creatorCompatibility(values: values) }
+        }
+    }
+
+    @ViewBuilder
+    private func creatorCompatibility(values: [[MetadataTag: MetadataTagValue]]) -> some View {
+        if let legacy = completeLegacyValues {
+            ForEach([LegacyCreatorTag.exifArtist, .iptcByline], id: \.rawValue) { tag in
+                LabeledContent(tag.rawValue) {
+                    Text(display(MetadataSelectionValue.summarize(legacy, tag: tag)))
+                        .multilineTextAlignment(.trailing)
+                        .textSelection(.enabled)
+                }
+            }
+            let conflicts = zip(values, legacy).filter {
+                MetadataSelectionValue.creatorSourcesConflict(xmp: $0[.creator], legacy: $1)
+            }.count
+            if conflicts > 0 {
+                Text(L10n.text("作者来源冲突：%1$@ 张。", conflicts))
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+        } else if legacyReadFailureCount > 0 {
+            Text(L10n.text("兼容作者来源读取失败：%1$@ 张。", legacyReadFailureCount))
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
