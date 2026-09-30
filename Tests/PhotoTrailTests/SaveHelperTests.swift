@@ -147,12 +147,25 @@ struct SaveHelperTests {
         #expect(try Exiftool.helper.metadataTags([.creator], from: imageURL)[.creator]
                 == .list(["External author"]))
 
+        store.send(.creatorDraftApplied(try plan("Unknown author").items))
+        store.send(.creatorSaveResult(image.id, .resultUnknown), undoable: false)
+        let beforeUnknownRetry = try Data(contentsOf: imageURL)
+        await store.send(.saveRequest) {
+            _ = await SaveHelper.save(store).result
+        }
+        #expect(try Data(contentsOf: imageURL) == beforeUnknownRetry)
+        #expect(store.creatorSaveResults[image.id] == .resultUnknown)
+        #expect(store[image.id].creatorDraft != nil && store.unsavedChanges)
+
         store.send(.selectionChanged([image.id]))
         store.send(.locationChanged(Coords(latitude: 31.23, longitude: 121.48)))
         #expect(SaveTargets(images: store.imageData).conflicts == [0])
         #expect(!SaveHelper.requestSave(store))
         #expect(!store.saveInProgress && store.unsavedChanges)
         #expect(store[image.id].creatorDraft != nil)
+        store.send(.creatorDraftRemoved(image.id))
+        #expect(store[image.id].creatorDraft == nil && store.creatorSaveResults[image.id] == nil)
+        #expect(store.unsavedChanges)
     }
 
     @Test func cancelSaveSummaryLeavesChangesPending() {

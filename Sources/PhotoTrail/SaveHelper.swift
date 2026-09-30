@@ -420,6 +420,11 @@ extension SaveHelper {
             if doNotBackup { .disabled } else { .folder(store.backupURL!) }
         var status: SaveStatus = .saveOK
         for item in items {
+            if store.creatorSaveResults[item.id] == .resultUnknown {
+                status = .saveError
+                store.send(.saveProgress(1), undoable: false)
+                continue
+            }
             let result = await item.save(backup: backup)
             store.send(.creatorSaveResult(item.id, result), undoable: false)
             if result == .saved || result == .unchanged {

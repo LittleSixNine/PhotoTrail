@@ -184,6 +184,7 @@ struct MetadataListInspectorView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+                    creatorSaveSummary()
                     Button(L10n.text("重新读取元数据")) { revision += 1 }
                 }
             }
@@ -280,6 +281,49 @@ struct MetadataListInspectorView: View {
 }
 
 private extension MetadataListInspectorView {
+    @ViewBuilder
+    func creatorSaveSummary() -> some View {
+        let completed = selected.filter {
+            store.creatorSaveResults[$0.id] == .saved || store.creatorSaveResults[$0.id] == .unchanged
+        }.count
+        let failed = selected.filter {
+            guard let result = store.creatorSaveResults[$0.id] else { return false }
+            return result != .saved && result != .unchanged
+        }
+        if completed > 0 || !failed.isEmpty {
+            Text(L10n.text("作者保存：成功 %1$@ 张，待处理 %2$@ 张。", completed, failed.count))
+                .font(.caption).foregroundStyle(.secondary)
+            ForEach(failed.prefix(20)) { image in
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(image.name).font(.caption.weight(.medium))
+                    if let result = store.creatorSaveResults[image.id] {
+                        Text(creatorSaveMessage(result)).font(.caption).foregroundStyle(.orange)
+                    }
+                    if image.creatorDraft != nil {
+                        Button(L10n.text("放弃该作者草稿")) {
+                            store.send(.creatorDraftRemoved(image.id), description: L10n.text("放弃该作者草稿"))
+                            revision += 1
+                        }.disabled(store.saveInProgress)
+                    }
+                }
+            }
+            if failed.count > 20 {
+                Text(L10n.text("另有 %1$@ 张待处理", failed.count - 20))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    func creatorSaveMessage(_ result: MetadataCreatorSaveResult) -> String {
+        switch result {
+        case .saved, .unchanged: ""
+        case .staleSource: L10n.text("源文件已变化；请放弃草稿并重新读取。")
+        case .preparationFailed: L10n.text("备份或写入准备失败；请检查备份目录。")
+        case .failed: L10n.text("作者写入失败；请检查文件权限。")
+        case .resultUnknown: L10n.text("作者写入结果未确认；请先检查磁盘文件，不能直接重试。")
+        }
+    }
+
     @ViewBuilder
     func creatorCompatibility(values: [[MetadataTag: MetadataTagValue]]) -> some View {
         if let legacy = completeLegacyValues {

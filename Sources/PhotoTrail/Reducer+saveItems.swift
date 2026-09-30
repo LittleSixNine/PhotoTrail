@@ -44,6 +44,15 @@ struct SaveTargets {
 
 extension PhotoTrailReducer {
 
+    func clearCreatorDraft(_ state: inout PhotoTrailState, id: ImageData.ID, discard: Bool) {
+        guard state.imageData.contains(where: { $0.id == id }) else { return }
+        state[id].creatorDraft = nil
+        if discard {
+            state.creatorSaveResults[id] = nil
+            state.unsavedChanges = state.imageData.contains { $0.hasPendingChanges }
+        }
+    }
+
     // save the indices of all updatable images that have changed.
     // The save process continues in a future step.
 

@@ -18,7 +18,8 @@ struct PhotoTrailReducer: Reducer, Sendable {
         if state.saveInProgress {
             switch event {
             case .addressChanged, .clearImagesRequest, .deleteRequest, .removeImages, .discardChangesRequest,
-                 .creatorDraftApplied, .locationChanged, .applyTrackMatches, .newTimestamp, .pasteRequest,
+                 .creatorDraftApplied, .creatorDraftRemoved, .locationChanged, .applyTrackMatches,
+                 .newTimestamp, .pasteRequest,
                  .placeSelection, .timeZoneChanged, .openCommand, .openFiles, .saveRequest:
                 return state
             default: break
@@ -87,8 +88,8 @@ struct PhotoTrailReducer: Reducer, Sendable {
             }
             newState.unsavedChanges = newState.imageData.contains { $0.hasPendingChanges }
 
-        case .creatorSaved(let id):
-            newState[id].creatorDraft = nil
+        case .creatorDraftRemoved(let id), .creatorSaved(let id):
+            clearCreatorDraft(&newState, id: id, discard: event == .creatorDraftRemoved(id))
 
         case .creatorSaveResult(let id, let result):
             newState.creatorSaveResults[id] = result

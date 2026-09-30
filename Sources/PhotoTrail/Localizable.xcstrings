@@ -1,6 +1,90 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "作者保存：成功 %1$@ 张，待处理 %2$@ 张。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Creator save: %1$@ succeeded, %2$@ need attention." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "作者保存：成功 %1$@ 张，待处理 %2$@ 张。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "作者儲存：成功 %1$@ 張，待處理 %2$@ 張。" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "作成者の保存：成功 %1$@ 枚、要確認 %2$@ 枚。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "작성자 저장: 성공 %1$@장, 확인 필요 %2$@장." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Guardado de autor: %1$@ correctas, %2$@ pendientes." } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Salvamento do autor: %1$@ concluídas, %2$@ pendentes." } }
+      }
+    },
+    "放弃该作者草稿": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Discard this creator draft" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "放弃该作者草稿" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "放棄此作者草稿" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "この作成者の下書きを破棄" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "이 작성자 초안 버리기" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Descartar este borrador de autor" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Descartar este rascunho de autor" } }
+      }
+    },
+    "另有 %1$@ 张待处理": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "%1$@ more photos need attention" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "另有 %1$@ 张待处理" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "另有 %1$@ 張待處理" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "ほかに %1$@ 枚要確認" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "추가로 %1$@장 확인 필요" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Hay %1$@ fotos más pendientes" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Mais %1$@ fotos pendentes" } }
+      }
+    },
+    "源文件已变化；请放弃草稿并重新读取。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Source file changed; discard the draft and reload." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "源文件已变化；请放弃草稿并重新读取。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "來源檔案已變更；請放棄草稿並重新讀取。" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "元ファイルが変更されました。下書きを破棄して再読み込みしてください。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "원본 파일이 변경되었습니다. 초안을 버리고 다시 읽으세요." } },
+        "es": { "stringUnit": { "state": "translated", "value": "El archivo de origen cambió; descarte el borrador y vuelva a leerlo." } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "O arquivo de origem mudou; descarte o rascunho e releia." } }
+      }
+    },
+    "备份或写入准备失败；请检查备份目录。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Backup or write preparation failed; check the backup folder." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "备份或写入准备失败；请检查备份目录。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "備份或寫入準備失敗；請檢查備份資料夾。" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "バックアップまたは書き込みの準備に失敗しました。バックアップ先を確認してください。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "백업 또는 쓰기 준비에 실패했습니다. 백업 폴더를 확인하세요." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Falló la preparación de la copia de seguridad o escritura; revise la carpeta de copias." } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Falha ao preparar o backup ou a gravação; verifique a pasta de backup." } }
+      }
+    },
+    "作者写入失败；请检查文件权限。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Creator write failed; check file permissions." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "作者写入失败；请检查文件权限。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "作者寫入失敗；請檢查檔案權限。" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "作成者を書き込めませんでした。ファイルの権限を確認してください。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "작성자 쓰기에 실패했습니다. 파일 권한을 확인하세요." } },
+        "es": { "stringUnit": { "state": "translated", "value": "Falló la escritura del autor; revise los permisos del archivo." } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Falha ao gravar o autor; verifique as permissões do arquivo." } }
+      }
+    },
+    "作者写入结果未确认；请先检查磁盘文件，不能直接重试。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Creator write result is unknown; inspect the file on disk before retrying." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "作者写入结果未确认；请先检查磁盘文件，不能直接重试。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "作者寫入結果未確認；請先檢查磁碟檔案，不可直接重試。" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "作成者の書き込み結果を確認できません。再試行する前にディスク上のファイルを確認してください。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "작성자 쓰기 결과를 확인할 수 없습니다. 다시 시도하기 전에 디스크 파일을 확인하세요." } },
+        "es": { "stringUnit": { "state": "translated", "value": "No se confirmó la escritura del autor; revise el archivo en disco antes de reintentar." } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "O resultado da gravação do autor é desconhecido; verifique o arquivo no disco antes de tentar novamente." } }
+      }
+    },
     "元数据": {
       "extractionState": "manual",
       "localizations": {
