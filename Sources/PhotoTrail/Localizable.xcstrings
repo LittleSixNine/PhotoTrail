@@ -1,6 +1,150 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "元数据": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Metadata" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "元数据" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "中繼資料" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "メタデータ" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "메타데이터" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Metadatos" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Metadados" } }
+      }
+    },
+    "编辑作者…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Edit creator…" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "编辑作者…" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "編輯作者…" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "作成者を編集…" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "작성자 편집…" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Editar autor…" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Editar autor…" } }
+      }
+    },
+    "作者修改待保存": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Creator changes pending save" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "作者修改待保存" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "作者修改待儲存" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "作成者の変更は未保存です" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "작성자 변경 사항 저장 대기 중" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Cambios de autor pendientes de guardar" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Alterações de autor pendentes de salvamento" } }
+      }
+    },
+    "设为": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Set to" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "设为" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "設為" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "設定" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "설정" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Establecer" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Definir" } }
+      }
+    },
+    "仅补空值": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Fill missing only" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "仅补空值" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "僅填補空值" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "空欄のみ入力" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "빈 항목만 채우기" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Rellenar solo vacíos" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Preencher apenas vazios" } }
+      }
+    },
+    "清除作者": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Clear creator" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "清除作者" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "清除作者" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "作成者を消去" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "작성자 지우기" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Borrar autor" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Limpar autor" } }
+      }
+    },
+    "作者操作": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Creator action" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "作者操作" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "作者操作" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "作成者の操作" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "작성자 작업" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Acción de autor" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Ação do autor" } }
+      }
+    },
+    "每行一位作者": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "One creator per line" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "每行一位作者" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "每行一位作者" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "1行に1人の作成者" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "한 줄에 작성자 한 명" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Un autor por línea" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Um autor por linha" } }
+      }
+    },
+    "加入待保存修改": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Add to pending changes" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "加入待保存修改" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "加入待儲存修改" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "未保存の変更に追加" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "저장 대기 변경 사항에 추가" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Añadir a los cambios pendientes" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Adicionar às alterações pendentes" } }
+      }
+    },
+    "预览：%1$@ 张将修改": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Preview: %1$@ photos to change" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "预览：%1$@ 张将修改" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "預覽：將修改 %1$@ 張" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "プレビュー：%1$@枚を変更" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "미리보기: %1$@장 변경 예정" } },
+        "es": { "stringUnit": { "state": "translated", "value": "Vista previa: se cambiarán %1$@ fotos" } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Prévia: %1$@ fotos serão alteradas" } }
+      }
+    },
+    "无法预览作者修改；请检查输入并重新读取元数据。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Cannot preview creator changes; check the input and reload metadata." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "无法预览作者修改；请检查输入并重新读取元数据。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "無法預覽作者修改；請檢查輸入並重新讀取中繼資料。" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "作成者の変更をプレビューできません。入力を確認し、メタデータを再読み込みしてください。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "작성자 변경 사항을 미리 볼 수 없습니다. 입력을 확인하고 메타데이터를 다시 읽으세요." } },
+        "es": { "stringUnit": { "state": "translated", "value": "No se pueden previsualizar los cambios de autor; revise la entrada y vuelva a leer los metadatos." } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "Não é possível pré-visualizar as alterações de autor; verifique a entrada e releia os metadados." } }
+      }
+    },
+    "来源文件已变化；请重新读取元数据。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "The source file changed; reload metadata." } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "来源文件已变化；请重新读取元数据。" } },
+        "zh-Hant": { "stringUnit": { "state": "translated", "value": "來源檔案已變更；請重新讀取中繼資料。" } },
+        "ja": { "stringUnit": { "state": "translated", "value": "元ファイルが変更されました。メタデータを再読み込みしてください。" } },
+        "ko": { "stringUnit": { "state": "translated", "value": "원본 파일이 변경되었습니다. 메타데이터를 다시 읽으세요." } },
+        "es": { "stringUnit": { "state": "translated", "value": "El archivo de origen ha cambiado; vuelva a leer los metadatos." } },
+        "pt-BR": { "stringUnit": { "state": "translated", "value": "O arquivo de origem mudou; releia os metadados." } }
+      }
+    },
     "图像文件：%1$@": {
       "extractionState": "manual",
       "localizations": {

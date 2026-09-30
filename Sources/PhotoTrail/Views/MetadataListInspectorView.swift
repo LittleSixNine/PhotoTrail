@@ -24,6 +24,7 @@ struct MetadataListInspectorView: View {
     @State private var loadID = UUID()
     @State private var revision = 0
     @State private var fieldQuery = ""
+    @State private var creatorEditor: MetadataCreatorEditorSelection?
 
     private let fields: [MetadataTag] = [.creator, .descriptionDefault, .subject]
 
@@ -68,6 +69,23 @@ struct MetadataListInspectorView: View {
             return legacy
         }
         return values.count == selected.count ? values : nil
+    }
+
+    private var editableCreatorReadings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)]? {
+        guard !selected.isEmpty, !store.saveInProgress else { return nil }
+        var readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)] = []
+        for image in selected {
+            guard image.updatable, image.metadata == image.original, image.creatorDraft == nil,
+                  case .values(let snapshot, _) = results[image.id] else { return nil }
+            switch image.metadata.source {
+            case .image(let url) where ["jpg", "jpeg"].contains(url.pathExtension.lowercased()):
+                readings.append((image, snapshot))
+            case .xmp:
+                readings.append((image, snapshot))
+            default: return nil
+            }
+        }
+        return readings
     }
 
     private var visibleFields: [MetadataTag] {
@@ -133,7 +151,7 @@ struct MetadataListInspectorView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text(L10n.text("元数据（只读）")).font(.headline)
+                Text(L10n.text("元数据")).font(.headline)
                 if selected.isEmpty {
                     Text(L10n.text("Please select an image"))
                         .foregroundStyle(.secondary)
@@ -177,6 +195,12 @@ struct MetadataListInspectorView: View {
         }
         .onChange(of: scenePhase) {
             if scenePhase == .active { reloadIfFilesChanged() }
+        }
+        .onChange(of: store.saveInProgress) {
+            if !store.saveInProgress { revision += 1 }
+        }
+        .sheet(item: $creatorEditor) { selection in
+            MetadataCreatorEditorView(readings: selection.readings)
         }
         .task(id: loadKey) {
             let requests = selected.map {
@@ -239,11 +263,25 @@ struct MetadataListInspectorView: View {
                 }
             }
             if tag == .creator { creatorCompatibility(values: values) }
+            if tag == .creator {
+                Button(L10n.text("编辑作者…")) {
+                    if let readings = editableCreatorReadings {
+                        creatorEditor = MetadataCreatorEditorSelection(readings: readings)
+                    }
+                }
+                .disabled(editableCreatorReadings == nil)
+                if selected.contains(where: { $0.creatorDraft?.change != nil }) {
+                    Text(L10n.text("作者修改待保存"))
+                        .font(.caption).foregroundStyle(.orange)
+                }
+            }
         }
     }
+}
 
+private extension MetadataListInspectorView {
     @ViewBuilder
-    private func creatorCompatibility(values: [[MetadataTag: MetadataTagValue]]) -> some View {
+    func creatorCompatibility(values: [[MetadataTag: MetadataTagValue]]) -> some View {
         if let legacy = completeLegacyValues {
             ForEach([LegacyCreatorTag.exifArtist, .iptcByline], id: \.rawValue) { tag in
                 LabeledContent(tag.rawValue) {
@@ -267,7 +305,7 @@ struct MetadataListInspectorView: View {
         }
     }
 
-    private func display(_ summary: MetadataSelectionValue) -> String {
+    func display(_ summary: MetadataSelectionValue) -> String {
         switch summary {
         case .unselected: "—"
         case .absent: L10n.text("未填写")
