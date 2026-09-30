@@ -108,4 +108,96 @@ struct MetadataCreatorEditTests {
                 [(image: first, snapshot: unreadCreator)], action: .fillMissing(["Bob"]))
         }
     }
+
+    @Test func creatorSaveUsesRealTargetBackupAndRejectsStaleOrUnbackedWrites() async throws {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: folder,
+                                                withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let backup = folder.appendingPathComponent("backup", isDirectory: true)
+        try FileManager.default.createDirectory(at: backup,
+                                                withIntermediateDirectories: true)
+        let jpegFixture = try #require(Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
+        let jpeg = folder.appendingPathComponent("alldata.jpg")
+        try FileManager.default.copyItem(at: jpegFixture, to: jpeg)
+        let jpegBefore = try Data(contentsOf: jpeg)
+        let image = ImageData(metadata: Metadata(source: .image(jpeg)), name: "alldata.jpg")
+        let snapshot = try MetadataInspectionSnapshot.read([.creator], from: jpeg)
+        let names = ["六九，作者", UUID().uuidString]
+        let plan = try MetadataCreatorEditPlan.prepare(
+            [(image: image, snapshot: snapshot)], action: .set(names))
+        let item = try #require(plan.items.first)
+        #expect(await item.save(backup: .folder(backup)) == .saved)
+        #expect(try Data(contentsOf: backup.appendingPathComponent("alldata.jpg")) == jpegBefore)
+        #expect(try Exiftool.helper.metadataTags([.creator], from: jpeg)[.creator] == .list(names))
+
+        let savedSnapshot = try MetadataInspectionSnapshot.read([.creator], from: jpeg)
+        let unchanged = try #require(MetadataCreatorEditPlan.prepare(
+            [(image: image, snapshot: savedSnapshot)], action: .set(names)).items.first)
+        #expect(await unchanged.save(backup: .folder(folder.appendingPathComponent("missing")))
+                == .unchanged)
+        let next = try #require(MetadataCreatorEditPlan.prepare(
+            [(image: image, snapshot: savedSnapshot)], action: .set(["Next"])).items.first)
+        let jpegAfter = try Data(contentsOf: jpeg)
+        #expect(await next.save(backup: .folder(folder.appendingPathComponent("missing")))
+                == .preparationFailed)
+        #expect(try Data(contentsOf: jpeg) == jpegAfter)
+        _ = try Exiftool.helper.update(image: jpeg,
+                                      changes: [.creator: .set(.list(["External"]))])
+        #expect(await next.save(backup: .folder(backup)) == .staleSource)
+
+        let dngFixture = try #require(Bundle.module.url(forResource: "262M1559", withExtension: "DNG"))
+        let xmpFixture = try #require(Bundle.module.url(forResource: "262M1559", withExtension: "xmp"))
+        let dng = folder.appendingPathComponent("262M1559.DNG")
+        let xmp = folder.appendingPathComponent("262M1559.xmp")
+        try FileManager.default.copyItem(at: dngFixture, to: dng)
+        try FileManager.default.copyItem(at: xmpFixture, to: xmp)
+        let dngBefore = try Data(contentsOf: dng)
+        let xmpBefore = try Data(contentsOf: xmp)
+        let sidecarImage = ImageData(metadata: Metadata(source: .xmp(dng)), name: "262M1559.DNG")
+        let sidecarSnapshot = try MetadataInspectionSnapshot.read([.creator], from: xmp)
+        let sidecarPlan = try MetadataCreatorEditPlan.prepare(
+            [(image: sidecarImage, snapshot: sidecarSnapshot)], action: .set(names))
+        let sidecarItem = try #require(sidecarPlan.items.first)
+        #expect(await sidecarItem.save(backup: .folder(backup)) == .saved)
+        #expect(try Data(contentsOf: backup.appendingPathComponent("262M1559.xmp")) == xmpBefore)
+        #expect(try Data(contentsOf: dng) == dngBefore)
+        #expect(try Exiftool.helper.metadataTags([.creator], from: xmp)[.creator] == .list(names))
+    }
+
+    @Test func creatorUnknownWriteReconcilesWithoutReplaying() {
+        enum ControlledError: Error { case write, read, validation }
+        let change = MetadataTagChange.set(.list(["Final"]))
+        var writeCount = 0
+        var readCount = 0
+        let saved = MetadataCreatorEditPlan.Item.write(change: change, update: {
+            writeCount += 1
+            throw MetadataTagUpdateError.readbackFailed(underlying: ControlledError.write)
+        }, readback: {
+            readCount += 1
+            return .list(["Final"])
+        })
+        #expect(saved == .saved)
+        #expect(writeCount == 1 && readCount == 1)
+
+        let unknown = MetadataCreatorEditPlan.Item.write(change: change, update: {
+            throw MetadataTagUpdateError.writeFailed(underlying: ControlledError.write)
+        }, readback: { .list(["Third value"]) })
+        #expect(unknown == .resultUnknown)
+        let unreadable = MetadataCreatorEditPlan.Item.write(change: .remove, update: {
+            throw MetadataTagUpdateError.writeFailed(underlying: ControlledError.write)
+        }, readback: { throw ControlledError.read })
+        #expect(unreadable == .resultUnknown)
+
+        var validationReadCount = 0
+        let failed = MetadataCreatorEditPlan.Item.write(change: change, update: {
+            throw ControlledError.validation
+        }, readback: {
+            validationReadCount += 1
+            return nil
+        })
+        #expect(failed == .failed)
+        #expect(validationReadCount == 0)
+    }
 }

@@ -1,5 +1,6 @@
 import Exiftool
 import Foundation
+import Imagetool
 
 public enum MetadataCreatorValue: Equatable, Sendable {
     case absent
@@ -47,7 +48,9 @@ public enum MetadataCreatorPlanError: Error {
 public struct MetadataCreatorEditPlan: Sendable {
     public struct Item: Sendable {
         public let id: ImageData.ID
+        public let imageURL: URL
         public let target: URL
+        public let sidecar: Bool
         public let original: MetadataCreatorValue
         public let version: MetadataInspectionFileVersion
         public let change: MetadataTagChange?
@@ -68,11 +71,15 @@ public struct MetadataCreatorEditPlan: Sendable {
         var seen = Set<FileID>()
         var items: [Item] = []
         for reading in readings {
+            let imageURL: URL
+            let sidecar: Bool
             switch reading.image.metadata.source {
-            case .xmp:
-                break
+            case .xmp(let url):
+                imageURL = url
+                sidecar = true
             case .image(let url) where ["jpg", "jpeg"].contains(url.pathExtension.lowercased()):
-                break
+                imageURL = url
+                sidecar = false
             default:
                 throw MetadataCreatorPlanError.unavailableTarget
             }
@@ -98,10 +105,89 @@ public struct MetadataCreatorEditPlan: Sendable {
             default:
                 throw MetadataCreatorPlanError.invalidValue
             }
-            items.append(Item(id: reading.image.id, target: target,
+            items.append(Item(id: reading.image.id, imageURL: imageURL,
+                              target: target, sidecar: sidecar,
                               original: value, version: reading.snapshot.version,
                               change: try action.change(from: value)))
         }
         return Self(items: items)
+    }
+}
+
+public enum MetadataCreatorBackup: Sendable {
+    case folder(URL)
+    case disabled
+}
+
+public enum MetadataCreatorSaveResult: Equatable, Sendable {
+    case unchanged
+    case saved
+    case staleSource
+    case preparationFailed
+    case failed
+    case resultUnknown
+}
+
+public extension MetadataCreatorEditPlan.Item {
+    func save(backup: MetadataCreatorBackup) async -> MetadataCreatorSaveResult {
+        guard let change else { return .unchanged }
+        guard MetadataInspectionFileVersion.read(target) == version else { return .staleSource }
+
+        let sandbox: Sandbox
+        do {
+            sandbox = try Sandbox(for: imageURL)
+        } catch {
+            return .preparationFailed
+        }
+        defer { sandbox.removeSandboxFolder() }
+        do {
+            switch backup {
+            case .folder(let folder):
+                if sidecar {
+                    try await sandbox.makeSidecarBackup(folder)
+                } else {
+                    try await sandbox.makeImageBackup(folder)
+                }
+            case .disabled:
+                break
+            }
+        } catch {
+            return .preparationFailed
+        }
+        guard MetadataInspectionFileVersion.read(target) == version else { return .staleSource }
+
+        return Self.write(change: change, update: {
+            _ = try sandbox.updateMetadataTags([.creator: change], sidecar: sidecar)
+        }, readback: {
+            try sandbox.metadataTags([.creator], sidecar: sidecar)[.creator]
+        })
+    }
+
+    internal static func write(
+        change: MetadataTagChange,
+        update: () throws -> Void,
+        readback: () throws -> MetadataTagValue?
+    ) -> MetadataCreatorSaveResult {
+        do {
+            try update()
+            return .saved
+        } catch is MetadataTagUpdateError {
+            let actual: MetadataTagValue?
+            do {
+                actual = try readback()
+            } catch {
+                return .resultUnknown
+            }
+            switch change {
+            case .set(let expected) where actual == expected:
+                return .saved
+            case .remove where actual == nil:
+                return .saved
+            default:
+                return .resultUnknown
+            }
+        } catch {
+            return .failed
+        }
     }
 }
