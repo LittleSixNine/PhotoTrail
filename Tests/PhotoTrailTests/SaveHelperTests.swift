@@ -93,6 +93,68 @@ struct SaveHelperTests {
         #expect(validationReadbackCount == 0)
     }
 
+    @Test func creatorDraftSavesThroughStoreAndRetainsStaleFailure() async throws {
+        let source = try #require(PhotoTrailState(forPreview: true).imageData.compactMap { image -> URL? in
+            guard case .image(let url) = image.metadata.source,
+                  url.pathExtension.lowercased() == "jpg" else { return nil }
+            return url
+        }.first)
+        let folder = URL.temporaryDirectory.appending(component: UUID().uuidString,
+                                                       directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: folder,
+                                                withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let imageURL = folder.appending(component: source.lastPathComponent)
+        try FileManager.default.copyItem(at: source, to: imageURL)
+        let image = ImageData(metadata: Exiftool.helper.metadata(from: nil, primaryURL: imageURL),
+                              name: imageURL.lastPathComponent)
+        var state = PhotoTrailState()
+        state.imageData = [image]
+        state.backupURL = folder.appending(component: "backup", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: state.backupURL!,
+                                                withIntermediateDirectories: true)
+        let store = Store(initialState: state, reduce: PhotoTrailReducer(), undoEnabled: true)
+
+        func plan(_ author: String) throws -> MetadataCreatorEditPlan {
+            let snapshot = try MetadataInspectionSnapshot.read([.creator], from: imageURL)
+            return try MetadataCreatorEditPlan.prepare(
+                [(image: store[image.id], snapshot: snapshot)], action: .set([author]))
+        }
+        store.send(.creatorDraftApplied(try plan("Draft author").items))
+        #expect(store.unsavedChanges)
+        #expect(SaveTargets(images: store.imageData).creator == [0])
+        store.undo()
+        #expect(!store.unsavedChanges)
+
+        store.send(.creatorDraftApplied(try plan("Saved author").items))
+        await store.send(.saveRequest) {
+            _ = await SaveHelper.save(store).result
+        }
+        #expect(!store.unsavedChanges)
+        #expect(store.creatorSaveResults[image.id] == .saved)
+        #expect(try Exiftool.helper.metadataTags([.creator], from: imageURL)[.creator]
+                == .list(["Saved author"]))
+
+        store.send(.creatorDraftApplied(try plan("Pending author").items))
+        _ = try Exiftool.helper.update(image: imageURL,
+                                      changes: [.creator: .set(.list(["External author"]))])
+        await store.send(.saveRequest) {
+            _ = await SaveHelper.save(store).result
+        }
+        #expect(store.unsavedChanges)
+        #expect(store[image.id].creatorDraft != nil)
+        #expect(store.creatorSaveResults[image.id] == .staleSource)
+        #expect(try Exiftool.helper.metadataTags([.creator], from: imageURL)[.creator]
+                == .list(["External author"]))
+
+        store.send(.selectionChanged([image.id]))
+        store.send(.locationChanged(Coords(latitude: 31.23, longitude: 121.48)))
+        #expect(SaveTargets(images: store.imageData).conflicts == [0])
+        #expect(!SaveHelper.requestSave(store))
+        #expect(!store.saveInProgress && store.unsavedChanges)
+        #expect(store[image.id].creatorDraft != nil)
+    }
+
     @Test func cancelSaveSummaryLeavesChangesPending() {
         let key = SettingsPreferences.showSaveSummaryKey
         let previous = UserDefaults.standard.object(forKey: key)

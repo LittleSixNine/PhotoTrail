@@ -81,6 +81,8 @@ struct PhotoTrailState {
     var libraryImages: [ImageData.ID] = []
     var fileImages: [ImageData.ID] = []
     var xmpImages: [ImageData.ID] = []
+    var creatorImages: [ImageData.ID] = []
+    var creatorSaveResults: [ImageData.ID: MetadataCreatorSaveResult] = [:]
     var backupURL: URL?
 
     var mainWindow: NSWindow?

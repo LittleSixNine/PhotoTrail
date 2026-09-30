@@ -18,7 +18,7 @@ struct PhotoTrailReducer: Reducer, Sendable {
         if state.saveInProgress {
             switch event {
             case .addressChanged, .clearImagesRequest, .deleteRequest, .removeImages, .discardChangesRequest,
-                 .locationChanged, .applyTrackMatches, .newTimestamp, .pasteRequest,
+                 .creatorDraftApplied, .locationChanged, .applyTrackMatches, .newTimestamp, .pasteRequest,
                  .placeSelection, .timeZoneChanged, .openCommand, .openFiles, .saveRequest:
                 return state
             default: break
@@ -27,7 +27,7 @@ struct PhotoTrailReducer: Reducer, Sendable {
         var newState = state
         newState.version &+= 1
         switch event {
-        case .saveProgress, .imageSaved, .sidecarCreated: break
+        case .saveProgress, .imageSaved, .sidecarCreated, .creatorSaved, .creatorSaveResult: break
         default: newState.mapRevision &+= 1
         }
         // logger.debug("event: \(event)")
@@ -73,11 +73,37 @@ struct PhotoTrailReducer: Reducer, Sendable {
         case .clearUniqueURLs:
             newState.uniqueURLs = nil
 
+        case .creatorDraftApplied(let items):
+            let ids = Set(items.map(\.id))
+            guard ids.count == items.count,
+                  items.allSatisfy({ item in
+                      newState.imageData.contains {
+                          $0.id == item.id && $0.metadataInspectionURL == item.target && $0.updatable
+                      }
+                  }) else { return state }
+            for item in items {
+                newState[item.id].creatorDraft = item.change == nil ? nil : item
+                newState.creatorSaveResults[item.id] = nil
+            }
+            newState.unsavedChanges = newState.imageData.contains { $0.hasPendingChanges }
+
+        case .creatorSaved(let id):
+            newState[id].creatorDraft = nil
+
+        case .creatorSaveResult(let id, let result):
+            newState.creatorSaveResults[id] = result
+
+        case .creatorSaveConflict:
+            newState.addSheet(type: .saveErrorSheet)
+
         case .removeImages(let ids):
             let removed = ids.union(state.imageData.filter { ids.contains($0.id) }.compactMap(\.pairedID))
             newState.imageData.removeAll { removed.contains($0.id) }
             newState.pairingEligibleIDs?.subtract(removed)
             newState.locationSavedPhotoIDs.subtract(removed)
+            newState.creatorSaveResults = newState.creatorSaveResults.filter {
+                !removed.contains($0.key)
+            }
             selectionChanged(&newState, selection: state.selection.subtracting(removed))
             newState.unsavedChanges = newState.imageData.contains { $0.hasPendingChanges }
 
@@ -218,18 +244,19 @@ struct PhotoTrailReducer: Reducer, Sendable {
             newState.libraryImages = []
             newState.fileImages = []
             newState.xmpImages = []
+            newState.creatorImages = []
             switch saveStatus {
             case .saveOK:
-                newState.unsavedChanges = false
+                break
             case .saveError:
                 newState.addSheet(type: .saveErrorSheet)
             case .saveErrorSupressWarning:
                 break
             case .saveTagError:
-                newState.unsavedChanges = false
                 newState.addSheet(type: .unexpectedErrorSheet,
                                   message: L10n.text("The metadata was saved, but the Finder tag could not be added."))
             }
+            newState.unsavedChanges = newState.imageData.contains { $0.hasPendingChanges }
 
         case .saveProgress(let completed):
             newState.saveCompleted = min(newState.saveTotal, newState.saveCompleted + max(0, completed))

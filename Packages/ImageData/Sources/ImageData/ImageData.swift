@@ -13,6 +13,7 @@ public struct ImageData: Identifiable, Sendable {
     public let name: String
     public var metadata: Metadata
     public var original: Metadata?
+    public var creatorDraft: MetadataCreatorEditPlan.Item?
     public var pairedID: ImageData.ID?
     public var thumbnail: Image?
 
@@ -22,6 +23,10 @@ public struct ImageData: Identifiable, Sendable {
 
     public var updatable: Bool {
         original != nil
+    }
+
+    public var hasPendingChanges: Bool {
+        updatable && (metadata != original || creatorDraft?.change != nil)
     }
 
     // init given a Metadata and a String name.

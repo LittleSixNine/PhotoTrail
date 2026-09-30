@@ -6,7 +6,6 @@ import UDF
 import UniformTypeIdentifiers
 
 extension ImageData {
-    var hasPendingChanges: Bool { updatable && metadata != original }
     var hasPendingLocationChanges: Bool { updatable && metadata.location != original?.location }
     var importedWithLocation: Bool {
         metadata.location != nil && (original?.location != nil || !updatable)

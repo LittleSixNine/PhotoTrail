@@ -46,7 +46,7 @@ public enum MetadataCreatorPlanError: Error {
 }
 
 public struct MetadataCreatorEditPlan: Sendable {
-    public struct Item: Sendable {
+    public struct Item: Equatable, Sendable {
         public let id: ImageData.ID
         public let imageURL: URL
         public let target: URL

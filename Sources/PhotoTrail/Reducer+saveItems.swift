@@ -10,11 +10,26 @@ struct SaveTargets {
     var library: [Int] = []
     var files: [Int] = []
     var xmp: [Int] = []
+    var creator: [Int] = []
+    var creatorFiles = 0
+    var conflicts: [Int] = []
 
     init(images: [ImageData]) {
         for index in images.indices {
             let image = images[index]
-            guard image.updatable, image.metadata != image.original else { continue }
+            guard image.updatable else { continue }
+            let metadataChanged = image.metadata != image.original
+            let creatorChanged = image.creatorDraft?.change != nil
+            if metadataChanged && creatorChanged {
+                conflicts.append(index)
+                continue
+            }
+            if creatorChanged {
+                creator.append(index)
+                if case .image = image.metadata.source { creatorFiles += 1 }
+                continue
+            }
+            guard metadataChanged else { continue }
             switch image.metadata.source {
             case .photos: library.append(index)
             case .image: files.append(index)
@@ -24,7 +39,7 @@ struct SaveTargets {
         }
     }
 
-    var total: Int { library.count + files.count + xmp.count }
+    var total: Int { library.count + files.count + xmp.count + creator.count }
 }
 
 extension PhotoTrailReducer {
@@ -38,6 +53,7 @@ extension PhotoTrailReducer {
         state.libraryImages = targets.library
         state.fileImages = targets.files
         state.xmpImages = targets.xmp
+        state.creatorImages = targets.creator
         state.saveCompleted = 0
         state.saveTotal = targets.total
     }
@@ -49,7 +65,9 @@ extension PhotoTrailReducer {
                     state.imageData[ix].metadata.restore(from: original)
                 }
             }
+            state.imageData[ix].creatorDraft = nil
         }
+        state.creatorSaveResults = [:]
         state.unsavedChanges = false
     }
 
@@ -63,5 +81,6 @@ extension PhotoTrailReducer {
         state.imageData = []
         state.pairingEligibleIDs = nil
         state.locationSavedPhotoIDs = []
+        state.creatorSaveResults = [:]
     }
 }

@@ -93,6 +93,10 @@ enum SaveHelper {
                             confirm: ((SaveTargets) -> Bool)? = nil) -> Bool {
         guard !store.saveInProgress, store.unsavedChanges else { return false }
         let targets = SaveTargets(images: store.imageData)
+        guard targets.conflicts.isEmpty else {
+            store.send(.creatorSaveConflict, undoable: false)
+            return false
+        }
         if targets.total > 0,
            UserDefaults.standard.bool(forKey: SettingsPreferences.showSaveSummaryKey),
            !(confirm?(targets) ?? confirmSave(targets, backupURL: store.backupURL)) {
@@ -104,7 +108,7 @@ enum SaveHelper {
     }
 
     private static func confirmSave(_ targets: SaveTargets, backupURL: URL?) -> Bool {
-        let localCount = targets.files.count + targets.xmp.count
+        let localCount = targets.files.count + targets.xmp.count + targets.creator.count
         let backupMessage: String
         if localCount == 0 {
             backupMessage = L10n.text("本次不写入本地文件；备份设置不适用。")
@@ -122,7 +126,10 @@ enum SaveHelper {
         let alert = NSAlert()
         alert.messageText = L10n.text("保存 %1$@ 项修改？", targets.total)
         alert.informativeText = L10n.text(
-            "本地照片：%1$@ 项\n已导入的 XMP：%2$@ 项\n照片图库：%3$@ 项\n\n%4$@%5$@", targets.files.count, targets.xmp.count, targets.library.count, backupMessage, sidecarMessage)
+            "本地照片：%1$@ 项\n已导入的 XMP：%2$@ 项\n照片图库：%3$@ 项\n\n%4$@%5$@",
+            targets.files.count + targets.creatorFiles,
+            targets.xmp.count + targets.creator.count - targets.creatorFiles,
+            targets.library.count, backupMessage, sidecarMessage)
         alert.addButton(withTitle: L10n.text("保存"))
         alert.addButton(withTitle: L10n.text("取消"))
         return alert.runModal() == .alertFirstButtonReturn
@@ -146,13 +153,19 @@ enum SaveHelper {
                 (store.imageData[$0].id, store.imageData[$0].metadata
                     .forSaving(comparedTo: store.imageData[$0].original))
             })
+        let creatorItems = store.creatorImages.compactMap {
+            store.imageData[$0].creatorDraft
+        }
         // Do the save in the background, report when done.
         let task = Task {
             async let libUpdated = saveToLibrary(store, libraryImages)
             async let imgUpdated = saveToImage(store, fileImages)
             async let xmpUpdated = saveToImage(store, xmpImages, xmp: true)
 
-            let status = await [libUpdated, imgUpdated, xmpUpdated]
+            let legacyStatus = await [libUpdated, imgUpdated, xmpUpdated]
+            // Do not write a physical target concurrently with the legacy save.
+            let creatorStatus = await saveToCreator(store, creatorItems)
+            let status = legacyStatus + [creatorStatus]
 
             let sendStatus: SaveStatus =
                 if status.allSatisfy({ $0 == .saveOK }) {
@@ -389,5 +402,33 @@ enum SaveHelper {
             }
         }
         return saveStatus
+    }
+}
+
+extension SaveHelper {
+    static func saveToCreator(
+        _ store: Store<PhotoTrailState, PhotoTrailEvent>,
+        _ items: [MetadataCreatorEditPlan.Item]
+    ) async -> SaveStatus {
+        @AppStorage(PhotoTrailApp.doNotBackupKey) var doNotBackup = false
+        guard !items.isEmpty else { return .saveOK }
+        guard doNotBackup || store.backupURL != nil else {
+            store.send(.noBackupNotice, undoable: false)
+            return .saveErrorSupressWarning
+        }
+        let backup: MetadataCreatorBackup =
+            if doNotBackup { .disabled } else { .folder(store.backupURL!) }
+        var status: SaveStatus = .saveOK
+        for item in items {
+            let result = await item.save(backup: backup)
+            store.send(.creatorSaveResult(item.id, result), undoable: false)
+            if result == .saved || result == .unchanged {
+                store.send(.creatorSaved(item.id), undoable: false)
+            } else {
+                status = .saveError
+            }
+            store.send(.saveProgress(1), undoable: false)
+        }
+        return status
     }
 }
