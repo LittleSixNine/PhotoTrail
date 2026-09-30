@@ -9,7 +9,7 @@ struct MetadataSelectionValueTests {
         let imageURL = URL(fileURLWithPath: "/tmp/photo.jpg")
         let sidecarURL = URL(fileURLWithPath: "/tmp/photo.xmp")
         let image = ImageData(metadata: Metadata(source: .image(imageURL)), name: "photo.jpg")
-        let sidecar = ImageData(metadata: Metadata(source: .xmp(sidecarURL)), name: "photo.jpg")
+        let sidecar = ImageData(metadata: Metadata(source: .xmp(imageURL)), name: "photo.jpg")
         let unavailable = ImageData(metadata: Metadata(source: .copy), name: "copy")
 
         #expect(image.metadataInspectionURL == imageURL)
@@ -49,5 +49,26 @@ struct MetadataSelectionValueTests {
         #expect(MetadataInspectionFileVersion.read(image) != first)
         try FileManager.default.removeItem(at: image)
         #expect(MetadataInspectionFileVersion.read(image) == .missing)
+    }
+
+    @Test func sidecarInspectionTracksSidecarInsteadOfImage() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory,
+                                                withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let imageURL = directory.appendingPathComponent("photo.jpg")
+        let sidecarURL = directory.appendingPathComponent("photo.xmp")
+        try Data("image".utf8).write(to: imageURL)
+        try Data("first".utf8).write(to: sidecarURL)
+        let image = ImageData(metadata: Metadata(source: .xmp(imageURL)), name: "photo.jpg")
+        let originalImageVersion = MetadataInspectionFileVersion.read(imageURL)
+        let firstSidecarVersion = MetadataInspectionFileVersion.read(image.metadataInspectionURL)
+
+        try Data("second value".utf8).write(to: sidecarURL)
+
+        #expect(image.metadataInspectionURL == sidecarURL)
+        #expect(MetadataInspectionFileVersion.read(imageURL) == originalImageVersion)
+        #expect(MetadataInspectionFileVersion.read(image.metadataInspectionURL) != firstSidecarVersion)
     }
 }

@@ -30,7 +30,9 @@ public enum MetadataInspectionFileVersion: Equatable, Sendable {
 public extension ImageData {
     var metadataInspectionURL: URL? {
         switch metadata.source {
-        case .image(let url), .xmp(let url): url
+        case .image(let url): url
+        case .xmp(let imageURL):
+            imageURL.deletingPathExtension().appendingPathExtension(Metadata.xmpExtension)
         case .photos, .copy: nil
         }
     }

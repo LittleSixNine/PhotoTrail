@@ -80,8 +80,9 @@ struct MetadataListInspectorView: View {
             switch image.metadata.source {
             case .image(let url):
                 return L10n.text("图像文件：%1$@", url.lastPathComponent)
-            case .xmp(let url):
-                return L10n.text("XMP 附属文件：%1$@", url.lastPathComponent)
+            case .xmp:
+                return L10n.text("XMP 附属文件：%1$@",
+                                 image.metadataInspectionURL?.lastPathComponent ?? image.name)
             case .photos:
                 return L10n.text("照片图库项目暂不支持读取这些描述字段。")
             case .copy:
