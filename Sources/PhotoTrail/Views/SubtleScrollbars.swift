@@ -4,12 +4,21 @@ import SwiftUI
 
 /// Attach only to an app-owned scroll container, never to a whole window or WebKit.
 struct SubtleScrollbars: NSViewRepresentable {
-    func makeNSView(context: Context) -> Installer { Installer() }
+    var reservesVerticalScroller = false
+
+    func makeNSView(context: Context) -> Installer {
+        let view = Installer()
+        view.reservesVerticalScroller = reservesVerticalScroller
+        return view
+    }
     func updateNSView(_ view: Installer, context: Context) {
+        view.reservesVerticalScroller = reservesVerticalScroller
         DispatchQueue.main.async { [weak view] in view?.install() }
     }
 
     final class Installer: NSView {
+        var reservesVerticalScroller = false
+
         override func hitTest(_ point: NSPoint) -> NSView? { nil }
 
         override func viewDidMoveToWindow() {
@@ -28,7 +37,7 @@ struct SubtleScrollbars: NSViewRepresentable {
             while let view = ancestor {
                 let scrolls = scrollViews(in: view)
                 if !scrolls.isEmpty {
-                    scrolls.forEach(Self.configure)
+                    scrolls.forEach { Self.configure($0, reservesVerticalScroller: reservesVerticalScroller) }
                     return
                 }
                 ancestor = view.superview
@@ -40,7 +49,12 @@ struct SubtleScrollbars: NSViewRepresentable {
             return view.subviews.flatMap { scrollViews(in: $0) }
         }
 
-        static func configure(_ scroll: NSScrollView) {
+        static func configure(_ scroll: NSScrollView, reservesVerticalScroller: Bool = false) {
+            // A width-dependent preview must not resize when overflow toggles at the height boundary.
+            if reservesVerticalScroller {
+                if !scroll.hasVerticalScroller { scroll.hasVerticalScroller = true }
+                if scroll.autohidesScrollers { scroll.autohidesScrollers = false }
+            }
             // Overlay scrollers own an OS-controlled fade timer. Use native legacy
             // tracking with a clear track so the app can consistently wait three seconds.
             scroll.scrollerStyle = .legacy

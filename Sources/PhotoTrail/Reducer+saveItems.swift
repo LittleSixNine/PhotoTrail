@@ -15,11 +15,25 @@ struct SaveTargets {
     var conflicts: [Int] = []
 
     init(images: [ImageData]) {
+        var targets: [String: Int] = [:]
         for index in images.indices {
             let image = images[index]
             guard image.updatable else { continue }
-            let metadataChanged = image.metadata != image.original
-            let creatorChanged = image.creatorDraft?.change != nil
+            let metadataChanged = image.hasLegacyChanges
+            let creatorChanged = image.creatorDraft?.changes.isEmpty == false
+            if metadataChanged || creatorChanged, let url = image.metadataInspectionURL {
+                let key: String
+                if case .file(let device, let inode, _, _, _, _, _) = MetadataInspectionFileVersion.read(url) {
+                    key = "\(device):\(inode)"
+                } else {
+                    key = url.standardizedFileURL.path
+                }
+                if let previous = targets[key] {
+                    conflicts.append(contentsOf: [previous, index])
+                } else {
+                    targets[key] = index
+                }
+            }
             if metadataChanged && creatorChanged {
                 conflicts.append(index)
                 continue
@@ -46,6 +60,13 @@ extension PhotoTrailReducer {
 
     func clearCreatorDraft(_ state: inout PhotoTrailState, id: ImageData.ID, discard: Bool) {
         guard state.imageData.contains(where: { $0.id == id }) else { return }
+        if state[id].creatorDraft?.captureDateChange != nil {
+            if discard { state[id].metadata.dateTimeCreated = state[id].original?.dateTimeCreated }
+            else {
+                let savedDate = state[id].metadata.dateTimeCreated
+                state[id].original?.dateTimeCreated = savedDate
+            }
+        }
         state[id].creatorDraft = nil
         if discard {
             state.creatorSaveResults[id] = nil
@@ -58,6 +79,7 @@ extension PhotoTrailReducer {
 
     func save(_ state: inout PhotoTrailState) {
         state.saveInProgress = true
+        state.metadataSaveCancelled = false
         let targets = SaveTargets(images: state.imageData)
         state.libraryImages = targets.library
         state.fileImages = targets.files

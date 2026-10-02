@@ -1,4 +1,3 @@
-import Coords
 import ImageData
 import SwiftUI
 import UDF
@@ -6,7 +5,7 @@ import UDF
 struct ImageTableView: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) var store
     @AppStorage(Self.hideInvalidImagesKey) var hideInvalidImages = false
-    @AppStorage(Coords.coordFormatKey) private var coordFormat: CoordFormat = .deg
+    @Environment(MetadataLoadingQueue.self) private var metadataQueue
     @Environment(LocationWorkspace.self) private var workspace
     @SceneStorage("PhotoTrailListFilter") private var filter: PhotoListFilter = .all
     @SceneStorage("PhotoTrailListUnmatchedOnly") private var unmatchedOnly = false
@@ -56,7 +55,7 @@ struct ImageTableView: View {
                     ForEach(PhotoListFilter.allCases, id: \.self) { option in
                         Text("\(L10n.text(option.rawValue)) \(searchableImages.filter { option.includes($0) }.count)").tag(option)
                     }
-                }.pickerStyle(.segmented).labelsHidden().frame(maxWidth: 440)
+                }.pickerStyle(.menu).labelsHidden().fixedSize()
             }.padding(.leading, 14).padding(.vertical, 14)
             Divider()
             HStack {
@@ -98,7 +97,6 @@ struct ImageTableView: View {
     }
 
     private var photoTable: some View {
-        let results = resultsByID
         return Table(of: ImageData.self, selection: $selection, sortOrder: $sortOrder) {
             TableColumn(L10n.text("状态")) { image in
                 PhotoSaveStatus(image: image).frame(maxWidth: .infinity, alignment: .center)
@@ -119,27 +117,20 @@ struct ImageTableView: View {
                                         clearLocations: { pendingClear = [image.id] })
                     }
             }.width(min: 140, ideal: 220, max: 1000)
-            TableColumn(L10n.text("拍摄时间"), value: \.metadata.timestamp) { image in
-                Text(image.metadata.timestamp.isEmpty ? "—" : image.metadata.timestamp).monospacedDigit()
-                    .foregroundStyle(image.updatable && image.metadata.dateTimeCreated != image.original?.dateTimeCreated
-                                     ? Color.orange : Color.primary)
-            }.width(min: 155, ideal: 170, max: 500)
-            TableColumn(L10n.text("定位")) { image in
-                VStack(alignment: .leading, spacing: 3) {
-                    if let location = image.metadata.location {
-                        Text(L10n.text("纬 %1$@", coordToString(for: location.latitude, ref: Coords.latRef, format: coordFormat)))
-                        Text(L10n.text("经 %1$@", coordToString(for: location.longitude, ref: Coords.lonRef, format: coordFormat)))
-                    } else { Text(L10n.text("无定位")) }
-                }.monospacedDigit().font(.caption)
-                    .foregroundStyle(image.hasPendingLocationChanges ? Color.orange
-                                     : image.metadata.location == nil ? Color.secondary : Color.primary)
-            }.width(min: 130, ideal: 160, max: 400)
-            TableColumn(L10n.text("上次轨迹匹配")) { image in
-                if let result = results[image.id] {
-                    Text(result.listStatus).help(result.reason)
-                        .foregroundStyle(result.status == .matched ? Color.green : Color.secondary)
-                } else { Text("—").foregroundStyle(.secondary) }
-            }.width(min: 100, ideal: 130, max: 350)
+            TableColumn(L10n.text("原标签")) { image in
+                HStack(spacing: 6) {
+                    if metadataQueue.statuses[image.id] == .reading { ProgressView().controlSize(.mini) }
+                    else if metadataQueue.statuses[image.id] == .waiting { Image(systemName: "clock").foregroundStyle(.secondary) }
+                    else if metadataQueue.statuses[image.id] == .failed { Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange) }
+                    Text(metadataQueue.originalCounts[image.id].map(String.init) ?? "—").monospacedDigit()
+                }
+                .help(L10n.text("已读取的原始元数据标签数（含厂商私有信息）；不包含文件属性或派生字段。"))
+            }.width(min: 80, ideal: 100, max: 220)
+            TableColumn(L10n.text("已编辑")) { image in
+                let count = metadataQueue.editedCount(image)
+                Text(String(count)).monospacedDigit().foregroundStyle(count > 0 ? Color.orange : Color.secondary)
+                    .help(L10n.text("当前待保存的字段数；定位方向等配套标签不重复计数。"))
+            }.width(min: 80, ideal: 100, max: 220)
         } rows: {
             ForEach(filteredImages) { TableRow($0) }
         }

@@ -24,6 +24,7 @@ enum PhotoTrailEvent: Equatable {
     case creatorDraftRemoved(ImageData.ID)
     case creatorSaved(ImageData.ID)
     case creatorSaveResult(ImageData.ID, MetadataCreatorSaveResult)
+    case cancelMetadataSave
     case creatorSaveConflict
     case deleteRequest
     case removeImages(Set<ImageData.ID>)
@@ -96,6 +97,7 @@ extension PhotoTrailEvent: CustomStringConvertible {
         case .creatorDraftRemoved: "creatorDraftRemoved"
         case .creatorSaved: "creatorSaved"
         case .creatorSaveResult: "creatorSaveResult"
+        case .cancelMetadataSave: "cancelMetadataSave"
         case .creatorSaveConflict: "creatorSaveConflict"
         case .deleteRequest: "deleteRequest"
         case .removeImages: "removeImages"

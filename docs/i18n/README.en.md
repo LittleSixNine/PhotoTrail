@@ -20,6 +20,8 @@ Change the app language in Settings later. Save your work and reopen PhotoTrail 
 
 ## Features
 
+- **Background reads and tag counts (development source):** cache full metadata after import and prioritize selected photos. Original tags include maker notes; edited counts show pending fields. Editable rows open their editor directly. See [development history](../CHANGELOG.md).
+- **List metadata editor (development source):** edit JPEG and existing XMP titles, descriptions, creators, rights and keywords; date tools, camera/lens details, exposure values, named presets, comparison and CSV/XMP exchange share preview, undo, manual saving, backup and readback. See [behavior and target limits](../BEHAVIOR.md) (Chinese).
 - **Map geotagging:** choose a location on Apple Maps or AMap. AMap locations are checked and converted to WGS84 before application.
 - **Place search and favorites:** preview a search result before applying it. Save places with names and notes; preview, edit, delete, or apply a favorite.
 - **Photo list and map workspace:** filter by location or unsaved state, and sort by import order, capture time, or file name. The photo strip has its own filters, sorting, and a button to return to the current photo.

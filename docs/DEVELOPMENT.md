@@ -93,3 +93,16 @@ PhotoTrail 基于 GeoTag v6.0.2 派生，仍使用其部分应用基础设施与
 高德网页在文档开始时接收 JSON 编码的文案。桥接错误码、服务错误白名单、持久化枚举原始值、GPX/XML 与 JSON 字段、坐标协议、扩展名和 Skill 命令参数不随语言变化。README 和 Skill 使用指南提供七语言互链；新增功能时同步对应页面。开发说明提供中英两版，许可英文译文仅供参考，原始许可和第三方授权不变。
 
 引导语言立即切换；系统菜单、权限提示及缓存窗口需要保存工作并重新打开应用。`LocalizationUITests` 提供七语言引导与设置检查；使用独立 bundle ID 和离线模式，Debug 专用 `-LOCALIZATIONPREVIEW` 可在不读取私人数据的情况下展示界面。界面测试需要可交互的 macOS 会话。
+
+
+### 元数据工作流定向验证
+
+`swift test --package-path Packages/Exiftool` 验证白名单、默认语言分支、精确 Unicode、日期成组写入和保护字段；`swift test --package-path Packages/ImageData` 验证草稿、日期边界、预设与 CSV 往返；App 的 `MetadataCreatorBatchTests` 覆盖 1／20／100 张、取消和主日期保存／重开。全部只使用公开测试资源的临时副本。
+
+千文件验证默认跳过；需要测量时执行 `PHOTOTRAIL_SCALE_TESTS=1 swift test --package-path Packages/ImageData --filter MetadataScaleTests`。输出读取、计划、保存／核对耗时；这是包级测量，不代表 App UI 内存或用户验收。缓存／沙箱受限时可按实际环境指定临时 `CLANG_MODULE_CACHE_PATH` 并使用 `--disable-sandbox`，不要把环境权限失败视为测试通过。
+
+元数据产品形态验收使用独立 Debug 标识 `local.PhotoTrail.MetadataReference…`；该前缀在共享凭据读取入口直接返回空值，避免元数据验证请求日常高德钥匙串。此保护只编译于 Debug，不改变发行 App 的凭据行为或系统钥匙串权限。
+
+## 开发进度与元数据读取入口
+
+源码节点见 [开发历史](CHANGELOG.md)。`MetadataLoadingQueue.swift` 负责窗口级后台预读、选中插队、缓存和进度；`MetadataListInspectorView.swift` 负责显示与类型编辑入口；Exiftool 的 `inspectionTags` 读取所有可识别家族，写入仍受独立白名单约束。`MetadataCreatorEditPlan`、`SaveTargets` 和 `SaveHelper` 负责冻结目标、版本检查、备份及回读。重命名页面目前仅占位，不能把显示字段 FileName 当成已开放的文件操作。

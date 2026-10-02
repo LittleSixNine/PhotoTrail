@@ -31,22 +31,16 @@ final class UITestGroup1: XCTestCase {
         XCTAssert(element(app, matching: testIDs.imageViewID).exists)
         XCTAssert(element(app, matching: testIDs.imageTableViewID).exists)
         XCTAssert(element(app, matching: testIDs.photoPickerViewID).exists)
-        XCTAssert(element(app, matching: testIDs.inspectorButtonViewID).exists)
+        XCTAssert(element(app, matching: testIDs.imageInspectorViewID).exists)
         app.buttons["_XCUI:CloseWindow"].firstMatch.click()
     }
 
-    func testBInspectorOpens() async throws {
+    func testBMetadataPaneIsPermanent() async throws {
         let app = XCUIApplication()
         app.launchArguments.append("-NOBACKUP")
         app.activate()
-        let inspectorButton = element(app, matching: testIDs.inspectorButtonViewID)
-        XCTAssert(inspectorButton.exists)
-        let inspectorView = element(app, matching: testIDs.imageInspectorViewID)
-        XCTAssert(!inspectorView.exists)
-        inspectorButton.click()
-        XCTAssert(inspectorView.waitForExistence(timeout: 0.300))
-        inspectorButton.click()
-        XCTAssert(inspectorView.waitForNonExistence(timeout: 0.300))
+        XCTAssert(element(app, matching: testIDs.imageInspectorViewID).waitForExistence(timeout: 2))
+        XCTAssert(!element(app, matching: testIDs.inspectorButtonViewID).exists)
         app.buttons["_XCUI:CloseWindow"].firstMatch.click()
     }
 

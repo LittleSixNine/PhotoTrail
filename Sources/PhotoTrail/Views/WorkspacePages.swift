@@ -459,7 +459,7 @@ struct PhotoDetailPage: View {
                         Divider()
                         LocationPanel()
                       }
-                    }.background(SubtleScrollbars()).frame(width: max(260, min(geometry.size.width * leftRatio, geometry.size.width - 420)))
+                    }.background(SubtleScrollbars(reservesVerticalScroller: true)).frame(width: max(260, min(geometry.size.width * leftRatio, geometry.size.width - 420)))
                         .background(Color(nsColor: .windowBackgroundColor))
                     Divider().frame(width: 6).contentShape(Rectangle())
                         .onHover { if $0 { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() } }
@@ -860,7 +860,9 @@ private extension PhotoDetailPage {
 
 struct WorkspacePageSwitch: View {
     @Binding var selection: Bool
-    var firstTitle = L10n.text("照片列表")
+    var renameSelected: Binding<Bool> = .constant(false)
+    var showsRename = false
+    var firstTitle = L10n.text("元数据编辑")
     var secondTitle = L10n.text("地图定位")
     var firstIcon = "list.bullet"
     var secondIcon = "photo"
@@ -880,30 +882,38 @@ struct WorkspacePageSwitch: View {
         HStack(spacing: 0) {
             option(firstTitle, icon: firstIcon, value: false)
             option(secondTitle, icon: secondIcon, value: true)
+            if showsRename { option(L10n.text("重命名"), icon: "character.cursor.ibeam", value: nil) }
         }
         .background(alignment: .leading) {
             Capsule().fill(Color.blue).frame(width: optionWidth, height: 30)
-                .offset(x: selection ? optionWidth : 0)
+                .offset(x: renameSelected.wrappedValue ? optionWidth * 2 : selection ? optionWidth : 0)
         }
         .padding(3)
         .fixedSize()
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: selection)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: renameSelected.wrappedValue)
     }
 
-    private func option(_ title: String, icon: String, value: Bool) -> some View {
-        Button { selection = value } label: {
+    private func option(_ title: String, icon: String, value: Bool?) -> some View {
+        let selected = value.map { !renameSelected.wrappedValue && selection == $0 } ?? renameSelected.wrappedValue
+        return Button {
+            if let value {
+                selection = value
+                renameSelected.wrappedValue = false
+            } else { renameSelected.wrappedValue = true }
+        } label: {
             HStack(spacing: 6) {
                 Image(systemName: icon)
                 Text(title)
             }
             .font(.system(size: 13, weight: .medium))
-            .foregroundStyle(selection == value ? Color.white : Color.primary)
+            .foregroundStyle(selected ? Color.white : Color.primary)
             .frame(width: optionWidth, height: 30)
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
-        .accessibilityAddTraits(selection == value ? .isSelected : [])
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 

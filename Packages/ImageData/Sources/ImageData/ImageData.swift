@@ -26,7 +26,23 @@ public struct ImageData: Identifiable, Sendable {
     }
 
     public var hasPendingChanges: Bool {
-        updatable && (metadata != original || creatorDraft?.change != nil)
+        updatable && (metadata != original || creatorDraft?.changes.isEmpty == false)
+    }
+
+    // The effective shooting date is projected into the existing map/track model.
+    // Do not route that projection through the legacy writer a second time.
+    public mutating func applyMetadataDraft(_ item: MetadataCreatorEditPlan.Item) {
+        creatorDraft = item.changes.isEmpty ? nil : item
+        if item.captureDateChange != nil { metadata.dateTimeCreated = item.captureDateValue }
+    }
+
+    public var hasLegacyChanges: Bool {
+        var comparison = metadata
+        if let draft = creatorDraft, draft.captureDateChange != nil,
+           metadata.dateTimeCreated == draft.captureDateValue {
+            comparison.dateTimeCreated = original?.dateTimeCreated
+        }
+        return comparison != original
     }
 
     // init given a Metadata and a String name.

@@ -80,10 +80,11 @@ struct PhotoTrailReducer: Reducer, Sendable {
                   items.allSatisfy({ item in
                       newState.imageData.contains {
                           $0.id == item.id && $0.metadataInspectionURL == item.target && $0.updatable
+                              && newState.creatorSaveResults[item.id] != .resultUnknown
                       }
                   }) else { return state }
             for item in items {
-                newState[item.id].creatorDraft = item.change == nil ? nil : item
+                newState[item.id].applyMetadataDraft(item)
                 newState.creatorSaveResults[item.id] = nil
             }
             newState.unsavedChanges = newState.imageData.contains { $0.hasPendingChanges }
@@ -93,6 +94,9 @@ struct PhotoTrailReducer: Reducer, Sendable {
 
         case .creatorSaveResult(let id, let result):
             newState.creatorSaveResults[id] = result
+
+        case .cancelMetadataSave:
+            newState.metadataSaveCancelled = true
 
         case .creatorSaveConflict:
             newState.addSheet(type: .saveErrorSheet)

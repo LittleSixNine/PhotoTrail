@@ -18,6 +18,8 @@ Disponível em chinês simplificado, inglês, chinês tradicional, japonês, cor
 
 ## Recursos
 
+- **Leitura em segundo plano e contagens (código de desenvolvimento):** armazena metadados completos e prioriza fotos selecionadas. As tags originais incluem dados do fabricante; as editadas contam campos pendentes de salvar. Clique na linha editável para abrir o editor. [Histórico](../CHANGELOG.md).
+- **Editor de metadados em lista (código em desenvolvimento):** títulos, descrições, autores, direitos e palavras-chave em JPEG e XMP existentes; datas, câmera/lente, exposição, predefinições, comparação e troca CSV/XMP. Inclui prévia, desfazer, salvamento manual, backup e releitura. [Destinos e limites](../BEHAVIOR.md) (chinês).
 - **Localização pelo mapa:** escolha um ponto no Mapas da Apple ou AMap. As coordenadas do AMap são verificadas e convertidas para WGS84 antes de serem aplicadas.
 - **Busca e favoritos:** visualize os resultados antes de aplicá-los. Salve locais com nomes e notas; edite, exclua ou reutilize.
 - **Lista e espaço de mapas:** filtre por localização ou alterações pendentes e ordene por importação, data de captura ou nome. A faixa de fotos tem filtros e ordenação próprios e um botão para voltar à foto atual.

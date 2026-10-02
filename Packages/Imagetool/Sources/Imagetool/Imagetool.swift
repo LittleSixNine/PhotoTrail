@@ -44,10 +44,21 @@ public struct Imagetool {
 
         // extract image date/time created
 
-        if let exifData = imgProps[Self.exifDictionary]
-            as? [String: AnyObject],
-            let dto = exifData[Self.exifDateTimeOriginal] as? String {
-            metadata.dateTimeCreated = dto
+        if ["jpg", "jpeg"].contains(imageURL.pathExtension.lowercased()) {
+            // ImageIO synthesizes EXIF dates from stale XMP aliases after EXIF removal.
+            // Read the explicit source so clearing the capture date survives reopening.
+            do {
+                let values = try Exiftool.helper.metadataTags([.captureDate], from: imageURL)
+                if case .text(let value) = values[.captureDate] { metadata.dateTimeCreated = value }
+            } catch {
+                metadata.readable = false
+                return metadata
+            }
+        } else if let exifData = imgProps[Self.exifDictionary] as? [String: AnyObject],
+                  let dto = exifData[Self.exifDateTimeOriginal] as? String {
+            let fraction = exifData[kCGImagePropertyExifSubsecTimeOriginal as String] as? String
+            let offset = exifData["OffsetTimeOriginal"] as? String
+            metadata.dateTimeCreated = dto + (fraction.map { "." + $0 } ?? "") + (offset ?? "")
         }
 
         // extract gps info when present

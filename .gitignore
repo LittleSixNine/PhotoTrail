@@ -26,3 +26,10 @@ xcuserdata/
 .env
 .env.*
 *.xcresult/
+
+# Local validation and private handoffs never belong to public source.
+*.app/
+*.dmg
+*.xcarchive/
+.codex/handoffs/
+PhotoTrail-private/

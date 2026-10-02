@@ -168,12 +168,12 @@ extension ReducerTests {
 
         store.send(.saveComplete(.saveErrorSupressWarning))
         #expect(!store.saveInProgress)
-        #expect(store.unsavedChanges)
+        #expect(!store.unsavedChanges) // No images carry a pending change in this fixture.
         #expect(store.sheetType == nil)
 
         store.send(.saveComplete(.saveError))
         #expect(!store.saveInProgress)
-        #expect(store.unsavedChanges)
+        #expect(!store.unsavedChanges)
         #expect(store.sheetType == .saveErrorSheet)
 
         store.send(.saveComplete(.saveOK))

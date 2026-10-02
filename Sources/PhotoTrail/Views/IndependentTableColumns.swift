@@ -30,7 +30,7 @@ struct IndependentTableColumns: NSViewRepresentable {
         }
 
         private func findTable(_ view: NSView) -> NSTableView? {
-            if let table = view as? NSTableView, table.tableColumns.count == 6 { return table }
+            if let table = view as? NSTableView, table.tableColumns.count == 5 { return table }
             return view.subviews.lazy.compactMap { self.findTable($0) }.first
         }
 

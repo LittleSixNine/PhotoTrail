@@ -171,7 +171,10 @@ extension Metadata {
     public func parsedDate(timeZone: TimeZone? = nil) -> Date? {
         if let dateTimeCreated {
             let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = Self.dateFormat
+            dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+            let fraction = dateTimeCreated.split(separator: ".").dropFirst().first?.prefix(while: { $0.isNumber }).count ?? 0
+            let offset = dateTimeCreated.hasSuffix("Z") || dateTimeCreated.dropFirst(19).contains("+") || dateTimeCreated.dropFirst(19).contains("-")
+            dateFormatter.dateFormat = Self.dateFormat + (fraction > 0 ? "." + String(repeating: "S", count: fraction) : "") + (offset ? "XXXXX" : "")
             dateFormatter.timeZone = timeZone
             dateFormatter.isLenient = false
             return dateFormatter.date(from: dateTimeCreated)

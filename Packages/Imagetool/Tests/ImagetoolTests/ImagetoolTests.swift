@@ -31,7 +31,7 @@ struct ImagetoolTests {
                               withExtension: "jpg")
         )
         let metadata = Imagetool.metadata(from: url)
-        #expect(metadata.timestamp == "2026:01:23 09:20:11")
+        #expect(metadata.timestamp == "2026:01:23 09:20:11.831-08:00")
         #expect(metadata.location == nil)
         #expect(metadata.city == nil)
     }

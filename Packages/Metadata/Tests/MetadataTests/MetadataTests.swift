@@ -11,6 +11,16 @@ let imageURL = URL(string: "file://test/file/name.img")!
 let sidecarURL = URL(string: "file://test/file/name.xmp")!
 
 struct MetadataTests {
+    @Test func explicitOffsetAndFractionAreUsedForMatching() throws {
+        var metadata = Metadata(source: .image(imageURL))
+        metadata.dateTimeCreated = "2024:02:29 23:59:59.125+08:00"
+        let date = try #require(metadata.parsedDate(timeZone: TimeZone(secondsFromGMT: -18000)))
+        metadata.dateTimeCreated = "2024:02:29 15:59:59.125Z"
+        #expect(metadata.parsedDate(timeZone: TimeZone(secondsFromGMT: 32400)) == date)
+        metadata.dateTimeCreated = nil
+        #expect(metadata.parsedDate() == nil)
+    }
+
     func imageMetadata() -> Metadata {
         var metadata = Metadata(source: .image(imageURL))
 

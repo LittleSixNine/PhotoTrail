@@ -12,7 +12,11 @@ struct AMapCredentials: Codable {
          kSecAttrAccount as String: "js-api"]
     }
 
-    static func load() throws -> Self? {
+    static func load(bundleIdentifier: String? = Bundle.main.bundleIdentifier) throws -> Self? {
+        #if DEBUG
+        // Metadata-only validation apps never request access to the user's map credentials.
+        if bundleIdentifier?.hasPrefix("local.PhotoTrail.MetadataReference") == true { return nil }
+        #endif
         var query = Self.query()
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne

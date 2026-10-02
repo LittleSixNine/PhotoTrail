@@ -5,6 +5,38 @@ import Testing
 @testable import ImageData
 
 struct MetadataCreatorEditTests {
+    @Test func descriptiveActionsKeepExactKeywordIdentity() throws {
+        #expect(try MetadataFieldEditAction.setText("标题")
+            .change(for: .titleDefault, from: nil) == .set(.text("标题")))
+        #expect(try MetadataFieldEditAction.fillMissingText("新说明")
+            .change(for: .descriptionDefault, from: .text("原说明")) == nil)
+        #expect(try MetadataFieldEditAction.remove
+            .change(for: .rightsDefault, from: .text("© A")) == .remove)
+        #expect(try MetadataFieldEditAction.remove
+            .change(for: .titleDefault, from: nil) == nil)
+
+        let composed = "é"
+        let decomposed = "e\u{301}"
+        let existing = MetadataTagValue.list(["Travel", decomposed])
+        #expect(try MetadataFieldEditAction.appendKeywords(["Travel", composed, "travel"])
+            .change(for: .subject, from: existing)
+            == .set(.list(["Travel", decomposed, composed, "travel"])))
+        #expect(try MetadataFieldEditAction.removeKeywords([composed])
+            .change(for: .subject, from: existing) == nil)
+        #expect(try MetadataFieldEditAction.removeKeywords([decomposed])
+            .change(for: .subject, from: existing) == .set(.list(["Travel"])))
+        #expect(try MetadataFieldEditAction.replaceKeywords([])
+            .change(for: .subject, from: existing) == .remove)
+        #expect(throws: MetadataFieldEditError.self) {
+            try MetadataFieldEditAction.appendKeywords([""])
+                .change(for: .subject, from: existing)
+        }
+        #expect(throws: MetadataFieldEditError.self) {
+            try MetadataFieldEditAction.setText("title")
+                .change(for: .subject, from: existing)
+        }
+    }
+
     @Test func creatorActionsProduceOnlyNecessaryAbsoluteChanges() throws {
         let alice = MetadataCreatorValue.names(["Alice"])
         let bob = ["Bob", "六九，摄影师"]
@@ -58,7 +90,7 @@ struct MetadataCreatorEditTests {
         #expect(plan.items[0].change == nil)
         #expect(plan.items[1].change == .set(.list(["Bob"])))
         #expect(plan.items[1].target == second.metadataInspectionURL)
-        #expect(plan.items[0].original == .names(["Alice"]))
+        #expect(plan.items[0].originalValue == .list(["Alice"]))
         #expect(plan.items[1].version == secondSnapshot.version)
 
         try Data("changed sidecar".utf8).write(to: second.metadataInspectionURL!)
@@ -156,7 +188,13 @@ struct MetadataCreatorEditTests {
         let dngBefore = try Data(contentsOf: dng)
         let xmpBefore = try Data(contentsOf: xmp)
         let sidecarImage = ImageData(metadata: Metadata(source: .xmp(dng)), name: "262M1559.DNG")
-        let sidecarSnapshot = try MetadataInspectionSnapshot.read([.creator], from: xmp)
+        let sidecarSnapshot = try MetadataInspectionSnapshot.read([.creator, .exifArtist, .iptcKeywords], from: xmp)
+        #expect(throws: MetadataCreatorPlanError.self) {
+            try MetadataCreatorEditPlan.prepare([(image: sidecarImage, snapshot: sidecarSnapshot)], tag: .exifArtist, action: .setText("Wrong source"))
+        }
+        #expect(throws: MetadataCreatorPlanError.self) {
+            try MetadataCreatorEditPlan.prepare([(image: sidecarImage, snapshot: sidecarSnapshot)], tag: .iptcKeywords, action: .replaceKeywords(["Wrong source"]))
+        }
         let sidecarPlan = try MetadataCreatorEditPlan.prepare(
             [(image: sidecarImage, snapshot: sidecarSnapshot)], action: .set(names))
         let sidecarItem = try #require(sidecarPlan.items.first)

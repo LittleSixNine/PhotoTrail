@@ -54,3 +54,7 @@ Behavior, coordinate handling, saving and privacy contracts are recorded in [BEH
 ## Updates
 
 The app reads GitHub's public latest-release endpoint with URLSession. Automatic DMG downloads are optional and off by default. Downloads must match the release asset name and URL and pass size and SHA-256 checks. The app stores the DMG in its sandbox and offers it on a later launch. Installation remains manual: open the image, quit, then drag to Applications. There is no automatic replacement or additional update framework. Offline tests disable checks and downloads.
+
+## Development progress and metadata entry points
+
+See [development history](../CHANGELOG.md). `MetadataLoadingQueue.swift` manages per-window background reads, selection priority, cache and progress. `MetadataListInspectorView.swift` renders fields and opens typed editors. Exiftool `inspectionTags` reads every recognized family; writing keeps a separate allowlist. `MetadataCreatorEditPlan`, `SaveTargets` and `SaveHelper` freeze targets and validate versions, backups and readback. Rename remains a placeholder; the FileName display field does not grant file-renaming support.

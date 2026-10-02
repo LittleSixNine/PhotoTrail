@@ -16,7 +16,7 @@ struct SubtleScrollbarTests {
                 Color.clear.frame(width: 2000, height: 60)
             }.background(SubtleScrollbars()).frame(height: 100)
             ImageTableView(inspectorPresented: .constant(false), batchActionsPresented: .constant(false))
-                .environment(store).environment(LocationWorkspace())
+                .environment(store).environment(LocationWorkspace()).environment(MetadataLoadingQueue())
         }
         let host = NSHostingView(rootView: content)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 700),

@@ -18,6 +18,8 @@ Puedes cambiar el idioma en Ajustes. Guarda tu trabajo y vuelve a abrir la app p
 
 ## Funciones
 
+- **Lectura en segundo plano y recuentos (código de desarrollo):** almacena metadatos completos y prioriza las fotos seleccionadas. Las etiquetas originales incluyen datos del fabricante; las editadas cuentan campos pendientes de guardar. Pulsa una fila editable para abrir el editor. [Historial](../CHANGELOG.md).
+- **Editor de metadatos en lista (código en desarrollo):** títulos, descripciones, autores, derechos y palabras clave de JPEG y XMP existentes; fechas, cámara/objetivo, exposición, ajustes predefinidos, comparación e intercambio CSV/XMP. Incluye vista previa, deshacer, guardado manual, copia y lectura de verificación. [Destinos y límites](../BEHAVIOR.md) (chino).
 - **Ubicar fotos en el mapa:** elige un punto en Mapas de Apple o AMap. Las coordenadas de AMap se verifican y convierten a WGS84 antes de aplicarlas.
 - **Búsqueda y favoritos:** previsualiza resultados antes de aplicarlos. Guarda lugares con nombres y notas; edítalos, elimínalos o reutilízalos.
 - **Lista y espacio de mapa:** filtra por ubicación o cambios pendientes y ordena por importación, fecha de captura o nombre. La tira de fotos tiene filtros y orden propios y un botón para volver a la foto actual.

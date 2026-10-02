@@ -147,6 +147,7 @@ struct SaveHelperTests {
         #expect(try Exiftool.helper.metadataTags([.creator], from: imageURL)[.creator]
                 == .list(["External author"]))
 
+        store.send(.creatorDraftRemoved(image.id))
         store.send(.creatorDraftApplied(try plan("Unknown author").items))
         store.send(.creatorSaveResult(image.id, .resultUnknown), undoable: false)
         let beforeUnknownRetry = try Data(contentsOf: imageURL)

@@ -12,27 +12,21 @@ struct ContentView: View {
     @AppStorage(Self.alternateLayoutKey) var alternateLayout = false
 
     @State private var locationWorkspace = LocationWorkspace()
+    @State private var metadataQueue = MetadataLoadingQueue()
     @State private var sheetType: SheetType?
     @State private var importFiles = false
     @State private var spinnerEnabled = false
     @State private var ignoredFileNotice: Int?
     @State private var ignoredFileNoticeID = UUID()
     @State private var inspectorPresented = false
+    @State private var renameSelected = false
     @State private var batchActionsPresented = false
     @State private var setupPresented = false
     @AppStorage(SetupGuideView.completedKey) private var setupCompleted = false
 
     private let testIDs = TestIDs.ContentView.self
 
-    @ViewBuilder private var inspectorContent: some View {
-        if alternateLayout {
-            ImageInspectorView()
-        } else {
-            MetadataListInspectorView()
-        }
-    }
-
-    var body: some View {
+    private var workspaceContent: some View {
         VStack(spacing: 0) {
             if let ignoredFileNotice {
                 HStack(spacing: 10) {
@@ -55,7 +49,7 @@ struct ContentView: View {
                 HStack {
                     Text(L10n.text("部分 GPX 文件未能导入，请在轨迹卡片中查看。"))
                     Spacer()
-                    Button(L10n.text("查看")) { alternateLayout = true }
+                    Button(L10n.text("查看")) { renameSelected = false; alternateLayout = true }
                     Button(L10n.text("关闭")) { store.send(.gpxLoadViewClosed, undoable: false) }
                 }
                 .font(.callout).padding(12)
@@ -69,17 +63,38 @@ struct ContentView: View {
                     .padding(.vertical, 8)
                     .background(Color.blue.opacity(0.10))
             }
+            if metadataQueue.total > 0 && !renameSelected {
+                HStack(spacing: 12) {
+                    ProgressView(value: Double(metadataQueue.completed), total: Double(metadataQueue.total))
+                        .frame(width: 160)
+                    Text(L10n.text("元数据：已读取 %1$@/%2$@，失败 %3$@",
+                                   metadataQueue.completed - metadataQueue.failures, metadataQueue.total, metadataQueue.failures))
+                        .font(.caption).monospacedDigit().foregroundStyle(.secondary)
+                    Spacer()
+                }.padding(.horizontal, 14).padding(.vertical, 6)
+            }
             Group {
-                if alternateLayout {
+                if renameSelected {
+                    Text(L10n.text("待构建"))
+                        .font(.title2).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .accessibilityIdentifier("renameWorkspacePlaceholder")
+                } else if alternateLayout {
                     PhotoDetailPage()
                 } else {
-                    HStack(spacing: 0) {
-                        ImageTableView(inspectorPresented: $inspectorPresented, batchActionsPresented: $batchActionsPresented) { alternateLayout = true }
-                            .accessibilityIdentifier(testIDs.imageTableViewID)
-                        if batchActionsPresented {
-                            Divider()
-                            PhotoActionSidebar()
-                        }
+                    HSplitView {
+                        HStack(spacing: 0) {
+                            ImageTableView(inspectorPresented: $inspectorPresented,
+                                           batchActionsPresented: $batchActionsPresented) { alternateLayout = true }
+                                .accessibilityIdentifier(testIDs.imageTableViewID)
+                            if batchActionsPresented {
+                                Divider()
+                                PhotoActionSidebar()
+                            }
+                        }.frame(minWidth: 380, maxWidth: .infinity, maxHeight: .infinity)
+                        MetadataListInspectorView()
+                            .frame(minWidth: 380, idealWidth: 540, maxWidth: .infinity, maxHeight: .infinity)
+                            .accessibilityIdentifier(testIDs.imageInspectorViewID)
                     }
                 }
             }
@@ -89,6 +104,21 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .tint(.blue)
         .environment(locationWorkspace)
+        .environment(metadataQueue)
+    }
+
+    var body: some View {
+        workspaceContent
+        .onAppear {
+            metadataQueue.prioritize(ids: store.selection)
+            metadataQueue.synchronize(store.imageData)
+        }
+        .onChange(of: store.imageData.map(\.id)) { metadataQueue.synchronize(store.imageData) }
+        .onChange(of: store.imageData.map(\.metadataInspectionURL)) { metadataQueue.synchronize(store.imageData) }
+        .onChange(of: store.selection) { metadataQueue.prioritize(ids: store.selection) }
+        .onChange(of: store.saveInProgress) {
+            if !store.saveInProgress { metadataQueue.synchronize(store.imageData) }
+        }
         .background(CredentialChangeObserver(workspace: locationWorkspace))
         .task {
             if ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] != "1" {
@@ -135,10 +165,10 @@ struct ContentView: View {
             return true
         }
         .onChange(of: store.mapSearchActive) {
-            if store.mapSearchActive { alternateLayout = true }
+            if store.mapSearchActive { renameSelected = false; alternateLayout = true }
         }
         .onChange(of: store.searchActive) {
-            if store.searchActive { alternateLayout = false }
+            if store.searchActive { renameSelected = false; alternateLayout = false }
         }
         .onChange(of: store.showTimeZoneWindow) {
             openWindow(id: PhotoTrailApp.adjustTimeZone)
@@ -157,8 +187,10 @@ struct ContentView: View {
         }
         .areYouSure()  // confirmations
         .removeBackupsAlert()  // Alert: Remove Old Backup files
-        .inspector(isPresented: $inspectorPresented) {
-            inspectorContent
+        .inspector(isPresented: Binding(get: { !renameSelected && alternateLayout && inspectorPresented },
+                                        set: { inspectorPresented = $0 })) {
+            ImageInspectorView()
+                .environment(metadataQueue)
                 .inspectorColumnWidth(min: 300, ideal: 400, max: 500)
                 .accessibilityIdentifier(testIDs.imageInspectorViewID)
         }
@@ -179,11 +211,11 @@ struct ContentView: View {
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
-                WorkspacePageSwitch(selection: $alternateLayout)
+                WorkspacePageSwitch(selection: $alternateLayout, renameSelected: $renameSelected, showsRename: true)
             }
             ToolbarItem(placement: .primaryAction) {
                 HStack(spacing: 8) {
-                if alternateLayout {
+                if alternateLayout && !renameSelected {
                     WorkspaceSaveButton().fixedSize()
                 }
                 Button { store.send(.openCommand, undoable: false) } label: {
@@ -197,8 +229,10 @@ struct ContentView: View {
                 PhotoPickerView()
                     .disabled(store.saveInProgress)
                     .accessibilityIdentifier(testIDs.photoPickerViewID)
-                InspectorButtonView(presented: $inspectorPresented)
-                    .accessibilityIdentifier(testIDs.inspectorButtonViewID)
+                if alternateLayout && !renameSelected {
+                    InspectorButtonView(presented: $inspectorPresented)
+                        .accessibilityIdentifier(testIDs.inspectorButtonViewID)
+                }
                 }.buttonStyle(WorkspaceToolbarButtonStyle())
             }
         }

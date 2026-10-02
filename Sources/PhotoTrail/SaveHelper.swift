@@ -74,7 +74,7 @@ enum SaveHelper {
             }
             for (tag, change) in changes {
                 switch change {
-                case .set(let expected) where values[tag] != expected:
+                case .set(let expected) where !tag.matches(values[tag], expected):
                     return .resultUnknown
                 case .remove where values[tag] != nil:
                     return .resultUnknown
@@ -420,6 +420,7 @@ extension SaveHelper {
             if doNotBackup { .disabled } else { .folder(store.backupURL!) }
         var status: SaveStatus = .saveOK
         for item in items {
+            if store.metadataSaveCancelled { break }
             if store.creatorSaveResults[item.id] == .resultUnknown {
                 status = .saveError
                 store.send(.saveProgress(1), undoable: false)

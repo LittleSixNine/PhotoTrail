@@ -1,6 +1,1229 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "原标签": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Original tags"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原标签"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原標籤"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元のタグ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원본 태그"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etiquetas originales"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tags originais"
+          }
+        }
+      }
+    },
+    "已编辑": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edited"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已编辑"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已編輯"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編集済み"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "편집됨"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editadas"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editadas"
+          }
+        }
+      }
+    },
+    "元数据：已读取 %1$@/%2$@，失败 %3$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metadata: %1$@/%2$@ read, %3$@ failed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元数据：已读取 %1$@/%2$@，失败 %3$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "中繼資料：已讀取 %1$@/%2$@，失敗 %3$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メタデータ：%1$@/%2$@ 読み込み済み、%3$@ 失敗"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "메타데이터: %1$@/%2$@ 읽음, %3$@ 실패"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metadatos: %1$@/%2$@ leídos, %3$@ fallidos"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metadados: %1$@/%2$@ lidos, %3$@ falharam"
+          }
+        }
+      }
+    },
+    "已读取的原始元数据标签数（含厂商私有信息）；不包含文件属性或派生字段。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Number of source metadata tags read, including maker notes; excludes file properties and derived fields."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已读取的原始元数据标签数（含厂商私有信息）；不包含文件属性或派生字段。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已讀取的原始中繼資料標籤數（含廠商私有資訊）；不含檔案屬性或衍生欄位。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メーカー固有情報を含む元のメタデータタグ数。ファイル属性と派生項目は含みません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "제조사 정보를 포함한 원본 메타데이터 태그 수. 파일 속성과 파생 필드는 제외합니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Número de etiquetas de origen, incluidas las del fabricante; excluye propiedades del archivo y campos derivados."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Número de tags de origem, incluindo informações do fabricante; exclui propriedades do arquivo e campos derivados."
+          }
+        }
+      }
+    },
+    "当前待保存的字段数；定位方向等配套标签不重复计数。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Number of fields awaiting save; companion tags such as coordinate direction are not counted separately."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前待保存的字段数；定位方向等配套标签不重复计数。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前待儲存的欄位數；定位方向等配套標籤不重複計數。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存待ちの項目数。座標方向などの補助タグは別に数えません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "저장 대기 중인 필드 수. 좌표 방향 등 보조 태그는 별도로 세지 않습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Número de campos pendientes de guardar; no se cuentan por separado etiquetas auxiliares como la dirección de coordenadas."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Número de campos aguardando salvamento; tags auxiliares como a direção das coordenadas não são contadas separadamente."
+          }
+        }
+      }
+    },
+    "亚秒 %1$@ 秒": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subsecond %1$@ s"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "亚秒 %1$@ 秒"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "亞秒 %1$@ 秒"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "小数秒 %1$@ 秒"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "소수 초 %1$@초"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fracción de segundo %1$@ s"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fração de segundo %1$@ s"
+          }
+        }
+      }
+    },
+    "正在读取元数据…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading metadata…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在读取元数据…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在讀取中繼資料…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メタデータを読み込み中…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "메타데이터 읽는 중…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leyendo metadatos…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lendo metadados…"
+          }
+        }
+      }
+    },
+    "未能读取": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unable to read"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未能读取"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法讀取"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読み込み不可"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "읽을 수 없음"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo leer"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível ler"
+          }
+        }
+      }
+    },
+    "时区未记录": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time zone not recorded"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "时区未记录"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未記錄時區"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タイムゾーン未記録"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시간대 미기록"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zona horaria no registrada"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fuso horário não registrado"
+          }
+        }
+      }
+    },
+    "仅日期": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Date only"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅日期"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "僅日期"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日付のみ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "날짜만"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo fecha"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Somente data"
+          }
+        }
+      }
+    },
+    "仅时间": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time only"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅时间"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "僅時間"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "時刻のみ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시간만"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo hora"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Somente hora"
+          }
+        }
+      }
+    },
+    "复制显示值": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy Display Value"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制显示值"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "複製顯示值"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表示値をコピー"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "표시 값 복사"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar valor mostrado"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar valor exibido"
+          }
+        }
+      }
+    },
+    "复制原值": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy Raw Value"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制原值"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "複製原始值"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の値をコピー"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원시 값 복사"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar valor original"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar valor original"
+          }
+        }
+      }
+    },
+    "复制规范标签": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy Canonical Tag"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制规范标签"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "複製規範標籤"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正規タグをコピー"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "정규 태그 복사"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar etiqueta canónica"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar tag canônica"
+          }
+        }
+      }
+    },
+    "所有字段": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All Fields"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有字段"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有欄位"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべての項目"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "모든 필드"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todos los campos"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todos os campos"
+          }
+        }
+      }
+    },
+    "待保存字段": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsaved Fields"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待保存字段"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待儲存欄位"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未保存の項目"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "저장 대기 필드"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Campos sin guardar"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Campos não salvos"
+          }
+        }
+      }
+    },
+    "有值字段": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Populated Fields"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有值字段"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有值欄位"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "値のある項目"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "값이 있는 필드"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Campos con valores"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Campos com valores"
+          }
+        }
+      }
+    },
+    "分组": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Groups"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分组"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "群組"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "グループ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "그룹"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grupos"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grupos"
+          }
+        }
+      }
+    },
+    "显示设置": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Display Options"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示设置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顯示設定"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表示設定"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "표시 설정"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opciones de visualización"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opções de exibição"
+          }
+        }
+      }
+    },
+    "更多操作": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More Actions"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多操作"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多操作"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "その他の操作"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "추가 작업"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Más acciones"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mais ações"
+          }
+        }
+      }
+    },
+    "元数据编辑": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Metadata Editing"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元数据编辑"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "中繼資料編輯"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メタデータ編集"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "메타데이터 편집"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar metadatos"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar metadados"
+          }
+        }
+      }
+    },
+    "重命名": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rename"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重命名"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新命名"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名前を変更"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이름 변경"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renombrar"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renomear"
+          }
+        }
+      }
+    },
+    "待构建": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coming soon"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待构建"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待建置"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "準備中"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "준비 중"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En preparación"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Em construção"
+          }
+        }
+      }
+    },
+    "时间偏移": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time Offset"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "时间偏移"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "時間偏移"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日時のオフセット"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시간 오프셋"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desplazamiento de fecha y hora"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deslocamento de data e hora"
+          }
+        }
+      }
+    },
+    "正数增加，负数减少；分别以每张照片的当前字段值计算。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Positive values add; negative values subtract. Each photo uses its current field value."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正数增加，负数减少；分别以每张照片的当前字段值计算。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正數增加，負數減少；分別以每張照片的目前欄位值計算。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正の値で加算、負の値で減算します。各写真の現在のフィールド値を基準に計算します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "양수는 더하고 음수는 뺍니다. 각 사진의 현재 필드 값을 기준으로 계산합니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los valores positivos suman y los negativos restan. Se usa el valor actual del campo de cada foto."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valores positivos somam; negativos subtraem. O cálculo usa o valor atual do campo de cada foto."
+          }
+        }
+      }
+    },
+    "按年→月→日→时→分→秒计算；无效日期不会自动改成月末。": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Applied in year → month → day → hour → minute → second order. Invalid dates are rejected instead of clamped to month-end."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按年→月→日→时→分→秒计算；无效日期不会自动改成月末。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按年→月→日→時→分→秒計算；無效日期不會自動改成月底。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "年→月→日→時→分→秒の順で計算します。無効な日付を自動的に月末へ補正しません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "년→월→일→시→분→초 순서로 계산합니다. 유효하지 않은 날짜를 월말로 자동 조정하지 않습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se aplica en orden: año → mes → día → hora → minuto → segundo. Las fechas inválidas se rechazan, sin ajustarlas al fin de mes."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aplicado na ordem ano → mês → dia → hora → minuto → segundo. Datas inválidas são rejeitadas, sem ajuste para o fim do mês."
+          }
+        }
+      }
+    }
+,
     "作者保存：成功 %1$@ 张，待处理 %2$@ 张。": {
       "extractionState": "manual",
       "localizations": {
@@ -31825,6 +33048,2369 @@
             "value": "Intervalo padrão de segmentação"
           }
         }
+      }
+    },
+    "从文件名解析日期": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "从文件名解析日期"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Parse date from filename"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "從檔名解析日期"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ファイル名から日時を解析"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "파일명에서 날짜 추출"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Extraer fecha del nombre"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Extrair data do nome"}}
+      }
+    },
+    "文件名正则表达式": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "文件名正则表达式"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Filename regular expression"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "檔名正規表示式"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ファイル名の正規表現"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "파일명 정규식"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Expresión regular del nombre"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Expressão regular do nome"}}
+      }
+    },
+    "日期模板（如 $1:$2:$3 12:00:00）": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "日期模板（如 $1:$2:$3 12:00:00）"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Date template (e.g. $1:$2:$3 12:00:00)"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "日期範本（如 $1:$2:$3 12:00:00）"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "日時テンプレート（例 $1:$2:$3 12:00:00）"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "날짜 템플릿(예: $1:$2:$3 12:00:00)"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Plantilla de fecha (p. ej. $1:$2:$3 12:00:00)"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Modelo de data (ex.: $1:$2:$3 12:00:00)"}}
+      }
+    },
+    "导出磁盘 XMP": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "导出磁盘 XMP"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Export saved XMP"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "匯出磁碟 XMP"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "保存済みXMPを書き出す"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "저장된 XMP 내보내기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Exportar XMP guardado"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Exportar XMP salvo"}}
+      }
+    },
+    "拍摄时间（EXIF，含亚秒与时区）": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "拍摄时间（EXIF，含亚秒与时区）"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Capture time (EXIF, subseconds and offset)"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "拍攝時間（EXIF，含次秒與時區）"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "撮影時刻（EXIF、小数秒・時差）"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "촬영 시간(EXIF, 소수 초 및 시차)"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Hora de captura (EXIF, fracciones y zona)"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Hora da captura (EXIF, frações e fuso)"}}
+      }
+    },
+    "列表时间（XMP CreateDate）": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "列表时间（XMP CreateDate）"}},
+        "en": {"stringUnit": {"state": "translated", "value": "List time (XMP CreateDate)"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "列表時間（XMP CreateDate）"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "一覧の時刻（XMP CreateDate）"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "목록 시간(XMP CreateDate)"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Hora de la lista (XMP CreateDate)"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Hora da lista (XMP CreateDate)"}}
+      }
+    },
+    "按列表排序冻结顺序；只写所选规范标签。EXIF 拍摄时间含亚秒与时区；其他字段不同步同义标签或配对文件。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "按列表排序冻结顺序；只写所选规范标签。EXIF 拍摄时间含亚秒与时区；其他字段不同步同义标签或配对文件。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Order is frozen from the list. Only selected tags are written. EXIF capture time includes subseconds and offset; other tags and paired files are not synchronized."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "依列表排序凍結順序；只寫所選標籤。EXIF 拍攝時間含次秒與時區；其他欄位不同步同義標籤或配對檔案。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "一覧の順序を固定し、選択したタグのみを書き込みます。EXIF撮影時刻は小数秒・時差を含み、別タグやペアのファイルは同期しません。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "목록 순서를 고정하고 선택한 태그만 씁니다. EXIF 촬영 시간에는 소수 초와 시차가 포함되며 다른 태그나 쌍 파일은 동기화하지 않습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Se fija el orden de la lista y solo se escriben las etiquetas elegidas. La hora EXIF incluye fracciones y zona; no se sincronizan otras etiquetas ni archivos emparejados."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "A ordem da lista é fixada e apenas as tags escolhidas são gravadas. A hora EXIF inclui frações e fuso; outras tags e arquivos pareados não são sincronizados."}}
+      }
+    },
+    "已停止后续写入；尚未保存的草稿保留。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "已停止后续写入；尚未保存的草稿保留。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Subsequent writes stopped; unsaved drafts are retained."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "已停止後續寫入；尚未儲存的草稿保留。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "以降の書き込みを停止しました。未保存の下書きは保持されています。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이후 쓰기를 중지했습니다. 저장하지 않은 초안은 유지됩니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Se detuvieron las siguientes escrituras; se conservan los borradores sin guardar."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "As próximas gravações foram interrompidas; rascunhos não salvos são mantidos."}}
+      }
+    },
+    "仅开放 JPEG 和已有 XMP；日期或定位草稿请先保存，结果未知的草稿请先核对磁盘。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "仅开放 JPEG 和已有 XMP；日期或定位草稿请先保存，结果未知的草稿请先核对磁盘。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "JPEG and existing XMP only. Save legacy date/location drafts first; inspect disk before replacing unconfirmed drafts."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "僅開放 JPEG 和既有 XMP；日期或定位草稿請先儲存，結果未知的草稿請先核對磁碟。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "JPEGと既存XMPのみ対応。従来の日時・位置の下書きを先に保存し、結果不明の下書きはディスクを確認してください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "JPEG와 기존 XMP만 지원합니다. 날짜 또는 위치 초안을 먼저 저장하고, 결과가 확인되지 않은 초안은 디스크를 확인하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Solo JPEG y XMP existente. Guarde primero cambios de fecha/ubicación y revise el disco si un resultado no está confirmado."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Somente JPEG e XMP existente. Salve primeiro alterações de data/localização e confira o disco se o resultado não estiver confirmado."}}
+      }
+    },
+    "拍摄日期（XMP）": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "拍摄日期（XMP）"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Capture date (XMP)"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "拍攝日期（XMP）"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "撮影日時（XMP）"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "촬영 날짜(XMP)"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Fecha de captura (XMP)"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Data de captura (XMP)"}}
+      }
+    },
+    "数字化日期（XMP）": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "数字化日期（XMP）"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Digitized date (XMP)"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "數位化日期（XMP）"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "デジタル化日時（XMP）"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "디지털화 날짜(XMP)"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Fecha de digitalización (XMP)"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Data de digitalização (XMP)"}}
+      }
+    },
+    "修改日期（XMP）": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "修改日期（XMP）"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Modified date (XMP)"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "修改日期（XMP）"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "変更日時（XMP）"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "수정 날짜(XMP)"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Fecha de modificación (XMP)"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Data de modificação (XMP)"}}
+      }
+    },
+    "相机厂商": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "相机厂商"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Camera make"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "相機廠商"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "カメラメーカー"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "카메라 제조사"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Fabricante de cámara"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Fabricante da câmera"}}
+      }
+    },
+    "相机型号": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "相机型号"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Camera model"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "相機型號"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "カメラ機種"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "카메라 모델"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Modelo de cámara"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Modelo da câmera"}}
+      }
+    },
+    "镜头型号": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "镜头型号"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Lens model"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "鏡頭型號"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "レンズ機種"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "렌즈 모델"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Modelo de objetivo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Modelo da lente"}}
+      }
+    },
+    "曝光时间": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "曝光时间"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Exposure time"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "曝光時間"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "露出時間"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "노출 시간"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Tiempo de exposición"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Tempo de exposição"}}
+      }
+    },
+    "光圈值": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "光圈值"}},
+        "en": {"stringUnit": {"state": "translated", "value": "F-number"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "光圈值"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "F値"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "조리개 값"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Número f"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Número f"}}
+      }
+    },
+    "焦距": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "焦距"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Focal length"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "焦距"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "焦点距離"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "초점 거리"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Distancia focal"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Distância focal"}}
+      }
+    },
+    "曝光补偿": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "曝光补偿"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Exposure compensation"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "曝光補償"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "露出補正"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "노출 보정"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Compensación de exposición"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Compensação de exposição"}}
+      }
+    },
+    "曝光程序": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "曝光程序"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Exposure program"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "曝光程式"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "露出プログラム"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "노출 프로그램"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Programa de exposición"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Programa de exposição"}}
+      }
+    },
+    "白平衡": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "白平衡"}},
+        "en": {"stringUnit": {"state": "translated", "value": "White balance"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "白平衡"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ホワイトバランス"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "화이트 밸런스"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Balance de blancos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Balanço de branco"}}
+      }
+    },
+    "年": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "年"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Year"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "年"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "年"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "년"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Año"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Ano"}}
+      }
+    },
+    "月": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "月"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Month"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "月"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "月"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "월"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Mes"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Mês"}}
+      }
+    },
+    "日": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "日"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Day"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "日"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "日"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "일"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Día"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Dia"}}
+      }
+    },
+    "时": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "时"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Hour"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "時"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "時"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "시"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Hora"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Hora"}}
+      }
+    },
+    "分": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "分"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Minute"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "分"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "分"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "분"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Minuto"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Minuto"}}
+      }
+    },
+    "秒": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "秒"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Second"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "秒"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "秒"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "초"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Segundo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Segundo"}}
+      }
+    },
+    "日期、预设与交换…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "日期、预设与交换…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Dates, presets and exchange…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "日期、預設與交換…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "日時・プリセット・交換…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "날짜, 프리셋 및 교환…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Fechas, ajustes y intercambio…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Datas, predefinições e intercâmbio…"}}
+      }
+    },
+    "按列表当前排序冻结顺序；仅修改所列 XMP 字段，不同步 EXIF/IPTC 或配对文件。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "按列表当前排序冻结顺序；仅修改所列 XMP 字段，不同步 EXIF/IPTC 或配对文件。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Order follows the current table sort. Only the listed XMP fields change; EXIF/IPTC and paired files stay unchanged."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "依列表目前排序凍結順序；僅修改所列 XMP 欄位，不同步 EXIF/IPTC 或配對檔案。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "現在の一覧順で固定します。表示したXMP項目のみ変更し、EXIF/IPTCやペアファイルには同期しません。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "현재 목록 정렬 순서를 고정합니다. 표시된 XMP 필드만 변경하며 EXIF/IPTC나 연결 파일은 동기화하지 않습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Se conserva el orden actual. Solo cambian los campos XMP indicados; no se sincronizan EXIF/IPTC ni archivos emparejados."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "A ordem atual é mantida. Somente os campos XMP indicados mudam; EXIF/IPTC e arquivos pareados não são sincronizados."}}
+      }
+    },
+    "预设": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "预设"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Presets"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "預設"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "プリセット"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "프리셋"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Preajustes"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Predefinições"}}
+      }
+    },
+    "比较与交换": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "比较与交换"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Compare and exchange"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "比較與交換"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "比較と交換"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "비교 및 교환"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Comparar e intercambiar"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Comparar e intercambiar"}}
+      }
+    },
+    "字段": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "字段"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Field"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "欄位"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "フィールド"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "필드"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Campo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Campo"}}
+      }
+    },
+    "当前值：%1$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "当前值：%1$@"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Current value: %1$@"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "目前值：%1$@"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "現在の値：%1$@"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "현재 값: %1$@"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Valor actual: %1$@"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Valor atual: %1$@"}}
+      }
+    },
+    "来源字段": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "来源字段"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Source field"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "來源欄位"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "コピー元"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "원본 필드"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Campo de origen"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Campo de origem"}}
+      }
+    },
+    "数值：%1$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "数值：%1$@"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Value: %1$@"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "數值：%1$@"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "値：%1$@"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "값: %1$@"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Valor: %1$@"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Valor: %1$@"}}
+      }
+    },
+    "整数数值": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "整数数值"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Integer value"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "整數數值"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "整数値"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "정수 값"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Valor entero"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Valor inteiro"}}
+      }
+    },
+    "时区标识（可选，如 America/New_York）": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "时区标识（可选，如 America/New_York）"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Time zone ID (optional, e.g. America/New_York)"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "時區識別碼（選填，如 America/New_York）"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "タイムゾーンID（任意、例：America/New_York）"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "시간대 ID(선택, 예: America/New_York)"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Zona horaria (opcional, p. ej. America/New_York)"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Fuso horário (opcional, ex.: America/New_York)"}}
+      }
+    },
+    "日期组件": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "日期组件"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Date component"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "日期元件"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "日時の要素"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "날짜 구성 요소"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Componente de fecha"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Componente da data"}}
+      }
+    },
+    "合法值": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "合法值"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Allowed value"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "合法值"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "有効な値"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "허용 값"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Valor permitido"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Valor permitido"}}
+      }
+    },
+    "列表值每行一项；逗号属于内容。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "列表值每行一项；逗号属于内容。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "One list item per line; commas are part of the value."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "列表值每行一項；逗號屬於內容。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "1行に1項目。コンマは値の一部です。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "한 줄에 목록 항목 하나를 입력하세요. 쉼표는 값에 포함됩니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Un elemento por línea; las comas forman parte del valor."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Um item por linha; vírgulas fazem parte do valor."}}
+      }
+    },
+    "步长（秒）": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "步长（秒）"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Step (seconds)"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "步長（秒）"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "間隔（秒）"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "간격(초)"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Intervalo (segundos)"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Intervalo (segundos)"}}
+      }
+    },
+    "结束时间": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "结束时间"}},
+        "en": {"stringUnit": {"state": "translated", "value": "End time"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "結束時間"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "終了時刻"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "종료 시간"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Hora final"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Hora final"}}
+      }
+    },
+    "添加动作": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "添加动作"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Add action"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "新增動作"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "操作を追加"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "작업 추가"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Añadir acción"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Adicionar ação"}}
+      }
+    },
+    "动作数量：%1$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "动作数量：%1$@"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Actions: %1$@"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "動作數量：%1$@"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "操作数：%1$@"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "작업 수: %1$@"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Acciones: %1$@"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Ações: %1$@"}}
+      }
+    },
+    "清空动作": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "清空动作"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Clear actions"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "清空動作"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "操作を消去"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "작업 지우기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Borrar acciones"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Limpar ações"}}
+      }
+    },
+    "预设名称": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "预设名称"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Preset name"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "預設名稱"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "プリセット名"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "프리셋 이름"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Nombre del preajuste"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Nome da predefinição"}}
+      }
+    },
+    "保存命名预设": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "保存命名预设"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Save named preset"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "儲存命名預設"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "名前付きプリセットを保存"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이름 있는 프리셋 저장"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Guardar preajuste con nombre"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Salvar predefinição com nome"}}
+      }
+    },
+    "载入预设动作": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "载入预设动作"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Load preset actions"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "載入預設動作"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "プリセット操作を読み込む"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "프리셋 작업 불러오기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Cargar acciones del preajuste"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Carregar ações da predefinição"}}
+      }
+    },
+    "导出预设 JSON": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "导出预设 JSON"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Export preset JSON"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "匯出預設 JSON"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "プリセットJSONを書き出す"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "프리셋 JSON 내보내기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Exportar JSON del preajuste"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Exportar JSON da predefinição"}}
+      }
+    },
+    "导入预设 JSON": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "导入预设 JSON"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Import preset JSON"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "匯入預設 JSON"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "プリセットJSONを読み込む"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "프리셋 JSON 가져오기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Importar JSON del preajuste"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Importar JSON da predefinição"}}
+      }
+    },
+    "导出可回写 CSV": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "导出可回写 CSV"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Export editable CSV"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "匯出可回寫 CSV"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "編集用CSVを書き出す"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "다시 가져올 CSV 내보내기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Exportar CSV editable"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Exportar CSV editável"}}
+      }
+    },
+    "导出安全显示 CSV": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "导出安全显示 CSV"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Export safe display CSV"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "匯出安全顯示 CSV"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "安全な表示用CSVを書き出す"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "안전한 표시용 CSV 내보내기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Exportar CSV de visualización seguro"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Exportar CSV de exibição seguro"}}
+      }
+    },
+    "导入 CSV 并预览": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "导入 CSV 并预览"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Import CSV and preview"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "匯入 CSV 並預覽"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "CSVを読み込んでプレビュー"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "CSV 가져오기 및 미리 보기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Importar CSV y previsualizar"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Importar CSV e visualizar"}}
+      }
+    },
+    "可回写 CSV：空单元格保持，@clear 清除；文字与列表使用 JSON 值。显示版不可导回。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "可回写 CSV：空单元格保持，@clear 清除；文字与列表使用 JSON 值。显示版不可导回。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Editable CSV: blank cells keep values, @clear removes them; text and lists use JSON values. Display CSV cannot be imported."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "可回寫 CSV：空白儲存格保持，@clear 清除；文字與列表使用 JSON 值。顯示版不可匯回。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "編集用CSV：空欄は保持、@clearは消去。文字列とリストはJSON値です。表示用CSVは読み込めません。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "편집용 CSV: 빈 셀은 유지, @clear는 삭제입니다. 텍스트와 목록은 JSON 값입니다. 표시용 CSV는 가져올 수 없습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "CSV editable: las celdas vacías conservan valores, @clear los borra; texto y listas usan JSON. El CSV de visualización no se importa."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "CSV editável: células vazias mantêm valores, @clear remove; textos e listas usam JSON. O CSV de exibição não pode ser importado."}}
+      }
+    },
+    "导出 XMP": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "导出 XMP"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Export XMP"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "匯出 XMP"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "XMPを書き出す"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "XMP 내보내기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Exportar XMP"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Exportar XMP"}}
+      }
+    },
+    "导入 XMP 并预览": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "导入 XMP 并预览"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Import XMP and preview"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "匯入 XMP 並預覽"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "XMPを読み込んでプレビュー"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "XMP 가져오기 및 미리 보기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Importar XMP y previsualizar"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Importar XMP e visualizar"}}
+      }
+    },
+    "XMP 导入只合并已开放字段；缺失值保持，先预览冲突，不替换整个文件。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "XMP 导入只合并已开放字段；缺失值保持，先预览冲突，不替换整个文件。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "XMP import merges supported fields only. Missing values stay unchanged; conflicts are previewed and the whole file is never replaced."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "XMP 匯入僅合併已開放欄位；缺失值保持，先預覽衝突，不替換整個檔案。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "XMPは対応項目のみ結合します。欠損値は保持し、競合をプレビューします。ファイル全体を置換しません。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "XMP 가져오기는 지원 필드만 병합합니다. 없는 값은 유지하고 충돌을 미리 보며 파일 전체를 바꾸지 않습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "XMP solo combina campos admitidos. Los valores ausentes se conservan y se previsualizan conflictos; no se reemplaza todo el archivo."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "XMP combina apenas campos suportados. Valores ausentes são mantidos e conflitos são visualizados; o arquivo inteiro não é substituído."}}
+      }
+    },
+    "比较仅显示前 20 张；导出与编辑作用于全部选择。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "比较仅显示前 20 张；导出与编辑作用于全部选择。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Comparison shows the first 20 items; export and editing cover the entire selection."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "比較僅顯示前 20 張；匯出與編輯作用於全部選取。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "比較は先頭20件のみ表示。書き出しと編集は選択全体に適用します。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "비교는 처음 20개만 표시합니다. 내보내기와 편집은 전체 선택에 적용됩니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "La comparación muestra las primeras 20 fotos; exportación y edición cubren toda la selección."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "A comparação mostra as primeiras 20 fotos; exportação e edição abrangem toda a seleção."}}
+      }
+    },
+    "操作失败：%1$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "操作失败：%1$@"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Operation failed: %1$@"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "操作失敗：%1$@"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "操作に失敗：%1$@"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "작업 실패: %1$@"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Error de operación: %1$@"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Falha na operação: %1$@"}}
+      }
+    },
+    "保存进度：%1$@/%2$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "保存进度：%1$@/%2$@"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Save progress: %1$@/%2$@"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "儲存進度：%1$@/%2$@"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "保存進捗：%1$@/%2$@"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "저장 진행: %1$@/%2$@"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Progreso: %1$@/%2$@"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Progresso: %1$@/%2$@"}}
+      }
+    },
+    "停止后续元数据写入": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "停止后续元数据写入"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Stop subsequent metadata writes"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "停止後續中繼資料寫入"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "以降のメタデータ書き込みを停止"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이후 메타데이터 쓰기 중지"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Detener las siguientes escrituras"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Parar as próximas gravações"}}
+      }
+    },
+    "追加文字": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "追加文字"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Append text"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "追加文字"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "テキストを追加"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "텍스트 추가"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Añadir texto"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Adicionar texto"}}
+      }
+    },
+    "整体偏移（秒）": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "整体偏移（秒）"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Shift all by seconds"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "整體偏移（秒）"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "全体を秒単位でずらす"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "전체 시간 이동(초)"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Desplazar todos (segundos)"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Deslocar todos (segundos)"}}
+      }
+    },
+    "日历增加天数": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "日历增加天数"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Add calendar days"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "日曆增加天數"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "暦の日数を加算"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "달력 일수 추가"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Sumar días de calendario"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Adicionar dias de calendário"}}
+      }
+    },
+    "修改日期组件": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "修改日期组件"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Change date component"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "修改日期元件"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "日時要素を変更"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "날짜 구성 요소 변경"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Cambiar componente de fecha"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Alterar componente da data"}}
+      }
+    },
+    "起点＋步长": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "起点＋步长"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Start + step"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "起點＋步長"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "開始＋間隔"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "시작 + 간격"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Inicio + intervalo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Início + intervalo"}}
+      }
+    },
+    "区间均分": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "区间均分"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Distribute across interval"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "區間均分"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "区間を均等分配"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "구간 균등 분배"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Distribuir en un intervalo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Distribuir em um intervalo"}}
+      }
+    },
+    "从字段复制": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "从字段复制"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Copy from field"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "從欄位複製"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "フィールドからコピー"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "필드에서 복사"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Copiar desde campo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Copiar do campo"}}
+      }
+    },
+    "自动": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "自动"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Automatic"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "自動"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "自動"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "자동"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Automático"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Automático"}}
+      }
+    },
+    "手动": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "手动"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Manual"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "手動"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "手動"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "수동"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Manual"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Manual"}}
+      }
+    },
+    "未定义": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "未定义"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Undefined"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "未定義"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "未定義"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "정의되지 않음"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Sin definir"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Indefinido"}}
+      }
+    },
+    "程序自动": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "程序自动"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Program automatic"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "程式自動"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "プログラム自動"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "프로그램 자동"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Programa automático"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Programa automático"}}
+      }
+    },
+    "光圈优先": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "光圈优先"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Aperture priority"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "光圈優先"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "絞り優先"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "조리개 우선"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Prioridad de apertura"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Prioridade de abertura"}}
+      }
+    },
+    "快门优先": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "快门优先"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Shutter priority"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "快門優先"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "シャッター優先"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "셔터 우선"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Prioridad de obturador"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Prioridade do obturador"}}
+      }
+    },
+    "创意程序": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "创意程序"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Creative program"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "創意程式"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "クリエイティブプログラム"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "크리에이티브 프로그램"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Programa creativo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Programa criativo"}}
+      }
+    },
+    "运动程序": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "运动程序"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Action program"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "運動程式"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "アクションプログラム"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "스포츠 프로그램"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Programa de acción"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Programa de ação"}}
+      }
+    },
+    "人像模式": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "人像模式"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Portrait mode"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "人像模式"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ポートレート"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "인물 모드"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Modo retrato"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Modo retrato"}}
+      }
+    },
+    "风景模式": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "风景模式"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Landscape mode"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "風景模式"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "風景"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "풍경 모드"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Modo paisaje"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Modo paisagem"}}
+      }
+    },
+    "高级元数据（只读）": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Advanced metadata (read-only)"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "高级元数据（只读）"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "進階中繼資料（唯讀）"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "詳細メタデータ（読み取り専用）"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "고급 메타데이터(읽기 전용)"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Metadatos avanzados (solo lectura)"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Metadados avançados (somente leitura)"}}
+      }
+    },
+    "File": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "File"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "文件"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "檔案"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ファイル"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "파일"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Archivo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Arquivo"}}
+      }
+    },
+    "General": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "General"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "常规"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "一般"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "一般"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "일반"}},
+        "es": {"stringUnit": {"state": "translated", "value": "General"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Geral"}}
+      }
+    },
+    "Information": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Information"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "内容信息"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "內容資訊"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "情報"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "정보"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Información"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Informações"}}
+      }
+    },
+    "Camera": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Camera"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "相机"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "相機"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "カメラ"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "카메라"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Cámara"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Câmera"}}
+      }
+    },
+    "Camera Settings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Camera Settings"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "相机设置"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "相機設定"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "撮影設定"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "카메라 설정"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ajustes de cámara"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Ajustes da câmera"}}
+      }
+    },
+    "Advanced Settings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Advanced Settings"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "高级设置"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "進階設定"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "詳細設定"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "고급 설정"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ajustes avanzados"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Ajustes avançados"}}
+      }
+    },
+    "Lens": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Lens"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "镜头"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "鏡頭"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "レンズ"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "렌즈"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Objetivo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Lente"}}
+      }
+    },
+    "Dimension And Resolution": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Dimension And Resolution"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "尺寸和分辨率"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "尺寸和解析度"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "サイズと解像度"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "크기 및 해상도"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Dimensiones y resolución"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Dimensões e resolução"}}
+      }
+    },
+    "GPS Coordinates": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "GPS Coordinates"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "GPS 坐标"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "GPS 座標"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "GPS座標"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "GPS 좌표"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Coordenadas GPS"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Coordenadas GPS"}}
+      }
+    },
+    "Location Address": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Location Address"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "地点地址"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "地點地址"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "所在地"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "위치 주소"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Dirección"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Endereço"}}
+      }
+    },
+    "标题": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "标题"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Title"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "標題"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "タイトル"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "제목"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Título"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Título"}}
+      }
+    },
+    "版权": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "版权"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Copyright"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "版權"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "著作権"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "저작권"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Derechos de autor"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Direitos autorais"}}
+      }
+    },
+    "编辑元数据…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "编辑元数据…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Edit metadata…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "編輯中繼資料…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "メタデータを編集…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "메타데이터 편집…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Editar metadatos…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Editar metadados…"}}
+      }
+    },
+    "字段操作": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "字段操作"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Field action"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "欄位操作"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "フィールド操作"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "필드 작업"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Acción del campo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Ação do campo"}}
+      }
+    },
+    "字段值": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "字段值"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Field value"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "欄位值"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "フィールド値"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "필드 값"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Valor del campo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Valor do campo"}}
+      }
+    },
+    "追加关键词": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "追加关键词"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Append keywords"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "追加關鍵字"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "キーワードを追加"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "키워드 추가"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Añadir palabras clave"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Adicionar palavras-chave"}}
+      }
+    },
+    "移除指定关键词": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "移除指定关键词"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Remove specified keywords"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "移除指定關鍵字"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "指定キーワードを削除"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "지정 키워드 제거"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Eliminar palabras clave indicadas"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Remover palavras-chave indicadas"}}
+      }
+    },
+    "清除字段": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "清除字段"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Clear field"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "清除欄位"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "フィールドを消去"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "필드 지우기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Borrar campo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Limpar campo"}}
+      }
+    },
+    "每行一个关键词": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "每行一个关键词"}},
+        "en": {"stringUnit": {"state": "translated", "value": "One keyword per line"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "每行一個關鍵字"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "1行に1つのキーワード"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "한 줄에 키워드 하나"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Una palabra clave por línea"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Uma palavra-chave por linha"}}
+      }
+    },
+    "无法预览字段修改；请检查输入并重新读取元数据。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "无法预览字段修改；请检查输入并重新读取元数据。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Cannot preview field changes; check the input and reload metadata."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "無法預覽欄位修改；請檢查輸入並重新讀取中繼資料。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "変更をプレビューできません。入力を確認し、メタデータを再読み込みしてください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "필드 변경을 미리 볼 수 없습니다. 입력을 확인하고 메타데이터를 다시 읽으세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "No se pueden previsualizar los cambios; revise la entrada y vuelva a leer los metadatos."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Não foi possível visualizar as alterações; confira a entrada e releia os metadados."}}
+      }
+    },
+    "字段修改待保存": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "字段修改待保存"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Field changes pending save"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "欄位修改待儲存"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "フィールドの変更は未保存です"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "필드 변경 저장 대기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Cambios del campo pendientes de guardar"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Alterações do campo pendentes de salvar"}}
+      }
+    },
+    "元数据保存：成功 %1$@ 张，待处理 %2$@ 张。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "元数据保存：成功 %1$@ 张，待处理 %2$@ 张。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Metadata save: %1$@ successful, %2$@ pending."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "中繼資料儲存：成功 %1$@ 張，待處理 %2$@ 張。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "メタデータ保存：成功 %1$@ 件、未処理 %2$@ 件。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "메타데이터 저장: 성공 %1$@개, 대기 %2$@개."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Metadatos: %1$@ guardados, %2$@ pendientes."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Metadados: %1$@ salvos, %2$@ pendentes."}}
+      }
+    },
+    "放弃该元数据草稿": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "放弃该元数据草稿"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Discard this metadata draft"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "放棄該中繼資料草稿"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "このメタデータの下書きを破棄"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이 메타데이터 초안 버리기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Descartar este borrador de metadatos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Descartar este rascunho de metadados"}}
+      }
+    },
+    "元数据写入失败；请检查文件权限。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "元数据写入失败；请检查文件权限。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Metadata write failed; check file permissions."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "中繼資料寫入失敗；請檢查檔案權限。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "メタデータの書き込みに失敗しました。ファイルの権限を確認してください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "메타데이터 쓰기에 실패했습니다. 파일 권한을 확인하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Error al escribir los metadatos; revise los permisos del archivo."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Falha ao gravar metadados; confira as permissões do arquivo."}}
+      }
+    },
+    "元数据写入结果未确认；请先检查磁盘文件，不能直接重试。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "元数据写入结果未确认；请先检查磁盘文件，不能直接重试。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Metadata write result is unconfirmed; inspect the file on disk before creating a new draft."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "中繼資料寫入結果未確認；請先檢查磁碟檔案，不能直接重試。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "書き込み結果を確認できません。再試行せず、先にディスク上のファイルを確認してください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "메타데이터 쓰기 결과가 확인되지 않았습니다. 바로 재시도하지 말고 디스크 파일을 확인하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Resultado sin confirmar; revise el archivo en disco antes de crear otro borrador."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Resultado não confirmado; confira o arquivo no disco antes de criar outro rascunho."}}
+      }
+    },
+    "Metadata field: FileName": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "File Name"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "文件名"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "檔案名稱"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ファイル名"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "파일명"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Nombre Archivo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Nome do arquivo"}}
+      }
+    },
+    "Metadata field: FilePath": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "File path"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "文件路径"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "檔案路徑"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ファイルパス"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "파일 경로"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ruta del archivo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Caminho do arquivo"}}
+      }
+    },
+    "Metadata field: MDItemUserTags": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Finder tags"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "Finder 标签"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "Finder 標籤"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "Finder タグ"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "Finder 태그"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Etiquetas de Finder"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Etiquetas do Finder"}}
+      }
+    },
+    "Metadata field: Artist": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Image author"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "图像作者"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "影像建立者"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "画像作成者"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이미지를 만든 사람"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Autor"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Autor da imagem"}}
+      }
+    },
+    "Metadata field: By-line": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "By line"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "作者"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "作者"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "製作者"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "제작자"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Creador"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Autor"}}
+      }
+    },
+    "Metadata field: By-lineTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "By line Title"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "By-lineTitle"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "By line Title"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "製作者の職種"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "By line Title"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Puesto del Creador"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Cargo do autor"}}
+      }
+    },
+    "Metadata field: Contact": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Contact"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "Contact"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "Contact"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "連絡"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "연락처"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Contacto"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Contato"}}
+      }
+    },
+    "Metadata field: ImageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Image description"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "图像描述"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "影像標題"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "イメージ説明"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "Image description"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Título Imagen"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Descrição da imagem"}}
+      }
+    },
+    "Metadata field: Copyright": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Copyright"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "版权"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "版權擁有人"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "版権所有者"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "저작권 소유자"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Copyright Perfil"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Direitos autorais"}}
+      }
+    },
+    "Metadata field: Software": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Software"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "使用软件"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "軟體"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ソフトウェア"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "소프트웨어"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Programa Utilizado"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Software"}}
+      }
+    },
+    "Metadata field: UserComment": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "User Comment"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "用户注释"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "使用者註解"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ユーザーコメント"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사용자 코멘트"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Comentarios Usuario"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Comentário do usuário"}}
+      }
+    },
+    "Metadata field: Headline": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Headline"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "标题"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "標題"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ヘッドライン"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "헤드라인"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Titular"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Título"}}
+      }
+    },
+    "Metadata field: Caption-Abstract": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Caption Abstract"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "说明"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "說明"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "表題/説明"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "제목/설명"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Título/Descripción"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Descrição"}}
+      }
+    },
+    "Metadata field: ObjectName": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Object Name"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "ObjectName"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "Object Name"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "タイトル"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "Object Name"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Título"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Nome do objeto"}}
+      }
+    },
+    "Metadata field: Keywords": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Keywords"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "关键字"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "關鍵字"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "キーワード"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "키워드"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Clave"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Palavras-chave"}}
+      }
+    },
+    "Metadata field: Subject": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Subject"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "主题"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "主旨"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "サブジェクト"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "Subject"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Sujeto"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Assunto"}}
+      }
+    },
+    "Metadata field: Keyword": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Keyword"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "关键词"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "關鍵字"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "キーワード"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "키워드"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Palabras Clave"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Palavra-chave"}}
+      }
+    },
+    "Metadata field: FileCreateDate": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "File Create Date"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "FileCreateDate"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "File Create Date"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "File Create Date"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "File Create Date"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Fecha y Hora de Creación"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Data de criação do arquivo"}}
+      }
+    },
+    "Metadata field: FileModifyDate": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "File Modify Date"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "更新日期"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "更新日期"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "更新日時"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "갱신 일자"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Fecha Actualización"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Data de modificação do arquivo"}}
+      }
+    },
+    "Metadata field: DateTimeOriginal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Date Time Original"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "原始数据产生的日期和时间"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "原始影像日期時間"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "オリジナルデータ作成日時"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "원본 데이터 생성 일시"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Fecha y Hora de Datos Original"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Data da captura original"}}
+      }
+    },
+    "Metadata field: CreateDate": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Create Date"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "数字数据产生的日期和时间"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "數位化的日期時間"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "デジタルデータ作成日時"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "디지털 데이터 생성 일시"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Fecha y Hora de Datos Digital"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Data de digitalização"}}
+      }
+    },
+    "Metadata field: ModifyDate": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Modify Date"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "文件改变的日期和时间"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "檔案建立日期及時間"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ファイル作成日時"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "파일 변경 날짜 및 시간"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Fecha y Hora de Cambio del Archivo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Data de modificação"}}
+      }
+    },
+    "Metadata field: DateCreated": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Date Created"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "创建日期"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "建立日期"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "作成日付"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "만들어진 날짜"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Fecha Creación"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Data de criação"}}
+      }
+    },
+    "Metadata field: TimeCreated": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Time Created"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "TimeCreated"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "Time Created"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "作成時間"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "Time Created"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Hora Creación"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Hora de criação"}}
+      }
+    },
+    "Metadata field: Make": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Make"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "厂商"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "製造商"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "メーカー"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "메이커"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Marca"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Fabricante"}}
+      }
+    },
+    "Metadata field: Model": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Model"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "型号"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "相機型號"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "画像入力機器モデル"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "카메라 모델"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Modelo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Modelo"}}
+      }
+    },
+    "Metadata field: SerialNumber": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Camera serial number"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "相机序列号"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "照相機ID"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "シリアル番号"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "시리얼번호"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Número Serie"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Número de série"}}
+      }
+    },
+    "Metadata field: ISO": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "ISO"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "ISO"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "ISO"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ISO"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "ISO"}},
+        "es": {"stringUnit": {"state": "translated", "value": "ISO"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "ISO"}}
+      }
+    },
+    "Metadata field: FNumber": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "FNumber"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "光圈数"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "光圈"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "F値"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "F 숫자"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Número F"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Número f"}}
+      }
+    },
+    "Metadata field: ApertureValue": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Aperture Value"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "光圈"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "光圈"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "絞り"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "조리개"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Apertura"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Abertura"}}
+      }
+    },
+    "Metadata field: ShutterSpeedValue": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Shutter Speed Value"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "快门速度"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "快門"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "シャッタースピード"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "셔터 속도"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Velocidad Obturación"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Velocidade do obturador"}}
+      }
+    },
+    "Metadata field: FocalLength": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Focal Length"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "焦距"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "焦距"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "レンズ焦点距離"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "초점 길이"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Distancia Focal Objetivo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Distância focal"}}
+      }
+    },
+    "Metadata field: FocalLengthIn35mmFormat": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Focal Length In35mm Format"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "35 mm 换算镜头焦点距离"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "35mm 相機等效焦距"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "35mmフイルム換算焦点距離"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "35 mm 필름 환산 초점길이"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Distancia Focal en Película de 35 mm"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Distância focal equivalente a 35 mm"}}
+      }
+    },
+    "Metadata field: ExposureCompensation": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Exposure Compensation"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "曝光偏差"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "曝光補償"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "露出補正値"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "노출 보정"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Compensación Exposición"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Compensação da exposição"}}
+      }
+    },
+    "Metadata field: Flash": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Flash"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "闪光"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "閃光燈"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ストロボ"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "플래시"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Flash"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Flash"}}
+      }
+    },
+    "Metadata field: ColorSpace": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Color Space"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "色彩空间信息"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "色彩空間"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "色空間"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "색공간"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Espacio Color"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Espaço de cor"}}
+      }
+    },
+    "Metadata field: MaxApertureValue": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Max Aperture Value"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "最大镜头光圈"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "鏡頭最大光圈"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "最大レンズ口径"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "최대 렌즈 조리개"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Apertura Lente Máxima"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Abertura máxima"}}
+      }
+    },
+    "Metadata field: ExposureMode": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Exposure Mode"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "曝光模式"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "曝光模式"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "露光モード"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "노출 모드"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Modo Exposición"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Modo de exposição"}}
+      }
+    },
+    "Metadata field: ExposureProgram": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Exposure Program"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "曝光程序"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "拍攝模式"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "露出プログラム"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "노출 프로그램"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Programa Exposición"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Programa de exposição"}}
+      }
+    },
+    "Metadata field: ExposureTime": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Exposure Time"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "曝光时间"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "曝光時間"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "露出時間"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "노출 시간"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Tiempo de Exposición"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Tempo de exposição"}}
+      }
+    },
+    "Metadata field: MeteringMode": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Metering Mode"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "测量方式"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "測光模式"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "測光モード"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "측광 모드"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Modo Medición"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Modo de medição"}}
+      }
+    },
+    "Metadata field: WhiteBalance": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "White Balance"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "白平衡"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "白平衡"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ホワイトバランス"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "화이트밸런스"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Balance de Blancos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Balanço de branco"}}
+      }
+    },
+    "Metadata field: Saturation": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Saturation"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "饱和度"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "飽和度"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "彩度"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "채도"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Saturación"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Saturação"}}
+      }
+    },
+    "Metadata field: Sharpness": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Sharpness"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "锐度"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "銳利度"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "シャープネス"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "선명도"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Nitidez"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Nitidez"}}
+      }
+    },
+    "Metadata field: LensMake": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Lens Make"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "LensMake"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "Lens Make"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "Lens Make"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "Lens Make"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Lens Make"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Fabricante da lente"}}
+      }
+    },
+    "Metadata field: Lens": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Lens"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "镜头"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "鏡頭"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "レンズ"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "렌즈"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Objetivo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Lente"}}
+      }
+    },
+    "Metadata field: LensModel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Lens Model"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "LensModel"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "Lens Model"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "Lens Model"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "Lens Model"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Modelo Objetivo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Modelo da lente"}}
+      }
+    },
+    "Metadata field: LensSerialNumber": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Lens Serial Number"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "LensSerialNumber"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "Lens Serial Number"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "レンズシリアル番号"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "Lens Serial Number"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Número Serie Objetivo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Número de série da lente"}}
+      }
+    },
+    "Metadata field: LensInfo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Lens Info"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "镜头信息"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "鏡頭資訊"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "レンズ情報"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "렌즈 정보"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Información del Objetivo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Informações da lente"}}
+      }
+    },
+    "Metadata field: Orientation": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Orientation"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "图像取向"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "影像的方向"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "画像の向き"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이미지 위치"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Orientación de Imagen"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Orientação"}}
+      }
+    },
+    "Metadata field: ImageWidth": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Image width"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "图像宽度"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "影像寬度"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "画像幅"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이미지 넓이"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ancho Imagen"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Largura da imagem"}}
+      }
+    },
+    "Metadata field: ImageHeight": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Image height"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "图像高度"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "影像高度"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "画像高さ"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이미지 높이"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Alto Imagen"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Altura da imagem"}}
+      }
+    },
+    "Metadata field: ExifImageWidth": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "EXIF pixel width"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "EXIF 像素宽度"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "影像寬度"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "画像幅"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이미지 넓이"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ancho Imagen"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Largura EXIF em pixels"}}
+      }
+    },
+    "Metadata field: ExifImageHeight": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "EXIF pixel height"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "EXIF 像素高度"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "影像高度"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "画像高さ"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이미지 높이"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Alto Imagen"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Altura EXIF em pixels"}}
+      }
+    },
+    "Metadata field: XResolution": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "XResolution"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "XResolution"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "水平解析度"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "画像幅の解像度"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "수평 해상도"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Resolución Imagen Horizontal"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Resolução X"}}
+      }
+    },
+    "Metadata field: YResolution": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "YResolution"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "YResolution"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "垂直解析度"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "画像高さの解像度"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "수직 해상도"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Resolución Imagen Vertical"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Resolução Y"}}
+      }
+    },
+    "Metadata field: GPSLatitude": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "GPSLatitude"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "纬度"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "緯度"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "緯度"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "위도"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Latitud"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Latitude GPS"}}
+      }
+    },
+    "Metadata field: GPSLatitudeRef": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "GPSLatitude Ref"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "北纬或者南纬"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "北/南緯"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "北緯または南緯"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "북위 또는 남위"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Latitud Norte o Sur"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Referência da latitude"}}
+      }
+    },
+    "Metadata field: GPSLongitude": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "GPSLongitude"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "经度"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "經度"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "経度"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "경도"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Longitud"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Longitude GPS"}}
+      }
+    },
+    "Metadata field: GPSLongitudeRef": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "GPSLongitude Ref"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "东经或者西经"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "東/西經"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "東経または西経"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "동경 또는 서경"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Longitud Este u Oeste"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Referência da longitude"}}
+      }
+    },
+    "Metadata field: GPSAltitude": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "GPSAltitude"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "海拔高度"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "海拔高度"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "高度"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "고도"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Altitud"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Altitude GPS"}}
+      }
+    },
+    "Metadata field: GPSAltitudeRef": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "GPSAltitude Ref"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "高度基准"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "海拔高度參考"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "参照高度"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "고도 참조"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Referencia Altitud"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Referência da altitude"}}
+      }
+    },
+    "Metadata field: GPSDateStamp": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "GPSDate Stamp"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "GPS日期"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "GPS 日期"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "GPSデータ"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "GPS 날짜"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Fecha GPS"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Data GPS"}}
+      }
+    },
+    "Metadata field: GPSTimeStamp": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "GPSTime Stamp"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "GPS 时间(原子钟)"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "GPS 時間 (原子鐘)"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "GPS時間(原子時計)"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "GPS 시간(원자 시계)"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Hora GPS (reloj atómico)"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Hora GPS"}}
+      }
+    },
+    "Metadata field: City": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "City"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "城市"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "城市"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "都市"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "도시"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ciudad"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Cidade"}}
+      }
+    },
+    "Metadata field: Province-State": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Province State"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "州／省"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "州/省"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "行政区/州"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "도"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Provincia/Estado"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Estado ou província"}}
+      }
+    },
+    "Metadata field: Sub-location": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Sub location"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "Sub-location"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "Sub location"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "場所"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "Sub location"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Localización"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Local secundário"}}
+      }
+    },
+    "Metadata field: Country-PrimaryLocationName": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Country Primary Location Name"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "国家"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "國家"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "国"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "국가"}},
+        "es": {"stringUnit": {"state": "translated", "value": "País"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "País"}}
+      }
+    },
+    "Metadata field: Country-PrimaryLocationCode": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Country Primary Location Code"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "Country-PrimaryLocationCode"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "Country Primary Location Code"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ISO国コード"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "Country Primary Location Code"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Código País ISO"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Código do país"}}
+      }
+    },
+    "跳转到分组": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Jump to section"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "跳转到分组"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "跳至群組"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "セクションに移動"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "그룹으로 이동"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ir a la sección"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Ir para a seção"}}
+      }
+    },
+    "管理显示字段…": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "管理显示字段…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Manage displayed fields…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "管理顯示欄位…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "表示フィールドを管理…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "표시 필드 관리…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Gestionar campos visibles…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Gerenciar campos exibidos…"}}
+      }
+    },
+    "筛选字段": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "筛选字段"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Filter fields"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "篩選欄位"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "フィールドを絞り込む"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "필드 필터"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Filtrar campos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Filtrar campos"}}
+      }
+    },
+    "仅显示有值字段": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "仅显示有值字段"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Only fields with values"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "僅顯示有值欄位"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "値のあるフィールドのみ"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "값이 있는 필드만"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Solo campos con valores"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Somente campos com valores"}}
+      }
+    },
+    "仅显示待保存字段": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "仅显示待保存字段"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Only pending fields"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "僅顯示待儲存欄位"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "未保存のフィールドのみ"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "저장 대기 필드만"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Solo campos pendientes"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Somente campos pendentes"}}
+      }
+    },
+    "显示所有附加字段": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "显示所有附加字段"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Show all additional fields"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "顯示所有附加欄位"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "すべての追加フィールドを表示"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "모든 추가 필드 표시"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Mostrar todos los campos adicionales"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Mostrar todos os campos adicionais"}}
+      }
+    },
+    "恢复默认显示字段": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "恢复默认显示字段"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Restore default fields"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "恢復預設顯示欄位"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "既定のフィールドに戻す"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "기본 필드 복원"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Restaurar campos predeterminados"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Restaurar campos padrão"}}
+      }
+    },
+    "复制": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "复制"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Copy"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "複製"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "コピー"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "복사"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Copiar"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Copiar"}}
+      }
+    },
+    "粘贴": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "粘贴"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Paste"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "貼上"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "貼り付け"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "붙여넣기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Pegar"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Colar"}}
+      }
+    },
+    "恢复原值": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "恢复原值"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Restore original value"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "恢復原值"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "元の値に戻す"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "원래 값 복원"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Restaurar valor original"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Restaurar valor original"}}
+      }
+    },
+    "包围曝光": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "包围曝光"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Auto bracket"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "包圍曝光"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ブラケット"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "브래킷"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Horquillado automático"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Bracketing automático"}}
+      }
+    },
+    "正常": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "正常"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Normal"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "正常"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "標準"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "보통"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Normal"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Normal"}}
+      }
+    },
+    "低": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "低"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Low"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "低"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "低"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "낮음"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Bajo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Baixo"}}
+      }
+    },
+    "高": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "高"}},
+        "en": {"stringUnit": {"state": "translated", "value": "High"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "高"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "高"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "높음"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Alto"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Alto"}}
+      }
+    },
+    "柔和": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "柔和"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Soft"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "柔和"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ソフト"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "부드러움"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Suave"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Suave"}}
+      }
+    },
+    "锐利": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "锐利"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Hard"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "銳利"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ハード"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "선명함"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Duro"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Forte"}}
+      }
+    },
+    "未校准": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "未校准"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Uncalibrated"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "未校準"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "未調整"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "미보정"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Sin calibrar"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Não calibrado"}}
+      }
+    },
+    "平均": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "平均"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Average"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "平均"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "平均"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "평균"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Promedio"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Média"}}
+      }
+    },
+    "中央重点": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "中央重点"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Center weighted"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "中央重點"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "中央重点"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "중앙 중점"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ponderada al centro"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Ponderada ao centro"}}
+      }
+    },
+    "点测光": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "点测光"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Spot"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "點測光"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "スポット"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "스팟"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Puntual"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Pontual"}}
+      }
+    },
+    "多点测光": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "多点测光"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Multi spot"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "多點測光"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "マルチスポット"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "다중 스팟"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Multipuntual"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Multipontual"}}
+      }
+    },
+    "评价测光": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "评价测光"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Multi segment"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "評價測光"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "分割測光"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "평가 측광"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Multisegmento"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Multissegmento"}}
+      }
+    },
+    "局部测光": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "局部测光"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Partial"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "局部測光"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "部分測光"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "부분 측광"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Parcial"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Parcial"}}
+      }
+    },
+    "其他": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "其他"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Other"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "其他"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "その他"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "기타"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Otro"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Outro"}}
+      }
+    },
+    "现有 IPTC 未明确声明 UTF-8，已阻止写入以保留原编码。": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "现有 IPTC 未明确声明 UTF-8，已阻止写入以保留原编码。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Existing IPTC does not declare UTF-8. Writing is blocked to preserve its encoding."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "現有 IPTC 未明確宣告 UTF-8，已阻止寫入以保留原編碼。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "既存のIPTCにUTF-8の指定がないため、元の文字コードを保護して書き込みを停止しました。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "기존 IPTC에 UTF-8 선언이 없어 원래 인코딩을 보존하기 위해 쓰기를 차단했습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "El IPTC existente no declara UTF-8. Se bloquea la escritura para conservar su codificación."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "O IPTC existente não declara UTF-8. A gravação foi bloqueada para preservar a codificação."}}
+      }
+    },
+    "每项最多 %1$@ 个 UTF-8 字节": {
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "每项最多 %1$@ 个 UTF-8 字节"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Up to %1$@ UTF-8 bytes per item"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "每項最多 %1$@ 個 UTF-8 位元組"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "1項目あたりUTF-8で最大%1$@バイト"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "항목당 최대 UTF-8 %1$@바이트"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Hasta %1$@ bytes UTF-8 por elemento"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Até %1$@ bytes UTF-8 por item"}}
       }
     }
   },

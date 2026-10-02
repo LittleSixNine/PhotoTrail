@@ -75,6 +75,7 @@ struct PhotoTrailState {
 
     // image save/update variables
     var saveInProgress = false
+    var metadataSaveCancelled = false
     var saveCompleted = 0
     var saveTotal = 0
     var locationSavedPhotoIDs: Set<ImageData.ID> = []
