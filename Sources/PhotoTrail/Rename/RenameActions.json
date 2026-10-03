@@ -1,0 +1,695 @@
+[
+  {
+    "number": 1,
+    "category": "Text",
+    "categoryChinese": "文字",
+    "title": "Add text to beginning",
+    "titleChinese": "前置文字"
+  },
+  {
+    "number": 2,
+    "category": "Text",
+    "categoryChinese": "文字",
+    "title": "Add text to end",
+    "titleChinese": "后置文字"
+  },
+  {
+    "number": 3,
+    "category": "Text",
+    "categoryChinese": "文字",
+    "title": "Insert text in front of existing text",
+    "titleChinese": "在已有文字前插入"
+  },
+  {
+    "number": 4,
+    "category": "Text",
+    "categoryChinese": "文字",
+    "title": "Insert text after existing text",
+    "titleChinese": "在已有文字后插入"
+  },
+  {
+    "number": 5,
+    "category": "Text",
+    "categoryChinese": "文字",
+    "title": "Insert text at position",
+    "titleChinese": "在指定位置插入"
+  },
+  {
+    "number": 6,
+    "category": "Text",
+    "categoryChinese": "文字",
+    "title": "Remove text from beginning",
+    "titleChinese": "移除开头文字"
+  },
+  {
+    "number": 7,
+    "category": "Text",
+    "categoryChinese": "文字",
+    "title": "Remove text from end",
+    "titleChinese": "移除末尾文字"
+  },
+  {
+    "number": 8,
+    "category": "Text",
+    "categoryChinese": "文字",
+    "title": "Remove text",
+    "titleChinese": "移除匹配文字"
+  },
+  {
+    "number": 9,
+    "category": "Text",
+    "categoryChinese": "文字",
+    "title": "Replace text at beginning",
+    "titleChinese": "替换开头文字"
+  },
+  {
+    "number": 10,
+    "category": "Text",
+    "categoryChinese": "文字",
+    "title": "Replace text at end",
+    "titleChinese": "替换末尾文字"
+  },
+  {
+    "number": 11,
+    "category": "Text",
+    "categoryChinese": "文字",
+    "title": "Replace text",
+    "titleChinese": "替换匹配文字"
+  },
+  {
+    "number": 12,
+    "category": "Text",
+    "categoryChinese": "文字",
+    "title": "Move text to front",
+    "titleChinese": "将文字移到前端"
+  },
+  {
+    "number": 13,
+    "category": "Text",
+    "categoryChinese": "文字",
+    "title": "Move text to end",
+    "titleChinese": "将文字移到末端"
+  },
+  {
+    "number": 14,
+    "category": "Text",
+    "categoryChinese": "文字",
+    "title": "Move text to position",
+    "titleChinese": "将文字移到指定位置"
+  },
+  {
+    "number": 15,
+    "category": "Text",
+    "categoryChinese": "文字",
+    "title": "Move text in front of existing text",
+    "titleChinese": "将文字移到已有文字前"
+  },
+  {
+    "number": 16,
+    "category": "Text",
+    "categoryChinese": "文字",
+    "title": "Move text after existing text",
+    "titleChinese": "将文字移到已有文字后"
+  },
+  {
+    "number": 17,
+    "category": "Characters",
+    "categoryChinese": "字符集合",
+    "title": "Replace specific characters",
+    "titleChinese": "替换指定字符"
+  },
+  {
+    "number": 18,
+    "category": "Characters",
+    "categoryChinese": "字符集合",
+    "title": "Remove specific characters",
+    "titleChinese": "移除指定字符"
+  },
+  {
+    "number": 19,
+    "category": "Characters",
+    "categoryChinese": "字符集合",
+    "title": "Keep only specific characters",
+    "titleChinese": "只保留指定字符"
+  },
+  {
+    "number": 20,
+    "category": "Characters",
+    "categoryChinese": "字符集合",
+    "title": "Strip leading spaces",
+    "titleChinese": "清除前导空格"
+  },
+  {
+    "number": 21,
+    "category": "Characters",
+    "categoryChinese": "字符集合",
+    "title": "Remove trailing spaces",
+    "titleChinese": "清除末尾空格"
+  },
+  {
+    "number": 22,
+    "category": "Characters",
+    "categoryChinese": "字符集合",
+    "title": "Remove vowels",
+    "titleChinese": "移除元音"
+  },
+  {
+    "number": 23,
+    "category": "Characters",
+    "categoryChinese": "字符集合",
+    "title": "Remove emoji",
+    "titleChinese": "移除 emoji"
+  },
+  {
+    "number": 24,
+    "category": "Character Positions & Ranges",
+    "categoryChinese": "字符位置与范围",
+    "title": "Remove a given number of characters from beginning",
+    "titleChinese": "从开头删除指定字符数"
+  },
+  {
+    "number": 25,
+    "category": "Character Positions & Ranges",
+    "categoryChinese": "字符位置与范围",
+    "title": "Remove a given number of characters from end",
+    "titleChinese": "从末尾删除指定字符数"
+  },
+  {
+    "number": 26,
+    "category": "Character Positions & Ranges",
+    "categoryChinese": "字符位置与范围",
+    "title": "Remove a range of characters",
+    "titleChinese": "删除字符区间"
+  },
+  {
+    "number": 27,
+    "category": "Character Positions & Ranges",
+    "categoryChinese": "字符位置与范围",
+    "title": "Move a range of characters to position",
+    "titleChinese": "将字符区间移到指定位置"
+  },
+  {
+    "number": 28,
+    "category": "Conversions",
+    "categoryChinese": "格式转换",
+    "title": "Convert to lowercase",
+    "titleChinese": "转小写"
+  },
+  {
+    "number": 29,
+    "category": "Conversions",
+    "categoryChinese": "格式转换",
+    "title": "Convert to sentence case",
+    "titleChinese": "转句首大写"
+  },
+  {
+    "number": 30,
+    "category": "Conversions",
+    "categoryChinese": "格式转换",
+    "title": "Convert to title case",
+    "titleChinese": "转标题大小写"
+  },
+  {
+    "number": 31,
+    "category": "Conversions",
+    "categoryChinese": "格式转换",
+    "title": "Convert to uppercase",
+    "titleChinese": "转大写"
+  },
+  {
+    "number": 32,
+    "category": "Conversions",
+    "categoryChinese": "格式转换",
+    "title": "Lexical case conversion",
+    "titleChinese": "按词汇规则转换大小写"
+  },
+  {
+    "number": 33,
+    "category": "Conversions",
+    "categoryChinese": "格式转换",
+    "title": "Decode percent encoding",
+    "titleChinese": "解码百分号转义"
+  },
+  {
+    "number": 34,
+    "category": "Conversions",
+    "categoryChinese": "格式转换",
+    "title": "Expand camel case",
+    "titleChinese": "展开驼峰命名"
+  },
+  {
+    "number": 35,
+    "category": "Conversions",
+    "categoryChinese": "格式转换",
+    "title": "Remove diacritical marks",
+    "titleChinese": "移除重音符号"
+  },
+  {
+    "number": 36,
+    "category": "Conversions",
+    "categoryChinese": "格式转换",
+    "title": "Convert to valid Mac OS 9 file name",
+    "titleChinese": "转合法旧 Mac OS 9 名称"
+  },
+  {
+    "number": 37,
+    "category": "Conversions",
+    "categoryChinese": "格式转换",
+    "title": "Make file names Windows NTFS/SMB compatible",
+    "titleChinese": "清理为 Windows NTFS/SMB 兼容名称"
+  },
+  {
+    "number": 38,
+    "category": "Truncation",
+    "categoryChinese": "截断",
+    "title": "Truncate",
+    "titleChinese": "按长度截断"
+  },
+  {
+    "number": 39,
+    "category": "Truncation",
+    "categoryChinese": "截断",
+    "title": "Truncate to DOS 8.3 format",
+    "titleChinese": "截断为 DOS 8.3 格式"
+  },
+  {
+    "number": 40,
+    "category": "Date & Time",
+    "categoryChinese": "日期与时间",
+    "title": "Rename to date/time",
+    "titleChinese": "用日期时间替换"
+  },
+  {
+    "number": 41,
+    "category": "Date & Time",
+    "categoryChinese": "日期与时间",
+    "title": "Add date/time to beginning",
+    "titleChinese": "前置日期时间"
+  },
+  {
+    "number": 42,
+    "category": "Date & Time",
+    "categoryChinese": "日期与时间",
+    "title": "Add date/time to end",
+    "titleChinese": "后置日期时间"
+  },
+  {
+    "number": 43,
+    "category": "Date & Time",
+    "categoryChinese": "日期与时间",
+    "title": "Insert date/time in front of existing text",
+    "titleChinese": "在已有文字前插入日期时间"
+  },
+  {
+    "number": 44,
+    "category": "Date & Time",
+    "categoryChinese": "日期与时间",
+    "title": "Insert date/time after existing text",
+    "titleChinese": "在已有文字后插入日期时间"
+  },
+  {
+    "number": 45,
+    "category": "Date & Time",
+    "categoryChinese": "日期与时间",
+    "title": "Insert date/time at position",
+    "titleChinese": "在指定位置插入日期时间"
+  },
+  {
+    "number": 46,
+    "category": "Sequence Numbers",
+    "categoryChinese": "数字序列",
+    "title": "Produce sequence number list",
+    "titleChinese": "生成编号名称列表"
+  },
+  {
+    "number": 47,
+    "category": "Sequence Numbers",
+    "categoryChinese": "数字序列",
+    "title": "Add sequence number at beginning",
+    "titleChinese": "前置数字序列"
+  },
+  {
+    "number": 48,
+    "category": "Sequence Numbers",
+    "categoryChinese": "数字序列",
+    "title": "Add sequence number to end",
+    "titleChinese": "后置数字序列"
+  },
+  {
+    "number": 49,
+    "category": "Sequence Numbers",
+    "categoryChinese": "数字序列",
+    "title": "Insert sequence number in front of existing text",
+    "titleChinese": "在已有文字前插入数字"
+  },
+  {
+    "number": 50,
+    "category": "Sequence Numbers",
+    "categoryChinese": "数字序列",
+    "title": "Insert sequence number after existing text",
+    "titleChinese": "在已有文字后插入数字"
+  },
+  {
+    "number": 51,
+    "category": "Sequence Numbers",
+    "categoryChinese": "数字序列",
+    "title": "Insert sequence number at position",
+    "titleChinese": "在指定位置插入数字"
+  },
+  {
+    "number": 52,
+    "category": "Sequence Numbers",
+    "categoryChinese": "数字序列",
+    "title": "Change existing sequence numbers",
+    "titleChinese": "修改现有数字序列"
+  },
+  {
+    "number": 53,
+    "category": "Sequence Numbers",
+    "categoryChinese": "数字序列",
+    "title": "Remove numbers",
+    "titleChinese": "移除数字"
+  },
+  {
+    "number": 54,
+    "category": "Roman Numerals",
+    "categoryChinese": "罗马数字",
+    "title": "Produce roman numeral list",
+    "titleChinese": "生成罗马数字名称列表"
+  },
+  {
+    "number": 55,
+    "category": "Roman Numerals",
+    "categoryChinese": "罗马数字",
+    "title": "Add roman numeral at beginning",
+    "titleChinese": "前置罗马数字"
+  },
+  {
+    "number": 56,
+    "category": "Roman Numerals",
+    "categoryChinese": "罗马数字",
+    "title": "Add roman numeral to end",
+    "titleChinese": "后置罗马数字"
+  },
+  {
+    "number": 57,
+    "category": "Roman Numerals",
+    "categoryChinese": "罗马数字",
+    "title": "Insert roman numeral in front of existing text",
+    "titleChinese": "在已有文字前插入罗马数字"
+  },
+  {
+    "number": 58,
+    "category": "Roman Numerals",
+    "categoryChinese": "罗马数字",
+    "title": "Insert roman numeral after existing text",
+    "titleChinese": "在已有文字后插入罗马数字"
+  },
+  {
+    "number": 59,
+    "category": "Roman Numerals",
+    "categoryChinese": "罗马数字",
+    "title": "Insert roman numeral at position",
+    "titleChinese": "在指定位置插入罗马数字"
+  },
+  {
+    "number": 60,
+    "category": "Alphabetical Sequences",
+    "categoryChinese": "字母序列",
+    "title": "Produce alphabetical list",
+    "titleChinese": "生成字母名称列表"
+  },
+  {
+    "number": 61,
+    "category": "Alphabetical Sequences",
+    "categoryChinese": "字母序列",
+    "title": "Add alphabetical sequence at beginning",
+    "titleChinese": "前置字母序列"
+  },
+  {
+    "number": 62,
+    "category": "Alphabetical Sequences",
+    "categoryChinese": "字母序列",
+    "title": "Add alphabetical sequence to end",
+    "titleChinese": "后置字母序列"
+  },
+  {
+    "number": 63,
+    "category": "Alphabetical Sequences",
+    "categoryChinese": "字母序列",
+    "title": "Insert alphabetical sequence in front of existing text",
+    "titleChinese": "在已有文字前插入字母序列"
+  },
+  {
+    "number": 64,
+    "category": "Alphabetical Sequences",
+    "categoryChinese": "字母序列",
+    "title": "Insert alphabetical sequence after existing text",
+    "titleChinese": "在已有文字后插入字母序列"
+  },
+  {
+    "number": 65,
+    "category": "Alphabetical Sequences",
+    "categoryChinese": "字母序列",
+    "title": "Insert alphabetical sequence at position",
+    "titleChinese": "在指定位置插入字母序列"
+  },
+  {
+    "number": 66,
+    "category": "Tags",
+    "categoryChinese": "通用标签",
+    "title": "Rename using tag(s)",
+    "titleChinese": "用标签模板替换"
+  },
+  {
+    "number": 67,
+    "category": "Tags",
+    "categoryChinese": "通用标签",
+    "title": "Add tag(s) to beginning",
+    "titleChinese": "前置标签模板"
+  },
+  {
+    "number": 68,
+    "category": "Tags",
+    "categoryChinese": "通用标签",
+    "title": "Add tag(s) to end",
+    "titleChinese": "后置标签模板"
+  },
+  {
+    "number": 69,
+    "category": "Tags",
+    "categoryChinese": "通用标签",
+    "title": "Add tag(s) at position",
+    "titleChinese": "在指定位置插入标签模板"
+  },
+  {
+    "number": 70,
+    "category": "Tags",
+    "categoryChinese": "通用标签",
+    "title": "Insert tag(s) in front of existing text",
+    "titleChinese": "在已有文字前插入标签模板"
+  },
+  {
+    "number": 71,
+    "category": "Tags",
+    "categoryChinese": "通用标签",
+    "title": "Insert tag(s) after existing text",
+    "titleChinese": "在已有文字后插入标签模板"
+  },
+  {
+    "number": 72,
+    "category": "MP3/AAC Music",
+    "categoryChinese": "MP3/AAC 音乐信息",
+    "title": "Rename music files using MP3/AAC tags",
+    "titleChinese": "用音乐标签替换"
+  },
+  {
+    "number": 73,
+    "category": "MP3/AAC Music",
+    "categoryChinese": "MP3/AAC 音乐信息",
+    "title": "Add MP3/AAC tags to end",
+    "titleChinese": "后置音乐标签"
+  },
+  {
+    "number": 74,
+    "category": "MP3/AAC Music",
+    "categoryChinese": "MP3/AAC 音乐信息",
+    "title": "Add MP3/AAC tags to beginning",
+    "titleChinese": "前置音乐标签"
+  },
+  {
+    "number": 75,
+    "category": "MP3/AAC Music",
+    "categoryChinese": "MP3/AAC 音乐信息",
+    "title": "Insert MP3/AAC tags in front of existing text",
+    "titleChinese": "在已有文字前插入音乐标签"
+  },
+  {
+    "number": 76,
+    "category": "MP3/AAC Music",
+    "categoryChinese": "MP3/AAC 音乐信息",
+    "title": "Insert MP3/AAC tags after existing text",
+    "titleChinese": "在已有文字后插入音乐标签"
+  },
+  {
+    "number": 77,
+    "category": "MP3/AAC Music",
+    "categoryChinese": "MP3/AAC 音乐信息",
+    "title": "Insert MP3/AAC tags at position",
+    "titleChinese": "在指定位置插入音乐标签"
+  },
+  {
+    "number": 78,
+    "category": "Image Dimensions",
+    "categoryChinese": "图像尺寸",
+    "title": "Add image dimensions to end",
+    "titleChinese": "后置图像尺寸"
+  },
+  {
+    "number": 79,
+    "category": "Image Dimensions",
+    "categoryChinese": "图像尺寸",
+    "title": "Add image dimensions to beginning",
+    "titleChinese": "前置图像尺寸"
+  },
+  {
+    "number": 80,
+    "category": "Image Dimensions",
+    "categoryChinese": "图像尺寸",
+    "title": "Rename to image dimensions",
+    "titleChinese": "用图像尺寸替换"
+  },
+  {
+    "number": 81,
+    "category": "Image Dimensions",
+    "categoryChinese": "图像尺寸",
+    "title": "Insert image dimensions in front of existing text",
+    "titleChinese": "在已有文字前插入尺寸"
+  },
+  {
+    "number": 82,
+    "category": "Image Dimensions",
+    "categoryChinese": "图像尺寸",
+    "title": "Insert Image dimensions after existing text",
+    "titleChinese": "在已有文字后插入尺寸"
+  },
+  {
+    "number": 83,
+    "category": "Image Dimensions",
+    "categoryChinese": "图像尺寸",
+    "title": "Insert image dimensions at position",
+    "titleChinese": "在指定位置插入尺寸"
+  },
+  {
+    "number": 84,
+    "category": "Parent Folder Name",
+    "categoryChinese": "父文件夹名称",
+    "title": "Add folder name to beginning",
+    "titleChinese": "前置父目录名"
+  },
+  {
+    "number": 85,
+    "category": "Parent Folder Name",
+    "categoryChinese": "父文件夹名称",
+    "title": "Add folder name to end",
+    "titleChinese": "后置父目录名"
+  },
+  {
+    "number": 86,
+    "category": "Parent Folder Name",
+    "categoryChinese": "父文件夹名称",
+    "title": "Insert folder name in front of existing text",
+    "titleChinese": "在已有文字前插入父目录名"
+  },
+  {
+    "number": 87,
+    "category": "Parent Folder Name",
+    "categoryChinese": "父文件夹名称",
+    "title": "Insert folder name after existing text",
+    "titleChinese": "在已有文字后插入父目录名"
+  },
+  {
+    "number": 88,
+    "category": "Parent Folder Name",
+    "categoryChinese": "父文件夹名称",
+    "title": "Insert folder name at position",
+    "titleChinese": "在指定位置插入父目录名"
+  },
+  {
+    "number": 89,
+    "category": "Path Components",
+    "categoryChinese": "路径组成",
+    "title": "Add path components to beginning",
+    "titleChinese": "前置路径组成"
+  },
+  {
+    "number": 90,
+    "category": "Path Components",
+    "categoryChinese": "路径组成",
+    "title": "Add path components to end",
+    "titleChinese": "后置路径组成"
+  },
+  {
+    "number": 91,
+    "category": "Path Components",
+    "categoryChinese": "路径组成",
+    "title": "Insert path components in front of existing text",
+    "titleChinese": "在已有文字前插入路径组成"
+  },
+  {
+    "number": 92,
+    "category": "Path Components",
+    "categoryChinese": "路径组成",
+    "title": "Insert path components after existing text",
+    "titleChinese": "在已有文字后插入路径组成"
+  },
+  {
+    "number": 93,
+    "category": "Path Components",
+    "categoryChinese": "路径组成",
+    "title": "Insert path components at position",
+    "titleChinese": "在指定位置插入路径组成"
+  },
+  {
+    "number": 94,
+    "category": "Advanced & Special",
+    "categoryChinese": "高级与特殊",
+    "title": "Rename from file list",
+    "titleChinese": "由文件列表命名"
+  },
+  {
+    "number": 95,
+    "category": "Advanced & Special",
+    "categoryChinese": "高级与特殊",
+    "title": "Replace regular expression",
+    "titleChinese": "替换正则匹配区段"
+  },
+  {
+    "number": 96,
+    "category": "Advanced & Special",
+    "categoryChinese": "高级与特殊",
+    "title": "Re-arrange using regular expressions",
+    "titleChinese": "由正则捕获重建名称"
+  },
+  {
+    "number": 97,
+    "category": "Advanced & Special",
+    "categoryChinese": "高级与特殊",
+    "title": "Completely rename",
+    "titleChinese": "完全指定新名称"
+  },
+  {
+    "number": 98,
+    "category": "Advanced & Special",
+    "categoryChinese": "高级与特殊",
+    "title": "Filter",
+    "titleChinese": "筛选后续动作范围（控制项）"
+  },
+  {
+    "number": 99,
+    "category": "Advanced & Special",
+    "categoryChinese": "高级与特殊",
+    "title": "Advanced Options",
+    "titleChinese": "任务级高级选项（控制项）"
+  }
+]

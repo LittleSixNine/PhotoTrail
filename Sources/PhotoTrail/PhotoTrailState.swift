@@ -75,6 +75,7 @@ struct PhotoTrailState {
 
     // image save/update variables
     var saveInProgress = false
+    var renameInProgress = false
     var metadataSaveCancelled = false
     var saveCompleted = 0
     var saveTotal = 0

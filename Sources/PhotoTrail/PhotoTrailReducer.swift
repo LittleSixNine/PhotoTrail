@@ -34,6 +34,19 @@ struct PhotoTrailReducer: Reducer, Sendable {
         // logger.debug("event: \(event)")
 
         switch event {
+        case .renameStarted:
+            beginRename(&newState)
+
+        case .renameFinished:
+            newState.renameInProgress = false
+            newState.saveInProgress = false
+
+        case .filesRenamed(let mappings):
+            applyRenames(&newState, mappings: mappings)
+
+        case .renameRecoveryChanged(let urls, let required):
+            applyRecovery(&newState, urls: urls, required: required)
+
         case .addImage(let imageData):
             newState.imageData.append(imageData)
 
@@ -350,5 +363,28 @@ extension String {
             if remainder.isEmpty { return true }
         }
         return false
+    }
+}
+
+private extension PhotoTrailReducer {
+    func beginRename(_ state: inout PhotoTrailState) {
+        guard !state.saveInProgress, !state.imageData.contains(where: \.hasPendingChanges) else { return }
+        state.renameInProgress = true
+        state.saveInProgress = true
+    }
+
+    func applyRenames(_ state: inout PhotoTrailState, mappings: [URL: URL]) {
+        for index in state.imageData.indices { state.imageData[index].applyFileRenames(mappings) }
+        state.uniqueURLs = state.uniqueURLs?.map { mappings[$0.standardizedFileURL] ?? $0 }
+        MetadataInspectorReadCache.shared.invalidate(urls: Set(mappings.keys).union(mappings.values))
+    }
+
+    func applyRecovery(_ state: inout PhotoTrailState, urls: Set<URL>, required: Bool) {
+        for index in state.imageData.indices {
+            let image = state.imageData[index]
+            if image.metadataCreatorImageURL.map(urls.contains) == true || image.metadataInspectionURL.map(urls.contains) == true {
+                state.imageData[index].fileRenameRecoveryRequired = required
+            }
+        }
     }
 }

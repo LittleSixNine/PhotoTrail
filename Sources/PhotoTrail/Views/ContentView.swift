@@ -20,6 +20,7 @@ struct ContentView: View {
     @State private var ignoredFileNoticeID = UUID()
     @State private var inspectorPresented = false
     @State private var renameSelected = false
+    @State private var renameWorkspace = RenameWorkspace()
     @State private var batchActionsPresented = false
     @State private var setupPresented = false
     @AppStorage(SetupGuideView.completedKey) private var setupCompleted = false
@@ -54,7 +55,10 @@ struct ContentView: View {
                 }
                 .font(.callout).padding(12)
             }
-            if store.saveInProgress {
+            if store.renameInProgress {
+                Label(L10n.text("正在重命名文件，请勿关闭程序。"), systemImage: "character.cursor.ibeam")
+                    .font(.callout).padding(8)
+            } else if store.saveInProgress {
                 Label(L10n.text("正在写入照片（已处理 %1$@/%2$@）；请勿修改定位或关闭程序，可继续浏览。", store.saveCompleted, store.saveTotal),
                       systemImage: "externaldrive.fill")
                     .font(.callout.weight(.medium))
@@ -75,10 +79,7 @@ struct ContentView: View {
             }
             Group {
                 if renameSelected {
-                    Text(L10n.text("待构建"))
-                        .font(.title2).foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .accessibilityIdentifier("renameWorkspacePlaceholder")
+                    RenameWorkspaceView(workspace: renameWorkspace)
                 } else if alternateLayout {
                     PhotoDetailPage()
                 } else {

@@ -20,6 +20,8 @@ Change the app language in Settings later. Save your work and reopen PhotoTrail 
 
 ## Features
 
+**File renaming (source development build):** the third tab provides a two-column rule editor and preview, with 97 action entries for text, dates, sequences, tags, lists and regular expressions, plus filtering and advanced settings. Check paired files and conflicts before executing. Save or discard metadata drafts first. Add ordinary files using Add Files; folders and Photos-library items are excluded. Presets and execution history support restoring original names, provided content and file identity are unchanged. See [supported boundaries](../BEHAVIOR.md) (Chinese).
+
 - **Background reads and tag counts (development source):** cache full metadata after import and prioritize selected photos. Original tags include maker notes; edited counts show pending fields. Editable rows open their editor directly. See [development history](../CHANGELOG.md).
 - **List metadata editor (development source):** edit JPEG and existing XMP titles, descriptions, creators, rights and keywords; date tools, camera/lens details, exposure values, named presets, comparison and CSV/XMP exchange share preview, undo, manual saving, backup and readback. See [behavior and target limits](../BEHAVIOR.md) (Chinese).
 - **Map geotagging:** choose a location on Apple Maps or AMap. AMap locations are checked and converted to WGS84 before application.

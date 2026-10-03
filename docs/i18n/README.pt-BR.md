@@ -18,6 +18,8 @@ Disponível em chinês simplificado, inglês, chinês tradicional, japonês, cor
 
 ## Recursos
 
+**Renomeação de arquivos (versão de desenvolvimento):** a terceira aba oferece regras e prévia em duas colunas, com 97 entradas de ações para texto, datas, sequências, etiquetas, listas e expressões regulares, além de filtros e configurações avançadas. Salve ou descarte rascunhos de metadados e confira arquivos associados e conflitos antes de executar. Adicione arquivos comuns com Adicionar arquivos; pastas e itens da fototeca ficam excluídos. O histórico permite restaurar nomes se a identidade e o conteúdo permanecerem iguais. Consulte os [limites de suporte](../BEHAVIOR.md) (chinês).
+
 - **Leitura em segundo plano e contagens (código de desenvolvimento):** armazena metadados completos e prioriza fotos selecionadas. As tags originais incluem dados do fabricante; as editadas contam campos pendentes de salvar. Clique na linha editável para abrir o editor. [Histórico](../CHANGELOG.md).
 - **Editor de metadados em lista (código em desenvolvimento):** títulos, descrições, autores, direitos e palavras-chave em JPEG e XMP existentes; datas, câmera/lente, exposição, predefinições, comparação e troca CSV/XMP. Inclui prévia, desfazer, salvamento manual, backup e releitura. [Destinos e limites](../BEHAVIOR.md) (chinês).
 - **Localização pelo mapa:** escolha um ponto no Mapas da Apple ou AMap. As coordenadas do AMap são verificadas e convertidas para WGS84 antes de serem aplicadas.
@@ -34,6 +36,7 @@ Disponível em chinês simplificado, inglês, chinês tradicional, japonês, cor
 - **Metadados:** edite a data de captura e outros campos compatíveis com salvamento explícito. Arquivos locais usam o ExifTool incluído, sem recomprimir os pixels. A fototeca usa a interface Photos do sistema.
 
 ## Download e requisitos
+
 
 Veja os pacotes publicados e suas notas no [GitHub Releases](https://github.com/LittleSixNine/PhotoTrail/releases). O repositório pode conter mudanças ainda não publicadas; confira os idiomas disponíveis nas notas de cada versão.
 

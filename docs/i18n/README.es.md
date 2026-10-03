@@ -18,6 +18,8 @@ Puedes cambiar el idioma en Ajustes. Guarda tu trabajo y vuelve a abrir la app p
 
 ## Funciones
 
+**Renombrado de archivos (versión de desarrollo):** la tercera pestaña ofrece reglas y vista previa en dos columnas, con 97 entradas de acciones para texto, fechas, secuencias, etiquetas, listas y expresiones regulares, además de filtros y ajustes avanzados. Guarda o descarta los borradores de metadatos y revisa los archivos asociados y los conflictos antes de ejecutar. Añade archivos normales con Añadir archivos; se excluyen carpetas y elementos de la fototeca. El historial permite restaurar nombres si la identidad y el contenido no han cambiado. Consulta los [límites de soporte](../BEHAVIOR.md) (chino).
+
 - **Lectura en segundo plano y recuentos (código de desarrollo):** almacena metadatos completos y prioriza las fotos seleccionadas. Las etiquetas originales incluyen datos del fabricante; las editadas cuentan campos pendientes de guardar. Pulsa una fila editable para abrir el editor. [Historial](../CHANGELOG.md).
 - **Editor de metadatos en lista (código en desarrollo):** títulos, descripciones, autores, derechos y palabras clave de JPEG y XMP existentes; fechas, cámara/objetivo, exposición, ajustes predefinidos, comparación e intercambio CSV/XMP. Incluye vista previa, deshacer, guardado manual, copia y lectura de verificación. [Destinos y límites](../BEHAVIOR.md) (chino).
 - **Ubicar fotos en el mapa:** elige un punto en Mapas de Apple o AMap. Las coordenadas de AMap se verifican y convierten a WGS84 antes de aplicarlas.
@@ -34,6 +36,7 @@ Puedes cambiar el idioma en Ajustes. Guarda tu trabajo y vuelve a abrir la app p
 - **Metadatos:** edita la fecha de captura y otros campos compatibles con guardado explícito. Los archivos locales usan ExifTool incluido, sin recomprimir los píxeles. La fototeca usa la interfaz Photos del sistema.
 
 ## Descarga y requisitos
+
 
 Consulta los paquetes publicados y sus notas en [GitHub Releases](https://github.com/LittleSixNine/PhotoTrail/releases). El repositorio puede contener cambios aún no publicados; comprueba la disponibilidad de idiomas en las notas de cada versión.
 

@@ -10,23 +10,40 @@ import SwiftUI
 
 public struct ImageData: Identifiable, Sendable {
     public let id: Int
-    public let name: String
+    public private(set) var name: String
     public var metadata: Metadata
     public var original: Metadata?
     public var creatorDraft: MetadataCreatorEditPlan.Item?
     public var pairedID: ImageData.ID?
     public var thumbnail: Image?
+    public var fileRenameRecoveryRequired = false
 
     // a copy of the metadata before any changes will only exist if
     // the metadata is updatable. Use it's presence to determine
     // if this instance can be updated.
 
     public var updatable: Bool {
-        original != nil
+        original != nil && !fileRenameRecoveryRequired
     }
 
     public var hasPendingChanges: Bool {
         updatable && (metadata != original || creatorDraft?.changes.isEmpty == false)
+    }
+
+    // File operations keep the stable photo ID, selection and pairing. Drafts must be saved/discarded first.
+    public mutating func applyFileRenames(_ mappings: [URL: URL]) {
+        guard !hasPendingChanges, let source = metadataCreatorImageURL,
+              let target = mappings[source.standardizedFileURL] else { return }
+        let newSource: MetadataSource
+        switch metadata.source {
+        case .image: newSource = .image(target)
+        case .xmp: newSource = .xmp(target)
+        case .photos, .copy: return
+        }
+        let wasSidecar = name.hasSuffix("*")
+        metadata = Metadata(converting: metadata, to: newSource)
+        if let baseline = original { original = Metadata(converting: baseline, to: newSource) }
+        name = target.lastPathComponent + (wasSidecar ? "*" : "")
     }
 
     // The effective shooting date is projected into the existing map/track model.

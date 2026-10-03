@@ -2,7 +2,15 @@
 
 此处记录源码开发节点，不等于已发布版本。发布版本见 [GitHub Releases](https://github.com/LittleSixNine/PhotoTrail/releases)。行为契约见 [BEHAVIOR.md](BEHAVIOR.md)，构建与检查见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 
-These are source development milestones, not release announcements. The metadata editor remains on `feature/metadata-editor`; the Rename page is a placeholder.
+These are source development milestones, not release announcements. The metadata editor and file rename workspace are developed on `feature/metadata-editor`.
+
+## 2026-10-03 · 文件重命名工作台
+
+- 第三页接入原生双栏规则与预览，97 个动作入口加筛选和高级设置；支持规则启停／重排、JSON 预设、配对、冲突处理和十个持续计数器。
+- 改名先检查目录权限、源身份和元数据草稿；原生不覆盖操作支持交换及循环名称，哈希核对内容，持久日志支持恢复原名。成功后同步照片 ID 对应的路径、名称和缓存。
+- 本地普通文件通过独立入口加入，目录仅用于授权；目录改名、递归收集、Finder／Droplet 和第三方预设导入不在当前支持范围。完整边界见 [功能约定](BEHAVIOR.md)。
+
+The third tab now provides a native rules-and-preview workspace with 97 action entries, presets, paired files, persistent counters and journal-based restoration. Rename operations preserve file contents and reject occupied targets; directory renaming and Finder/Droplet integrations are not supported.
 
 ## 2026-10-03 · 元数据编辑工作台与完整读取
 
@@ -11,7 +19,7 @@ These are source development milestones, not release announcements. The metadata
 - 导入后后台缓存完整可识别元数据，选中图片优先；增加读取进度和逐张状态。补齐 MakerNotes、ICC、Photoshop、容器和派生信息，保留同名来源／副本，原标签排除文件属性、引擎信息及派生项。
 - 左侧移除拍摄时间、定位和轨迹列，增加原标签和待保存字段计数；保留拍摄时间排序、匹配筛选、原有列表布局和操作。
 - 日期统一显示完整日期时间、时区和明确亚秒；光圈与快门使用摄影常用表示；修复地图侧栏滚动条出现／消失时的宽度反馈。
-- 顶部为元数据编辑、地图定位及重命名。重命名仍为“待构建”，未实现文件改名，也未自动接入当前写入前备份。
+- 顶部为元数据编辑、地图定位及重命名。该节点的重命名仍为“待构建”；后续文件改名使用独立执行日志，见上方节点。
 
 新增可识别信息以只读展示为主，不因读取范围扩大而自动开放写入。未知来源、文件变化、备份失败或保存结果未知仍保留安全拦截。
 

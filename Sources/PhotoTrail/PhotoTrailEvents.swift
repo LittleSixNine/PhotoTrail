@@ -9,6 +9,10 @@ import SwiftUI
 // events that trigger a change of state
 
 enum PhotoTrailEvent: Equatable {
+    case renameStarted
+    case renameFinished
+    case filesRenamed([URL: URL])
+    case renameRecoveryChanged(Set<URL>, Bool)
     case addImage(ImageData)
     case addImages([ImageData])
     case addressChanged(Set<ImageData.ID>, Place)
@@ -82,6 +86,10 @@ enum PhotoTrailEvent: Equatable {
 extension PhotoTrailEvent: CustomStringConvertible {
     var description: String {
         switch self {
+        case .renameStarted: "renameStarted"
+        case .renameFinished: "renameFinished"
+        case .filesRenamed: "filesRenamed"
+        case .renameRecoveryChanged: "renameRecoveryChanged"
         case .addImage: "addImage"
         case .addImages: "addImages"
         case .addressChanged: "addressChanged"
