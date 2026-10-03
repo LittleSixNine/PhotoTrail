@@ -196,16 +196,16 @@ extension ReducerTests {
         }
     }
 
-    @Test func newThumbnailEvent() async throws {
-        var state = PhotoTrailState(forPreview: true)
-        let ids = Set(state.imageData.filter { $0.updatable }
-                                     .map { $0.id })
+    @Test func newThumbnailEvent() throws {
+        var state = PhotoTrailState()
+        state.imageData = [ImageData(), ImageData()]
+        let ids = Set(state.imageData.map(\.id))
         state.selection = ids
         state.mostSelected = state.selection.first
         let store = Store(initialState: state, reduce: PhotoTrailReducer())
         let id = try #require(store.mostSelected)
         #expect(store[id].thumbnail == nil)
-        let thumbnail = await store[id].makeThumbnail(scale: 1.0)
+        let thumbnail = Image(systemName: "photo")
         let nextID = try #require(ids.first { $0 != id })
         store.send(.mostSelectedChanged(nextID))
         store.send(.newThumbnail(id, thumbnail), undoable: false)
