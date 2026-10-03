@@ -1,0 +1,1337 @@
+{
+  "checkedAt": "2026-10-04",
+  "brands": [
+    {
+      "id": "sony",
+      "name": "Sony",
+      "models": [
+        {
+          "name": "α1 II",
+          "make": "SONY",
+          "model": "ILCE-1M2",
+          "source": "https://exiftool.org/Sony.tar.gz#SonyILCE-1M2.jpg"
+        },
+        {
+          "name": "α1",
+          "make": "SONY",
+          "model": "ILCE-1",
+          "source": "https://exiftool.org/Sony.tar.gz#SonyILCE-1.jpg"
+        },
+        {
+          "name": "α9 III",
+          "make": "SONY",
+          "model": "ILCE-9M3",
+          "source": "https://exiftool.org/Sony.tar.gz#SonyILCE-9M3.jpg"
+        },
+        {
+          "name": "α7 V",
+          "make": "SONY",
+          "model": "ILCE-7M5",
+          "source": "https://raw.pixls.us/getfile.php/8845/exif/full_compressed_lossless.ARW.exif.txt"
+        },
+        {
+          "name": "α7 IV",
+          "make": "SONY",
+          "model": "ILCE-7M4",
+          "source": "https://exiftool.org/Sony.tar.gz#SonyILCE-7M4.jpg"
+        },
+        {
+          "name": "α7R V",
+          "make": "SONY",
+          "model": "ILCE-7RM5",
+          "source": "https://exiftool.org/Sony.tar.gz#SonyILCE-7RM5.jpg"
+        },
+        {
+          "name": "α7S III",
+          "make": "SONY",
+          "model": "ILCE-7SM3",
+          "source": "https://exiftool.org/Sony.tar.gz#SonyILCE-7SM3.jpg"
+        },
+        {
+          "name": "α7CR",
+          "make": "SONY",
+          "model": "ILCE-7CR",
+          "source": "https://exiftool.org/Sony.tar.gz#SonyILCE-7CR.jpg"
+        },
+        {
+          "name": "α7C II",
+          "make": "SONY",
+          "model": "ILCE-7CM2",
+          "source": "https://exiftool.org/Sony.tar.gz#SonyILCE-7CM2.jpg"
+        },
+        {
+          "name": "α6700",
+          "make": "SONY",
+          "model": "ILCE-6700",
+          "source": "https://exiftool.org/Sony.tar.gz#SonyILCE-6700.jpg"
+        },
+        {
+          "name": "α6400A",
+          "make": "SONY",
+          "model": "ILCE-6400A",
+          "source": "https://exiftool.org/Sony.tar.gz#SonyILCE-6400A.jpg"
+        },
+        {
+          "name": "α6400",
+          "make": "SONY",
+          "model": "ILCE-6400",
+          "source": "https://exiftool.org/Sony.tar.gz#SonyILCE-6400.jpg"
+        },
+        {
+          "name": "α6100",
+          "make": "SONY",
+          "model": "ILCE-6100",
+          "source": "https://exiftool.org/Sony.tar.gz#SonyILCE-6100.jpg"
+        },
+        {
+          "name": "ZV-E1",
+          "make": "SONY",
+          "model": "ZV-E1",
+          "source": "https://exiftool.org/Sony.tar.gz#SonyZV-E1.jpg"
+        },
+        {
+          "name": "ZV-E10 II",
+          "make": "SONY",
+          "model": "ZV-E10M2",
+          "source": "https://exiftool.org/Sony.tar.gz#SonyZV-E10M2.jpg"
+        },
+        {
+          "name": "ZV-E10",
+          "make": "SONY",
+          "model": "ZV-E10",
+          "source": "https://exiftool.org/Sony.tar.gz#SonyZV-E10.jpg"
+        },
+        {
+          "name": "ZV-1 II",
+          "make": "SONY",
+          "model": "ZV-1M2",
+          "source": "https://exiftool.org/Sony.tar.gz#SonyZV-1M2.jpg"
+        },
+        {
+          "name": "ZV-1F",
+          "make": "SONY",
+          "model": "ZV-1F",
+          "source": "https://exiftool.org/Sony.tar.gz#SonyZV-1F.jpg"
+        },
+        {
+          "name": "RX1R III",
+          "make": "SONY",
+          "model": "DSC-RX1RM3",
+          "source": "https://exiftool.org/Sony.tar.gz#SonyDSC-RX1RM3.jpg"
+        },
+        {
+          "name": "RX100 VII",
+          "make": "SONY",
+          "model": "DSC-RX100M7",
+          "source": "https://exiftool.org/Sony.tar.gz#SonyDSC-RX100M7.jpg"
+        }
+      ]
+    },
+    {
+      "id": "nikon",
+      "name": "Nikon",
+      "models": [
+        {
+          "name": "Z 9",
+          "make": "NIKON CORPORATION",
+          "model": "NIKON Z 9",
+          "source": "https://exiftool.org/Nikon.tar.gz#NikonZ9.jpg"
+        },
+        {
+          "name": "Z 8",
+          "make": "NIKON CORPORATION",
+          "model": "NIKON Z 8",
+          "source": "https://exiftool.org/Nikon.tar.gz#NikonZ8.jpg"
+        },
+        {
+          "name": "Z f",
+          "make": "NIKON CORPORATION",
+          "model": "NIKON Z f",
+          "source": "https://exiftool.org/Nikon.tar.gz#NikonZf.jpg"
+        },
+        {
+          "name": "Z fc",
+          "make": "NIKON CORPORATION",
+          "model": "NIKON Z fc",
+          "source": "https://exiftool.org/Nikon.tar.gz#NikonZfc.jpg"
+        },
+        {
+          "name": "Z 30",
+          "make": "NIKON CORPORATION",
+          "model": "NIKON Z 30",
+          "source": "https://exiftool.org/Nikon.tar.gz#NikonZ30.jpg"
+        },
+        {
+          "name": "Z 6 II",
+          "make": "NIKON CORPORATION",
+          "model": "NIKON Z 6_2",
+          "source": "https://exiftool.org/Nikon.tar.gz#NikonZ6_2.jpg"
+        },
+        {
+          "name": "Z 7 II",
+          "make": "NIKON CORPORATION",
+          "model": "NIKON Z 7_2",
+          "source": "https://exiftool.org/Nikon.tar.gz#NikonZ7_2.jpg"
+        },
+        {
+          "name": "Z 5",
+          "make": "NIKON CORPORATION",
+          "model": "NIKON Z 5",
+          "source": "https://exiftool.org/Nikon.tar.gz#NikonZ5.jpg"
+        },
+        {
+          "name": "Z 50",
+          "make": "NIKON CORPORATION",
+          "model": "NIKON Z 50",
+          "source": "https://exiftool.org/Nikon.tar.gz#NikonZ50.jpg"
+        },
+        {
+          "name": "D850",
+          "make": "NIKON CORPORATION",
+          "model": "NIKON D850",
+          "source": "https://exiftool.org/Nikon.tar.gz#NikonD850.jpg"
+        },
+        {
+          "name": "D780",
+          "make": "NIKON CORPORATION",
+          "model": "NIKON D780",
+          "source": "https://exiftool.org/Nikon.tar.gz#NikonD780.jpg"
+        },
+        {
+          "name": "COOLPIX P950",
+          "make": "NIKON CORPORATION",
+          "model": "COOLPIX P950",
+          "source": "https://exiftool.org/Nikon.tar.gz#NikonCoolpixP950.jpg"
+        },
+        {
+          "name": "Z5 II",
+          "make": "NIKON CORPORATION",
+          "model": "NIKON Z5_2",
+          "source": "https://raw.pixls.us/getfile.php/7735/exif/High_Efficiency_1-1.NEF.exif.txt"
+        },
+        {
+          "name": "Z50 II",
+          "make": "NIKON CORPORATION",
+          "model": "NIKON Z50_2",
+          "source": "https://raw.pixls.us/getfile.php/7762/exif/DSC_0060_DX_Lossless.NEF.exif.txt"
+        },
+        {
+          "name": "Z6 III",
+          "make": "NIKON CORPORATION",
+          "model": "NIKON Z6_3",
+          "source": "https://raw.pixls.us/getfile.php/7808/exif/Nikon_Z6__3_High_Efficiency_1_1.NEF.exif.txt"
+        },
+        {
+          "name": "COOLPIX P1100",
+          "make": "NIKON CORPORATION",
+          "model": "COOLPIX P1100",
+          "source": "https://commons.wikimedia.org/wiki/File:JUVENILE.jpg"
+        }
+      ]
+    },
+    {
+      "id": "canon",
+      "name": "Canon",
+      "models": [
+        {
+          "name": "EOS R1",
+          "make": "Canon",
+          "model": "Canon EOS R1",
+          "source": "https://exiftool.org/Canon.tar.gz#CanonEOS_R1.jpg"
+        },
+        {
+          "name": "EOS R5 Mark II",
+          "make": "Canon",
+          "model": "Canon EOS R5m2",
+          "source": "https://exiftool.org/Canon.tar.gz#CanonEOS_R5m2.jpg"
+        },
+        {
+          "name": "EOS R5",
+          "make": "Canon",
+          "model": "Canon EOS R5",
+          "source": "https://exiftool.org/Canon.tar.gz#CanonEOS_R5.jpg"
+        },
+        {
+          "name": "EOS R6 Mark III",
+          "make": "Canon",
+          "model": "Canon EOS R6 Mark III",
+          "source": "https://exiftool.org/Canon.tar.gz#CanonEOS_R6MarkIII.jpg"
+        },
+        {
+          "name": "EOS R6 Mark II",
+          "make": "Canon",
+          "model": "Canon EOS R6m2",
+          "source": "https://exiftool.org/Canon.tar.gz#CanonEOS_R6m2.jpg"
+        },
+        {
+          "name": "EOS R7",
+          "make": "Canon",
+          "model": "Canon EOS R7",
+          "source": "https://exiftool.org/Canon.tar.gz#CanonEOS_R7.jpg"
+        },
+        {
+          "name": "EOS R8",
+          "make": "Canon",
+          "model": "Canon EOS R8",
+          "source": "https://exiftool.org/Canon.tar.gz#CanonEOS_R8.jpg"
+        },
+        {
+          "name": "EOS R10",
+          "make": "Canon",
+          "model": "Canon EOS R10",
+          "source": "https://exiftool.org/Canon.tar.gz#CanonEOS_R10.jpg"
+        },
+        {
+          "name": "EOS R50",
+          "make": "Canon",
+          "model": "Canon EOS R50",
+          "source": "https://exiftool.org/Canon.tar.gz#CanonEOS_R50.jpg"
+        },
+        {
+          "name": "EOS R50 V",
+          "make": "Canon",
+          "model": "Canon EOS R50 V",
+          "source": "https://exiftool.org/Canon.tar.gz#CanonEOS_R50V.jpg"
+        },
+        {
+          "name": "EOS R100",
+          "make": "Canon",
+          "model": "Canon EOS R100",
+          "source": "https://exiftool.org/Canon.tar.gz#CanonEOS_R100.jpg"
+        },
+        {
+          "name": "PowerShot V1",
+          "make": "Canon",
+          "model": "Canon PowerShot V1",
+          "source": "https://exiftool.org/Canon.tar.gz#CanonPowerShotV1.jpg"
+        },
+        {
+          "name": "PowerShot V10",
+          "make": "Canon",
+          "model": "Canon PowerShot V10",
+          "source": "https://exiftool.org/Canon.tar.gz#CanonPowerShotV10.jpg"
+        },
+        {
+          "name": "PowerShot G7 X Mark III",
+          "make": "Canon",
+          "model": "Canon PowerShot G7 X Mark III",
+          "source": "https://exiftool.org/Canon.tar.gz#CanonPowerShotG7X_MarkIII.jpg"
+        },
+        {
+          "name": "EOS R3",
+          "make": "Canon",
+          "model": "Canon EOS R3",
+          "source": "https://commons.wikimedia.org/wiki/File:P061292-117064.jpg"
+        }
+      ]
+    },
+    {
+      "id": "hasselblad",
+      "name": "Hasselblad",
+      "models": [
+        {
+          "name": "907X & CFV 100C",
+          "make": "Hasselblad",
+          "model": "CFV 100C/907X",
+          "source": "https://exiftool.org/Hasselblad.tar.gz#HasselbladCFV100C.jpg"
+        },
+        {
+          "name": "X1D II 50C",
+          "make": "Hasselblad",
+          "model": "X1D II 50C",
+          "source": "https://exiftool.org/Hasselblad.tar.gz#HasselbladX1D_II50C.jpg"
+        },
+        {
+          "name": "X2D 100C",
+          "make": "Hasselblad",
+          "model": "X2D 100C",
+          "source": "https://raw.pixls.us/getfile.php/6565/exif/B0000079.3FR.exif.txt"
+        },
+        {
+          "name": "X2D II 100C",
+          "make": "Hasselblad",
+          "model": "X2D II 100C",
+          "source": "https://commons.wikimedia.org/wiki/File%3AChristine_Marie_1.jpg"
+        }
+      ]
+    },
+    {
+      "id": "leica",
+      "name": "Leica",
+      "models": [
+        {
+          "name": "M11",
+          "make": "Leica Camera AG",
+          "model": "LEICA M11",
+          "source": "https://exiftool.org/Leica.tar.gz#LeicaM11.jpg"
+        },
+        {
+          "name": "M11-P",
+          "make": "Leica Camera AG",
+          "model": "LEICA M11-P",
+          "source": "https://exiftool.org/Leica.tar.gz#LeicaM11-P.jpg"
+        },
+        {
+          "name": "M11 Monochrom",
+          "make": "Leica Camera AG",
+          "model": "LEICA M11 Monochrom",
+          "source": "https://exiftool.org/Leica.tar.gz#LeicaM11Monochrom.jpg"
+        },
+        {
+          "name": "M EV1",
+          "make": "Leica Camera AG",
+          "model": "LEICA M EV1",
+          "source": "https://exiftool.org/Leica.tar.gz#LeicaM_EV1.jpg"
+        },
+        {
+          "name": "Q3",
+          "make": "LEICA CAMERA AG",
+          "model": "LEICA Q3",
+          "source": "https://exiftool.org/Leica.tar.gz#LeicaQ3.jpg"
+        },
+        {
+          "name": "Q3 43",
+          "make": "LEICA CAMERA AG",
+          "model": "LEICA Q3 43",
+          "source": "https://exiftool.org/Leica.tar.gz#LeicaQ3_43.jpg"
+        },
+        {
+          "name": "Q3 MONO",
+          "make": "LEICA CAMERA AG",
+          "model": "LEICA Q3 MONO",
+          "source": "https://exiftool.org/Leica.tar.gz#LeicaQ3MONO.jpg"
+        },
+        {
+          "name": "SL3",
+          "make": "LEICA CAMERA AG",
+          "model": "LEICA SL3",
+          "source": "https://exiftool.org/Leica.tar.gz#LeicaSL3.jpg"
+        },
+        {
+          "name": "D-Lux 8",
+          "make": "LEICA CAMERA AG",
+          "model": "LEICA D-Lux 8",
+          "source": "https://exiftool.org/Leica.tar.gz#LeicaD-Lux8.jpg"
+        }
+      ]
+    },
+    {
+      "id": "olympus",
+      "name": "Olympus",
+      "models": [
+        {
+          "name": "OM-D E-M10 Mark IV",
+          "make": "OLYMPUS CORPORATION",
+          "model": "E-M10MarkIV",
+          "source": "https://exiftool.org/Olympus.tar.gz#OlympusE-M10MarkIV.jpg"
+        },
+        {
+          "name": "OM-D E-M1 Mark III",
+          "make": "OLYMPUS CORPORATION",
+          "model": "E-M1MarkIII",
+          "source": "https://exiftool.org/Olympus.tar.gz#OlympusE-M1MarkIII.jpg"
+        },
+        {
+          "name": "OM-D E-M5 Mark III",
+          "make": "OLYMPUS CORPORATION",
+          "model": "E-M5MarkIII",
+          "source": "https://exiftool.org/Olympus.tar.gz#OlympusE-M5MarkIII.jpg"
+        },
+        {
+          "name": "PEN E-P7",
+          "make": "OLYMPUS CORPORATION",
+          "model": "E-P7",
+          "source": "https://exiftool.org/Olympus.tar.gz#OlympusE-P7.jpg"
+        }
+      ]
+    },
+    {
+      "id": "om-system",
+      "name": "OM SYSTEM",
+      "models": [
+        {
+          "name": "OM-1 Mark II",
+          "make": "OM Digital Solutions",
+          "model": "OM-1MarkII",
+          "source": "https://exiftool.org/Olympus.tar.gz#OlympusOM-1MarkII.jpg"
+        },
+        {
+          "name": "OM-1",
+          "make": "OM Digital Solutions",
+          "model": "OM-1",
+          "source": "https://exiftool.org/Olympus.tar.gz#OlympusOM-1.jpg"
+        },
+        {
+          "name": "OM-3",
+          "make": "OM Digital Solutions",
+          "model": "OM-3",
+          "source": "https://exiftool.org/Olympus.tar.gz#OlympusOM-3.jpg"
+        },
+        {
+          "name": "OM-5",
+          "make": "OM Digital Solutions",
+          "model": "OM-5",
+          "source": "https://exiftool.org/Olympus.tar.gz#OlympusOM-5.jpg"
+        },
+        {
+          "name": "Tough TG-7",
+          "make": "OM Digital Solutions",
+          "model": "TG-7",
+          "source": "https://exiftool.org/Olympus.tar.gz#OlympusTG-7.jpg"
+        },
+        {
+          "name": "OM-5 Mark II",
+          "make": "OM Digital Solutions",
+          "model": "OM-5MarkII",
+          "source": "https://raw.pixls.us/getfile.php/8549/exif/OM_System_OM-5_2_regular.ORF.exif.txt"
+        }
+      ]
+    },
+    {
+      "id": "fujifilm",
+      "name": "Fujifilm",
+      "models": [
+        {
+          "name": "GFX100 II",
+          "make": "FUJIFILM",
+          "model": "GFX100 II",
+          "source": "https://exiftool.org/FujiFilm.tar.gz#FujiFilmGFX100II.jpg"
+        },
+        {
+          "name": "GFX100S II",
+          "make": "FUJIFILM",
+          "model": "GFX100S II",
+          "source": "https://exiftool.org/FujiFilm.tar.gz#FujiFilmGFX100S_II.jpg"
+        },
+        {
+          "name": "GFX100RF",
+          "make": "FUJIFILM",
+          "model": "GFX100RF",
+          "source": "https://exiftool.org/FujiFilm.tar.gz#FujiFilmGFX100RF.jpg"
+        },
+        {
+          "name": "X-H2S",
+          "make": "FUJIFILM",
+          "model": "X-H2S",
+          "source": "https://exiftool.org/FujiFilm.tar.gz#FujiFilmX-H2S.jpg"
+        },
+        {
+          "name": "X-H2",
+          "make": "FUJIFILM",
+          "model": "X-H2",
+          "source": "https://exiftool.org/FujiFilm.tar.gz#FujiFilmX-H2.jpg"
+        },
+        {
+          "name": "X-T5",
+          "make": "FUJIFILM",
+          "model": "X-T5",
+          "source": "https://exiftool.org/FujiFilm.tar.gz#FujiFilmX-T5.jpg"
+        },
+        {
+          "name": "X-T50",
+          "make": "FUJIFILM",
+          "model": "X-T50",
+          "source": "https://exiftool.org/FujiFilm.tar.gz#FujiFilmX-T50.jpg"
+        },
+        {
+          "name": "X-T30 III",
+          "make": "FUJIFILM",
+          "model": "X-T30 III",
+          "source": "https://raw.pixls.us/getfile.php/8769/exif/DSCF0131.RAF.exif.txt"
+        },
+        {
+          "name": "X-E5",
+          "make": "FUJIFILM",
+          "model": "X-E5",
+          "source": "https://exiftool.org/FujiFilm.tar.gz#FujiFilmX-E5.jpg"
+        },
+        {
+          "name": "X-M5",
+          "make": "FUJIFILM",
+          "model": "X-M5",
+          "source": "https://exiftool.org/FujiFilm.tar.gz#FujiFilmX-M5.jpg"
+        },
+        {
+          "name": "X-S20",
+          "make": "FUJIFILM",
+          "model": "X-S20",
+          "source": "https://exiftool.org/FujiFilm.tar.gz#FujiFilmX-S20.jpg"
+        },
+        {
+          "name": "X100VI",
+          "make": "FUJIFILM",
+          "model": "X100VI",
+          "source": "https://exiftool.org/FujiFilm.tar.gz#FujiFilmX100VI.jpg"
+        },
+        {
+          "name": "X half",
+          "make": "FUJIFILM",
+          "model": "X-HF1",
+          "source": "https://exiftool.org/FujiFilm.tar.gz#FujiFilmX-HF1.jpg"
+        }
+      ]
+    },
+    {
+      "id": "ricoh",
+      "name": "Ricoh",
+      "models": [
+        {
+          "name": "GR IV",
+          "make": "RICOH IMAGING COMPANY, LTD.",
+          "model": "RICOH GR IV",
+          "source": "https://exiftool.org/Ricoh.tar.gz#RicohGR_IV.jpg"
+        },
+        {
+          "name": "GR IIIx",
+          "make": "RICOH IMAGING COMPANY, LTD.",
+          "model": "RICOH GR IIIx",
+          "source": "https://exiftool.org/Ricoh.tar.gz#RicohGR_IIIx.jpg"
+        },
+        {
+          "name": "GR III",
+          "make": "RICOH IMAGING COMPANY, LTD.",
+          "model": "RICOH GR III",
+          "source": "https://exiftool.org/Ricoh.tar.gz#RicohGR_III.jpg"
+        }
+      ]
+    },
+    {
+      "id": "dji",
+      "name": "DJI",
+      "models": [
+        {
+          "name": "Mavic 4 Pro (100 MP)",
+          "make": "Hasselblad",
+          "model": "L3D-100c",
+          "source": "https://commons.wikimedia.org/wiki/File%3ADrone_shot_with_Tokyo_Skytree_in_the_distance_at_night.jpg"
+        },
+        {
+          "name": "Osmo Pocket 3",
+          "make": "DJI",
+          "model": "PP-101",
+          "source": "https://commons.wikimedia.org/wiki/File:DJI_20260105175336_0198_D.jpg"
+        },
+        {
+          "name": "Mini 4 Pro",
+          "make": "DJI",
+          "model": "FC8482",
+          "source": "https://commons.wikimedia.org/wiki/File:2024_Ulica_Rodzinna_w_K%C5%82odzku_(02).jpg"
+        },
+        {
+          "name": "Osmo 360",
+          "make": "Osmo",
+          "model": "OQ001",
+          "source": "https://commons.wikimedia.org/wiki/File:El_Tajo_gorge_wall_and_clifftop_town_of_Ronda_at_dusk_(2026).jpg"
+        },
+        {
+          "name": "FC9284",
+          "make": "DJI",
+          "model": "FC9284",
+          "source": "https://commons.wikimedia.org/wiki/File:Calf_Islands.jpg"
+        },
+        {
+          "name": "Osmo Action 6",
+          "make": "DJI",
+          "model": "AC006",
+          "source": "https://commons.wikimedia.org/wiki/File:Strupanitsa_2.jpg"
+        },
+        {
+          "name": "FC9287",
+          "make": "DJI",
+          "model": "FC9287",
+          "source": "https://commons.wikimedia.org/wiki/File:Crossing_the_Buriganga.jpg"
+        },
+        {
+          "name": "Osmo Action 5 Pro",
+          "make": "DJI",
+          "model": "AC004",
+          "source": "https://commons.wikimedia.org/wiki/File:MalootiTemples_SumitSurai_02.jpg"
+        },
+        {
+          "name": "FC9184",
+          "make": "DJI",
+          "model": "FC9184",
+          "source": "https://commons.wikimedia.org/wiki/File:2024_K%C5%82odzko,_ul._Stryje%C5%84skiej_4a_(6).jpg"
+        }
+      ]
+    },
+    {
+      "id": "insta360",
+      "name": "Insta360",
+      "models": [
+        {
+          "name": "Insta360 Ace Pro",
+          "make": "Arashi Vision",
+          "model": "Insta360 Ace Pro",
+          "source": "https://commons.wikimedia.org/wiki/File%3ASZ_%E6%B7%B1%E5%9C%B3_Shenzhen_%E7%BE%85%E6%B9%96_Luohu_metro_%E6%B9%96%E8%B2%9D%E7%AB%99_Hubei_Station_platform_February_2024_AcePro360_02.jpg"
+        },
+        {
+          "name": "X5",
+          "make": "Arashi Vision",
+          "model": "insta360 x5",
+          "source": "https://commons.wikimedia.org/wiki/File:Oulunsuun_koulu_Oulu.jpg"
+        },
+        {
+          "name": "Ace Pro 2",
+          "make": "Arashi Vision",
+          "model": "Insta360 Ace Pro 2",
+          "source": "https://commons.wikimedia.org/wiki/File:Valiant_Mark_25-_Field_Training_Exercise_(8940783).jpg"
+        },
+        {
+          "name": "X4",
+          "make": "Arashi Vision",
+          "model": "insta360 x4",
+          "source": "https://commons.wikimedia.org/wiki/File:Lennokkiharrastuksen_esittelyp%C3%A4iv%C3%A4_Ahmosuon_pienlentokent%C3%A4ll%C3%A4.jpg"
+        },
+        {
+          "name": "X4",
+          "make": "Arashi Vision",
+          "model": "Insta360 X4",
+          "source": "https://commons.wikimedia.org/wiki/File:2025_London_Landmarks_Half_Marathon_-_158.jpg"
+        },
+        {
+          "name": "X4 Air",
+          "make": "Arashi Vision",
+          "model": "insta360 x4 air",
+          "source": "https://commons.wikimedia.org/wiki/File:Pavelsbach_Blick_nach_Norden.jpg"
+        },
+        {
+          "name": "X4 Air",
+          "make": "Arashi Vision",
+          "model": "Insta360 X4 Air",
+          "source": "https://commons.wikimedia.org/wiki/File:Poznan_(55151728263).jpg"
+        },
+        {
+          "name": "X5",
+          "make": "Arashi Vision",
+          "model": "Insta360 X5",
+          "source": "https://commons.wikimedia.org/wiki/File:DenderaReborn1.jpg"
+        },
+        {
+          "name": "Go 3S",
+          "make": "Insta360",
+          "model": "Go3S.PHOTO_NORMAL",
+          "source": "https://commons.wikimedia.org/wiki/File:%D0%92%D0%B8%D0%B4_%D0%BD%D0%B0_%D1%81%D0%BE%D0%B2%D1%80%D0%B5%D0%BC%D0%B5%D0%BD%D0%BD%D1%8B%D0%B9_%D0%B4%D0%BE%D0%BC_%D0%B2_%D1%81%D1%82%D0%BE%D1%80%D0%BE%D0%BD%D1%83_%D0%9B%D0%B5%D0%BE%D0%BD%D1%82%D1%8C%D0%B5%D0%B2%D1%81%D0%BA%D0%BE%D0%B9_%D1%83%D0%BB%D0%B8%D1%86%D1%8B.jpg"
+        }
+      ]
+    },
+    {
+      "id": "panasonic",
+      "name": "Panasonic",
+      "models": [
+        {
+          "name": "LUMIX S1 II",
+          "make": "Panasonic",
+          "model": "DC-S1M2",
+          "source": "https://exiftool.org/Panasonic.tar.gz#PanasonicDC-S1M2.jpg"
+        },
+        {
+          "name": "LUMIX S1 IIE",
+          "make": "Panasonic",
+          "model": "DC-S1M2ES",
+          "source": "https://exiftool.org/Panasonic.tar.gz#PanasonicDC-S1M2ES.jpg"
+        },
+        {
+          "name": "LUMIX S1R II",
+          "make": "Panasonic",
+          "model": "DC-S1RM2",
+          "source": "https://exiftool.org/Panasonic.tar.gz#PanasonicDC-S1RM2.jpg"
+        },
+        {
+          "name": "LUMIX S5 II",
+          "make": "Panasonic",
+          "model": "DC-S5M2",
+          "source": "https://exiftool.org/Panasonic.tar.gz#PanasonicDC-S5M2.jpg"
+        },
+        {
+          "name": "LUMIX S5 IIX",
+          "make": "Panasonic",
+          "model": "DC-S5M2X",
+          "source": "https://exiftool.org/Panasonic.tar.gz#PanasonicDC-S5M2X.jpg"
+        },
+        {
+          "name": "LUMIX S9",
+          "make": "Panasonic",
+          "model": "DC-S9",
+          "source": "https://exiftool.org/Panasonic.tar.gz#PanasonicDC-S9.jpg"
+        },
+        {
+          "name": "LUMIX GH7",
+          "make": "Panasonic",
+          "model": "DC-GH7",
+          "source": "https://exiftool.org/Panasonic.tar.gz#PanasonicDC-GH7.jpg"
+        },
+        {
+          "name": "LUMIX G9 II",
+          "make": "Panasonic",
+          "model": "DC-G9M2",
+          "source": "https://exiftool.org/Panasonic.tar.gz#PanasonicDC-G9M2.jpg"
+        },
+        {
+          "name": "LUMIX TZ99",
+          "make": "Panasonic",
+          "model": "DC-TZ99",
+          "source": "https://exiftool.org/Panasonic.tar.gz#PanasonicDC-TZ99.jpg"
+        },
+        {
+          "name": "LUMIX FZ1000 II",
+          "make": "Panasonic",
+          "model": "DC-FZ10002",
+          "source": "https://exiftool.org/Panasonic.tar.gz#PanasonicDC-FZ10002.jpg"
+        },
+        {
+          "name": "LUMIX G97",
+          "make": "Panasonic",
+          "model": "DC-G97",
+          "source": "https://raw.pixls.us/getfile.php/7971/exif/_JOS3760.RW2.exif.txt"
+        },
+        {
+          "name": "LUMIX G100D",
+          "make": "Panasonic",
+          "model": "DC-G100D",
+          "source": "https://raw.pixls.us/getfile.php/7999/exif/P1000143.RW2.exif.txt"
+        }
+      ]
+    },
+    {
+      "id": "pentax",
+      "name": "Pentax",
+      "models": [
+        {
+          "name": "K-1 Mark II",
+          "make": "RICOH IMAGING COMPANY, LTD.",
+          "model": "PENTAX K-1 Mark II",
+          "source": "https://raw.pixls.us/getfile.php/3345/exif/_IMG2387.DNG.exif.txt"
+        },
+        {
+          "name": "K-3 Mark III",
+          "make": "RICOH IMAGING COMPANY, LTD.",
+          "model": "PENTAX K-3 Mark III",
+          "source": "https://raw.pixls.us/getfile.php/4677/exif/_IMG0115.PEF.exif.txt"
+        },
+        {
+          "name": "KF",
+          "make": "RICOH IMAGING COMPANY, LTD.",
+          "model": "PENTAX KF",
+          "source": "https://raw.pixls.us/getfile.php/6664/exif/IMGP0063.PEF.exif.txt"
+        },
+        {
+          "name": "K-3 Mark III Monochrome",
+          "make": "RICOH IMAGING COMPANY, LTD.",
+          "model": "PENTAX K-3 Mark III Monochrome",
+          "source": "https://raw.pixls.us/getfile.php/7081/exif/K3III.DNG.exif.txt"
+        }
+      ]
+    },
+    {
+      "id": "sigma",
+      "name": "Sigma",
+      "models": [
+        {
+          "name": "BF",
+          "make": "Sigma",
+          "model": "Sigma BF",
+          "source": "https://exiftool.org/Sigma.tar.gz#SigmaBF.jpg"
+        },
+        {
+          "name": "fp",
+          "make": "SIGMA",
+          "model": "SIGMA fp",
+          "source": "https://exiftool.org/Sigma.tar.gz#Sigma_fp.jpg"
+        },
+        {
+          "name": "fp L",
+          "make": "SIGMA",
+          "model": "SIGMA fp L",
+          "source": "https://exiftool.org/Sigma.tar.gz#Sigma_fpL.jpg"
+        }
+      ]
+    },
+    {
+      "id": "gopro",
+      "name": "GoPro",
+      "models": [
+        {
+          "name": "HERO12 Black",
+          "make": "GoPro",
+          "model": "HERO12 Black",
+          "source": "https://exiftool.org/GoPro.tar.gz#GoProHERO12Black.jpg"
+        },
+        {
+          "name": "HERO11 Black",
+          "make": "GoPro",
+          "model": "HERO11 Black",
+          "source": "https://exiftool.org/GoPro.tar.gz#GoProHERO11Black.jpg"
+        },
+        {
+          "name": "HERO13 Black",
+          "make": "GoPro",
+          "model": "HERO13 Black",
+          "source": "https://commons.wikimedia.org/wiki/File%3AMemoriale_di_Verdun_2026.jpg"
+        }
+      ]
+    },
+    {
+      "id": "apple",
+      "name": "Apple",
+      "models": [
+        {
+          "name": "iPhone 15 Plus",
+          "make": "Apple",
+          "model": "iPhone 15 Plus",
+          "source": "https://exiftool.org/Apple.tar.gz#Apple_iPhone15Plus.jpg"
+        },
+        {
+          "name": "iPhone 15 Pro",
+          "make": "Apple",
+          "model": "iPhone 15 Pro",
+          "source": "https://exiftool.org/Apple.tar.gz#Apple_iPhone15Pro.jpg"
+        },
+        {
+          "name": "iPhone 15",
+          "make": "Apple",
+          "model": "iPhone 15",
+          "source": "https://exiftool.org/Apple.tar.gz#Apple_iPhone15.jpg"
+        },
+        {
+          "name": "iPhone 15 Pro Max",
+          "make": "Apple",
+          "model": "iPhone 15 Pro Max",
+          "source": "https://exiftool.org/Apple.tar.gz#Apple_iPhone15ProMax.jpg"
+        },
+        {
+          "name": "iPhone 16 Pro",
+          "make": "Apple",
+          "model": "iPhone 16 Pro",
+          "source": "https://exiftool.org/Apple.tar.gz#Apple_iPhone16Pro.jpg"
+        },
+        {
+          "name": "iPhone 17 Pro",
+          "make": "Apple",
+          "model": "iPhone 17 Pro",
+          "source": "https://commons.wikimedia.org/wiki/File%3ABarfleur_Poole.jpg"
+        },
+        {
+          "name": "iPhone 17",
+          "make": "Apple",
+          "model": "iPhone 17",
+          "source": "https://commons.wikimedia.org/wiki/File%3AHonor_Magic_8_Pro_rear.jpg"
+        },
+        {
+          "name": "iPhone 18 Pro",
+          "make": "Apple",
+          "model": "iPhone 18 Pro",
+          "source": "https://commons.wikimedia.org/wiki/File%3ARijeka%2C_Croatia_September_2026_-_05.jpg"
+        },
+        {
+          "name": "iPhone 18 Pro Max",
+          "make": "Apple",
+          "model": "iPhone 18 Pro Max",
+          "source": "https://commons.wikimedia.org/wiki/File%3AFormer_Masonic_Temple_%28Tallulah%2C_Louisiana%29_07.jpg"
+        },
+        {
+          "name": "iPhone 16",
+          "make": "Apple",
+          "model": "iPhone 16",
+          "source": "https://commons.wikimedia.org/wiki/File%3AGalaxy_S26.jpg"
+        }
+      ]
+    },
+    {
+      "id": "samsung",
+      "name": "Samsung",
+      "models": [
+        {
+          "name": "Galaxy S25 Ultra",
+          "make": "samsung",
+          "model": "Galaxy S25 Ultra",
+          "source": "https://exiftool.org/Samsung.tar.gz#SamsungGalaxyS25Ultra.jpg"
+        },
+        {
+          "name": "Galaxy S26",
+          "make": "samsung",
+          "model": "Galaxy S26",
+          "source": "https://commons.wikimedia.org/wiki/File%3A%E4%BB%99%E5%8F%B0%E5%9F%8E%E8%B7%A1%E3%81%8B%E3%82%89%E8%A6%8B%E3%81%9F%E4%BB%99%E5%8F%B0%E5%B8%82%E8%A1%97.jpg"
+        },
+        {
+          "name": "Galaxy S26 Ultra",
+          "make": "samsung",
+          "model": "Galaxy S26 Ultra",
+          "source": "https://commons.wikimedia.org/wiki/File%3AJunglinster%2C_Bourglinster_%28111%29.jpg"
+        },
+        {
+          "name": "Galaxy S26 Ultra",
+          "make": "Samsung",
+          "model": "Galaxy S26 Ultra",
+          "source": "https://commons.wikimedia.org/wiki/File%3ALa_Fouine_Zaho_Probleme_Promotion_HLM_Paris_Region_2026.jpg"
+        }
+      ]
+    },
+    {
+      "id": "google",
+      "name": "Google",
+      "models": [
+        {
+          "name": "Pixel 10 Pro XL",
+          "make": "Google",
+          "model": "Pixel 10 Pro XL",
+          "source": "https://exiftool.org/Google.tar.gz#GooglePixel10ProXL.jpg"
+        },
+        {
+          "name": "Pixel 9 Pro Fold",
+          "make": "Google",
+          "model": "Pixel 9 Pro Fold",
+          "source": "https://exiftool.org/Google.tar.gz#GooglePixel9ProFold.jpg"
+        },
+        {
+          "name": "Pixel 9 Pro",
+          "make": "Google",
+          "model": "Pixel 9 Pro",
+          "source": "https://exiftool.org/Google.tar.gz#GooglePixel9Pro.jpg"
+        },
+        {
+          "name": "Pixel 10a",
+          "make": "Google",
+          "model": "Pixel 10a",
+          "source": "https://exiftool.org/Google.tar.gz#GooglePixel10a.jpg"
+        },
+        {
+          "name": "Pixel 10",
+          "make": "Google",
+          "model": "Pixel 10",
+          "source": "https://commons.wikimedia.org/wiki/File%3APelly_Crossing_-_Information_plaque.jpg"
+        },
+        {
+          "name": "Pixel 9",
+          "make": "Google",
+          "model": "Pixel 9",
+          "source": "https://exiftool.org/Google.tar.gz#GooglePixel9.jpg"
+        },
+        {
+          "name": "Pixel 9a",
+          "make": "Google",
+          "model": "Pixel 9a",
+          "source": "https://exiftool.org/Google.tar.gz#GooglePixel9a.jpg"
+        },
+        {
+          "name": "Pixel 11",
+          "make": "Google",
+          "model": "Pixel 11",
+          "source": "https://commons.wikimedia.org/wiki/File%3ACasa_campaneta_frente.jpg"
+        },
+        {
+          "name": "Pixel 11 Pro",
+          "make": "Google",
+          "model": "Pixel 11 Pro",
+          "source": "https://commons.wikimedia.org/wiki/File%3AKelvin_Hughes_products_at_Redbridge_Museum.jpg"
+        }
+      ]
+    },
+    {
+      "id": "huawei",
+      "name": "Huawei",
+      "models": [
+        {
+          "name": "HUAWEI Mate 70 Pro",
+          "make": "HUAWEI",
+          "model": "HUAWEI Mate 70 Pro",
+          "source": "https://commons.wikimedia.org/wiki/File%3ASz%C3%A9kesfeh%C3%A9rv%C3%A1r%2C_Millenniumi_eml%C3%A9km%C5%B1%2C_2.jpg"
+        }
+      ]
+    },
+    {
+      "id": "honor",
+      "name": "Honor",
+      "models": [
+        {
+          "name": "Magic8 Lite",
+          "make": "HONOR",
+          "model": "MTN-NX1M",
+          "source": "https://commons.wikimedia.org/wiki/File%3A7.7.2026._Brioni.jpg"
+        },
+        {
+          "name": "Magic8 Pro",
+          "make": "HONOR",
+          "model": "BKQ-N49",
+          "source": "https://commons.wikimedia.org/wiki/File%3A%D8%AC%D8%A8%D9%84_%D8%AC%D9%88%D8%AF%D9%8A_%D9%81%D9%8A_%D8%AA%D8%B1%D9%83%D9%8A%D8%A7_%D9%85%D9%86_%D9%85%D9%86%D8%B7%D9%82%D8%A9_%D8%B9%D9%8A%D9%86_%D8%AF%D9%8A%D9%88%D8%A7%D8%B1_%D9%81%D9%8A_%D8%B3%D9%88%D8%B1%D9%8A%D8%A7.jpg"
+        },
+        {
+          "name": "Magic8 Lite",
+          "make": "HONOR",
+          "model": "MTN-NX3",
+          "source": "https://commons.wikimedia.org/wiki/File%3AR%C3%A9plica_de_la_Campana_de_Dolores.jpg"
+        }
+      ]
+    },
+    {
+      "id": "xiaomi",
+      "name": "Xiaomi",
+      "models": [
+        {
+          "name": "Xiaomi 15",
+          "make": "Xiaomi",
+          "model": "Xiaomi 15",
+          "source": "https://commons.wikimedia.org/wiki/File%3A%D0%93%D0%BE%D1%81%D1%82%D0%B8%D0%BD%D0%B8%D1%86%D0%B0_%D0%90%D0%BA_%D0%A1%D0%B0%D1%80%D0%B0%D0%B9.jpg"
+        },
+        {
+          "name": "15 Pro",
+          "make": "Xiaomi",
+          "model": "Xiaomi 15 Pro",
+          "source": "https://commons.wikimedia.org/wiki/File:CX_970_2025-04-18_ARR.jpg"
+        },
+        {
+          "name": "Xiaomi 17",
+          "make": "Xiaomi",
+          "model": "Xiaomi 17",
+          "source": "https://commons.wikimedia.org/wiki/File%3A%E5%A4%A9%E6%B4%A5%E7%A7%91%E6%8A%80%E5%A4%A7%E5%AD%A6%E6%B2%B3%E8%A5%BF%E6%A0%A1%E5%8C%BA.jpg"
+        },
+        {
+          "name": "Xiaomi 17 Ultra",
+          "make": "Xiaomi",
+          "model": "Xiaomi 17 Ultra",
+          "source": "https://commons.wikimedia.org/wiki/File%3ATokyo-Higashiginza---2026-06-28_115.jpg"
+        },
+        {
+          "name": "POCO F8 Pro",
+          "make": "Xiaomi",
+          "model": "POCO F8 Pro",
+          "source": "https://commons.wikimedia.org/wiki/File%3AOnePlus_15_back.jpg"
+        },
+        {
+          "name": "Redmi Note 14",
+          "make": "Xiaomi",
+          "model": "Redmi Note 14",
+          "source": "https://commons.wikimedia.org/wiki/File%3AWikipedia_Training_Session.jpg"
+        },
+        {
+          "name": "Redmi Note 14 5G",
+          "make": "Xiaomi",
+          "model": "Redmi Note 14 5G",
+          "source": "https://commons.wikimedia.org/wiki/File%3ASalerno_-_Castello_di_Arechi_-_2025-09-21_06-44-14_001.jpg"
+        },
+        {
+          "name": "Redmi Note 14 Pro 5G",
+          "make": "Xiaomi",
+          "model": "Redmi Note 14 Pro 5G",
+          "source": "https://commons.wikimedia.org/wiki/File:A2613-Dubai_Airport-Palm_trees.jpg"
+        },
+        {
+          "name": "Redmi Note 14 Pro 5G",
+          "make": "Xiaomi",
+          "model": "24090RA29I",
+          "source": "https://commons.wikimedia.org/wiki/File:Chandesara.jpg"
+        },
+        {
+          "name": "Redmi Note 14 Pro 5G",
+          "make": "Xiaomi",
+          "model": "24090RA29G",
+          "source": "https://commons.wikimedia.org/wiki/File:Seashells_from_the_Adriatic.jpg"
+        }
+      ]
+    },
+    {
+      "id": "oppo",
+      "name": "OPPO",
+      "models": [
+        {
+          "name": "Oppo Find X9",
+          "make": "OPPO",
+          "model": "OPPO Find X9",
+          "source": "https://commons.wikimedia.org/wiki/File:Rare_plant_that_I_captured.jpg"
+        },
+        {
+          "name": "OPPO Find X9 Pro",
+          "make": "OPPO",
+          "model": "OPPO Find X9 Pro",
+          "source": "https://commons.wikimedia.org/wiki/File%3A%C3%89glise_en_bois_de_Ciunte%C8%99ti.png"
+        },
+        {
+          "name": "OPPO Find X8",
+          "make": "OPPO",
+          "model": "OPPO Find X8",
+          "source": "https://commons.wikimedia.org/wiki/File%3ATemasek_Polytechnic%2C_Singapore%2C_March_2026.jpg"
+        },
+        {
+          "name": "Oppo Reno14 Pro 5G",
+          "make": "OPPO",
+          "model": "OPPO Reno14 Pro 5G",
+          "source": "https://commons.wikimedia.org/wiki/File:Full_moon_taken_by_me.jpg"
+        }
+      ]
+    },
+    {
+      "id": "oneplus",
+      "name": "OnePlus",
+      "models": [
+        {
+          "name": "OnePlus 15",
+          "make": "OnePlus",
+          "model": "OnePlus 15",
+          "source": "https://commons.wikimedia.org/wiki/File%3AGovernment_Law_College_Karaikudi_Campus.jpg"
+        }
+      ]
+    },
+    {
+      "id": "vivo",
+      "name": "vivo",
+      "models": [
+        {
+          "name": "vivo X100 Pro",
+          "make": "vivo",
+          "model": "vivo X100 Pro",
+          "source": "https://exiftool.org/Vivo.tar.gz#VivoX100Pro.jpg"
+        },
+        {
+          "name": "vivo X200 Pro",
+          "make": "vivo",
+          "model": "vivo X200 Pro",
+          "source": "https://commons.wikimedia.org/wiki/File%3AOpel_Rocks-e_%E2%80%93_h_03042026.jpg"
+        },
+        {
+          "name": "vivo X300",
+          "make": "vivo",
+          "model": "vivo X300",
+          "source": "https://commons.wikimedia.org/wiki/File%3AEtna_da_Bronte.jpg"
+        },
+        {
+          "name": "Vivo X200 Ultra",
+          "make": "vivo",
+          "model": "vivo X200 Ultra",
+          "source": "https://commons.wikimedia.org/wiki/File:Jeoffrey_Wong_20260905.jpg"
+        },
+        {
+          "name": "Vivo X300 Ultra",
+          "make": "vivo",
+          "model": "vivo X300 Ultra",
+          "source": "https://commons.wikimedia.org/wiki/File:Man_Yeung_20260808.jpg"
+        }
+      ]
+    },
+    {
+      "id": "iqoo",
+      "name": "iQOO",
+      "models": [
+        {
+          "name": "iQOO 12",
+          "make": "iQOO",
+          "model": "iQOO 12",
+          "source": "https://commons.wikimedia.org/wiki/File%3AShanghai_Bund_at_night_20260417_%281%29.jpg"
+        },
+        {
+          "name": "iQOO Neo 10",
+          "make": "iQOO",
+          "model": "iQOO Neo 10",
+          "source": "https://commons.wikimedia.org/wiki/File%3ABird_taxidermy_at_Nairobi_National_Museum_%2813%29.jpg"
+        }
+      ]
+    },
+    {
+      "id": "realme",
+      "name": "realme",
+      "models": [
+        {
+          "name": "realme GT 6",
+          "make": "realme",
+          "model": "realme GT 6",
+          "source": "https://commons.wikimedia.org/wiki/File%3A%E4%B8%80%E6%9C%9F%E6%A8%A3%E5%BC%8F%E9%BB%91%E8%89%B2%E8%BF%AA%E7%88%B5.jpg"
+        },
+        {
+          "name": "Realme GT 7 Pro",
+          "make": "realme",
+          "model": "realme GT 7 Pro",
+          "source": "https://commons.wikimedia.org/wiki/File:Red_arrow_train_1.jpg"
+        }
+      ]
+    },
+    {
+      "id": "nothing",
+      "name": "Nothing",
+      "models": [
+        {
+          "name": "Nothing Phone (3a)",
+          "make": "Nothing",
+          "model": "Nothing Phone (3a)",
+          "source": "https://commons.wikimedia.org/wiki/File%3ANothing_Phone_4a.jpg"
+        },
+        {
+          "name": "Nothing Phone (4a)",
+          "make": "Nothing",
+          "model": "Nothing Phone (4a)",
+          "source": "https://commons.wikimedia.org/wiki/File%3ANewari_Foods.jpg"
+        },
+        {
+          "name": "Phone (3a)",
+          "make": "Nothing",
+          "model": "A059",
+          "source": "https://commons.wikimedia.org/wiki/File:Redmi_Note_10_Pro_back_(5).jpg"
+        }
+      ]
+    },
+    {
+      "id": "motorola",
+      "name": "Motorola",
+      "models": [
+        {
+          "name": "motorola edge 70 pro",
+          "make": "motorola",
+          "model": "motorola edge 70 pro",
+          "source": "https://commons.wikimedia.org/wiki/File%3AB%C3%BDval%C3%A1_vlakov%C3%A1_zast%C3%A1vka_Oberedlitz.jpg"
+        },
+        {
+          "name": "motorola edge 70",
+          "make": "motorola",
+          "model": "motorola edge 70",
+          "source": "https://commons.wikimedia.org/wiki/File%3ALenta_Edicola_votiva_Immacolata_Concezione.jpg"
+        }
+      ]
+    },
+    {
+      "id": "asus",
+      "name": "ASUS",
+      "models": [
+        {
+          "name": "Asus Zenfone 11 Ultra",
+          "make": "ASUS",
+          "model": "ASUS_AI2401_H",
+          "source": "https://commons.wikimedia.org/wiki/File:Bharat_Petroleum_Fuel_Filling_Station_Gingee_(Sri_Sai_Krishna_Agencies).jpg"
+        }
+      ]
+    },
+    {
+      "id": "sony-xperia",
+      "name": "Sony Xperia",
+      "models": [
+        {
+          "name": "Sony Xperia 1 VII",
+          "make": "Sony",
+          "model": "XQ-FS44",
+          "source": "https://commons.wikimedia.org/wiki/File:AEONKYUSYU%E2%88%9205.jpg"
+        }
+      ]
+    },
+    {
+      "id": "zte",
+      "name": "ZTE",
+      "models": [
+        {
+          "name": "nubia Z70 Ultra",
+          "make": "nubia",
+          "model": "nubia Z70 Ultra",
+          "source": "https://www.notebookcheck.net/fileadmin/Notebooks/Nubia/Z70_Ultra/Foto_Z70Ultra_Hase.jpg"
+        }
+      ]
+    },
+    {
+      "id": "meizu",
+      "name": "Meizu",
+      "models": [
+        {
+          "name": "20",
+          "make": "meizu",
+          "model": "MEIZU 20",
+          "source": "https://commons.wikimedia.org/wiki/File:2017_Nissan_GT-R_Bburago_1-24_rear.jpg"
+        }
+      ]
+    }
+  ]
+}

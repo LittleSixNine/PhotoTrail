@@ -152,6 +152,8 @@ struct MetadataListInspectorView: View {
     @State private var advancedFailed = false
     @State private var advancedReadKey: LoadKey?
     @State private var creatorEditor: MetadataCreatorEditorSelection?
+    @State private var selectedFields = Set<String>()
+    @State private var batchEditor: MetadataBatchEditorSelection?
 
     private struct LoadKey: Hashable {
         let ids: [ImageData.ID]
@@ -290,8 +292,8 @@ struct MetadataListInspectorView: View {
                 } else {
                     inspectorTools(proxy: proxy)
                     Divider()
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 20) {
+                    List(selection: $selectedFields) {
+                        Group {
                             if loading {
                                 ProgressView()
                             } else if completeValues == nil {
@@ -315,15 +317,23 @@ struct MetadataListInspectorView: View {
                                 Text(L10n.text("仅开放 JPEG 和已有 XMP；日期或定位草稿请先保存，结果未知的草稿请先核对磁盘。"))
                                     .font(.caption).foregroundStyle(.secondary)
                             }
-                            creatorSaveSummary()
+                            creatorSaveSummary().selectionDisabled()
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(16)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                     }
+                    .listStyle(.inset)
+                    .focusedValue(\.metadataFieldSelection, true)
+                    .accessibilityIdentifier("metadataFieldsList")
                 }
             }
             .background(Color(nsColor: .windowBackgroundColor))
         }
+        .onChange(of: selected.map(\.id)) { selectedFields = [] }
+        .onChange(of: fieldQuery) { selectedFields = [] }
+        .onChange(of: hiddenFields) { selectedFields = [] }
+        .onChange(of: presentOnly) { selectedFields = [] }
+        .onChange(of: editedOnly) { selectedFields = [] }
+        .onChange(of: showAdditionalFields) { selectedFields = [] }
         .onReceive(Timer.publish(every: 5, on: .main, in: .common).autoconnect()) { _ in
             if scenePhase == .active { reloadIfFilesChanged() }
         }
@@ -354,6 +364,11 @@ struct MetadataListInspectorView: View {
                     Button(L10n.text("关闭")) { managingFields = false }.keyboardShortcut(.defaultAction)
                 }
             }.padding(20).frame(width: 530, height: 620)
+        }
+        .sheet(item: $batchEditor) { selection in
+            MetadataWorkflowView(readings: selection.readings, initialTargets: selection.tags,
+                                 excludedFieldCount: selection.excludedCount,
+                                 initialBatchMode: selection.mode, initialBatchInput: selection.input)
         }
         .sheet(item: $workflowEditor) { selection in
             MetadataWorkflowView(readings: selection.readings)
@@ -502,23 +517,52 @@ private extension MetadataListInspectorView {
                 .menuIndicator(.hidden)
                 .accessibilityLabel(L10n.text("更多操作"))
             }.controlSize(.small).fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Text(L10n.text("已选字段：%1$@", selectedFields.count)).font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Menu(L10n.text("批量操作")) { batchActions(selectedFields) }
+                    .disabled(batchTargets(selectedFields).isEmpty || editableCreatorReadings == nil)
+                    .accessibilityIdentifier("metadataBatchActions")
+            }.controlSize(.small)
+            Text(L10n.text("单击选择，⌘ 点选多项，Shift 连选；双击或点箭头编辑。"))
+                .font(.caption2).foregroundStyle(.secondary)
         }.padding(16)
     }
 
+    func batchTargets(_ identifiers: Set<String>) -> [MetadataTag] {
+        MetadataTag.allCases.filter { tag in
+            identifiers.contains(tag.rawValue) && (tag.supportsSidecar || selected.allSatisfy {
+                if case .image = $0.metadata.source { true } else { false }
+            })
+        }
+    }
+
+    @ViewBuilder
+    func batchActions(_ identifiers: Set<String>) -> some View {
+        Button(L10n.text("复制其他字段的值…")) { openBatch(identifiers, mode: "copy") }
+        Button(L10n.text("统一赋值…")) { openBatch(identifiers, mode: "set") }
+        Button(L10n.text("粘贴到所选字段…")) {
+            openBatch(identifiers, mode: "set", input: NSPasteboard.general.string(forType: .string) ?? "")
+        }.disabled(NSPasteboard.general.string(forType: .string) == nil)
+        Button(L10n.text("清除所选字段…")) { openBatch(identifiers, mode: "clear") }
+    }
+
+    func openBatch(_ identifiers: Set<String>, mode: String, input: String = "") {
+        let tags = batchTargets(identifiers)
+        guard !tags.isEmpty, let readings = editableCreatorReadings else { return }
+        batchEditor = MetadataBatchEditorSelection(readings: readings, tags: tags,
+                                                   excludedCount: identifiers.count - tags.count, mode: mode, input: input)
+    }
+
     func field(_ label: String, tag: MetadataTag,
-               values: [[MetadataTag: MetadataTagValue]]) -> some View {
+               values: [[MetadataTag: MetadataTagValue]], selected: [ImageData],
+               readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)]?) -> some View {
         let summary = MetadataSelectionValue.summarize(values, tag: tag)
-        let readings = editableCreatorReadings
         let canEdit = readings != nil && (tag.supportsSidecar || !selected.contains {
             if case .xmp = $0.metadata.source { return true }; return false
         })
         let value = display(summary, tag: tag)
-        return Button {
-            if canEdit, let readings {
-                creatorEditor = MetadataCreatorEditorSelection(readings: readings, tag: tag)
-            }
-        } label: {
-            VStack(alignment: .leading, spacing: 4) {
+        return VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .center, spacing: 12) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(label).font(.system(size: 15))
@@ -528,8 +572,14 @@ private extension MetadataListInspectorView {
                     Text(value).font(.system(size: 17, design: tag.isDate ? .monospaced : .default)).monospacedDigit().multilineTextAlignment(.trailing)
                         .fixedSize(horizontal: false, vertical: true)
                         .foregroundStyle(summary == .absent ? .secondary : .primary)
-                    Image(systemName: canEdit ? "chevron.right" : "lock")
-                        .font(.caption2).frame(width: 16).foregroundStyle(.tertiary).accessibilityHidden(true)
+                    Button {
+                        if canEdit, let readings { creatorEditor = MetadataCreatorEditorSelection(readings: readings, tag: tag) }
+                    } label: {
+                        Image(systemName: canEdit ? "chevron.right" : "lock")
+                            .font(.caption2).frame(width: 16)
+                    }
+                    .buttonStyle(.borderless).disabled(!canEdit)
+                    .accessibilityLabel(L10n.text("编辑元数据…") + " · " + label)
                 }
                 if selected.contains(where: { $0.creatorDraft?.changes[tag] != nil }) {
                     Text(L10n.text("字段修改待保存")).font(.caption).foregroundStyle(.orange)
@@ -539,13 +589,18 @@ private extension MetadataListInspectorView {
             .padding(.horizontal, 12).padding(.vertical, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
+        .tag(tag.rawValue)
+        .onTapGesture(count: 2) {
+            if canEdit, let readings { creatorEditor = MetadataCreatorEditorSelection(readings: readings, tag: tag) }
         }
-        .buttonStyle(.plain)
-        .disabled(!canEdit)
-        .accessibilityLabel(L10n.text("编辑元数据…") + " · " + label + " · " + tag.rawValue)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label + " · " + tag.rawValue)
         .accessibilityValue(value)
         .accessibilityIdentifier("metadataField." + tag.rawValue)
         .contextMenu {
+            batchActions(selectedFields.contains(tag.rawValue) ? selectedFields : [tag.rawValue])
+                .disabled(readings == nil)
+            Divider()
             Group {
                 Button(L10n.text("编辑元数据…")) {
                     if let readings { creatorEditor = MetadataCreatorEditorSelection(readings: readings, tag: tag) }
@@ -697,51 +752,53 @@ private extension MetadataListInspectorView {
 
     @ViewBuilder
     func advancedFields() -> some View {
+        let selected = self.selected
+        let completeValues = self.completeValues
+        let readings = editableCreatorReadings
+        let mappedTags = self.mappedTags
+        let matchesQuery: (String, String) -> Bool = { tag, group in
+            self.matchesQuery(tag, group: group, selected: selected, completeValues: completeValues)
+        }
         let sections = MetadataDisplaySection.standard
         let referenceTags = sections.flatMap(\.tags)
         let commonKeys = Set(MetadataTag.allCases.map { $0.rawValue.replacingOccurrences(of: "-x-default", with: "") })
         let readOnlyExtras = showAdditionalFields ? Set(advanced.values.flatMap { $0.keys }).filter { key in
             !commonKeys.contains(key) && !referenceTags.contains { tag in
                 MetadataDisplaySection.value(for: tag, in: [key: "present"]) != nil
-            } && matchesQuery(key, group: advancedGroup(key))
+            } && matchesQuery(key, advancedGroup(key))
         }.sorted() : []
         ForEach(sections, id: \.name) { section in
-            let tags = section.tags.filter { matchesQuery($0, group: section.name) }
+            let tags = section.tags.filter { matchesQuery($0, section.name) }
             let extraTags = readOnlyExtras.filter { advancedGroup($0) == section.name }
             let editableTags = MetadataTag.allCases.filter { !mappedTags.contains($0)
-                && advancedGroup($0.rawValue) == section.name && matchesQuery($0.rawValue, group: section.name) }
+                && advancedGroup($0.rawValue) == section.name && matchesQuery($0.rawValue, section.name) }
             if !tags.isEmpty || !editableTags.isEmpty || !extraTags.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(L10n.text(section.name)).font(.system(size: 16, weight: .semibold)).foregroundStyle(.secondary)
-                        .padding(.horizontal, 2)
-                    LazyVStack(spacing: 0) {
+                Section {
+                    Group {
                         ForEach(tags, id: \.self) { tag in
                             let values = selected.map { MetadataDisplaySection.value(for: tag, in: advanced[$0.id] ?? [:]) }
                             if let editable = mappedTag(tag), let completeValues,
                                editable.supportsSidecar || !selected.contains(where: { if case .xmp = $0.metadata.source { true } else { false } }) {
-                                field(advancedLabel(tag), tag: editable, values: completeValues)
+                                field(advancedLabel(tag), tag: editable, values: completeValues, selected: selected, readings: readings)
                                 if selected.contains(where: { MetadataDisplaySection.sourceKeys(for: tag, in: advanced[$0.id] ?? [:]).count > 1 }) {
-                                    Divider().padding(.leading, 12)
-                                    inspectionRow(tag, values: values)
+                                    inspectionRow(tag, values: values, selected: selected)
                                 }
-                            } else { inspectionRow(tag, values: values) }
-                            Divider().padding(.leading, 12)
+                            } else { inspectionRow(tag, values: values, selected: selected) }
                         }
                         if let completeValues {
                             ForEach(editableTags, id: \.rawValue) { tag in
-                                field(label(for: tag), tag: tag, values: completeValues)
-                                Divider().padding(.leading, 12)
+                                field(label(for: tag), tag: tag, values: completeValues, selected: selected, readings: readings)
                             }
                         }
                         ForEach(extraTags, id: \.self) { tag in
-                            inspectionRow(tag, values: selected.map { advanced[$0.id]?[tag] })
-                            Divider().padding(.leading, 12)
+                            inspectionRow(tag, values: selected.map { advanced[$0.id]?[tag] }, selected: selected)
                         }
                     }
-                    .background(Color(nsColor: .controlBackgroundColor))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.quaternary))
-                }.id(section.name)
+                } header: {
+                    Text(L10n.text(section.name)).font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.secondary).padding(.vertical, 8)
+                        .id(section.name).selectionDisabled()
+                }
             }
         }
     }
@@ -768,33 +825,31 @@ private extension MetadataListInspectorView {
         })
     }
 
-    func matchesQuery(_ tag: String, group: String) -> Bool {
+    func matchesQuery(_ tag: String, group: String, selected: [ImageData],
+                      completeValues: [[MetadataTag: MetadataTagValue]]?) -> Bool {
         guard !hiddenFields.split(separator: "\n").contains(Substring(tag)) else { return false }
         let editable = mappedTag(tag) ?? MetadataTag(rawValue: tag)
-        let isReferenceField = MetadataDisplaySection.standard.contains { $0.tags.contains(tag) }
-        let values: [String?] = selected.enumerated().map { index, image in
-            if let editable, let completeValues,
-               editable.supportsSidecar || { if case .image = image.metadata.source { true } else { false } }() {
-                switch completeValues[index][editable] {
-                case .text(let text): return text
-                case .list(let words): return words.joined(separator: "\n")
-                case nil: return nil
+        return MetadataFieldFilter.matches(query: fieldQuery, presentOnly: presentOnly, editedOnly: editedOnly,
+            names: [tag, editable?.rawValue ?? "", L10n.text(group), advancedLabel(tag)],
+            hasEdits: selected.contains { image in
+                editable.map { image.creatorDraft?.changes[$0] != nil } ?? false
+            }, values: {
+                let isReferenceField = MetadataDisplaySection.standard.contains { $0.tags.contains(tag) }
+                return selected.enumerated().map { index, image in
+                    if let editable, let completeValues,
+                       editable.supportsSidecar || { if case .image = image.metadata.source { true } else { false } }() {
+                        switch completeValues[index][editable] {
+                        case .text(let text): return text
+                        case .list(let words): return words.joined(separator: "\n")
+                        case nil: return nil
+                        }
+                    }
+                    return MetadataDisplaySection.value(for: tag, in: advanced[image.id] ?? [:], exactSource: !isReferenceField)
                 }
-            }
-            return MetadataDisplaySection.value(for: tag, in: advanced[image.id] ?? [:], exactSource: !isReferenceField)
-        }
-        if presentOnly && !values.contains(where: { $0 != nil }) { return false }
-        if editedOnly && !selected.contains(where: { image in
-            editable.map { image.creatorDraft?.changes[$0] != nil } ?? false
-        }) { return false }
-        return fieldQuery.isEmpty || tag.localizedCaseInsensitiveContains(fieldQuery)
-            || editable?.rawValue.localizedCaseInsensitiveContains(fieldQuery) == true
-            || L10n.text(group).localizedCaseInsensitiveContains(fieldQuery)
-            || advancedLabel(tag).localizedCaseInsensitiveContains(fieldQuery)
-            || values.compactMap { $0 }.contains { $0.localizedCaseInsensitiveContains(fieldQuery) }
+            })
     }
 
-    func inspectionRow(_ tag: String, values: [String?]) -> some View {
+    func inspectionRow(_ tag: String, values: [String?], selected: [ImageData]) -> some View {
         let summary = MetadataDisplaySection.summarize(values)
         let isDate = MetadataDisplaySection.standard.first { $0.name == "Date and Time" }?.tags.contains(tag) == true
         let text: String
@@ -815,18 +870,24 @@ private extension MetadataListInspectorView {
                 Text(tag).font(.system(size: 10)).foregroundStyle(.tertiary)
             }
             Spacer(minLength: 8)
-            Text(visibleText).font(.system(size: 17, design: isDate ? .monospaced : .default)).monospacedDigit().multilineTextAlignment(.trailing).textSelection(.enabled)
+            Text(visibleText).font(.system(size: 17, design: isDate ? .monospaced : .default)).monospacedDigit().multilineTextAlignment(.trailing)
                 .fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(summary == .absent ? .secondary : .primary)
             Image(systemName: "lock").font(.caption2).frame(width: 16).foregroundStyle(.tertiary).accessibilityHidden(true)
         }
         .padding(.horizontal, 12).padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .tag("display:" + tag)
+        .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel(advancedLabel(tag) + " · " + tag)
         .accessibilityValue(visibleText)
         .help(L10n.text("元数据（只读）"))
         .contextMenu {
+            if selectedFields.contains("display:" + tag), !batchTargets(selectedFields).isEmpty {
+                batchActions(selectedFields)
+                Divider()
+            }
             Button(L10n.text("复制显示值")) {
                 if case .uniform = summary { copyMetadataText(text) }
             }.disabled({ if case .uniform = summary { false } else { true } }())
@@ -930,5 +991,16 @@ private extension MetadataListInspectorView {
         case .mixed(let present, let total):
             L10n.text("多个值（%1$@/%2$@ 张有值）", present, total)
         }
+    }
+}
+
+private struct MetadataFieldSelectionKey: FocusedValueKey {
+    typealias Value = Bool
+}
+
+extension FocusedValues {
+    var metadataFieldSelection: Bool? {
+        get { self[MetadataFieldSelectionKey.self] }
+        set { self[MetadataFieldSelectionKey.self] = newValue }
     }
 }

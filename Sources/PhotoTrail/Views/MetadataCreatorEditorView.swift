@@ -28,6 +28,15 @@ struct MetadataCreatorEditorSelection: Identifiable {
     var input: String?
 }
 
+struct MetadataBatchEditorSelection: Identifiable {
+    let id = UUID()
+    let readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)]
+    let tags: [MetadataTag]
+    let excludedCount: Int
+    let mode: String
+    let input: String
+}
+
 struct MetadataCreatorEditorView: View {
     let readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)]
     let tag: MetadataTag
@@ -101,6 +110,9 @@ struct MetadataCreatorEditorView: View {
                         }
                     }.pickerStyle(.segmented)
                     if mode != .remove && mode != .offset {
+                        if tag.isDeviceIdentity {
+                            MetadataDevicePicker(tag: tag, make: deviceIdentity.make, model: deviceIdentity.model, value: $authors)
+                        }
                         if let choices = tag.numericChoices {
                             Picker(L10n.text("合法值"), selection: $authors) {
                                 Text("—").tag("")
@@ -158,7 +170,7 @@ struct MetadataCreatorEditorView: View {
             }
         }
         .padding(24)
-        .frame(width: 620, height: tag.isDate ? 640 : 480)
+        .frame(width: 620, height: tag.isDate ? 640 : tag.isDeviceIdentity ? 580 : 480)
         .onAppear {
             let values = readings.map { reading -> [MetadataTag: MetadataTagValue] in
                 var values = reading.snapshot.values
@@ -177,6 +189,23 @@ struct MetadataCreatorEditorView: View {
         .onChange(of: mode) { preview = nil; error = nil }
         .onChange(of: authors) { preview = nil; error = nil }
         .onChange(of: dateOffsets) { mode = .offset; preview = nil; error = nil }
+    }
+
+    private var deviceIdentity: (make: String?, model: String?) {
+        let isEXIF = [.exifMake, .exifModel].contains(tag)
+        return (uniformText(for: isEXIF ? .exifMake : .make), uniformText(for: isEXIF ? .exifModel : .model))
+    }
+
+    private func uniformText(for tag: MetadataTag) -> String? {
+        let values = readings.map { reading -> String? in
+            if let change = reading.image.creatorDraft?.changes[tag] {
+                if case .set(.text(let value)) = change { return value }
+                return nil
+            }
+            if case .text(let value) = reading.snapshot.values[tag] { return value }
+            return nil
+        }
+        return Set(values).count == 1 ? values.first ?? nil : nil
     }
 
     private var dateOffsetCard: some View {

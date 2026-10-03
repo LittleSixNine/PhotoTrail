@@ -54,7 +54,7 @@ enum PhotoTrailEvent: Equatable {
     case applyTrackMatches
     case mainWindowChange(NSWindow?)
     case mostSelectedChanged(ImageData.ID)
-    case newThumbnail(Image)
+    case newThumbnail(ImageData.ID, Image)
     case newTimestamp(Date, TimeInterval)
     case openCommand
     case openFiles([URL])

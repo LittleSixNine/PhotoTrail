@@ -20,10 +20,10 @@ struct ImageView: View {
         .task(id: store.mostSelected) {
             if let id = store.mostSelected {
                 if store[id].thumbnail == nil {
-                    thumbnail = await store[id].makeThumbnail(scale: displayScale)
-                    if let thumbnail {
-                        store.send(.newThumbnail(thumbnail), undoable: false)
-                    }
+                    let loaded = await store[id].makeThumbnail(scale: displayScale)
+                    guard !Task.isCancelled, store.mostSelected == id else { return }
+                    thumbnail = loaded
+                    store.send(.newThumbnail(id, loaded), undoable: false)
                 } else {
                     thumbnail = store[id].thumbnail
                 }

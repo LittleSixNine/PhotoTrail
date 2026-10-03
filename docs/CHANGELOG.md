@@ -4,6 +4,17 @@
 
 These are source development milestones, not release announcements. The metadata editor and file rename workspace are developed on `feature/metadata-editor`.
 
+## 2026-10-04 · 字段批量编辑、设备目录与加载优化
+
+- 元数据行采用原生单选、⌘ 增减与 Shift 连选，双击或箭头打开编辑器；字段选择独立于照片选择。
+- 新增按所选字段批量复制来源、统一赋值、粘贴及清除，显示目标与只读排除数量。每张照片使用自己的来源值，保留亚秒、时区及已有草稿，缺失来源跳过。
+- 复用预览、可撤销草稿、备份与手动保存路径，补充真实 JPEG 多日期写入和缺失来源测试；文案覆盖七语言。
+
+Metadata rows now support native multiple selection and batch field operations. Copying a source field uses each photo’s own effective value; date precision and pending edits are preserved, while missing sources are skipped. Changes still require preview and manual saving.
+
+- EXIF／XMP 制造商与型号支持按品牌搜索机型，首批 32 品牌、190 个已核实组合，保留自定义；每项有来源，选择只填当前字段。
+- 元数据面板复用合并值、标签映射和编辑资格，空查询／名称匹配时跳过不必要的值读取；修复异步预览缓存与当前选择错配。
+
 ## 2026-10-03 · 文件重命名工作台
 
 - 第三页接入原生双栏规则与预览，97 个动作入口加筛选和高级设置；支持规则启停／重排、JSON 预设、配对、冲突处理和十个持续计数器。

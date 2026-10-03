@@ -225,8 +225,8 @@ struct PhotoTrailReducer: Reducer, Sendable {
         case .mostSelectedChanged(let mostSelected):
             mostSelectedChanged(&newState, mostSelected: mostSelected)
 
-        case .newThumbnail(let image):
-            if let id = newState.mostSelected {
+        case .newThumbnail(let id, let image):
+            if newState.imageData.contains(where: { $0.id == id }) {
                 newState[id].thumbnail = image
             }
 

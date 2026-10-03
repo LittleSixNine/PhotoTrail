@@ -7,6 +7,10 @@ import UniformTypeIdentifiers
 
 struct MetadataWorkflowView: View {
     let readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)]
+    var initialTargets: [MetadataTag] = []
+    var excludedFieldCount = 0
+    var initialBatchMode = "copy"
+    var initialBatchInput = ""
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
     @Environment(\.dismiss) private var dismiss
     @AppStorage("PhotoTrail.MetadataPresets") private var presetData = Data()
@@ -41,31 +45,19 @@ struct MetadataWorkflowView: View {
             tag.supportsSidecar || readings.allSatisfy { if case .image = $0.image.metadata.source { true } else { false } }
         }
     }
-    private var presets: [MetadataPreset] {
-        guard let entries = try? JSONDecoder().decode([MetadataPreset].self, from: presetData) else { return [] }
-        return entries.filter { $0.version == 1 }
-    }
-    private func value(_ reading: (image: ImageData, snapshot: MetadataInspectionSnapshot), tag: MetadataTag) -> MetadataTagValue? {
-        if let pending = reading.image.creatorDraft?.changes[tag] {
-            switch pending { case .set(let value): return value; case .remove: return nil }
-        }
-        return reading.snapshot.values[tag]
-    }
-    private func display(_ value: MetadataTagValue?) -> String {
-        switch value { case nil: L10n.text("未填写"); case .text(let text): text; case .list(let values): values.joined(separator: " / ") }
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(L10n.text("日期、预设与交换…")).font(.title2.bold())
+            Text(isBatch ? L10n.text("批量编辑字段") : L10n.text("日期、预设与交换…")).font(.title2.bold())
             Text(L10n.text("已选择 %1$@ 张照片", readings.count))
-            Text(L10n.text("按列表排序冻结顺序；只写所选规范标签。EXIF 拍摄时间含亚秒与时区；其他字段不同步同义标签或配对文件。"))
-                .font(.caption).foregroundStyle(.secondary)
-            TabView {
+            if !isBatch {
+                Text(L10n.text("按列表排序冻结顺序；只写所选规范标签。EXIF 拍摄时间含亚秒与时区；其他字段不同步同义标签或配对文件。"))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            if isBatch { batchForm } else { TabView {
                 actionForm.tabItem { Text(L10n.text("编辑元数据…")) }
                 presetForm.tabItem { Text(L10n.text("预设")) }
                 exchangeForm.tabItem { Text(L10n.text("比较与交换")) }
-            }.frame(minHeight: 320)
+            }.frame(minHeight: 320) }
             if !notice.isEmpty { Text(notice).font(.caption).foregroundStyle(.orange).textSelection(.enabled) }
             if let preview {
                 Text(L10n.text("预览：%1$@ 张将修改", preview.items.filter { !$0.changes.isEmpty }.count))
@@ -76,12 +68,12 @@ struct MetadataWorkflowView: View {
                             Text("\(display(item.originalValue)) → \(display(item.changeValue))").font(.caption)
                             Text(item.target.path).font(.caption2).foregroundStyle(.secondary)
                         }
-                        ForEach(preview.skipped, id: \.self) { Text($0).font(.caption).foregroundStyle(.orange) }
+                        ForEach(Array(Set(preview.skipped)).sorted(), id: \.self) { Text($0).font(.caption).foregroundStyle(.orange) }
                     }.textSelection(.enabled)
                 }.frame(maxHeight: 200)
             }
             HStack {
-                Button(L10n.text("预览")) { makePreview() }.disabled(operations.isEmpty || busy)
+                Button(L10n.text("预览")) { makePreview() }.disabled(activeOperations.isEmpty || busy)
                 Spacer()
                 Button(L10n.text("取消")) { dismiss() }.keyboardShortcut(.cancelAction)
                 Button(L10n.text("加入待保存修改")) { apply() }
@@ -89,10 +81,16 @@ struct MetadataWorkflowView: View {
             }
         }.padding(20).frame(minWidth: 560, idealWidth: 680, maxWidth: 850)
             .onAppear {
-                if readings.allSatisfy({ if case .xmp = $0.image.metadata.source { true } else { false } }) {
+                if isBatch {
+                    mode = initialBatchMode; input = initialBatchInput
+                    copySource = copySources.contains(.exifCreateDate) ? .exifCreateDate : copySources.first ?? .sidecarDate
+                } else if readings.allSatisfy({ if case .xmp = $0.image.metadata.source { true } else { false } }) {
                     tag = .sidecarDate
                 }
             }
+            .onChange(of: mode) { if isBatch { preview = nil } }
+            .onChange(of: input) { if isBatch { preview = nil } }
+            .onChange(of: copySource) { if isBatch { preview = nil } }
             .onChange(of: tag) { mode = tag.isDate ? "shift" : "set"; input = ""; preview = nil }
     }
 
@@ -259,7 +257,7 @@ struct MetadataWorkflowView: View {
     }
 
     private func makePreview() {
-        perform { preview = try MetadataWorkflowPreview.prepare(readings, operations: operations) }
+        perform { preview = try MetadataWorkflowPreview.prepare(readings, operations: activeOperations) }
     }
     private func apply() {
         guard let preview, !store.saveInProgress else { return }
@@ -474,4 +472,80 @@ extension MetadataTag {
         default: ""
         }
     }
+}
+
+private extension MetadataWorkflowView {
+    var presets: [MetadataPreset] {
+        guard let entries = try? JSONDecoder().decode([MetadataPreset].self, from: presetData) else { return [] }
+        return entries.filter { $0.version == 1 }
+    }
+
+    func value(_ reading: (image: ImageData, snapshot: MetadataInspectionSnapshot), tag: MetadataTag) -> MetadataTagValue? {
+        if let pending = reading.image.creatorDraft?.changes[tag] {
+            switch pending { case .set(let value): return value; case .remove: return nil }
+        }
+        return reading.snapshot.values[tag]
+    }
+    func display(_ value: MetadataTagValue?) -> String {
+        switch value { case nil: L10n.text("未填写"); case .text(let text): text; case .list(let values): values.joined(separator: " / ") }
+    }
+
+
+    var isBatch: Bool { !initialTargets.isEmpty }
+    var copySources: [MetadataTag] {
+        availableTags.filter { source in
+            !initialTargets.allSatisfy(\.isDate) || source.isDate
+        }
+    }
+    var activeOperations: [MetadataOperation] {
+        guard isBatch else { return operations }
+        return initialTargets.map { target in
+            let action: MetadataFieldEditAction
+            switch mode {
+            case "copy": action = .copy(copySource)
+            case "clear": action = .remove
+            default:
+                let words = input.split(separator: "\n").map(String.init)
+                action = target == .creator ? .replaceAuthors(words)
+                    : target.isList ? .replaceKeywords(words) : .setText(input)
+            }
+            return MetadataOperation(tag: target, action: action)
+        }
+    }
+    var batchForm: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(L10n.text("目标字段：%1$@", initialTargets.count)).font(.headline)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(initialTargets, id: \.self) { target in
+                        Text("\(target.displayName) · \(target.rawValue)").font(.caption)
+                    }
+                }.frame(maxWidth: .infinity, alignment: .leading)
+            }.frame(height: min(CGFloat(initialTargets.count) * 36, 120))
+            if excludedFieldCount > 0 {
+                Text(L10n.text("已排除 %1$@ 个只读字段。", excludedFieldCount)).font(.caption).foregroundStyle(.secondary)
+            }
+            Picker(L10n.text("字段操作"), selection: $mode) {
+                Text(L10n.text("从字段复制")).tag("copy")
+                Text(L10n.text("设为")).tag("set")
+                Text(L10n.text("清除字段")).tag("clear")
+            }
+            if mode == "copy" {
+                Picker(L10n.text("来源字段"), selection: $copySource) {
+                    ForEach(copySources, id: \.self) { source in
+                        Text("\(source.displayName) · \(source.rawValue)").tag(source)
+                    }
+                }.accessibilityIdentifier("metadataBatchSource")
+                Text(L10n.text("每张照片使用自己的来源值（含待保存修改）；来源缺失时跳过。"))
+                    .font(.caption).foregroundStyle(.secondary)
+            } else if mode == "set" {
+                TextField(L10n.text("字段值"), text: $input, axis: .vertical).lineLimit(2...5)
+                if initialTargets.contains(where: \.isDate) { Text("YYYY:MM:DD HH:mm:ss[.subseconds][±HH:mm]").font(.caption) }
+                if initialTargets.contains(where: \.isList) { Text(L10n.text("列表值每行一项；逗号属于内容。")).font(.caption) }
+            }
+            Text(L10n.text("先预览全部目标，加入待保存修改后再保存照片。"))
+                .font(.caption).foregroundStyle(.secondary)
+        }.padding(.vertical, 8)
+    }
+
 }

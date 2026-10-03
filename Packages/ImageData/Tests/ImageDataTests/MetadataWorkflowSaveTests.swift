@@ -5,6 +5,57 @@ import Testing
 @testable import ImageData
 
 struct MetadataWorkflowSaveTests {
+    @Test func copyCreateDateToMultipleFieldsPreservesEachPhotosPrecisionAndSkipsMissingSource() async throws {
+        let folder = URL.temporaryDirectory.appending(component: UUID().uuidString, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let fixture = try #require(Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
+        let targets: [MetadataTag] = [.captureDate, .exifModifyDate, .sidecarDate, .dateOriginal, .dateDigitized, .dateModified]
+        let tags = Set(targets + [.exifCreateDate, .titleDefault])
+        let sourceDates: [String?] = ["2024:02:29 23:59:59.123456+08:00", "2023:12:31 01:02:03", "2022:01:01 00:00:00", nil]
+        let oldDate = "2000:01:02 03:04:05"
+        var readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)] = []
+        var originals: [Data] = []
+        for (index, date) in sourceDates.enumerated() {
+            let url = folder.appending(component: "date-\(index).jpg")
+            try FileManager.default.copyItem(at: fixture, to: url)
+            var changes = Dictionary(uniqueKeysWithValues: targets.map { ($0, MetadataTagChange.set(.text(oldDate))) })
+            changes[.exifCreateDate] = date.map { .set(.text($0)) } ?? .remove
+            _ = try Exiftool.helper.update(image: url, changes: changes)
+            originals.append(try Data(contentsOf: url))
+            readings.append((ImageData(metadata: Metadata(source: .image(url)), name: url.lastPathComponent),
+                             try MetadataInspectionSnapshot.read(tags, from: url)))
+        }
+        // A pending source edit is the effective value; copying must not discard unrelated drafts.
+        let pendingDate = "2025:06:07 08:09:10.50-03:30"
+        let pending = try MetadataWorkflowPreview.prepare([readings[2]], operations: [
+            MetadataOperation(tag: .exifCreateDate, action: .setText(pendingDate)),
+            MetadataOperation(tag: .titleDefault, action: .setText("Keep this draft"))])
+        readings[2].image.applyMetadataDraft(try #require(pending.items.first))
+        let plan = try MetadataWorkflowPreview.prepare(readings, operations: targets.map {
+            MetadataOperation(tag: $0, action: .copy(.exifCreateDate))
+        })
+        #expect(plan.items.count == 3)
+        #expect(plan.skipped.count == targets.count)
+        #expect(plan.skipped.allSatisfy { $0.contains("date-3.jpg") })
+        for (index, reading) in readings.enumerated() {
+            #expect(try Data(contentsOf: reading.snapshot.url) == originals[index])
+        }
+        let backup = folder.appending(component: "backup", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: backup, withIntermediateDirectories: true)
+        for (index, item) in plan.items.enumerated() {
+            let expected = index == 2 ? pendingDate : sourceDates[index]!
+            for target in targets { #expect(item.changes[target] == .set(.text(expected))) }
+            #expect(await item.save(backup: .folder(backup)) == .saved)
+            #expect(try Data(contentsOf: backup.appending(component: item.target.lastPathComponent)) == originals[index])
+            let values = try Exiftool.helper.metadataTags(tags, from: item.target)
+            for target in targets + [.exifCreateDate] { #expect(values[target] == .text(expected)) }
+            if index == 2 { #expect(values[.titleDefault] == .text("Keep this draft")) }
+        }
+        #expect(try Data(contentsOf: readings[3].snapshot.url) == originals[3])
+        #expect(readings[3].snapshot.values[.captureDate] == .text(oldDate))
+    }
+
     @Test func orderedPresetsDatesAndCSVUseOneVerifiedSidecarSave() async throws {
         let folder = URL.temporaryDirectory.appending(component: UUID().uuidString, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

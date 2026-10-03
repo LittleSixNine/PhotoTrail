@@ -8,6 +8,7 @@ import UDF
 
 struct PasteboardCommands: Commands {
     var store: Store<PhotoTrailState, PhotoTrailEvent>
+    @FocusedValue(\.metadataFieldSelection) private var metadataFieldSelection
     @AppStorage(SettingsView.extendedTimeKey) var extendedTime = 120.0
 
     var body: some Commands {
@@ -23,13 +24,13 @@ struct PasteboardCommands: Commands {
                     }
                 }
                 .keyboardShortcut("x")
-                .disabled(store.saveInProgress || cutCopyDisabled())
+                .disabled(metadataFieldSelection == true || store.saveInProgress || cutCopyDisabled())
 
                 Button(L10n.text("Copy"), systemImage: "document.on.document") {
                     copy()
                 }
                 .keyboardShortcut("c")
-                .disabled(cutCopyDisabled())
+                .disabled(metadataFieldSelection == true || cutCopyDisabled())
 
                 Button(L10n.text("Paste"), systemImage: "document.on.clipboard") {
                     if store.textfieldActive {
@@ -53,7 +54,7 @@ struct PasteboardCommands: Commands {
                     }
                 }
                 .keyboardShortcut("v")
-                .disabled(store.saveInProgress || pasteDisabled())
+                .disabled(metadataFieldSelection == true || store.saveInProgress || pasteDisabled())
 
                 Button(L10n.text("Delete"), systemImage: "trash") {
                     if store.textfieldActive {
@@ -64,10 +65,12 @@ struct PasteboardCommands: Commands {
                     }
                 }
                 .keyboardShortcut(.delete, modifiers: [])
-                .disabled(store.saveInProgress || deleteDisabled())
+                .disabled(metadataFieldSelection == true || store.saveInProgress || deleteDisabled())
 
                 Button(L10n.text("Select All"), systemImage: "character.textbox") {
-                    if store.textfieldActive {
+                    if metadataFieldSelection == true {
+                        NSApp.sendAction(#selector(NSTableView.selectAll(_:)), to: nil, from: nil)
+                    } else if store.textfieldActive {
                         NSApp.sendAction(#selector(NSText.selectAll(_:)),
                                          to: nil, from: nil)
                     } else {

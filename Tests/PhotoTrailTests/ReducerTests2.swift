@@ -206,8 +206,14 @@ extension ReducerTests {
         let id = try #require(store.mostSelected)
         #expect(store[id].thumbnail == nil)
         let thumbnail = await store[id].makeThumbnail(scale: 1.0)
-        store.send(.newThumbnail(thumbnail))
+        let nextID = try #require(ids.first { $0 != id })
+        store.send(.mostSelectedChanged(nextID))
+        store.send(.newThumbnail(id, thumbnail), undoable: false)
         #expect(store[id].thumbnail == thumbnail)
+        #expect(store[nextID].thumbnail == nil)
+        store.send(.removeImages([id]))
+        store.send(.newThumbnail(id, thumbnail), undoable: false)
+        #expect(!store.imageData.contains { $0.id == id })
     }
 
     @Test func newTimestampEvent() async throws {
