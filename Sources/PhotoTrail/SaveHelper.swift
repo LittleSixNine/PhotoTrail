@@ -91,6 +91,8 @@ enum SaveHelper {
     @discardableResult
     static func requestSave(_ store: Store<PhotoTrailState, PhotoTrailEvent>,
                             confirm: ((SaveTargets) -> Bool)? = nil) -> Bool {
+        // Finish native inline editing first; invalid input keeps focus and blocks writing an older value.
+        if let window = store.mainWindow, !window.makeFirstResponder(nil) { return false }
         guard !store.saveInProgress, store.unsavedChanges else { return false }
         let targets = SaveTargets(images: store.imageData)
         guard targets.conflicts.isEmpty else {
@@ -124,12 +126,13 @@ enum SaveHelper {
             ? "" : L10n.text("\n本地照片另会尝试创建 XMP 附属文件。")
 
         let alert = NSAlert()
-        alert.messageText = L10n.text("保存 %1$@ 项修改？", targets.total)
+        alert.messageText = L10n.text("保存全部 %1$@ 项修改？", targets.total)
         alert.informativeText = L10n.text(
             "本地照片：%1$@ 项\n已导入的 XMP：%2$@ 项\n照片图库：%3$@ 项\n\n%4$@%5$@",
             targets.files.count + targets.creatorFiles,
             targets.xmp.count + targets.creator.count - targets.creatorFiles,
             targets.library.count, backupMessage, sidecarMessage)
+            + "\n\n" + L10n.text("保存元数据编辑和地图定位两个页面的全部待保存修改，不限当前页或选中的照片。")
         alert.addButton(withTitle: L10n.text("保存"))
         alert.addButton(withTitle: L10n.text("取消"))
         return alert.runModal() == .alertFirstButtonReturn

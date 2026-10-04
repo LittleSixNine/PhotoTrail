@@ -10,6 +10,7 @@ final class RenameWorkspace {
     var rules: [RenameRule] = [RenameRule(action: 40), RenameRule(action: 48, prefix: "_")]
     var settings = RenameSettings()
     var onlySelected = false
+    private var scopeInitialized = false
     var includeImportedPhotos = true
     var extraURLs: [URL] = []
     var authorizedDirectories = Set<URL>()
@@ -46,6 +47,12 @@ final class RenameWorkspace {
     }
 
     deinit { for url in extraScopes { url.stopAccessingSecurityScopedResource() } }
+
+    func initializeScope(selection: Set<ImageData.ID>) {
+        guard !scopeInitialized else { return }
+        onlySelected = !selection.isEmpty
+        scopeInitialized = true
+    }
 
     func addFiles(_ urls: [URL]) {
         guard !executing else { return }

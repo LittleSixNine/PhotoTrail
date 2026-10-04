@@ -1,17 +1,25 @@
 import Foundation
 
-// GPX file processing
-//
-// An instance of a GpxTrackLog is created by opening and parsing a GPX file.
+// Shared track data and matching, with GPX, KML and KMZ readers.
 
 public struct GpxTrackLog: Sendable, Equatable, Codable {
     public let sourceURL: URL
     public let tracks: [Track]
 
     public init(contentsOf url: URL) throws {
-        let gpxFile = try Gpx(contentsOf: url)
-        tracks = try gpxFile.parse()
+        switch url.pathExtension.lowercased() {
+        case "gpx": tracks = try Gpx(contentsOf: url).parse()
+        case "kml": tracks = try KMLTrackReader(data: TrackFileData.read(url)).parse()
+        case "kmz": tracks = try KMLTrackReader(data: TrackFileData.readKMZ(url)).parse()
+        default: throw TrackReadError.unsupportedFormat
+        }
         sourceURL = url.standardizedFileURL
+    }
+
+    public static let supportedExtensions = ["gpx", "kml", "kmz"]
+
+    public var hasRecordedTimes: Bool {
+        tracks.contains { $0.segments.contains { $0.points.contains { $0.hasRecordedTime } } }
     }
 
     public init(sourceURL: URL, tracks: [Track]) {

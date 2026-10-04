@@ -169,7 +169,7 @@ struct SaveHelperTests {
         #expect(store.unsavedChanges)
     }
 
-    @Test func cancelSaveSummaryLeavesChangesPending() {
+    @Test func cancelSaveSummaryIncludesBothPagesAndUnselectedPhotos() throws {
         let key = SettingsPreferences.showSaveSummaryKey
         let previous = UserDefaults.standard.object(forKey: key)
         defer {
@@ -183,16 +183,26 @@ struct SaveHelperTests {
         changed.metadata.location = Coords(latitude: 31.23, longitude: 121.48)
         let unchanged = ImageData(metadata: Metadata(source: .xmp(URL(fileURLWithPath: "/tmp/unchanged.xmp"))),
                                   name: "unchanged.jpg")
+        let source = try #require(PhotoTrailState(forPreview: true).imageData.compactMap { image -> URL? in
+            guard case .image(let url) = image.metadata.source, url.pathExtension.lowercased() == "jpg" else { return nil }
+            return url
+        }.first)
+        let creator = ImageData(metadata: Exiftool.helper.metadata(from: nil, primaryURL: source), name: source.lastPathComponent)
+        let snapshot = try MetadataInspectionSnapshot.read([.creator], from: source)
+        let plan = try MetadataCreatorEditPlan.prepare([(image: creator, snapshot: snapshot)], action: .set(["Unsaved test author"]))
         var state = PhotoTrailState()
-        state.imageData = [changed, unchanged]
+        state.imageData = [changed, unchanged, creator]
+        state.selection = [unchanged.id]
         state.unsavedChanges = true
         let store = Store(initialState: state, reduce: PhotoTrailReducer())
+        store.send(.creatorDraftApplied(plan.items))
         var prompted = false
 
         let started = SaveHelper.requestSave(store) { targets in
             prompted = true
-            #expect(targets.total == 1)
+            #expect(targets.total == 2)
             #expect(targets.xmp == [0])
+            #expect(targets.creator == [2])
             #expect(targets.files.isEmpty && targets.library.isEmpty)
             return false
         }
@@ -202,6 +212,7 @@ struct SaveHelperTests {
         #expect(!store.saveInProgress)
         #expect(store.unsavedChanges)
         #expect(store.saveTotal == 0)
+        #expect(store[creator.id].creatorDraft != nil)
     }
 
     func copyTestImages(_ state: PhotoTrailState) throws -> URL {

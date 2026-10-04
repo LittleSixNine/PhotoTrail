@@ -66,7 +66,7 @@ struct ImageTableView: View {
                 Spacer()
                 Text(L10n.text("已选择 %1$@ 张（当前显示 %2$@ 张）", store.selection.count, store.selection.intersection(Set(filteredImages.map(\.id))).count))
                     .foregroundStyle(.secondary)
-                Button(batchActionsPresented ? L10n.text("收起批量操作") : L10n.text("批量操作")) { batchActionsPresented.toggle() }
+                Button(batchActionsPresented ? L10n.text("收起照片操作") : L10n.text("照片操作")) { batchActionsPresented.toggle() }
                     .disabled(store.selection.isEmpty && !batchActionsPresented)
             }.font(.callout).padding(10)
             photoTable
@@ -171,8 +171,8 @@ struct ImageTableView: View {
         }
         .overlay {
             if store.imageData.isEmpty {
-                ContentUnavailableView(L10n.text("导入照片，开始定位"), systemImage: "photo.on.rectangle",
-                                       description: Text(L10n.text("点击右上角导入照片，或将照片拖入窗口。")))
+                ContentUnavailableView(L10n.text("导入照片，开始整理"), systemImage: "photo.on.rectangle",
+                                       description: Text(L10n.text("导入或拖入照片，即可编辑元数据、添加拍摄地点或批量重命名。")))
             } else if filteredImages.isEmpty {
                 ContentUnavailableView.search(text: store.searchText)
             }

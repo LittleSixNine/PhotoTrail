@@ -23,7 +23,7 @@ Application tests use `PHOTOTRAIL_OFFLINE_TESTS=1` to avoid private favorites, c
 - `Sources/PhotoTrail/`: app, state, photo operations and SwiftUI views.
 - `Sources/PhotoTrail/Views/Maps/`: native maps, AMap web bridge and controls.
 - `Sources/PhotoTrail/DevAssets/`: Debug previews and test resources, excluded from Release.
-- `Packages/`: coordinates, GPX, metadata, ExifTool, image I/O, Photos library access, image state and log viewer packages.
+- `Packages/`: coordinates, GPX/KML/KMZ track import and matching, metadata, ExifTool, image I/O, Photos library access, image state and log viewer packages.
 - `Tests/`: app unit tests and separate UI tests.
 - `Resources/`: icons, assets and privacy manifest.
 - `scripts/`: build versioning and checks.

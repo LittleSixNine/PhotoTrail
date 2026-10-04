@@ -2,7 +2,15 @@
 
 此处记录源码开发节点，不等于已发布版本。发布版本见 [GitHub Releases](https://github.com/LittleSixNine/PhotoTrail/releases)。行为契约见 [BEHAVIOR.md](BEHAVIOR.md)，构建与检查见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 
-These are source development milestones, not release announcements. The metadata editor and file rename workspace are developed on `feature/metadata-editor`.
+Release milestones and source development history are recorded below.
+
+## 2026-10-05 · v0.5.0
+
+- 发布元数据编辑与文件重命名工作台，包含字段多选、批量复制和赋值、设备选项、规则预览、冲突检查及原名恢复。
+- 常用字段采用照片信息、拍摄时间、设备分组的快速编辑表单；完整字段改为紧凑左右布局。统一元数据与定位的写入入口，重命名前提示处理未保存修改。
+- 地图左栏采用分层展开和多选照片堆叠预览；轨迹统一支持 GPX、KML、KMZ，缺少逐点时间的路线仅供查看。CSV 轨迹暂缓。
+
+Version 0.5.0 brings metadata editing and file renaming, quick common-field forms, a compact complete-field list, a shared metadata save action, a reorganized map sidebar, and GPX/KML/KMZ import. Untimed routes are view-only; track CSV is not supported.
 
 ## 2026-10-04 · 字段批量编辑、设备目录与加载优化
 

@@ -8,6 +8,10 @@ Adicione e edite locais de captura das fotos no macOS.
 
 O PhotoTrail é um app para macOS baseado em parte no [GeoTag](https://github.com/marchyman/GeoTag). Combina Mapas da Apple, AMap, trilhas GPX, marcadores com miniaturas, locais favoritos e controle explícito sobre o salvamento de metadados.
 
+**Vários formatos de trajeto:** importe GPX, KML e KMZ pelo mesmo fluxo. Trajetos com horário em cada ponto permitem localizar fotos; os demais servem apenas para visualização. KMZ lê doc.kml na raiz ou o único KML do arquivo, sem carregar links externos ou anexos. CSV fica para uma etapa futura; trajetos gerados de fotos continuam sendo exportados como GPX.
+
+**Edição rápida:** formulários agrupados para campos comuns e linhas compactas de nome e valor para a lista completa. As alterações de informações e localização compartilham Salvar todos os metadados.
+
 ## Idiomas e configuração
 
 Disponível em chinês simplificado, inglês, chinês tradicional, japonês, coreano, espanhol e português do Brasil. Escolha o idioma na primeira etapa da configuração. **Chinês simplificado usa AMap por padrão; os demais idiomas usam Mapas da Apple.** Você pode alterar isso na etapa do mapa. O mapa escolhido por usuários existentes é preservado.
@@ -18,11 +22,11 @@ Disponível em chinês simplificado, inglês, chinês tradicional, japonês, cor
 
 ## Recursos
 
-**Renomeação de arquivos (versão de desenvolvimento):** a terceira aba oferece regras e prévia em duas colunas, com 97 entradas de ações para texto, datas, sequências, etiquetas, listas e expressões regulares, além de filtros e configurações avançadas. Salve ou descarte rascunhos de metadados e confira arquivos associados e conflitos antes de executar. Adicione arquivos comuns com Adicionar arquivos; pastas e itens da fototeca ficam excluídos. O histórico permite restaurar nomes se a identidade e o conteúdo permanecerem iguais. Consulte os [limites de suporte](../BEHAVIOR.md) (chinês).
+**Renomeação de arquivos:** a terceira aba oferece regras e prévia em duas colunas, com 97 entradas de ações para texto, datas, sequências, etiquetas, listas e expressões regulares, além de filtros e configurações avançadas. Salve ou descarte rascunhos de metadados e confira arquivos associados e conflitos antes de executar. Adicione arquivos comuns com Adicionar arquivos; pastas e itens da fototeca ficam excluídos. O histórico permite restaurar nomes se a identidade e o conteúdo permanecerem iguais. Consulte os [limites de suporte](../BEHAVIOR.md) (chinês).
 
-- **Leitura em segundo plano e contagens (código de desenvolvimento):** armazena metadados completos e prioriza fotos selecionadas. As tags originais incluem dados do fabricante; as editadas contam campos pendentes de salvar. Clique para selecionar campos, use ⌘/Shift para seleção múltipla e clique duas vezes ou use a seta para editar. Copie a data de criação EXIF de cada foto para os campos de data selecionados, visualize e salve. [Histórico](../CHANGELOG.md).
-- **Modelos de dispositivos (versão em desenvolvimento):** pesquise por marca e modelo para escolher valores de metadados verificados ou digitar um valor próprio. Apenas o campo atual é preenchido. Primeiro catálogo: 190 combinações de 32 marcas. [Catálogo e fontes](../DEVICE_CATALOG.md).
-- **Editor de metadados em lista (código em desenvolvimento):** títulos, descrições, autores, direitos e palavras-chave em JPEG e XMP existentes; datas, câmera/lente, exposição, predefinições, comparação e troca CSV/XMP. Inclui prévia, desfazer, salvamento manual, backup e releitura. [Destinos e limites](../BEHAVIOR.md) (chinês).
+- **Leitura em segundo plano e contagens:** armazena metadados completos e prioriza fotos selecionadas. As tags originais incluem dados do fabricante; as editadas contam campos pendentes de salvar. Clique para selecionar campos, use ⌘/Shift para seleção múltipla e clique duas vezes ou use a seta para editar. Copie a data de criação EXIF de cada foto para os campos de data selecionados, visualize e salve. [Histórico](../CHANGELOG.md).
+- **Editores e modelos de dispositivos:** 62 campos com controles por tipo. Escolha um nome comercial ou modelo de metadados observado, ou digite um valor próprio. O catálogo inclui 115 marcas/grupos, 7.360 pares observados e 5.023 opções marcadas como apenas nome comercial. [Catálogo e fontes](../DEVICE_CATALOG.md).
+- **Editor de metadados em lista:** títulos, descrições, autores, direitos e palavras-chave em JPEG e XMP existentes; datas, câmera/lente, exposição, predefinições, comparação e troca CSV/XMP. Inclui prévia, desfazer, salvamento manual, backup e releitura. [Destinos e limites](../BEHAVIOR.md) (chinês).
 - **Localização pelo mapa:** escolha um ponto no Mapas da Apple ou AMap. As coordenadas do AMap são verificadas e convertidas para WGS84 antes de serem aplicadas.
 - **Busca e favoritos:** visualize os resultados antes de aplicá-los. Salve locais com nomes e notas; edite, exclua ou reutilize.
 - **Lista e espaço de mapas:** filtre por localização ou alterações pendentes e ordene por importação, data de captura ou nome. A faixa de fotos tem filtros e ordenação próprios e um botão para voltar à foto atual.

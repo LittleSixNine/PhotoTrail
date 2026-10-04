@@ -248,7 +248,7 @@ final class TrackLibrary {
             persist()
             return log
         } catch {
-            states[id] = .failed(L10n.text("无法读取原 GPX，请重新导入；已有缓存保留。"))
+            states[id] = .failed(L10n.text("无法读取原轨迹，请重新导入；已有缓存保留。"))
             return nil
         }
     }

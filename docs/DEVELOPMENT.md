@@ -42,7 +42,7 @@ xcodebuild -project PhotoTrail.xcodeproj -scheme PhotoTrail \
 | 包 | 用途 |
 | --- | --- |
 | `Coords` | 坐标表示与转换。 |
-| `GpxTrackLog` | GPX 读取、轨迹数据与时间匹配。 |
+| `GpxTrackLog` | GPX／KML／KMZ 读取、统一轨迹数据与时间匹配。KMZ 复用 macOS 的 `/usr/bin/unzip`，不新增外部依赖。 |
 | `Metadata` | 统一的照片元数据模型。 |
 | `Exiftool` | 随应用提供的 ExifTool 及调用封装。 |
 | `Imagetool` | 本地图片读取与元数据操作。 |

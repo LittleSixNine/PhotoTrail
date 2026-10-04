@@ -9,6 +9,18 @@ import Testing
 import UDF
 
 struct RenameTests {
+    @Test @MainActor func initialScopeFollowsPhotoSelectionWithoutOverridingLaterChoices() {
+        let image = ImageData(metadata: Metadata(source: .image(URL(fileURLWithPath: "/tmp/scope.jpg"))), name: "scope.jpg")
+        let workspace = RenameWorkspace()
+        workspace.initializeScope(selection: [image.id])
+        #expect(workspace.onlySelected)
+        workspace.initializeScope(selection: [])
+        #expect(workspace.onlySelected)
+        workspace.onlySelected = false
+        workspace.initializeScope(selection: [image.id])
+        #expect(!workspace.onlySelected)
+    }
+
     private func input(_ name: String = "IMG_001.JPG", directory: String = "/tmp/rename") -> RenameInput {
         RenameInput(url: URL(fileURLWithPath: directory).appendingPathComponent(name), tags: [
             "ExifIFD:DateTimeOriginal": "2024:03:01 06:30:00", "ExifIFD:OffsetTimeOriginal": "+09:00",
@@ -283,6 +295,16 @@ struct RenameTests {
             #expect(RenameWorkspace.counters()[10] == 7)
         }
         let store = Store(initialState: PhotoTrailState(), reduce: PhotoTrailReducer())
+        var pending = ImageData(metadata: Metadata(source: .xmp(root.appendingPathComponent("pending.xmp"))), name: "pending.jpg")
+        pending.metadata.location = Coords(latitude: 31.23, longitude: 121.48)
+        var pendingState = PhotoTrailState()
+        pendingState.imageData = [pending]
+        pendingState.unsavedChanges = true
+        let pendingStore = Store(initialState: pendingState, reduce: PhotoTrailReducer())
+        workspace.execute(store: pendingStore)
+        #expect(!workspace.executing)
+        #expect(FileManager.default.fileExists(atPath: source.path))
+        #expect(RenameWorkspace.counters()[10] == 7)
         UserDefaults.standard.set(9, forKey: key)
         workspace.execute(store: store)
         #expect(!workspace.executing)

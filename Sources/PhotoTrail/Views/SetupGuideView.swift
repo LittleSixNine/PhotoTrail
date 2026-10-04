@@ -91,7 +91,7 @@ struct SetupGuideView: View {
 
     private var backupPage: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(L10n.text("保存定位修改前，先为原照片留一份备份。"))
+            Text(L10n.text("保存照片修改前，先为原照片留一份备份。"))
                 .foregroundStyle(.secondary)
             Toggle(L10n.text("保存修改前备份原照片（推荐）"), isOn: Binding(
                 get: { !doNotBackup }, set: { doNotBackup = !$0 }))
@@ -142,7 +142,7 @@ struct SetupGuideView: View {
 
     private var readyPage: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(L10n.text("设置已就绪，可以开始为照片添加位置。"))
+            Text(L10n.text("设置已就绪，可以编辑照片信息、添加地点或整理文件名。"))
                 .foregroundStyle(.secondary)
             LabeledContent(L10n.text("照片备份"), value: doNotBackup ? L10n.text("已关闭") : L10n.text("已开启"))
             if !doNotBackup, let backupURL = store.backupURL {
@@ -159,9 +159,9 @@ struct SetupGuideView: View {
             Text(L10n.text("开启自动下载后，发现新版时会下载 DMG。下次启动时点击打开安装镜像；打开后请先退出 PhotoTrail，再将它拖到“应用程序”文件夹完成更新。可随时在菜单或设置中调整。"))
                 .font(.callout).foregroundStyle(.secondary)
             Divider()
-            Text(L10n.text("导入照片 → 查看或设置位置 → 检查后保存"))
+            Text(L10n.text("导入照片 → 选择功能 → 检查结果"))
                 .font(.headline)
-            Text(L10n.text("设置照片位置后仍需手动保存。备份和地图设置以后都可以调整。"))
+            Text(L10n.text("元数据和定位修改统一手动保存；重命名在确认执行后改名。三个页签可独立使用。"))
                 .font(.callout).foregroundStyle(.secondary)
         }
     }

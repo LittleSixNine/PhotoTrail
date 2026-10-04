@@ -54,7 +54,7 @@ struct ContextMenuView: View {
             selectTargets()
             showBatchActions()
             LocationHelper.locationFromTrack(store, extendedTime: extendedTime)
-        }.disabled(!editable || store.gpxTracks.isEmpty)
+        }.disabled(!editable || !store.gpxTracks.contains(where: \.hasRecordedTimes))
         Divider()
         Button(L10n.text("在访达中显示原文件")) {
             NSWorkspace.shared.activateFileViewerSelecting(localURLs)

@@ -257,4 +257,25 @@ struct TrackLibraryTests {
         #expect(restored.restore() == [log])
         #expect(restored.record(log.sourceURL.path)?.generatedFromPhotos == true)
     }
+
+    @Test func kmlHistoryAndRefreshPreserveSourceIdentityAndDisplayOnlyState() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let source = dir.appendingPathComponent("route.kml")
+        let xml = "<kml><Placemark><LineString><coordinates>120,30 121,31</coordinates></LineString></Placemark></kml>"
+        try xml.write(to: source, atomically: true, encoding: .utf8)
+        let log = try GpxTrackLog(contentsOf: source)
+        let cache = dir.appendingPathComponent("cache.json")
+        let library = TrackLibrary(url: cache)
+        library.synchronize([log])
+        let restored = TrackLibrary(url: cache)
+        #expect(restored.restore() == [log])
+        #expect(restored.addHistory(source.path, amap: false) == log)
+        #expect(restored.record(source.path)?.log.hasRecordedTimes == false)
+        try xml.replacingOccurrences(of: "121,31", with: "122,32").write(to: source, atomically: true, encoding: .utf8)
+        let refreshed = try #require(restored.refresh(source.path, amap: false))
+        #expect(refreshed.sourceURL == source)
+        #expect(refreshed.tracks[0].segments[0].points.last?.lon == 122)
+    }
 }

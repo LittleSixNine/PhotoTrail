@@ -6,6 +6,8 @@ struct MetadataDevicePicker: View {
     let make: String?
     let model: String?
     @Binding var value: String
+    var compact = false
+    var onBrandSelection: ((String) -> Void)?
     @State private var brandID = ""
     @State private var query = ""
     @State private var showingModels = false
@@ -35,6 +37,9 @@ struct MetadataDevicePicker: View {
                     Picker(L10n.text("设备品牌"), selection: Binding(get: { brandID }, set: { selected in
                         brandID = selected; query = ""
                         if !isModel, let make = brand?.models.first(where: { !$0.isProductNameOnly })?.make { value = make }
+                        if isModel, let make = brand?.models.first(where: { !$0.isProductNameOnly })?.make {
+                            onBrandSelection?(make)
+                        }
                     })) {
                         Text(L10n.text("选择品牌")).tag("")
                         ForEach(availableBrands) { brand in Text(brand.name).tag(brand.id) }
@@ -45,7 +50,7 @@ struct MetadataDevicePicker: View {
                     Text(L10n.text("设备型号")).font(.subheadline.weight(.medium))
                     Button { showingModels = true } label: {
                         HStack {
-                            Text(selection.map { isModel ? value : $0.name } ?? L10n.text("选择机型"))
+                            Text(isModel && !value.isEmpty ? value : selection?.name ?? L10n.text("选择机型"))
                                 .lineLimit(1).truncationMode(.middle)
                             Spacer(minLength: 4)
                             Image(systemName: "chevron.down").font(.caption)
@@ -55,13 +60,17 @@ struct MetadataDevicePicker: View {
                     .accessibilityIdentifier("metadataDeviceModel")
                     .popover(isPresented: $showingModels, arrowEdge: .bottom) { modelList }
                 }.frame(maxWidth: .infinity)
-            }.controlSize(.large)
-            Text(L10n.text(isModel
+            }.controlSize(compact ? .regular : .large)
+            if !compact { Text(L10n.text(isModel
                 ? "点击商品名称或元数据型号，填入对应名称；名称相同时只显示一项。"
                 : "选择机型可填入样本中的制造商名称，只修改当前字段。"))
                 .font(.callout).foregroundStyle(.secondary)
+            }
         }
         .onAppear { brandID = catalog.brand(matching: value, tag: tag, make: make, model: model) ?? "" }
+        .onChange(of: make) {
+            if compact { brandID = catalog.brand(matching: "", tag: tag, make: make, model: "") ?? "" }
+        }
 
     }
 
@@ -103,7 +112,9 @@ struct MetadataDevicePicker: View {
             }.frame(height: 320)
             Text(L10n.text("同一行对应同一设备；“仅商品名”表示尚未核实元数据型号。"))
                 .font(.caption).foregroundStyle(.secondary)
-            Text(L10n.text("选择机型只填入当前字段；下方仍可自定义。型号以样本为准，可能因地区或固件而不同。"))
+            Text(onBrandSelection != nil
+                 ? L10n.text("选择机型将填入已核实的品牌和所选名称；下方仍可自定义。")
+                 : L10n.text("选择机型只填入当前字段；下方仍可自定义。型号以样本为准，可能因地区或固件而不同。"))
                 .font(.caption).foregroundStyle(.secondary)
         }.padding(18).frame(width: 580).font(.system(size: 15)).controlSize(.large)
     }
@@ -112,6 +123,7 @@ struct MetadataDevicePicker: View {
         let candidate = device.selectionValue(for: tag, productName: productName)
         let selected = value == candidate
         return Button {
+            if !device.isProductNameOnly { onBrandSelection?(device.make) }
             if let candidate { value = candidate }
             showingModels = false
         } label: {

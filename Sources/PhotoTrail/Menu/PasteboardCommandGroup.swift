@@ -174,7 +174,7 @@ extension PasteboardCommands {
         return true
     }
     private func locnFromTrackDisabled() -> Bool {
-        if store.gpxTracks.count > 0 {
+        if store.gpxTracks.contains(where: \.hasRecordedTimes) {
             if let id = store.mostSelected, store[id].updatable {
                 return false
             }

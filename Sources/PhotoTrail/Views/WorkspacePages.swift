@@ -166,23 +166,28 @@ private final class PhotoThumbnailCache {
 struct WorkspaceSaveButton: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
     @State private var showCompletedRing = false
-    var fillsWidth = false
+    @State private var saveHovered = false
+    @State private var showSaveHint = false
+    private var saveHint: String {
+        L10n.text("新的信息将写入文件，包括照片信息与定位修改，不限当前选中的照片。")
+    }
+
     var body: some View {
         Button {
+            saveHovered = false
+            showSaveHint = false
             SaveHelper.requestSave(store)
         } label: {
             HStack(spacing: 7) {
                 Image(systemName: "square.and.arrow.down")
-                    .frame(width: fillsWidth ? 16 : nil)
                 Text(store.saveInProgress
                      ? L10n.text("保存中 %1$@/%2$@", store.saveCompleted, store.saveTotal)
-                     : L10n.text("保存所有修改"))
+                     : L10n.text("写入所有元数据"))
                     .monospacedDigit()
-                    .frame(minWidth: fillsWidth ? nil : 110, alignment: .leading)
+                    .frame(minWidth: 110, alignment: .leading)
             }
-            .frame(maxWidth: fillsWidth ? .infinity : nil, alignment: .leading)
         }
-        .buttonStyle(WorkspaceToolbarButtonStyle(prominent: !fillsWidth, outlined: fillsWidth))
+        .buttonStyle(WorkspaceToolbarButtonStyle(prominent: true))
         .disabled(store.saveInProgress || !store.unsavedChanges)
         .overlay {
             if store.saveInProgress || showCompletedRing {
@@ -210,7 +215,25 @@ struct WorkspaceSaveButton: View {
                 }
             }
         }
-        .help(L10n.text("保存全部待保存修改"))
+        .accessibilityHint(saveHint)
+        .onHover { hovering in
+            saveHovered = hovering
+            if !hovering { showSaveHint = false }
+        }
+        .task(id: saveHovered) {
+            guard saveHovered else { return }
+            do { try await Task.sleep(for: .seconds(2)) }
+            catch { return }
+            guard !Task.isCancelled else { return }
+            showSaveHint = true
+        }
+        .popover(isPresented: $showSaveHint, arrowEdge: .bottom) {
+            Text(saveHint)
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(14)
+                .frame(width: 300)
+        }
     }
 }
 
@@ -280,7 +303,7 @@ struct PhotoActionSidebar: View {
         VStack(spacing: 0) {
         ScrollView {
         VStack(alignment: .leading, spacing: 14) {
-            Text(L10n.text("批量操作")).font(.title3.bold())
+            Text(L10n.text("照片操作")).font(.title3.bold())
             Text(L10n.text("已选择 %1$@ 张照片", store.selection.count)).font(.subheadline).foregroundStyle(.secondary)
             Menu {
                 if workspace.favorites.isEmpty { Text(L10n.text("暂无收藏，请在详情页添加")) }
@@ -295,7 +318,7 @@ struct PhotoActionSidebar: View {
             .disabled(!editable)
             DisclosureGroup(L10n.text("轨迹匹配"), isExpanded: $trackOptionsPresented) {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(L10n.text("匹配范围：全部已导入轨迹（%1$@ 条）", store.gpxTracks.count))
+                    Text(L10n.text("匹配范围：含时间轨迹（%1$@ 条）", store.gpxTracks.filter(\.hasRecordedTimes).count))
                         .font(.caption).foregroundStyle(.secondary)
                     Text(L10n.text("相机时区：%1$@", store.timeZone.identifier))
                         .font(.caption).foregroundStyle(.secondary)
@@ -305,7 +328,7 @@ struct PhotoActionSidebar: View {
                     Button(L10n.text("预览所选照片的匹配结果")) {
                         LocationHelper.locationFromTrack(store, extendedTime: extendedTime,
                                                          overwriteExisting: overwriteExisting)
-                    }.disabled(!editable || store.gpxTracks.isEmpty)
+                    }.disabled(!editable || !store.gpxTracks.contains(where: \.hasRecordedTimes))
                     TrackMatchSummary()
                 }.padding(.top, 8)
             }
@@ -331,7 +354,6 @@ struct PhotoActionSidebar: View {
         }.background(SubtleScrollbars())
         VStack(spacing: 10) {
             Divider()
-            WorkspaceSaveButton(fillsWidth: true)
             Button { store.undo() } label: { actionLabel(L10n.text("撤销"), "arrow.uturn.backward") }
                 .disabled(!store.canUndo || store.saveInProgress || store.textfieldActive)
         }
@@ -445,20 +467,7 @@ struct PhotoDetailPage: View {
             VStack(spacing: 0) {
                 HStack(spacing: 0) {
                     ScrollView {
-                      VStack(spacing: 0) {
-                        GeometryReader { geometry in
-                            ImageView().frame(width: geometry.size.width, height: geometry.size.height)
-                        }.aspectRatio(1.5, contentMode: .fit)
-                        if let id = store.mostSelected {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(store[id].name).font(.headline).lineLimit(1).truncationMode(.middle)
-                                Text(store[id].metadata.timestamp).font(.caption).foregroundStyle(.secondary)
-                            }.frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 14).padding(.bottom, 12)
-                        }
-                        Divider()
                         LocationPanel()
-                      }
                     }.background(SubtleScrollbars(reservesVerticalScroller: true)).frame(width: max(260, min(geometry.size.width * leftRatio, geometry.size.width - 420)))
                         .background(Color(nsColor: .windowBackgroundColor))
                     Divider().frame(width: 6).contentShape(Rectangle())
@@ -767,9 +776,9 @@ private extension PhotoDetailPage {
                systemImage: "arrow.trianglehead.branch") { applyLocation(from: source) }
             .disabled(!editableSelection || source.metadata.location == nil)
         Divider()
-        Button(L10n.text("使用 GPX 为所选照片匹配位置"), systemImage: "point.3.connected.trianglepath.dotted") {
+        Button(L10n.text("使用轨迹为所选照片匹配位置"), systemImage: "point.3.connected.trianglepath.dotted") {
             LocationHelper.locationFromTrack(store, extendedTime: extendedTime)
-        }.disabled(!editableSelection || store.gpxTracks.isEmpty)
+        }.disabled(!editableSelection || !store.gpxTracks.contains(where: \.hasRecordedTimes))
         Button(L10n.text("从所选照片新建 GPX 轨迹"), systemImage: "point.topleft.down.to.point.bottomright.curvepath") {
             photoGPXPresented = true
         }.disabled(!hasGPXPoints)

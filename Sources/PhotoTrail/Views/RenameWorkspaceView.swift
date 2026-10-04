@@ -12,10 +12,12 @@ struct RenameWorkspaceView: View {
     @State private var showHistory = false
     @State private var showPresetSave = false
     @State private var showAdvanced = false
+    @State private var confirmSaveFirst = false
+    @State private var awaitingSave = false
 
     private var dirty: Bool { store.imageData.contains(where: \.hasPendingChanges) }
     private var canExecute: Bool {
-        !workspace.busy && !workspace.executing && !store.saveInProgress && !dirty &&
+        !workspace.busy && !workspace.executing && !store.saveInProgress &&
         workspace.plan != nil && workspace.actionable > 0 && !workspace.blocked && workspace.directoriesAuthorized
     }
 
@@ -26,7 +28,10 @@ struct RenameWorkspaceView: View {
         }
         .environment(workspace)
         .accessibilityIdentifier("renameWorkspace")
-        .task { refresh() }
+        .task {
+            workspace.initializeScope(selection: store.selection)
+            refresh()
+        }
         .onChange(of: workspace.rules) { refresh() }
         .onChange(of: workspace.settings) { refresh() }
         .onChange(of: workspace.onlySelected) { refresh() }
@@ -36,10 +41,31 @@ struct RenameWorkspaceView: View {
         .onChange(of: workspace.counterRevision) { refresh() }
         .onChange(of: store.selection) { if workspace.onlySelected { refresh() } }
         .onChange(of: store.imageData.map(\.metadataCreatorImageURL)) { if !workspace.executing { refresh() } }
-        .onChange(of: store.saveInProgress) { if !store.saveInProgress && !workspace.executing { refresh() } }
+        .onChange(of: store.saveInProgress) {
+            if !store.saveInProgress && !workspace.executing {
+                if awaitingSave {
+                    awaitingSave = false
+                    workspace.notice = dirty
+                        ? L10n.text("仍有未保存修改，未执行重命名。请检查保存结果后重试。")
+                        : L10n.text("全部修改已保存。请核对更新后的文件名预览，再执行重命名。")
+                }
+                refresh()
+            }
+        }
+        .alert(L10n.text("先保存元数据，再重命名？"), isPresented: $confirmSaveFirst) {
+            Button(L10n.text("取消"), role: .cancel) {}
+            Button(L10n.text("保存全部修改并重新预览")) {
+                awaitingSave = SaveHelper.requestSave(store)
+            }
+        } message: {
+            Text(L10n.text("有 %1$@ 项未保存修改，包含元数据编辑和地图定位两个页面的修改，不限当前选中照片。保存后将重新生成改名预览，仍需你确认执行；保存失败或取消不会改名。", store.imageData.filter(\.hasPendingChanges).count))
+        }
         .alert(L10n.text("确认重命名"), isPresented: $confirm) {
             Button(L10n.text("取消"), role: .cancel) {}
-            Button(L10n.text("执行重命名")) { workspace.execute(store: store) }
+            Button(L10n.text("执行重命名")) {
+                if dirty { confirmSaveFirst = true }
+                else { workspace.execute(store: store) }
+            }
         } message: {
             Text(L10n.text("将按预览重命名 %1$@ 个文件，包括列表中的配对文件。文件内容不改写；执行记录可用于恢复原名。", workspace.actionable))
         }
@@ -51,11 +77,14 @@ struct RenameWorkspaceView: View {
         .sheet(isPresented: $showHistory) { historySheet }
     }
 
-    private func refresh() {
+}
+
+private extension RenameWorkspaceView {
+    func refresh() {
         workspace.refresh(images: store.imageData, selection: store.selection, directoryScopes: store.scopedURLs)
     }
 
-    private var rulesSidebar: some View {
+    var rulesSidebar: some View {
         VStack(spacing: 0) {
             HStack {
                 Text(L10n.text("重命名规则")).font(.headline)
@@ -81,6 +110,28 @@ struct RenameWorkspaceView: View {
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
+                    Text(L10n.text("本次处理范围")).font(.headline)
+                    Toggle(L10n.text("包含已导入照片"), isOn: $workspace.includeImportedPhotos)
+                    if workspace.includeImportedPhotos {
+                        Picker(L10n.text("照片范围"), selection: $workspace.onlySelected) {
+                            Text(L10n.text("全部导入照片")).tag(false)
+                            Text(L10n.text("选中照片及配对文件")).tag(true)
+                        }
+                        Text(L10n.text("照片：%1$@ · 额外文件：%2$@；配对文件一并列入右侧预览。",
+                            store.imageData.filter { (!workspace.onlySelected || store.selection.contains($0.id)) && $0.metadataCreatorImageURL != nil }.count,
+                            workspace.extraURLs.count))
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        Text(L10n.text("额外文件：%1$@；配对文件一并列入右侧预览。", workspace.extraURLs.count))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Divider()
+                    Menu(L10n.text("从常用方案开始")) {
+                        Button(L10n.text("拍摄日期＋编号")) { setRules([RenameRule(action: 40), RenameRule(action: 48, prefix: "_")]) }
+                        Button(L10n.text("保留原名加前缀")) { setRules([RenameRule(action: 1)]) }
+                        Button(L10n.text("查找并替换")) { setRules([RenameRule(action: 11)]) }
+                        Button(L10n.text("自定义规则")) { setRules([]) }
+                    }
                     ForEach($workspace.rules) { $rule in
                         RenameRuleCard(rule: $rule, selectedRule: $selectedRule,
                                        index: workspace.rules.firstIndex(where: { $0.id == rule.id }) ?? 0,
@@ -102,11 +153,6 @@ struct RenameWorkspaceView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     Divider().padding(.vertical, 2)
                     Text(L10n.text("任务选项")).font(.headline)
-                    Toggle(L10n.text("包含已导入照片"), isOn: $workspace.includeImportedPhotos)
-                    Picker(L10n.text("操作范围"), selection: $workspace.onlySelected) {
-                        Text(L10n.text("全部导入照片")).tag(false)
-                        Text(L10n.text("选中照片及配对文件")).tag(true)
-                    }
                     Picker(L10n.text("排序"), selection: $workspace.settings.sort) {
                         ForEach(RenameSettings.Sort.allCases, id: \.self) { Text(RenameLabels.sort($0)).tag($0) }
                     }
@@ -138,6 +184,11 @@ struct RenameWorkspaceView: View {
         }
         .disabled(workspace.executing || store.saveInProgress)
         .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private func setRules(_ rules: [RenameRule]) {
+        workspace.rules = rules
+        selectedRule = nil
     }
 
     private func move(_ id: UUID, offset: Int) {
@@ -187,10 +238,12 @@ struct RenameWorkspaceView: View {
                             }
                         } }
                     .width(min: 140, ideal: 170)
-                TableColumn(L10n.text("当前规则")) { row in
-                    Text(row.steps.first(where: { $0.id == selectedRule })?.name ?? "—")
-                        .foregroundStyle(.secondary)
-                }.width(min: 120, ideal: 140)
+                if let index = workspace.rules.firstIndex(where: { $0.id == selectedRule }) {
+                    TableColumn(L10n.text("第 %1$@ 条执行后", index + 1)) { row in
+                        Text(row.steps.first(where: { $0.id == selectedRule })?.name ?? "—")
+                            .foregroundStyle(.secondary)
+                    }.width(min: 120, ideal: 140)
+                }
                 TableColumn(L10n.text("新文件名")) { row in
                     Text(row.target.lastPathComponent).foregroundStyle(row.changes ? Color.primary : Color.secondary)
                         .help(row.target.path)
@@ -229,10 +282,23 @@ struct RenameWorkspaceView: View {
                 }.frame(maxHeight: 140)
             }
             Divider()
+            HStack {
+                Text(L10n.text("选行可查看改名过程；执行范围以上方设置和完整预览为准。"))
+                    .font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                if selectedRule != nil {
+                    Button(L10n.text("收起中间结果")) { selectedRule = nil }.font(.caption)
+                }
+            }.padding(.horizontal, 16).padding(.top, 8)
             VStack(alignment: .leading, spacing: 8) {
                 if dirty {
-                    Label(L10n.text("请先保存或撤销元数据草稿，再执行重命名。"), systemImage: "exclamationmark.triangle")
-                        .font(.callout).foregroundStyle(.orange)
+                    HStack {
+                        Label(L10n.text("元数据或定位修改尚未保存。"), systemImage: "exclamationmark.triangle")
+                            .font(.callout).foregroundStyle(.orange)
+                        Spacer()
+                        Button(L10n.text("先保存…")) { confirmSaveFirst = true }
+                            .disabled(store.saveInProgress || workspace.executing)
+                    }
                 }
                 if !workspace.notice.isEmpty { Text(workspace.notice).font(.callout).textSelection(.enabled) }
                 HStack {
@@ -243,7 +309,10 @@ struct RenameWorkspaceView: View {
                         if workspace.restoring { Text(L10n.text("恢复原名")) }
                         else { Button(L10n.text("停止并恢复")) { workspace.cancel() } }
                     } else {
-                        Button(L10n.text("执行重命名")) { confirm = true }
+                        Button(L10n.text("执行重命名：%1$@ 个文件", workspace.actionable)) {
+                            if dirty { confirmSaveFirst = true }
+                            else { confirm = true }
+                        }
                             .buttonStyle(.borderedProminent).disabled(!canExecute)
                             .accessibilityIdentifier("renamePerform")
                     }

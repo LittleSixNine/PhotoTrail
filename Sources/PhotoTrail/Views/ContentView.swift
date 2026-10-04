@@ -31,7 +31,7 @@ struct ContentView: View {
         VStack(spacing: 0) {
             if let ignoredFileNotice {
                 HStack(spacing: 10) {
-                    Label(L10n.text("本次已跳过 %1$@ 个非图片文件。GPX 轨迹仍支持导入。", ignoredFileNotice),
+                    Label(L10n.text("本次已跳过 %1$@ 个不支持的文件。支持导入图片及 GPX、KML、KMZ 轨迹。", ignoredFileNotice),
                           systemImage: "doc.badge.ellipsis")
                     Spacer(minLength: 0)
                     Button { self.ignoredFileNotice = nil } label: {
@@ -48,7 +48,7 @@ struct ContentView: View {
             }
             if !alternateLayout && !store.gpxBadFileNames.isEmpty {
                 HStack {
-                    Text(L10n.text("部分 GPX 文件未能导入，请在轨迹卡片中查看。"))
+                    Text(L10n.text("部分轨迹文件未能导入，请在轨迹卡片中查看。"))
                     Spacer()
                     Button(L10n.text("查看")) { renameSelected = false; alternateLayout = true }
                     Button(L10n.text("关闭")) { store.send(.gpxLoadViewClosed, undoable: false) }
@@ -216,7 +216,7 @@ struct ContentView: View {
             }
             ToolbarItem(placement: .primaryAction) {
                 HStack(spacing: 8) {
-                if alternateLayout && !renameSelected {
+                if !renameSelected {
                     WorkspaceSaveButton().fixedSize()
                 }
                 Button { store.send(.openCommand, undoable: false) } label: {
@@ -230,8 +230,13 @@ struct ContentView: View {
                 PhotoPickerView()
                     .disabled(store.saveInProgress)
                     .accessibilityIdentifier(testIDs.photoPickerViewID)
-                if alternateLayout && !renameSelected {
+                if !renameSelected {
                     InspectorButtonView(presented: $inspectorPresented)
+                        // Keep the shared save action stationary when changing pages.
+                        .opacity(alternateLayout ? 1 : 0)
+                        .disabled(!alternateLayout)
+                        .allowsHitTesting(alternateLayout)
+                        .accessibilityHidden(!alternateLayout)
                         .accessibilityIdentifier(testIDs.inspectorButtonViewID)
                 }
                 }.buttonStyle(WorkspaceToolbarButtonStyle())
@@ -284,11 +289,7 @@ struct ContentView: View {
     // the UTTypes that can be imported into this app.
 
     private func importTypes() -> [UTType] {
-        var types: [UTType] = [.image, .folder]
-        if let type = UTType(filenameExtension: "gpx") {
-            types.append(type)
-        }
-        return types
+        [.image, .folder] + UTType.photoTrailTracks
     }
 }
 

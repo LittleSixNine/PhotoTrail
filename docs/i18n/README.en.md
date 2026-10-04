@@ -8,6 +8,10 @@ Add and edit photo locations on macOS.
 
 PhotoTrail is a macOS photo geotagging tool derived in part from [GeoTag](https://github.com/marchyman/GeoTag). It combines Apple Maps and AMap, GPX tracks, photo thumbnail markers, favorite places, and explicit control over saving metadata.
 
+**Multiple track formats:** import GPX, KML and KMZ through one workflow. Tracks with per-point timestamps can match photos; untimed routes are view-only. KMZ reads root doc.kml or the only KML in the archive, without loading external links or attachments. Track CSV is deferred; photo-track export remains GPX.
+
+**Quick editing:** common fields use grouped forms for photo details, dates and devices; complete fields use compact name/value rows. Photo details and location changes share Save All Metadata.
+
 ## Languages
 
 The app supports Simplified Chinese, English, Traditional Chinese, Japanese, Korean, Spanish, and Brazilian Portuguese. Choose a language in the first step of setup. Simplified Chinese defaults to AMap; every other language defaults to Apple Maps. You can choose a different map in the map setup step. Existing users keep their selected map.
@@ -20,11 +24,11 @@ Change the app language in Settings later. Save your work and reopen PhotoTrail 
 
 ## Features
 
-**File renaming (source development build):** the third tab provides a two-column rule editor and preview, with 97 action entries for text, dates, sequences, tags, lists and regular expressions, plus filtering and advanced settings. Check paired files and conflicts before executing. Save or discard metadata drafts first. Add ordinary files using Add Files; folders and Photos-library items are excluded. Presets and execution history support restoring original names, provided content and file identity are unchanged. See [supported boundaries](../BEHAVIOR.md) (Chinese).
+**File renaming:** the third tab provides a two-column rule editor and preview, with 97 action entries for text, dates, sequences, tags, lists and regular expressions, plus filtering and advanced settings. Check paired files and conflicts before executing. Save or discard metadata drafts first. Add ordinary files using Add Files; folders and Photos-library items are excluded. Presets and execution history support restoring original names, provided content and file identity are unchanged. See [supported boundaries](../BEHAVIOR.md) (Chinese).
 
-- **Background reads and tag counts (development source):** cache full metadata after import and prioritize selected photos. Original tags include maker notes; edited counts show pending fields. Click a field to select it, use ⌘/Shift for multiple selection, and double-click or use its arrow to edit. Batch-copy each photo’s EXIF creation time to selected date fields, preview, then save. See [development history](../CHANGELOG.md).
-- **Metadata editors and device choices (development source):** 62 editable fields use larger 4:3 editors with type-specific controls and per-photo previews. Click a product name or observed metadata model, or enter custom text. The catalog covers 115 groups, 7,360 observed pairs and 5,023 explicitly marked product-name-only choices; see [sources and limits](../DEVICE_CATALOG.md).
-- **List metadata editor (development source):** edit JPEG and existing XMP titles, descriptions, creators, rights and keywords; date tools, camera/lens details, exposure values, named presets, comparison and CSV/XMP exchange share preview, undo, manual saving, backup and readback. See [behavior and target limits](../BEHAVIOR.md) (Chinese).
+- **Background reads and tag counts:** cache full metadata after import and prioritize selected photos. Original tags include maker notes; edited counts show pending fields. Click a field to select it, use ⌘/Shift for multiple selection, and double-click or use its arrow to edit. Batch-copy each photo’s EXIF creation time to selected date fields, preview, then save. See [development history](../CHANGELOG.md).
+- **Metadata editors and device choices:** 62 editable fields use larger 4:3 editors with type-specific controls and per-photo previews. Click a product name or observed metadata model, or enter custom text. The catalog covers 115 groups, 7,360 observed pairs and 5,023 explicitly marked product-name-only choices; see [sources and limits](../DEVICE_CATALOG.md).
+- **List metadata editor:** edit JPEG and existing XMP titles, descriptions, creators, rights and keywords; date tools, camera/lens details, exposure values, named presets, comparison and CSV/XMP exchange share preview, undo, manual saving, backup and readback. See [behavior and target limits](../BEHAVIOR.md) (Chinese).
 - **Map geotagging:** choose a location on Apple Maps or AMap. AMap locations are checked and converted to WGS84 before application.
 - **Place search and favorites:** preview a search result before applying it. Save places with names and notes; preview, edit, delete, or apply a favorite.
 - **Photo list and map workspace:** filter by location or unsaved state, and sort by import order, capture time, or file name. The photo strip has its own filters, sorting, and a button to return to the current photo.

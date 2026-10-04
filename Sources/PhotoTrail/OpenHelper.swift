@@ -83,17 +83,17 @@ enum OpenHelper {
     static private
     func tracks(for urls: [URL],
                 store: Store<PhotoTrailState, PhotoTrailEvent>) async {
-        let gpxURLs = urls.filter(\.isGPXFile)
-        guard !gpxURLs.isEmpty else { return }
+        let trackURLs = urls.filter(\.isTrackFile)
+        guard !trackURLs.isEmpty else { return }
         await MainActor.run { store.send(.gpxLoadViewClosed, undoable: false) }
         var tracklogs: [(String, GpxTrackLog?)] = []
 
         let start = Date.now.timeIntervalSince1970
 
         await withTaskGroup(of: (String, GpxTrackLog?).self) { group in
-            var limit = min(gpxURLs.count, PhotoTrailApp.maxConcurrentTasks)
+            var limit = min(trackURLs.count, PhotoTrailApp.maxConcurrentTasks)
             for ix in 0..<limit {
-                let url = gpxURLs[ix]
+                let url = trackURLs[ix]
                 group.addTask {
                     do {
                         let trackLog = try GpxTrackLog(contentsOf: url)
@@ -105,8 +105,8 @@ enum OpenHelper {
             }
             for await (path, tracklog) in group {
                 tracklogs.append((path, tracklog))
-                if limit < gpxURLs.count {
-                    let url = gpxURLs[limit]
+                if limit < trackURLs.count {
+                    let url = trackURLs[limit]
                     group.addTask {
                         do {
                             let trackLog = try GpxTrackLog(contentsOf: url)
@@ -127,7 +127,7 @@ enum OpenHelper {
         }
         let duration = Date.now.timeIntervalSince1970 - start
         Self.logger.info("""
-            \(gpxURLs.count, privacy: .public) tracks added in \
+            \(trackURLs.count, privacy: .public) tracks added in \
             \(duration, privacy: .public) seconds
             """)
     }

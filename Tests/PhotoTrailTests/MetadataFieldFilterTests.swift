@@ -2,6 +2,19 @@ import Testing
 @testable import PhotoTrail
 
 struct MetadataFieldFilterTests {
+    @Test func commonViewKeepsEmptyFieldsAndRevealsSearchAndPendingResults() {
+        func matches(_ query: String = "", common: Bool = false, edited: Bool = false, changed: Bool = false) -> Bool {
+            MetadataFieldFilter.matches(query: query, presentOnly: false, editedOnly: edited,
+                                        commonOnly: true, isCommon: common,
+                                        names: ["ExposureTime"], hasEdits: changed, values: { [nil] })
+        }
+        #expect(matches(common: true))
+        #expect(!matches())
+        #expect(matches("Exposure"))
+        #expect(matches(edited: true, changed: true))
+        #expect(!matches(edited: true))
+    }
+
     @Test func lazyValuesPreserveSearchAndFilters() {
         var reads = 0
         var edits = 0

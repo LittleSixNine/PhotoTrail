@@ -141,8 +141,10 @@ struct MetadataListInspectorView: View {
     @State private var revision = 0
     @State private var fieldQuery = ""
     @State private var managingFields = false
+    @State private var showsEditingHelp = false
     @State private var presentOnly = false
     @State private var editedOnly = false
+    @AppStorage("metadataCommonFieldsOnly") private var commonOnly = true
     @AppStorage("metadataShowAdditionalFields") private var showAdditionalFields = false
     @AppStorage("metadataHiddenFields") private var hiddenFields = ""
 
@@ -237,6 +239,24 @@ struct MetadataListInspectorView: View {
         return readings
     }
 
+    private var editUnavailableReason: String {
+        let pending = selected.filter(\.hasLegacyChanges).count
+        if pending > 0 {
+            return L10n.text("所选照片中有 %1$@ 张存在未保存的日期或定位修改，请先保存全部修改。", pending)
+        }
+        let unsupported = selected.filter { image in
+            switch image.metadata.source {
+            case .image(let url): !["jpg", "jpeg"].contains(url.pathExtension.lowercased())
+            case .xmp: false
+            default: true
+            }
+        }.count
+        if unsupported > 0 {
+            return L10n.text("所选照片中有 %1$@ 张不支持这些字段的编辑。请选择 JPEG 或已有 XMP 后重试。", unsupported)
+        }
+        return L10n.text("部分照片暂不可编辑，请检查读取或保存结果后重新读取元数据。")
+    }
+
     private func label(for tag: MetadataTag) -> String { tag.displayName }
 
     private var sourceDescription: String {
@@ -308,13 +328,30 @@ struct MetadataListInspectorView: View {
                             if advancedFailed {
                                 Text(L10n.text("部分照片无法读取描述元数据；暂不汇总字段。"))
                             }
-                            if completeValues != nil || !advanced.isEmpty { advancedFields() }
+                            if commonOnly && fieldQuery.isEmpty, let completeValues {
+                                MetadataCommonFieldsView(values: completeValues, readings: editableCreatorReadings,
+                                    usesSidecar: selected.contains { if case .xmp = $0.metadata.source { true } else { false } },
+                                    showField: { tag in
+                                        matchesQuery(tag.rawValue, group: advancedGroup(tag.rawValue),
+                                                     selected: selected, completeValues: completeValues)
+                                    }, openEditor: { tag in
+                                        if let readings = editableCreatorReadings {
+                                            creatorEditor = MetadataCreatorEditorSelection(readings: readings, tag: tag)
+                                        }
+                                    }, openDates: {
+                                        if let readings = editableCreatorReadings {
+                                            workflowEditor = MetadataCreatorEditorSelection(readings: readings, tag: .captureDate)
+                                        }
+                                    }, showAll: { commonOnly = false })
+                                    .id(selected.map(\.id))
+                                    .selectionDisabled().listRowSeparator(.hidden)
+                            } else if completeValues != nil || !advanced.isEmpty { advancedFields() }
                             if store.metadataSaveCancelled {
                                 Text(L10n.text("已停止后续写入；尚未保存的草稿保留。"))
                                     .font(.caption).foregroundStyle(.orange)
                             }
                             if editableCreatorReadings == nil, completeValues != nil, !store.saveInProgress {
-                                Text(L10n.text("仅开放 JPEG 和已有 XMP；日期或定位草稿请先保存，结果未知的草稿请先核对磁盘。"))
+                                Text(editUnavailableReason)
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                             creatorSaveSummary().selectionDisabled()
@@ -322,7 +359,8 @@ struct MetadataListInspectorView: View {
                         .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                     }
                     .listStyle(.inset)
-                    .focusedValue(\.metadataFieldSelection, true)
+                    .environment(\.defaultMinListRowHeight, 38)
+                    .focusedValue(\.metadataFieldSelection, !(commonOnly && fieldQuery.isEmpty))
                     .accessibilityIdentifier("metadataFieldsList")
                 }
             }
@@ -333,7 +371,15 @@ struct MetadataListInspectorView: View {
         .onChange(of: hiddenFields) { selectedFields = [] }
         .onChange(of: presentOnly) { selectedFields = [] }
         .onChange(of: editedOnly) { selectedFields = [] }
-        .onChange(of: showAdditionalFields) { selectedFields = [] }
+        .onChange(of: commonOnly) { selectedFields = [] }
+        .onAppear {
+            if UserDefaults.standard.object(forKey: "metadataCommonFieldsOnly") == nil,
+               !hiddenFields.isEmpty || showAdditionalFields { commonOnly = false }
+        }
+        .onChange(of: showAdditionalFields) {
+            selectedFields = []
+            if showAdditionalFields { commonOnly = false }
+        }
         .onReceive(Timer.publish(every: 5, on: .main, in: .common).autoconnect()) { _ in
             if scenePhase == .active { reloadIfFilesChanged() }
         }
@@ -352,14 +398,20 @@ struct MetadataListInspectorView: View {
                         ForEach(section.tags, id: \.self) { tag in
                             Toggle(advancedLabel(tag) + " · " + tag, isOn: visibilityBinding(tag))
                         }
+                    }.fixedSize(horizontal: true, vertical: false)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(L10n.text("元数据")).font(.headline)
+                        if !selected.isEmpty {
+                            Text(L10n.text("已选择 %1$@ 张照片", selected.count))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
                     }
-                    Text(L10n.text("元数据")).font(.headline)
                     ForEach(MetadataTag.allCases.filter { !mappedTags.contains($0) }, id: \.rawValue) { tag in
                         Toggle(tag.displayName + " · " + tag.rawValue, isOn: visibilityBinding(tag.rawValue))
                     }
                 }
                 HStack {
-                    Button(L10n.text("恢复默认显示字段")) { hiddenFields = ""; showAdditionalFields = false }
+                    Button(L10n.text("恢复默认显示字段")) { hiddenFields = ""; showAdditionalFields = false; commonOnly = true }
                     Spacer()
                     Button(L10n.text("关闭")) { managingFields = false }.keyboardShortcut(.defaultAction)
                 }
@@ -449,65 +501,123 @@ struct MetadataListInspectorView: View {
 
 private extension MetadataListInspectorView {
     var inspectorHeader: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(L10n.text("元数据")).font(.title2.bold())
-                if !selected.isEmpty {
-                    Text(L10n.text("已选择 %1$@ 张照片", selected.count)).font(.callout)
-                    Text(sourceDescription).font(.caption).foregroundStyle(.secondary)
-                        .lineLimit(2).textSelection(.enabled)
-                }
-            }.frame(maxWidth: .infinity, alignment: .leading)
-            if !selected.isEmpty {
-                VStack(alignment: .trailing, spacing: 6) {
-                    WorkspaceSaveButton().fixedSize()
-                    if store.saveInProgress {
-                        Button(L10n.text("停止后续元数据写入")) {
-                            store.send(.cancelMetadataSave, undoable: false)
-                        }.font(.caption)
-                    } else {
-                        let pending = selected.contains(where: \.hasPendingChanges)
-                        Text(pending ? L10n.text("有修改，待保存") : L10n.text("无待保存修改"))
-                            .font(.caption).foregroundStyle(pending ? Color.orange : Color.secondary)
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .center, spacing: 12) {
+                Text(L10n.text("元数据")).font(.headline)
+                Spacer(minLength: 8)
+                if store.saveInProgress {
+                    Button(L10n.text("停止后续元数据写入")) {
+                        store.send(.cancelMetadataSave, undoable: false)
+                    }.font(.caption)
+                } else {
+                    let pending = store.imageData.filter(\.hasPendingChanges).count
+                    if pending > 0 {
+                        Text(L10n.text("全局待保存：%1$@ 项", pending))
+                            .font(.caption).foregroundStyle(.orange)
                     }
                 }
             }
-        }.padding(16)
+            if !selected.isEmpty {
+                HStack(spacing: 10) {
+                    Text(L10n.text("已选择 %1$@ 张照片", selected.count)).fixedSize()
+                    Text(sourceDescription).lineLimit(1).truncationMode(.middle)
+                        .textSelection(.enabled).help(sourceDescription)
+                }.font(.caption).foregroundStyle(.secondary)
+            }
+        }.padding(.horizontal, 14).padding(.vertical, 8)
+    }
+
+    private var fieldScopePicker: some View {
+        HStack(spacing: 2) {
+            fieldScopeOption(L10n.text("常用字段"), common: true)
+            fieldScopeOption(L10n.text("完整字段"), common: false)
+        }
+        .padding(3)
+        .frame(minWidth: 240)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(L10n.text("字段范围"))
+        .accessibilityIdentifier("metadataFieldScope")
+    }
+
+    private func fieldScopeOption(_ title: String, common: Bool) -> some View {
+        let selected = commonOnly == common
+        return Button { commonOnly = common } label: {
+            Text(title).font(.system(size: 14, weight: .semibold))
+                .frame(maxWidth: .infinity, minHeight: 30)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(selected ? Color.white : Color.primary)
+        .background(selected ? Color.accentColor : .clear, in: RoundedRectangle(cornerRadius: 6))
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityIdentifier(common ? "metadataCommonScope" : "metadataFullScope")
+    }
+
+    private var fieldSearch: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            TextField(L10n.text("搜索元数据字段"), text: $fieldQuery)
+                .textFieldStyle(.plain)
+                .accessibilityIdentifier("metadataFieldSearch")
+            if !fieldQuery.isEmpty {
+                Button { fieldQuery = "" } label: { Image(systemName: "xmark.circle.fill") }
+                    .buttonStyle(.borderless).foregroundStyle(.secondary)
+                    .accessibilityLabel(L10n.text("清除搜索"))
+            }
+        }
+        .padding(.horizontal, 9).frame(height: 32)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
+        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.quaternary))
     }
 
     func inspectorTools(proxy: ScrollViewProxy) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label(L10n.text("选择字段 → 编辑并预览 → 保存照片"), systemImage: "info.circle.fill")
-                .font(.callout).foregroundStyle(Color.accentColor)
-                .padding(10).frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
-            HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                TextField(L10n.text("搜索元数据字段"), text: $fieldQuery)
-                    .textFieldStyle(.plain)
+        VStack(alignment: .leading, spacing: 8) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    fieldScopePicker.fixedSize()
+                    fieldSearch.frame(minWidth: 180)
+                }
+                VStack(spacing: 8) {
+                    fieldScopePicker
+                    fieldSearch
+                }
             }
-            .padding(10)
-            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
-            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.quaternary))
-            HStack(spacing: 8) {
-                Menu(editedOnly ? L10n.text("待保存字段") : presentOnly ? L10n.text("有值字段") : L10n.text("所有字段")) {
+            if !fieldQuery.isEmpty {
+                Text(L10n.text("搜索包含全部字段；保留你设置的隐藏与值筛选。"))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            HStack(spacing: 12) {
+                let filterCount = (presentOnly ? 1 : 0) + (editedOnly ? 1 : 0)
+                Menu {
                     Button(L10n.text("全部")) { presentOnly = false; editedOnly = false }
                     Divider()
                     Toggle(L10n.text("仅显示有值字段"), isOn: $presentOnly)
                     Toggle(L10n.text("仅显示待保存字段"), isOn: $editedOnly)
-                }.help(L10n.text("筛选字段"))
-                Menu(L10n.text("分组")) {
-                    ForEach(MetadataDisplaySection.standard, id: \.name) { section in
-                        Button(L10n.text(section.name)) { proxy.scrollTo(section.name, anchor: .top) }
-                    }
-                }.help(L10n.text("跳转到分组"))
-                Menu(L10n.text("显示设置")) {
-                    Button(L10n.text("管理显示字段…")) { managingFields = true }
-                    Toggle(L10n.text("显示所有附加字段"), isOn: $showAdditionalFields)
-                    Button(L10n.text("恢复默认显示字段")) { hiddenFields = ""; showAdditionalFields = false }
+                } label: {
+                    Label(filterCount == 0 ? L10n.text("筛选字段") : L10n.text("筛选（%1$@）", filterCount),
+                          systemImage: filterCount == 0 ? "line.3.horizontal.decrease.circle"
+                                                       : "line.3.horizontal.decrease.circle.fill")
+                }
+                .foregroundStyle(filterCount > 0 ? Color.accentColor : Color.primary)
+                .help(L10n.text("筛选字段"))
+                if !commonOnly || !fieldQuery.isEmpty {
+                    Menu(L10n.text("分组")) {
+                        ForEach(MetadataDisplaySection.standard, id: \.name) { section in
+                            Button(L10n.text(section.name)) { proxy.scrollTo(section.name, anchor: .top) }
+                        }
+                    }.help(L10n.text("跳转到分组"))
                 }
                 Spacer(minLength: 0)
                 Menu {
+                    Menu(L10n.text("显示设置")) {
+                        Button(L10n.text("管理显示字段…")) { managingFields = true }
+                        Toggle(L10n.text("显示所有附加字段"), isOn: $showAdditionalFields)
+                        Button(L10n.text("恢复默认显示字段")) {
+                            hiddenFields = ""; showAdditionalFields = false; commonOnly = true
+                        }
+                    }
+                    Divider()
                     Button(L10n.text("日期、预设与交换…")) {
                         if let readings = editableCreatorReadings {
                             workflowEditor = MetadataCreatorEditorSelection(readings: readings, tag: .creator)
@@ -517,20 +627,39 @@ private extension MetadataListInspectorView {
                         metadataQueue.refresh(ids: Set(selected.map(\.id)))
                         revision += 1
                     }
-                } label: { Image(systemName: "ellipsis") }
-                .menuIndicator(.hidden)
+                } label: { Image(systemName: "ellipsis").frame(width: 24, height: 24) }
+                .help(L10n.text("更多工具"))
                 .accessibilityLabel(L10n.text("更多操作"))
-            }.controlSize(.regular).fixedSize(horizontal: false, vertical: true)
-            HStack {
-                Text(L10n.text("已选字段：%1$@", selectedFields.count)).font(.caption).foregroundStyle(.secondary)
-                Spacer()
-                Menu(L10n.text("批量操作")) { batchActions(selectedFields) }
-                    .disabled(batchTargets(selectedFields).isEmpty || editableCreatorReadings == nil)
-                    .accessibilityIdentifier("metadataBatchActions")
-            }.controlSize(.regular)
-            Text(L10n.text("单击选择，⌘ / Shift 多选；双击或点铅笔编辑。"))
-                .font(.caption).foregroundStyle(.secondary)
-        }.padding(16)
+                Button { showsEditingHelp.toggle() } label: {
+                    Image(systemName: "questionmark.circle").font(.system(size: 16))
+                        .frame(width: 24, height: 24)
+                }
+                .buttonStyle(.borderless).foregroundStyle(.secondary)
+                .accessibilityLabel(L10n.text("字段编辑帮助"))
+                .help(L10n.text("字段编辑帮助"))
+                .popover(isPresented: $showsEditingHelp) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(L10n.text("字段编辑帮助")).font(.headline)
+                        Text(L10n.text("选择字段 → 编辑并预览 → 写入所有元数据"))
+                        Text(L10n.text("单击选择，⌘ / Shift 多选；双击或点铅笔编辑。"))
+                        Text(L10n.text("搜索包含全部字段；保留你设置的隐藏与值筛选。"))
+                            .foregroundStyle(.secondary)
+                    }.font(.callout).padding(16).frame(width: 300)
+                }
+            }
+            .menuStyle(.borderlessButton).controlSize(.regular)
+            .fixedSize(horizontal: false, vertical: true)
+            if !selectedFields.isEmpty {
+                HStack {
+                    Text(L10n.text("已选字段：%1$@", selectedFields.count))
+                        .font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    Menu(L10n.text("编辑所选字段")) { batchActions(selectedFields) }
+                        .disabled(batchTargets(selectedFields).isEmpty || editableCreatorReadings == nil)
+                        .accessibilityIdentifier("metadataBatchActions")
+                }.controlSize(.regular)
+            }
+        }.padding(.horizontal, 14).padding(.vertical, 10)
     }
 
     func batchTargets(_ identifiers: Set<String>) -> [MetadataTag] {
@@ -567,39 +696,40 @@ private extension MetadataListInspectorView {
         })
         let value = display(summary, tag: tag)
         let pending = selected.contains { $0.creatorDraft?.changes[tag] != nil }
-        return HStack(alignment: .center, spacing: 14) {
-            VStack(alignment: .leading, spacing: 7) {
-                HStack(spacing: 8) {
-                    Text(label).font(.system(size: 15, weight: .semibold))
-                    Spacer(minLength: 0)
-                    if pending {
-                        Label(L10n.text("待保存"), systemImage: "circle.fill")
-                            .font(.caption).foregroundStyle(.orange)
-                    }
-                    if !canEdit {
-                        Label(L10n.text("只读"), systemImage: "lock").font(.caption).foregroundStyle(.secondary)
-                    }
-                }
-                Text(value).font(.system(size: 16, design: tag.isDate ? .monospaced : .default)).monospacedDigit()
-                    .fixedSize(horizontal: false, vertical: true)
+        return HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(label).font(.system(size: 13, weight: .medium))
+                Text(tag.rawValue).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(2)
+            }.frame(width: 152, alignment: .leading)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(value).font(.system(size: 13, design: tag.isDate ? .monospaced : .default)).monospacedDigit()
+                    .lineLimit(2).help(value)
                     .foregroundStyle(summary == .absent ? .secondary : .primary)
-                Text(tag.rawValue).font(.system(size: 11)).foregroundStyle(.tertiary)
                 if tag == .creator { creatorCompatibility(values: values) }
             }.frame(maxWidth: .infinity, alignment: .leading)
+            if pending {
+                Image(systemName: "circle.fill").font(.system(size: 6)).foregroundStyle(.orange)
+                    .accessibilityLabel(L10n.text("待保存")).help(L10n.text("待保存"))
+            }
             if canEdit {
                 Button {
                     if let readings { creatorEditor = MetadataCreatorEditorSelection(readings: readings, tag: tag) }
                 } label: {
-                    Image(systemName: "pencil").font(.system(size: 15)).frame(width: 30, height: 32)
+                    Image(systemName: "pencil").font(.system(size: 12)).frame(width: 24, height: 26)
                 }
                 .buttonStyle(.borderless)
                 .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 6))
                 .accessibilityLabel(L10n.text("编辑元数据…") + " · " + label)
                 .help(L10n.text("编辑元数据…"))
+            } else {
+                Image(systemName: "lock").font(.system(size: 11)).foregroundStyle(.secondary)
+                    .frame(width: 24).accessibilityLabel(L10n.text("只读")).help(L10n.text("只读"))
             }
         }
-        .padding(.horizontal, 12).padding(.vertical, 14)
+        .padding(.horizontal, 10).padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .listRowSeparator(.visible)
+        .listRowSeparatorTint(Color(nsColor: .separatorColor))
         .contentShape(Rectangle())
         .tag(tag.rawValue)
         .onTapGesture(count: 2) {
@@ -774,7 +904,7 @@ private extension MetadataListInspectorView {
         let sections = MetadataDisplaySection.standard
         let referenceTags = sections.flatMap(\.tags)
         let commonKeys = Set(MetadataTag.allCases.map { $0.rawValue.replacingOccurrences(of: "-x-default", with: "") })
-        let readOnlyExtras = showAdditionalFields ? Set(advanced.values.flatMap { $0.keys }).filter { key in
+        let readOnlyExtras = (showAdditionalFields || !fieldQuery.isEmpty) ? Set(advanced.values.flatMap { $0.keys }).filter { key in
             !commonKeys.contains(key) && !referenceTags.contains { tag in
                 MetadataDisplaySection.value(for: tag, in: [key: "present"]) != nil
             } && matchesQuery(key, advancedGroup(key))
@@ -808,8 +938,8 @@ private extension MetadataListInspectorView {
                     }
                 } header: {
                     Label(L10n.text(section.name), systemImage: sectionIcon(section.name))
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.primary).padding(.vertical, 12)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.primary).padding(.vertical, 6)
                         .id(section.name).selectionDisabled()
                 }
             }
@@ -843,6 +973,7 @@ private extension MetadataListInspectorView {
         guard !hiddenFields.split(separator: "\n").contains(Substring(tag)) else { return false }
         let editable = mappedTag(tag) ?? MetadataTag(rawValue: tag)
         return MetadataFieldFilter.matches(query: fieldQuery, presentOnly: presentOnly, editedOnly: editedOnly,
+            commonOnly: commonOnly, isCommon: MetadataFieldFilter.commonTags.contains(editable?.rawValue ?? tag),
             names: [tag, editable?.rawValue ?? "", L10n.text(group), advancedLabel(tag)],
             hasEdits: selected.contains { image in
                 editable.map { image.creatorDraft?.changes[$0] != nil } ?? false
@@ -877,19 +1008,22 @@ private extension MetadataListInspectorView {
         }
         let available = selected.allSatisfy { advanced[$0.id] != nil }
         let visibleText = available ? text : (advancedFailed ? L10n.text("未能读取") : L10n.text("正在读取元数据…"))
-        return VStack(alignment: .leading, spacing: 7) {
-            HStack {
-                Text(advancedLabel(tag)).font(.system(size: 15, weight: .medium))
-                Spacer(minLength: 8)
-                Label(L10n.text("只读"), systemImage: "lock").font(.caption).foregroundStyle(.secondary)
-            }
-            Text(visibleText).font(.system(size: 16, design: isDate ? .monospaced : .default)).monospacedDigit()
-                .fixedSize(horizontal: false, vertical: true)
+        return HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(advancedLabel(tag)).font(.system(size: 13, weight: .medium))
+                Text(tag).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(2)
+            }.frame(width: 152, alignment: .leading)
+            Text(visibleText).font(.system(size: 13, design: isDate ? .monospaced : .default)).monospacedDigit()
+                .lineLimit(2).help(visibleText)
                 .foregroundStyle(summary == .absent ? .secondary : .primary)
-            Text(tag).font(.system(size: 11)).foregroundStyle(.tertiary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: "lock").font(.system(size: 11)).foregroundStyle(.secondary)
+                .frame(width: 24).accessibilityLabel(L10n.text("只读"))
         }
-        .padding(.horizontal, 12).padding(.vertical, 14)
+        .padding(.horizontal, 10).padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .listRowSeparator(.visible)
+        .listRowSeparatorTint(Color(nsColor: .separatorColor))
         .tag("display:" + tag)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)

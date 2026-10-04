@@ -1,4 +1,5 @@
 import Foundation
+import GpxTrackLog
 import ImageData
 import SwiftUI
 import UDF
@@ -12,7 +13,7 @@ extension PhotoTrailReducer {
         // Needed to access when using the fileImporter
         for url in urls {
             let startedAccess = url.startAccessingSecurityScopedResource()
-            let importable = url.isSupportedPhotoImage || url.isGPXFile || isFolder(url)
+            let importable = url.isSupportedPhotoImage || url.isTrackFile || isFolder(url)
             if startedAccess, importable {
                 state.scopedURLs.append(url)
             } else if startedAccess {
@@ -25,8 +26,8 @@ extension PhotoTrailReducer {
         let requestedURLs = urls.flatMap { url in
             isFolder(url) ? urlsIn(folder: url) : [url]
         }.filter { seenPaths.insert($0.standardizedFileURL.path).inserted }
-        state.ignoredFileCount = requestedURLs.filter { !$0.isSupportedPhotoImage && !$0.isGPXFile }.count
-        let imageURLs = requestedURLs.filter { $0.isSupportedPhotoImage || $0.isGPXFile }
+        state.ignoredFileCount = requestedURLs.filter { !$0.isSupportedPhotoImage && !$0.isTrackFile }.count
+        let imageURLs = requestedURLs.filter { $0.isSupportedPhotoImage || $0.isTrackFile }
 
         // check for duplicates of URLs already known
         let processed = Set(state.imageData.map { $0.fullPath })
@@ -74,13 +75,13 @@ extension PhotoTrailReducer {
 }
 
 extension URL {
-    var isGPXFile: Bool {
-        pathExtension.lowercased() == "gpx"
+    var isTrackFile: Bool {
+        GpxTrackLog.supportedExtensions.contains(pathExtension.lowercased())
     }
 
     var isSupportedPhotoImage: Bool {
         let ext = pathExtension.lowercased()
-        guard !ext.isEmpty, !isGPXFile, !isVideoFile,
+        guard !ext.isEmpty, !isTrackFile, !isVideoFile,
               let type = UTType(filenameExtension: ext) else { return false }
         return type.conforms(to: .image)
     }
@@ -104,5 +105,11 @@ extension Sequence where Element: Hashable {
     func uniqued() -> [Element] {
         var set = Set<Element>()
         return filter { set.insert($0).inserted }
+    }
+}
+
+extension UTType {
+    static var photoTrailTracks: [UTType] {
+        GpxTrackLog.supportedExtensions.compactMap { UTType(filenameExtension: $0) }
     }
 }

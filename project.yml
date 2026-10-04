@@ -62,7 +62,7 @@ settings:
     # build script. They are needed (?) to build the plist that the
     # script then modifies.
     CURRENT_PROJECT_VERSION: 1
-    MARKETING_VERSION: 0.4.0
+    MARKETING_VERSION: 0.5.0
   configs:
     debug:
       SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG $(inherited)
@@ -97,6 +97,21 @@ targets:
         LSApplicationCategoryType: public.app-category.photography
         NSHumanReadableCopyright: PhotoTrail © 2026 littlesixnine
         ITSAppUsesNonExemptEncryption: NO
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: com.topografix.gpx
+            UTTypeConformsTo: [public.xml]
+            UTTypeTagSpecification:
+              public.filename-extension: [gpx]
+          - UTTypeIdentifier: com.google.earth.kml
+            UTTypeConformsTo: [public.xml]
+            UTTypeTagSpecification:
+              public.filename-extension: [kml]
+              public.mime-type: application/vnd.google-earth.kml+xml
+          - UTTypeIdentifier: com.google.earth.kmz
+            UTTypeConformsTo: [public.zip-archive]
+            UTTypeTagSpecification:
+              public.filename-extension: [kmz]
+              public.mime-type: application/vnd.google-earth.kmz
         NSLocationUsageDescription: 打开地图或点击定位按钮时获取本机位置，用于移动地图，不修改照片
         NSLocationWhenInUseUsageDescription: 打开地图或点击定位按钮时获取本机位置，用于移动地图，不修改照片
         NSPhotoLibraryUsageDescription: 用于读取并修改你选择的照片的拍摄时间和位置
@@ -156,11 +171,13 @@ targets:
               - comp.compuserve.gif
               - org.khronos.astc
               - org.khronos.ktx
-          - CFBundleTypeName: GPX files
+          - CFBundleTypeName: Track files
             CFBundleTypeRole: Editor
             LSHandlerRank: Alternate
             CFBundleTypeExtensions:
               - gpx
+              - kml
+              - kmz
           - CFBundleTypeName: Sidecar files
             CFBundleTypeRole: Editor
             LSHandlerRank: None

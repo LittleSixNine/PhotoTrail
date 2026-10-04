@@ -1,6 +1,1290 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "设备": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "设备"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Device"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "裝置"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "機器"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "기기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Dispositivo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Dispositivo"}}
+      }
+    },
+    "多个值": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "多个值"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Multiple values"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "多個值"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "複数の値"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "여러 값"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Varios valores"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Vários valores"}}
+      }
+    },
+    "选择机型将填入已核实的品牌和所选名称；下方仍可自定义。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "选择机型将填入已核实的品牌和所选名称；下方仍可自定义。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Choosing a model fills its verified maker and the selected name. You can still customize them below."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "選擇機型將填入已核實的品牌和所選名稱；下方仍可自訂。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "機種を選ぶと確認済みのメーカーと選択した名前を入力します。下で編集できます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "기종을 선택하면 확인된 제조사와 선택한 이름이 입력됩니다. 아래에서 직접 수정할 수 있습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Al elegir un modelo se introducen el fabricante verificado y el nombre elegido. Puedes modificarlos abajo."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Ao escolher um modelo, o fabricante verificado e o nome escolhido são preenchidos. Você pode editá-los abaixo."}}
+      }
+    },
+    "直接编辑数值；修改暂存后，统一写入照片。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "直接编辑数值；修改暂存后，统一写入照片。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Edit values directly. Changes remain drafts until written to photos."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "直接編輯數值；修改暫存後，統一寫入照片。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "値を直接編集できます。変更は下書きとして保持し、まとめて写真に書き込みます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "값을 직접 편집하세요. 변경은 초안에 보관한 뒤 사진에 함께 기록합니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Edita los valores directamente. Los cambios quedan en borrador hasta escribirlos en las fotos."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Edite os valores diretamente. As alterações ficam em rascunho até serem gravadas nas fotos."}}
+      }
+    },
+    "批量调整…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "批量调整…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Batch adjustments…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "批次調整…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "一括調整…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "일괄 조정…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ajustes por lotes…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Ajustes em lote…"}}
+      }
+    },
+    "其他来源的常用字段": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "其他来源的常用字段"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Common fields from other sources"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "其他來源的常用欄位"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "他のソースのよく使う項目"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "다른 출처의 자주 쓰는 필드"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Campos habituales de otras fuentes"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Campos comuns de outras fontes"}}
+      }
+    },
+    "查看完整字段与标签来源": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "查看完整字段与标签来源"}},
+        "en": {"stringUnit": {"state": "translated", "value": "View all fields and tag sources"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "檢視完整欄位與標籤來源"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "すべての項目とタグのソースを表示"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "전체 필드 및 태그 출처 보기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ver todos los campos y sus fuentes"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Ver todos os campos e suas origens"}}
+      }
+    },
+    "编辑范围：所选 %1$@ 张照片": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "编辑范围：所选 %1$@ 张照片"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Editing scope: %1$@ selected photos"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "編輯範圍：所選 %1$@ 張照片"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "編集範囲：選択した写真 %1$@ 枚"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "편집 범위: 선택한 사진 %1$@장"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ámbito: %1$@ fotos seleccionadas"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Escopo: %1$@ fotos selecionadas"}}
+      }
+    },
+    "选择日期与时间": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "选择日期与时间"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Choose date and time"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "選擇日期與時間"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "日時を選択"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "날짜 및 시간 선택"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Elegir fecha y hora"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Escolher data e hora"}}
+      }
+    },
+    "多个值；添加关键词会保留每张照片原有的关键词。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "多个值；添加关键词会保留每张照片原有的关键词。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Multiple values. Adding keywords preserves each photo’s existing keywords."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "多個值；新增關鍵字會保留每張照片原有的關鍵字。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "複数の値。キーワードを追加しても各写真の既存キーワードは保持されます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "여러 값이 있습니다. 키워드를 추가해도 각 사진의 기존 키워드는 유지됩니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Varios valores. Al añadir palabras clave se conservan las existentes de cada foto."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Vários valores. Adicionar palavras-chave preserva as existentes em cada foto."}}
+      }
+    },
+    "输入关键词后回车": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "输入关键词后回车"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Enter a keyword, then press Return"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "輸入關鍵字後按 Return"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "キーワードを入力して Return"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "키워드 입력 후 Return"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Escribe una palabra clave y pulsa Intro"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Digite uma palavra-chave e pressione Return"}}
+      }
+    },
+    "无法暂存：请检查输入或重新读取元数据。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "无法暂存：请检查输入或重新读取元数据。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Unable to stage changes. Check the input or reload metadata."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "無法暫存：請檢查輸入或重新讀取中繼資料。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "変更を保持できません。入力を確認するか、メタデータを再読み込みしてください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "변경을 보관하지 못했습니다. 입력을 확인하거나 메타데이터를 다시 읽으세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "No se pueden preparar los cambios. Revisa los datos o vuelve a leer los metadatos."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Não foi possível preparar as alterações. Verifique os dados ou recarregue os metadados."}}
+      }
+    },
+    "%1$@ 张照片无法编辑，将跳过。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "%1$@ 张照片无法编辑，将跳过。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Photos that cannot be edited will be skipped: %1$@."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "%1$@ 張照片無法編輯，將略過。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "編集できない%1$@枚の写真はスキップされます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "편집할 수 없는 사진 %1$@장을 건너뜁니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Se omitirán %1$@ fotos que no se pueden editar."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Serão ignoradas %1$@ fotos que não podem ser editadas."}}
+      }
+    },
+    "%1$@ 张缺少定位 · %2$@ 张已有定位": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "%1$@ 张缺少定位 · %2$@ 张已有定位"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Without location: %1$@ · With location: %2$@"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "%1$@ 張缺少定位 · %2$@ 張已有定位"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "位置なし：%1$@枚 · 位置あり：%2$@枚"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "위치 없음: %1$@장 · 위치 있음: %2$@장"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Sin ubicación: %1$@ · Con ubicación: %2$@"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Sem localização: %1$@ · Com localização: %2$@"}}
+      }
+    },
+    "上方仅预览当前照片": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "上方仅预览当前照片"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Only the current photo is previewed above"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "上方僅預覽目前照片"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "上には現在の写真のみを表示しています"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "위에는 현재 사진만 표시됩니다"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Arriba solo se muestra la foto actual"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Acima, apenas a foto atual é exibida"}}
+      }
+    },
+    "仅供查看：缺少轨迹点时间": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "仅供查看：缺少轨迹点时间"}},
+        "en": {"stringUnit": {"state": "translated", "value": "View only: track points have no timestamps"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "僅供檢視：缺少軌跡點時間"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "表示のみ：軌跡点の時刻がありません"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "보기 전용: 경로 지점에 시간 정보 없음"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Solo visualización: los puntos no tienen hora"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Apenas visualização: pontos sem horário"}}
+      }
+    },
+    "仅控制地图显示，不改变匹配范围。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "仅控制地图显示，不改变匹配范围。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Only controls map visibility; the matching scope stays the same."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "僅控制地圖顯示，不改變比對範圍。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "地図上の表示のみを変更し、照合範囲は変わりません。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "지도 표시만 제어하며 매칭 범위는 바뀌지 않습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Solo controla la visibilidad en el mapa; no cambia el alcance de asociación."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Controla apenas a exibição no mapa; o escopo da associação não muda."}}
+      }
+    },
+    "仍有未保存修改，未执行重命名。请检查保存结果后重试。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "仍有未保存修改，未执行重命名。请检查保存结果后重试。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Some changes remain unsaved. No files were renamed. Check the save results and try again."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "仍有未儲存修改，未執行重新命名。請檢查儲存結果後重試。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "未保存の変更があるため、名前は変更していません。保存結果を確認して再試行してください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "저장하지 못한 변경 사항이 있어 이름을 변경하지 않았습니다. 저장 결과를 확인한 뒤 다시 시도하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Quedan cambios sin guardar. No se ha renombrado ningún archivo. Revisa el resultado e inténtalo de nuevo."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Ainda há alterações não salvas. Nenhum arquivo foi renomeado. Confira o resultado e tente novamente."}}
+      }
+    },
+    "从常用方案开始": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "从常用方案开始"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Start with a common recipe"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "從常用方案開始"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "よく使う設定から開始"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "자주 쓰는 방식으로 시작"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Empezar con una opción habitual"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Começar com uma opção comum"}}
+      }
+    },
+    "以下轨迹未能导入": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "以下轨迹未能导入"}},
+        "en": {"stringUnit": {"state": "translated", "value": "These tracks could not be imported"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "以下軌跡未能匯入"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "次の軌跡を読み込めませんでした"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "다음 경로를 가져오지 못했습니다"}},
+        "es": {"stringUnit": {"state": "translated", "value": "No se pudieron importar estos recorridos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Não foi possível importar estes trajetos"}}
+      }
+    },
+    "使用轨迹为所选照片匹配位置": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "使用轨迹为所选照片匹配位置"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Match selected photos to tracks"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "使用軌跡為所選照片比對位置"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "選択した写真を軌跡と照合"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "선택한 사진을 경로와 매칭"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Asignar ubicación a las fotos seleccionadas mediante recorridos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Localizar as fotos selecionadas usando trajetos"}}
+      }
+    },
+    "保存两页全部修改": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "保存两页全部修改"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Save both tabs"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "儲存兩頁全部修改"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "両タブの変更を保存"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "두 탭 모두 저장"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Guardar ambas pestañas"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Salvar ambas as abas"}}
+      }
+    },
+    "保存元数据编辑和地图定位两个页面的全部待保存修改，不限当前页或选中的照片。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "保存元数据编辑和地图定位两个页面的全部待保存修改，不限当前页或选中的照片。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Save all pending metadata and map location changes, regardless of the current page or selected photos."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "儲存中繼資料編輯和地圖定位兩個頁面的所有待儲存修改，不限目前頁面或選取的照片。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "現在のページや選択した写真に関係なく、メタデータと地図の位置情報の未保存の変更をすべて保存します。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "현재 페이지나 선택한 사진에 관계없이 메타데이터와 지도 위치의 모든 미저장 변경 사항을 저장합니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Guarda todos los cambios pendientes de metadatos y ubicación, sin limitarse a la página actual ni a las fotos seleccionadas."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Salva todas as alterações pendentes de metadados e localização, independentemente da página atual ou das fotos selecionadas."}}
+      }
+    },
+    "保存全部 %1$@ 项修改？": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "保存全部 %1$@ 项修改？"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Save all %1$@ pending items?"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "儲存全部 %1$@ 項修改？"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "未保存の %1$@ 件をすべて保存しますか？"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "미저장 항목 %1$@개를 모두 저장할까요?"}},
+        "es": {"stringUnit": {"state": "translated", "value": "¿Guardar todos los elementos pendientes (%1$@)?"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Salvar todos os itens pendentes (%1$@)?"}}
+      }
+    },
+    "保存全部修改并重新预览": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "保存全部修改并重新预览"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Save all changes and refresh preview"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "儲存全部修改並重新預覽"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "すべて保存してプレビューを更新"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "모두 저장하고 미리보기 새로 고침"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Guardar todo y actualizar vista previa"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Salvar tudo e atualizar prévia"}}
+      }
+    },
+    "保存照片修改前，先为原照片留一份备份。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "保存照片修改前，先为原照片留一份备份。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Keep a backup of the originals before saving photo changes."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "儲存照片修改前，先為原照片留一份備份。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真の変更を保存する前に、元の写真をバックアップしてください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사진 변경 사항을 저장하기 전에 원본을 백업하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Haz una copia de los originales antes de guardar cambios en las fotos."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Faça uma cópia dos originais antes de salvar alterações nas fotos."}}
+      }
+    },
+    "保留原名加前缀": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "保留原名加前缀"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Add a prefix to the original name"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "保留原名加前綴"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "元の名前に接頭辞を追加"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "기존 이름 앞에 텍스트 추가"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Añadir prefijo al nombre original"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Adicionar prefixo ao nome original"}}
+      }
+    },
+    "元数据和定位修改统一手动保存；重命名在确认执行后改名。三个页签可独立使用。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "元数据和定位修改统一手动保存；重命名在确认执行后改名。三个页签可独立使用。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Metadata and location changes share manual saving. Renaming changes filenames after confirmation. Each tab can be used independently."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "中繼資料和定位修改統一手動儲存；重新命名在確認執行後改名。三個分頁可獨立使用。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "メタデータと位置情報の変更はまとめて手動保存します。名前は実行を確認した後に変更されます。各タブは独立して使えます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "메타데이터와 위치 변경 사항은 함께 수동 저장합니다. 이름 변경은 실행 확인 후 적용됩니다. 각 탭은 독립적으로 사용할 수 있습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Los cambios de metadatos y ubicación se guardan juntos manualmente. Los nombres cambian tras confirmar. Cada pestaña se puede usar por separado."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "As alterações de metadados e localização são salvas juntas manualmente. Os nomes mudam após a confirmação. Cada aba pode ser usada separadamente."}}
+      }
+    },
+    "元数据或定位修改尚未保存。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "元数据或定位修改尚未保存。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Metadata or location changes are not yet saved."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "中繼資料或定位修改尚未儲存。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "メタデータまたは位置情報の変更が未保存です。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "메타데이터 또는 위치 변경 사항이 아직 저장되지 않았습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Hay cambios de metadatos o ubicación sin guardar."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Há alterações de metadados ou localização não salvas."}}
+      }
+    },
+    "先保存…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "先保存…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Save first…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "先儲存…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "先に保存…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "먼저 저장…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Guardar primero…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Salvar primeiro…"}}
+      }
+    },
+    "先保存元数据，再重命名？": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "先保存元数据，再重命名？"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Save metadata before renaming?"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "先儲存中繼資料，再重新命名？"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "名前の変更前にメタデータを保存しますか？"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이름을 변경하기 전에 메타데이터를 저장할까요?"}},
+        "es": {"stringUnit": {"state": "translated", "value": "¿Guardar metadatos antes de renombrar?"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Salvar metadados antes de renomear?"}}
+      }
+    },
+    "全局待保存：%1$@ 项": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "全局待保存：%1$@ 项"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Pending across all pages: %1$@"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "全域待儲存：%1$@ 項"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "全ページの未保存項目：%1$@ 件"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "전체 페이지의 미저장 항목: %1$@개"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Pendientes en todas las páginas: %1$@"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Pendentes em todas as páginas: %1$@"}}
+      }
+    },
+    "全部修改已保存。请核对更新后的文件名预览，再执行重命名。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "全部修改已保存。请核对更新后的文件名预览，再执行重命名。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "All changes are saved. Review the updated filename preview before renaming."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "全部修改已儲存。請核對更新後的檔名預覽，再執行重新命名。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "すべての変更を保存しました。更新されたファイル名のプレビューを確認してから実行してください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "모든 변경 사항을 저장했습니다. 갱신된 파일명 미리보기를 확인한 뒤 이름을 변경하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Todos los cambios se han guardado. Revisa la vista previa actualizada antes de renombrar."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Todas as alterações foram salvas. Confira a prévia atualizada antes de renomear."}}
+      }
+    },
+    "写入所有元数据": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "写入所有元数据"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Write all metadata"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "寫入所有中繼資料"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "すべてのメタデータを書き込む"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "모든 메타데이터 기록"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Escribir todos los metadatos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Gravar todos os metadados"}}
+      }
+    },
+    "包含元数据与地图定位的全部修改": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "包含元数据与地图定位的全部修改"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Includes all metadata and map changes"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "包含中繼資料與地圖定位的全部修改"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "メタデータと地図の変更をすべて含む"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "메타데이터와 지도의 모든 변경 포함"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Incluye todos los cambios de metadatos y mapa"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Inclui todas as alterações de metadados e mapa"}}
+      }
+    },
+    "匹配后暂存，可撤销。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "匹配后暂存，可撤销。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Matched changes remain pending and can be undone."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "比對後暫存，可復原。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "照合後の変更は未保存で、取り消せます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "매칭한 변경 사항은 임시 저장되며 실행 취소할 수 있습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Los cambios quedan pendientes y se pueden deshacer."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "As alterações ficam pendentes e podem ser desfeitas."}}
+      }
+    },
+    "匹配所选照片：%1$@ 张": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "匹配所选照片：%1$@ 张"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Photos to match: %1$@"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "比對所選照片：%1$@ 張"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "照合する選択写真：%1$@枚"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "위치를 매칭할 사진: %1$@장"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Fotos para asociar: %1$@"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Fotos para associar: %1$@"}}
+      }
+    },
+    "匹配范围：含时间轨迹（%1$@ 条）": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "匹配范围：含时间轨迹（%1$@ 条）"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Matching scope: tracks with timestamps (%1$@)"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "比對範圍：含時間軌跡（%1$@ 條）"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "照合範囲：時刻付き軌跡（%1$@ 件）"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "매칭 범위: 시간이 있는 경로(%1$@개)"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ámbito: recorridos con marcas de tiempo (%1$@)"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Escopo: trajetos com horários (%1$@)"}}
+      }
+    },
+    "含时间，可匹配照片": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "含时间，可匹配照片"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Includes timestamps for photo matching"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "含時間，可比對照片"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "時刻あり・写真を照合可能"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "시간 있음 · 사진 매칭 가능"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Con horarios: permite localizar fotos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Com horários: permite localizar fotos"}}
+      }
+    },
+    "坐标详情": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "坐标详情"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Coordinate Details"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "座標詳情"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "座標の詳細"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "좌표 세부 정보"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Detalles de coordenadas"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Detalhes das coordenadas"}}
+      }
+    },
+    "字段编辑帮助": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "字段编辑帮助"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Field editing help"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "欄位編輯說明"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "項目編集のヘルプ"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "필드 편집 도움말"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ayuda para editar campos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Ajuda para editar campos"}}
+      }
+    },
+    "字段范围": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "字段范围"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Field scope"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "欄位範圍"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "フィールドの範囲"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "필드 범위"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Alcance de campos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Escopo dos campos"}}
+      }
+    },
+    "完整字段": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "完整字段"}},
+        "en": {"stringUnit": {"state": "translated", "value": "All fields"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "完整欄位"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "すべての項目"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "전체 필드"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Todos los campos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Todos os campos"}}
+      }
+    },
+    "定位修改已暂存，请写入所有元数据。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "定位修改已暂存，请写入所有元数据。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Location changes are pending. Use Write All Metadata to save them."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "定位修改已暫存，請寫入所有中繼資料。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "位置の変更は未保存です。「すべてのメタデータを書き込む」で保存してください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "위치 변경이 임시 저장되었습니다. 모든 메타데이터 쓰기로 저장하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Los cambios de ubicación están pendientes. Usa Escribir todos los metadatos para guardarlos."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "As alterações de localização estão pendentes. Use Gravar todos os metadados para salvá-las."}}
+      }
+    },
+    "定位修改待写入：%1$@ 张": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "定位修改待写入：%1$@ 张"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Location changes to write: %1$@ photos"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "定位修改待寫入：%1$@ 張"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "位置変更の書き込み待ち：%1$@枚"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "위치 변경 저장 대기: %1$@장"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Cambios de ubicación pendientes: %1$@ fotos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Alterações de localização pendentes: %1$@ fotos"}}
+      }
+    },
+    "导入 GPX、KML、KMZ，或从历史记录加入轨迹。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "导入 GPX、KML、KMZ，或从历史记录加入轨迹。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Import GPX, KML or KMZ, or add a track from history."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "匯入 GPX、KML、KMZ，或從歷史記錄加入軌跡。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "GPX・KML・KMZ を読み込むか、履歴から軌跡を追加します。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "GPX, KML, KMZ를 가져오거나 기록에서 경로를 추가하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Importa GPX, KML o KMZ, o añade un recorrido del historial."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Importe GPX, KML ou KMZ, ou adicione um trajeto do histórico."}}
+      }
+    },
+    "导入…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "导入…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Import…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "匯入…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "読み込む…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "가져오기…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Importar…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Importar…"}}
+      }
+    },
+    "导入或拖入照片，即可编辑元数据、添加拍摄地点或批量重命名。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "导入或拖入照片，即可编辑元数据、添加拍摄地点或批量重命名。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Import or drag in photos to edit metadata, add locations, or rename files in batches."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "匯入或拖入照片，即可編輯中繼資料、新增拍攝地點或批次重新命名。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真を読み込むかドラッグして、メタデータの編集、撮影場所の追加、一括リネームを始めましょう。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사진을 가져오거나 끌어 놓아 메타데이터 편집, 촬영 위치 추가, 일괄 이름 변경을 시작하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Importa o arrastra fotos para editar metadatos, añadir ubicaciones o renombrar por lotes."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Importe ou arraste fotos para editar metadados, adicionar locais ou renomear em lote."}}
+      }
+    },
+    "导入照片 → 选择功能 → 检查结果": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "导入照片 → 选择功能 → 检查结果"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Import photos → Choose a task → Review results"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "匯入照片 → 選擇功能 → 檢查結果"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真を読み込む → 機能を選ぶ → 結果を確認"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사진 가져오기 → 기능 선택 → 결과 확인"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Importar fotos → Elegir tarea → Revisar resultados"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Importar fotos → Escolher tarefa → Conferir resultados"}}
+      }
+    },
+    "导入照片，开始整理": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "导入照片，开始整理"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Import photos to get started"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "匯入照片，開始整理"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真を読み込んで整理を開始"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사진을 가져와 정리 시작"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Importar fotos para empezar"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Importar fotos para começar"}}
+      }
+    },
+    "导入轨迹": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "导入轨迹"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Import tracks"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "匯入軌跡"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "軌跡を読み込む"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "경로 가져오기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Importar recorridos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Importar trajetos"}}
+      }
+    },
+    "已修改 %1$@ 张照片，另有 %2$@ 张跳过；请写入所有元数据。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "已修改 %1$@ 张照片，另有 %2$@ 张跳过；请写入所有元数据。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Updated %1$@ photos; skipped %2$@. Use Write All Metadata to save."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "已修改 %1$@ 張照片，另有 %2$@ 張略過；請寫入所有中繼資料。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "%1$@枚を変更し、%2$@枚をスキップしました。すべてのメタデータを書き込んで保存してください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "%1$@장을 변경하고 %2$@장을 건너뛰었습니다. 모든 메타데이터 쓰기로 저장하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Se modificaron %1$@ fotos y se omitieron %2$@. Usa Escribir todos los metadatos para guardar."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "%1$@ fotos alteradas e %2$@ ignoradas. Use Gravar todos os metadados para salvar."}}
+      }
+    },
+    "已显示": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "已显示"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Visible"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "已顯示"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "表示中"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "표시됨"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Visible"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Visível"}}
+      }
+    },
+    "已选 %1$@ 张": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "已选 %1$@ 张"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Selected: %1$@"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "已選 %1$@ 張"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "%1$@枚選択中"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "%1$@장 선택됨"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Selección: %1$@"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Selecionadas: %1$@"}}
+      }
+    },
+    "已隐藏": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "已隐藏"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Hidden"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "已隱藏"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "非表示"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "숨겨짐"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Oculto"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Oculto"}}
+      }
+    },
+    "常用字段": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "常用字段"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Common fields"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "常用欄位"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "よく使うフィールド"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "자주 쓰는 필드"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Campos habituales"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Campos comuns"}}
+      }
+    },
+    "当前照片的位置": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "当前照片的位置"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Current Photo Location"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "目前照片的位置"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "現在の写真の位置"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "현재 사진의 위치"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ubicación de la foto actual"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Localização da foto atual"}}
+      }
+    },
+    "当前预览": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "当前预览"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Current Preview"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "目前預覽"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "現在のプレビュー"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "현재 미리보기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Vista previa actual"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Prévia atual"}}
+      }
+    },
+    "所选照片中有 %1$@ 张不支持这些字段的编辑。请选择 JPEG 或已有 XMP 后重试。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "所选照片中有 %1$@ 张不支持这些字段的编辑。请选择 JPEG 或已有 XMP 后重试。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "These fields cannot be edited for %1$@ selected photos. Select JPEG files or existing XMP sidecars and try again."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "所選照片中有 %1$@ 張不支援這些欄位的編輯。請選擇 JPEG 或已有 XMP 後重試。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "選択した写真のうち %1$@ 枚では、これらのフィールドを編集できません。JPEG または既存の XMP を選択してください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "선택한 사진 %1$@장은 이 필드를 편집할 수 없습니다. JPEG 또는 기존 XMP를 선택한 뒤 다시 시도하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Estas propiedades no se pueden editar en %1$@ fotos seleccionadas. Selecciona archivos JPEG o XMP existentes."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Não é possível editar estes campos em %1$@ fotos selecionadas. Selecione arquivos JPEG ou XMP existentes."}}
+      }
+    },
+    "所选照片中有 %1$@ 张存在未保存的日期或定位修改，请先保存全部修改。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "所选照片中有 %1$@ 张存在未保存的日期或定位修改，请先保存全部修改。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "There are unsaved date or location changes in %1$@ selected photos. Save all changes first."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "所選照片中有 %1$@ 張存在未儲存的日期或定位修改，請先儲存全部修改。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "選択した写真のうち %1$@ 枚に、日時または位置情報の未保存の変更があります。先にすべて保存してください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "선택한 사진 %1$@장에 저장하지 않은 날짜 또는 위치 변경 사항이 있습니다. 먼저 모든 변경 사항을 저장하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Hay cambios de fecha o ubicación sin guardar en %1$@ fotos seleccionadas. Guarda todo primero."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Há alterações de data ou localização não salvas em %1$@ fotos selecionadas. Salve tudo primeiro."}}
+      }
+    },
+    "所选照片包含无法编辑的项目，应用收藏前请调整选择。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "所选照片包含无法编辑的项目，应用收藏前请调整选择。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Some selected photos cannot be edited. Adjust the selection before applying a favorite."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "所選照片包含無法編輯的項目，套用收藏前請調整選擇。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "編集できない写真が含まれています。お気に入りを適用する前に選択を変更してください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "편집할 수 없는 사진이 포함되어 있습니다. 즐겨찾기를 적용하기 전에 선택을 변경하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Hay fotos seleccionadas que no se pueden editar. Ajusta la selección antes de aplicar un favorito."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Algumas fotos selecionadas não podem ser editadas. Ajuste a seleção antes de aplicar um favorito."}}
+      }
+    },
+    "所选照片均已有定位，可在更多匹配选项中重新匹配。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "所选照片均已有定位，可在更多匹配选项中重新匹配。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "All selected photos have locations. Use More Matching Options to match them again."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "所選照片均已有定位，可在更多比對選項中重新比對。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "選択した写真にはすべて位置があります。「その他の照合オプション」で再照合できます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "선택한 사진에 모두 위치가 있습니다. 추가 매칭 옵션에서 다시 매칭할 수 있습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Todas las fotos seleccionadas tienen ubicación. Usa Más opciones de asociación para volver a asociarlas."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Todas as fotos selecionadas têm localização. Use Mais opções de associação para associá-las novamente."}}
+      }
+    },
+    "所选照片的定位": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "所选照片的定位"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Selected Photo Locations"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "所選照片的定位"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "選択した写真の位置"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "선택한 사진의 위치"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ubicaciones de las fotos seleccionadas"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Localizações das fotos selecionadas"}}
+      }
+    },
+    "执行重命名：%1$@ 个文件": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "执行重命名：%1$@ 个文件"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Rename %1$@ files"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "執行重新命名：%1$@ 個檔案"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "%1$@ ファイルの名前を変更"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "파일 %1$@개 이름 변경"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Renombrar archivos: %1$@"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Renomear arquivos: %1$@"}}
+      }
+    },
+    "拍摄日期＋编号": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "拍摄日期＋编号"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Capture date + number"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "拍攝日期＋編號"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "撮影日時＋番号"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "촬영 날짜 + 번호"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Fecha de captura + número"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Data de captura + número"}}
+      }
+    },
+    "按拍摄时间，批量补齐照片定位。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "按拍摄时间，批量补齐照片定位。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Fill in photo locations in batches using capture times."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "依拍攝時間，批次補齊照片定位。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "撮影時刻を使って写真の位置をまとめて補完します。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "촬영 시간을 기준으로 사진 위치를 일괄 추가합니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Completa ubicaciones por lotes usando la hora de captura."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Preencha localizações em lote usando o horário de captura."}}
+      }
+    },
+    "按轨迹时段选择照片": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "按轨迹时段选择照片"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Select Photos Within Track Times"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "依軌跡時段選擇照片"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "軌跡の記録時間内の写真を選択"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "경로 시간대의 사진 선택"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Seleccionar fotos dentro del horario de la ruta"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Selecionar fotos no período do trajeto"}}
+      }
+    },
+    "搜索包含全部字段；保留你设置的隐藏与值筛选。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "搜索包含全部字段；保留你设置的隐藏与值筛选。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Search covers all fields while respecting hidden fields and value filters."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "搜尋包含全部欄位；保留你設定的隱藏與值篩選。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "検索対象は全フィールドです。非表示設定と値のフィルタは維持されます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "모든 필드를 검색하며 숨김 설정과 값 필터는 유지합니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "La búsqueda abarca todos los campos y respeta los campos ocultos y los filtros de valores."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "A busca abrange todos os campos e respeita os campos ocultos e os filtros de valores."}}
+      }
+    },
+    "收藏当前预览照片的位置": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "收藏当前预览照片的位置"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Save the current preview photo’s location as a favorite"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "收藏目前預覽照片的位置"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "プレビュー中の写真の位置をお気に入りに保存"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "미리보기 중인 사진의 위치를 즐겨찾기에 저장"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Guardar en favoritos la ubicación de la foto actual"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Salvar nos favoritos a localização da foto atual"}}
+      }
+    },
+    "收起中间结果": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "收起中间结果"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Hide intermediate results"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "收起中間結果"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "中間結果を隠す"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "중간 결과 숨기기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ocultar resultados intermedios"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Ocultar resultados intermediários"}}
+      }
+    },
+    "收起收藏": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "收起收藏"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Show Fewer Favorites"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "收起收藏"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "お気に入りを一部表示"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "즐겨찾기 간략히 보기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Mostrar menos favoritos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Mostrar menos favoritos"}}
+      }
+    },
+    "收起照片操作": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "收起照片操作"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Hide photo actions"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "收起照片操作"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真の操作を隠す"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사진 작업 숨기기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ocultar acciones de fotos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Ocultar ações de fotos"}}
+      }
+    },
+    "新的信息将写入文件，包括照片信息与定位修改，不限当前选中的照片。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "新的信息将写入文件，包括照片信息与定位修改，不限当前选中的照片。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "The new information will be written to the files, including photo information and location changes, not just for the currently selected photos."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "新的資訊將寫入檔案，包括照片資訊與定位修改，不限目前選取的照片。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真情報と位置情報の変更を含む新しい情報をファイルに書き込みます。現在選択している写真だけが対象ではありません。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사진 정보와 위치 변경 사항을 포함한 새 정보를 파일에 기록합니다. 현재 선택한 사진에만 적용되는 것은 아닙니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "La información nueva se escribirá en los archivos, incluidos los cambios de información de las fotos y ubicación, no solo en las fotos seleccionadas."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "As novas informações serão gravadas nos arquivos, incluindo alterações nas informações das fotos e na localização, não apenas nas fotos selecionadas."}}
+      }
+    },
+    "无法读取原轨迹，请重新导入；已有缓存保留。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "无法读取原轨迹，请重新导入；已有缓存保留。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Cannot read the original track. Import it again; the existing cache is kept."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "無法讀取原軌跡，請重新匯入；已有快取保留。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "元の軌跡を読み込めません。再度読み込んでください。既存のキャッシュは保持されます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "원본 경로를 읽을 수 없습니다. 다시 가져오세요. 기존 캐시는 유지됩니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "No se puede leer el recorrido original. Impórtalo de nuevo; se conserva la caché existente."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Não foi possível ler o trajeto original. Importe novamente; o cache existente será mantido."}}
+      }
+    },
+    "更多匹配选项": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "更多匹配选项"}},
+        "en": {"stringUnit": {"state": "translated", "value": "More Matching Options"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "更多比對選項"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "その他の照合オプション"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "추가 매칭 옵션"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Más opciones de asociación"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Mais opções de associação"}}
+      }
+    },
+    "更多工具": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "更多工具"}},
+        "en": {"stringUnit": {"state": "translated", "value": "More tools"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "更多工具"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "その他のツール"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "추가 도구"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Más herramientas"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Mais ferramentas"}}
+      }
+    },
+    "有 %1$@ 项未保存修改，包含元数据编辑和地图定位两个页面的修改，不限当前选中照片。保存后将重新生成改名预览，仍需你确认执行；保存失败或取消不会改名。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "有 %1$@ 项未保存修改，包含元数据编辑和地图定位两个页面的修改，不限当前选中照片。保存后将重新生成改名预览，仍需你确认执行；保存失败或取消不会改名。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "There are %1$@ unsaved items across metadata and map editing, including unselected photos. Saving refreshes the rename preview; you must still confirm renaming. If saving fails or is cancelled, no files are renamed."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "有 %1$@ 項未儲存修改，包含中繼資料編輯和地圖定位兩個頁面的修改，不限目前選取的照片。儲存後將重新產生檔名預覽，仍需你確認執行；儲存失敗或取消不會重新命名。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "メタデータと地図に未保存の変更が %1$@ 件あります。選択していない写真も含みます。保存後にプレビューを更新しますが、名前の変更には再度確認が必要です。保存の失敗やキャンセル時には変更しません。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "메타데이터와 지도에 미저장 항목 %1$@개가 있으며 선택하지 않은 사진도 포함됩니다. 저장 후 이름 미리보기가 갱신되며 실행 확인이 다시 필요합니다. 저장 실패 또는 취소 시 이름을 변경하지 않습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Hay %1$@ elementos sin guardar de metadatos y mapa, incluidas fotos no seleccionadas. Al guardar se actualizará la vista previa; aún deberás confirmar el cambio de nombres. Si se cancela o falla el guardado, no se renombrará nada."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Há %1$@ itens não salvos de metadados e mapa, incluindo fotos não selecionadas. Salvar atualizará a prévia; ainda será necessário confirmar a renomeação. Se o salvamento falhar ou for cancelado, nada será renomeado."}}
+      }
+    },
+    "本次处理范围": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "本次处理范围"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Files to process"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "本次處理範圍"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "今回の処理対象"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이번 처리 범위"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Archivos que se procesarán"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Arquivos a processar"}}
+      }
+    },
+    "本次已跳过 %1$@ 个不支持的文件。支持导入图片及 GPX、KML、KMZ 轨迹。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "本次已跳过 %1$@ 个不支持的文件。支持导入图片及 GPX、KML、KMZ 轨迹。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Skipped unsupported files: %1$@. Images and GPX, KML and KMZ tracks can be imported."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "本次已略過 %1$@ 個不支援的檔案。支援匯入圖片及 GPX、KML、KMZ 軌跡。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "未対応ファイル %1$@ 件をスキップしました。画像と GPX・KML・KMZ の軌跡を読み込めます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "지원하지 않는 파일 %1$@개를 건너뛰었습니다. 이미지와 GPX, KML, KMZ 경로를 가져올 수 있습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Archivos no compatibles omitidos: %1$@. Se pueden importar imágenes y recorridos GPX, KML y KMZ."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Arquivos incompatíveis ignorados: %1$@. É possível importar imagens e trajetos GPX, KML e KMZ."}}
+      }
+    },
+    "查找并替换": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "查找并替换"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Find and replace"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "尋找並取代"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "検索と置換"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "찾기 및 바꾸기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Buscar y reemplazar"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Localizar e substituir"}}
+      }
+    },
+    "查看全部收藏": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "查看全部收藏"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Show All Favorites"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "查看全部收藏"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "すべてのお気に入りを表示"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "모든 즐겨찾기 보기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ver todos los favoritos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Ver todos os favoritos"}}
+      }
+    },
+    "正在保存": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在保存"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Saving"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在儲存"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "保存中"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "저장 중"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Guardando"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Salvando"}}
+      }
+    },
+    "清除搜索": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "清除搜索"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Clear search"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "清除搜尋"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "検索をクリア"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "검색 지우기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Borrar búsqueda"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Limpar busca"}}
+      }
+    },
+    "点名称查看，点应用修改所选照片。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "点名称查看，点应用修改所选照片。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Click a name to view it; Apply changes the selected photos."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "點名稱查看，點套用修改所選照片。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "名前で場所を表示し、適用で選択した写真を変更します。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이름을 클릭하면 위치를 보고, 적용을 클릭하면 선택한 사진을 변경합니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Haz clic en el nombre para ver el lugar; Aplicar modifica las fotos seleccionadas."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Clique no nome para ver o local; Aplicar altera as fotos selecionadas."}}
+      }
+    },
+    "照片定位": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "照片定位"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Photo Location"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "照片定位"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真の位置情報"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사진 위치"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ubicación de fotos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Localização das fotos"}}
+      }
+    },
+    "照片操作": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "照片操作"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Photo actions"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "照片操作"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真の操作"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사진 작업"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Acciones de fotos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Ações de fotos"}}
+      }
+    },
+    "照片范围": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "照片范围"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Photo scope"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "照片範圍"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真の範囲"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사진 범위"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Alcance de fotos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Escopo das fotos"}}
+      }
+    },
+    "照片：%1$@ · 额外文件：%2$@；配对文件一并列入右侧预览。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "照片：%1$@ · 额外文件：%2$@；配对文件一并列入右侧预览。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Photos: %1$@ · Extra files: %2$@. Paired files are also included in the preview."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "照片：%1$@ · 額外檔案：%2$@；配對檔案一併列入右側預覽。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真：%1$@・追加ファイル：%2$@。ペアのファイルも右側のプレビューに含まれます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사진: %1$@ · 추가 파일: %2$@. 연결된 파일도 오른쪽 미리보기에 포함됩니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Fotos: %1$@ · Archivos adicionales: %2$@. Los archivos emparejados también aparecen en la vista previa."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Fotos: %1$@ · Arquivos extras: %2$@. Os arquivos pareados também aparecem na prévia."}}
+      }
+    },
+    "第 %1$@ 条执行后": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "第 %1$@ 条执行后"}},
+        "en": {"stringUnit": {"state": "translated", "value": "After rule %1$@"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "第 %1$@ 條執行後"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ルール %1$@ の適用後"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "규칙 %1$@ 적용 후"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Tras la regla %1$@"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Após a regra %1$@"}}
+      }
+    },
+    "筛选（%1$@）": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "筛选（%1$@）"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Filters (%1$@)"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "篩選（%1$@）"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "フィルタ（%1$@）"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "필터 (%1$@)"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Filtros (%1$@)"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Filtros (%1$@)"}}
+      }
+    },
+    "编辑所选字段": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "编辑所选字段"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Edit selected fields"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "編輯所選欄位"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "選択したフィールドを編集"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "선택한 필드 편집"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Editar campos seleccionados"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Editar campos selecionados"}}
+      }
+    },
+    "自定义规则": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "自定义规则"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Custom rules"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "自訂規則"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "カスタムルール"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사용자 지정 규칙"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Reglas personalizadas"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Regras personalizadas"}}
+      }
+    },
+    "设置已就绪，可以编辑照片信息、添加地点或整理文件名。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "设置已就绪，可以编辑照片信息、添加地点或整理文件名。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "You're ready to edit photo information, add locations, or organize filenames."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "設定已就緒，可以編輯照片資訊、新增地點或整理檔名。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真情報の編集、場所の追加、ファイル名の整理を始められます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사진 정보 편집, 위치 추가, 파일명 정리를 시작할 준비가 되었습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Todo listo para editar información, añadir ubicaciones u organizar nombres de archivo."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Tudo pronto para editar informações, adicionar locais ou organizar nomes de arquivo."}}
+      }
+    },
+    "轨迹与隐私说明": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "轨迹与隐私说明"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Tracks and Privacy"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "軌跡與隱私說明"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "軌跡とプライバシー"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "경로 및 개인정보 안내"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Rutas y privacidad"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Trajetos e privacidade"}}
+      }
+    },
+    "轨迹历史": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "轨迹历史"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Track History"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "軌跡歷史"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "軌跡の履歴"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "경로 기록"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Historial de rutas"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Histórico de trajetos"}}
+      }
+    },
+    "轨迹记录时间，按本机时区显示": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "轨迹记录时间，按本机时区显示"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Track recording time, shown in this Mac’s time zone"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "軌跡記錄時間，按本機時區顯示"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "軌跡の記録時刻（この Mac のタイムゾーン）"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이 Mac의 시간대로 표시한 경로 기록 시간"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Hora del recorrido, en la zona horaria de este Mac"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Horário do trajeto no fuso deste Mac"}}
+      }
+    },
+    "轨迹转换失败，展开查看。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "轨迹转换失败，展开查看。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Track conversion failed. Expand for details."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "軌跡轉換失敗，展開查看。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "軌跡の変換に失敗しました。展開して詳細を確認してください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "경로 변환에 실패했습니다. 펼쳐서 확인하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Falló la conversión de la ruta. Despliega para ver detalles."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "A conversão do trajeto falhou. Expanda para ver detalhes."}}
+      }
+    },
+    "选择字段 → 编辑并预览 → 写入所有元数据": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "选择字段 → 编辑并预览 → 写入所有元数据"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Select fields → Edit and preview → Write all metadata"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "選擇欄位 → 編輯並預覽 → 寫入所有中繼資料"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "項目を選択 → 編集・プレビュー → すべてのメタデータを書き込む"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "필드 선택 → 편집 및 미리 보기 → 모든 메타데이터 기록"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Seleccionar campos → Editar y previsualizar → Escribir todos los metadatos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Selecionar campos → Editar e visualizar → Gravar todos os metadados"}}
+      }
+    },
+    "选择照片以应用收藏": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "选择照片以应用收藏"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Select photos to apply a favorite location"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "選擇照片以套用收藏"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真を選択してお気に入りの位置を適用"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "즐겨찾기 위치를 적용할 사진 선택"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Selecciona fotos para aplicar un lugar favorito"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Selecione fotos para aplicar um local favorito"}}
+      }
+    },
+    "选择照片以查看定位": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "选择照片以查看定位"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Select photos to view their locations"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "選擇照片以查看定位"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真を選択して位置を確認"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사진을 선택하여 위치 보기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Selecciona fotos para ver su ubicación"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Selecione fotos para ver a localização"}}
+      }
+    },
+    "选择照片后再匹配定位。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "选择照片后再匹配定位。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Select photos before matching locations."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "選擇照片後再比對定位。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真を選択してから位置を照合してください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사진을 선택한 후 위치를 매칭하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Selecciona fotos antes de asociar ubicaciones."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Selecione fotos antes de associar localizações."}}
+      }
+    },
+    "选行可查看改名过程；执行范围以上方设置和完整预览为准。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "选行可查看改名过程；执行范围以上方设置和完整预览为准。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Select a row to inspect its steps. The scope settings and full preview determine which files are renamed."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "選列可查看重新命名過程；執行範圍以上方設定和完整預覽為準。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "行を選択すると処理の詳細を確認できます。実行対象は上部の範囲設定とプレビュー全体で決まります。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "행을 선택하면 변경 과정을 확인할 수 있습니다. 실제 대상은 위의 범위 설정과 전체 미리보기로 결정됩니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Selecciona una fila para ver los pasos. El alcance y la vista previa completa determinan los archivos que se renombrarán."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Selecione uma linha para ver as etapas. O escopo e a prévia completa determinam quais arquivos serão renomeados."}}
+      }
+    },
+    "部分照片暂不可编辑，请检查读取或保存结果后重新读取元数据。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "部分照片暂不可编辑，请检查读取或保存结果后重新读取元数据。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Some photos cannot currently be edited. Check the read or save results, then reload metadata."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "部分照片暫不可編輯，請檢查讀取或儲存結果後重新讀取中繼資料。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "一部の写真は現在編集できません。読み込みや保存の結果を確認し、メタデータを再読み込みしてください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "일부 사진은 현재 편집할 수 없습니다. 읽기 또는 저장 결과를 확인한 뒤 메타데이터를 다시 읽으세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Algunas fotos no se pueden editar ahora. Comprueba la lectura o el guardado y vuelve a cargar los metadatos."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Algumas fotos não podem ser editadas agora. Confira a leitura ou o salvamento e recarregue os metadados."}}
+      }
+    },
+    "部分轨迹文件未能导入，请在轨迹卡片中查看。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "部分轨迹文件未能导入，请在轨迹卡片中查看。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Some track files could not be imported. See the tracks panel for details."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "部分軌跡檔案未能匯入，請在軌跡卡片中檢視。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "一部の軌跡ファイルを読み込めませんでした。軌跡パネルで確認してください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "일부 경로 파일을 가져오지 못했습니다. 경로 패널에서 확인하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "No se pudieron importar algunos recorridos. Consulta el panel de recorridos."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Não foi possível importar alguns trajetos. Confira o painel de trajetos."}}
+      }
+    },
+    "重新匹配所选照片，成功匹配的位置会替换现有定位，写入前可撤销。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "重新匹配所选照片，成功匹配的位置会替换现有定位，写入前可撤销。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Match the selected photos again. Successful matches replace existing locations; undo is available before writing."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "重新比對所選照片，成功比對的位置會取代現有定位，寫入前可復原。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "選択した写真を再照合します。成功した位置で既存の位置を置き換えます。書き込み前は取り消せます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "선택한 사진을 다시 매칭합니다. 성공한 위치로 기존 위치를 바꾸며, 파일에 쓰기 전에 실행 취소할 수 있습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Vuelve a asociar las fotos seleccionadas. Las coincidencias correctas reemplazan las ubicaciones existentes y se pueden deshacer antes de escribir."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Associe novamente as fotos selecionadas. As correspondências substituem as localizações existentes e podem ser desfeitas antes de gravar."}}
+      }
+    },
+    "额外文件：%1$@；配对文件一并列入右侧预览。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "额外文件：%1$@；配对文件一并列入右侧预览。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Extra files: %1$@. Paired files are also included in the preview."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "額外檔案：%1$@；配對檔案一併列入右側預覽。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "追加ファイル：%1$@。ペアのファイルも右側のプレビューに含まれます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "추가 파일: %1$@. 연결된 파일도 오른쪽 미리보기에 포함됩니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Archivos adicionales: %1$@. Los archivos emparejados también aparecen en la vista previa."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Arquivos extras: %1$@. Os arquivos pareados também aparecem na prévia."}}
+      }
+    },
+    "高德仅接收轨迹坐标用于转换；照片和轨迹文件不上传，缓存仅存本机。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "高德仅接收轨迹坐标用于转换；照片和轨迹文件不上传，缓存仅存本机。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "AMap receives only track coordinates for conversion. Photos and track files are not uploaded; caches stay on this Mac."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "高德僅接收軌跡座標用於轉換；照片和軌跡檔案不上傳，快取僅存本機。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "高徳には変換用の軌跡座標のみを送信します。写真や軌跡ファイルは送信されず、キャッシュはこの Mac にのみ保存されます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "고덕에는 변환할 경로 좌표만 전송됩니다. 사진과 경로 파일은 업로드하지 않으며 캐시는 이 Mac에만 저장됩니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "AMap solo recibe coordenadas para convertirlas. No se suben fotos ni archivos de recorrido; la caché permanece en este Mac."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "O AMap recebe apenas coordenadas para conversão. Fotos e arquivos de trajeto não são enviados; o cache fica neste Mac."}}
+      }
+    },
     "仅商品名": {
       "extractionState": "manual",
       "localizations": {
