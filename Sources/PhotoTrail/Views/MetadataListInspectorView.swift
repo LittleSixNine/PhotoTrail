@@ -476,13 +476,17 @@ private extension MetadataListInspectorView {
     }
 
     func inspectorTools(proxy: ScrollViewProxy) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
+            Label(L10n.text("选择字段 → 编辑并预览 → 保存照片"), systemImage: "info.circle.fill")
+                .font(.callout).foregroundStyle(Color.accentColor)
+                .padding(10).frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
                 TextField(L10n.text("搜索元数据字段"), text: $fieldQuery)
                     .textFieldStyle(.plain)
             }
-            .padding(8)
+            .padding(10)
             .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
             .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.quaternary))
             HStack(spacing: 8) {
@@ -516,16 +520,16 @@ private extension MetadataListInspectorView {
                 } label: { Image(systemName: "ellipsis") }
                 .menuIndicator(.hidden)
                 .accessibilityLabel(L10n.text("更多操作"))
-            }.controlSize(.small).fixedSize(horizontal: false, vertical: true)
+            }.controlSize(.regular).fixedSize(horizontal: false, vertical: true)
             HStack {
                 Text(L10n.text("已选字段：%1$@", selectedFields.count)).font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Menu(L10n.text("批量操作")) { batchActions(selectedFields) }
                     .disabled(batchTargets(selectedFields).isEmpty || editableCreatorReadings == nil)
                     .accessibilityIdentifier("metadataBatchActions")
-            }.controlSize(.small)
-            Text(L10n.text("单击选择，⌘ 点选多项，Shift 连选；双击或点箭头编辑。"))
-                .font(.caption2).foregroundStyle(.secondary)
+            }.controlSize(.regular)
+            Text(L10n.text("单击选择，⌘ / Shift 多选；双击或点铅笔编辑。"))
+                .font(.caption).foregroundStyle(.secondary)
         }.padding(16)
     }
 
@@ -562,33 +566,41 @@ private extension MetadataListInspectorView {
             if case .xmp = $0.metadata.source { return true }; return false
         })
         let value = display(summary, tag: tag)
-        return VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .center, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(label).font(.system(size: 15))
-                        Text(tag.rawValue).font(.system(size: 10)).foregroundStyle(.tertiary)
+        let pending = selected.contains { $0.creatorDraft?.changes[tag] != nil }
+        return HStack(alignment: .center, spacing: 14) {
+            VStack(alignment: .leading, spacing: 7) {
+                HStack(spacing: 8) {
+                    Text(label).font(.system(size: 15, weight: .semibold))
+                    Spacer(minLength: 0)
+                    if pending {
+                        Label(L10n.text("待保存"), systemImage: "circle.fill")
+                            .font(.caption).foregroundStyle(.orange)
                     }
-                    Spacer(minLength: 8)
-                    Text(value).font(.system(size: 17, design: tag.isDate ? .monospaced : .default)).monospacedDigit().multilineTextAlignment(.trailing)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .foregroundStyle(summary == .absent ? .secondary : .primary)
-                    Button {
-                        if canEdit, let readings { creatorEditor = MetadataCreatorEditorSelection(readings: readings, tag: tag) }
-                    } label: {
-                        Image(systemName: canEdit ? "chevron.right" : "lock")
-                            .font(.caption2).frame(width: 16)
+                    if !canEdit {
+                        Label(L10n.text("只读"), systemImage: "lock").font(.caption).foregroundStyle(.secondary)
                     }
-                    .buttonStyle(.borderless).disabled(!canEdit)
-                    .accessibilityLabel(L10n.text("编辑元数据…") + " · " + label)
                 }
-                if selected.contains(where: { $0.creatorDraft?.changes[tag] != nil }) {
-                    Text(L10n.text("字段修改待保存")).font(.caption).foregroundStyle(.orange)
-                }
+                Text(value).font(.system(size: 16, design: tag.isDate ? .monospaced : .default)).monospacedDigit()
+                    .fixedSize(horizontal: false, vertical: true)
+                    .foregroundStyle(summary == .absent ? .secondary : .primary)
+                Text(tag.rawValue).font(.system(size: 11)).foregroundStyle(.tertiary)
                 if tag == .creator { creatorCompatibility(values: values) }
+            }.frame(maxWidth: .infinity, alignment: .leading)
+            if canEdit {
+                Button {
+                    if let readings { creatorEditor = MetadataCreatorEditorSelection(readings: readings, tag: tag) }
+                } label: {
+                    Image(systemName: "pencil").font(.system(size: 15)).frame(width: 30, height: 32)
+                }
+                .buttonStyle(.borderless)
+                .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 6))
+                .accessibilityLabel(L10n.text("编辑元数据…") + " · " + label)
+                .help(L10n.text("编辑元数据…"))
             }
-            .padding(.horizontal, 12).padding(.vertical, 10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
+        }
+        .padding(.horizontal, 12).padding(.vertical, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
         .tag(tag.rawValue)
         .onTapGesture(count: 2) {
             if canEdit, let readings { creatorEditor = MetadataCreatorEditorSelection(readings: readings, tag: tag) }
@@ -795,8 +807,9 @@ private extension MetadataListInspectorView {
                         }
                     }
                 } header: {
-                    Text(L10n.text(section.name)).font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.secondary).padding(.vertical, 8)
+                    Label(L10n.text(section.name), systemImage: sectionIcon(section.name))
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.primary).padding(.vertical, 12)
                         .id(section.name).selectionDisabled()
                 }
             }
@@ -864,18 +877,18 @@ private extension MetadataListInspectorView {
         }
         let available = selected.allSatisfy { advanced[$0.id] != nil }
         let visibleText = available ? text : (advancedFailed ? L10n.text("未能读取") : L10n.text("正在读取元数据…"))
-        return HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(advancedLabel(tag)).font(.system(size: 15))
-                Text(tag).font(.system(size: 10)).foregroundStyle(.tertiary)
+        return VStack(alignment: .leading, spacing: 7) {
+            HStack {
+                Text(advancedLabel(tag)).font(.system(size: 15, weight: .medium))
+                Spacer(minLength: 8)
+                Label(L10n.text("只读"), systemImage: "lock").font(.caption).foregroundStyle(.secondary)
             }
-            Spacer(minLength: 8)
-            Text(visibleText).font(.system(size: 17, design: isDate ? .monospaced : .default)).monospacedDigit().multilineTextAlignment(.trailing)
+            Text(visibleText).font(.system(size: 16, design: isDate ? .monospaced : .default)).monospacedDigit()
                 .fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(summary == .absent ? .secondary : .primary)
-            Image(systemName: "lock").font(.caption2).frame(width: 16).foregroundStyle(.tertiary).accessibilityHidden(true)
+            Text(tag).font(.system(size: 11)).foregroundStyle(.tertiary)
         }
-        .padding(.horizontal, 12).padding(.vertical, 10)
+        .padding(.horizontal, 12).padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .tag("display:" + tag)
         .contentShape(Rectangle())
@@ -1002,5 +1015,21 @@ extension FocusedValues {
     var metadataFieldSelection: Bool? {
         get { self[MetadataFieldSelectionKey.self] }
         set { self[MetadataFieldSelectionKey.self] = newValue }
+    }
+}
+
+private extension MetadataListInspectorView {
+    func sectionIcon(_ name: String) -> String {
+        switch name {
+        case "Camera": "camera"
+        case "Date and Time": "calendar"
+        case "GPS Coordinates", "Location Address": "mappin.and.ellipse"
+        case "File": "doc"
+        case "Dimension And Resolution": "aspectratio"
+        case "Lens": "camera.aperture"
+        case "Camera Settings", "Advanced Settings": "slider.horizontal.3"
+        case "Information": "text.alignleft"
+        default: "list.bullet.rectangle"
+        }
     }
 }

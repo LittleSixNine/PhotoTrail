@@ -46,40 +46,46 @@ struct MetadataWorkflowView: View {
         }
     }
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(isBatch ? L10n.text("批量编辑字段") : L10n.text("日期、预设与交换…")).font(.title2.bold())
-            Text(L10n.text("已选择 %1$@ 张照片", readings.count))
-            if !isBatch {
-                Text(L10n.text("按列表排序冻结顺序；只写所选规范标签。EXIF 拍摄时间含亚秒与时区；其他字段不同步同义标签或配对文件。"))
-                    .font(.caption).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 20) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(isBatch ? L10n.text("批量编辑字段") : L10n.text("日期、预设与交换…"))
+                        .font(.system(size: 24, weight: .semibold))
+                    Text(L10n.text("已选择 %1$@ 张照片", readings.count)).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text(L10n.text("编辑 → 预览 → 加入待保存")).font(.callout).foregroundStyle(.secondary)
             }
-            if isBatch { batchForm } else { TabView {
-                actionForm.tabItem { Text(L10n.text("编辑元数据…")) }
-                presetForm.tabItem { Text(L10n.text("预设")) }
-                exchangeForm.tabItem { Text(L10n.text("比较与交换")) }
-            }.frame(minHeight: 320) }
-            if !notice.isEmpty { Text(notice).font(.caption).foregroundStyle(.orange).textSelection(.enabled) }
-            if let preview {
-                Text(L10n.text("预览：%1$@ 张将修改", preview.items.filter { !$0.changes.isEmpty }.count))
+            HStack(alignment: .top, spacing: 18) {
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 6) {
-                        ForEach(Array(preview.steps.enumerated()), id: \.offset) { _, item in
-                            Text("\(item.imageURL.lastPathComponent) · \(item.tag.rawValue)").font(.caption.bold())
-                            Text("\(display(item.originalValue)) → \(display(item.changeValue))").font(.caption)
-                            Text(item.target.path).font(.caption2).foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 16) {
+                        if isBatch { batchForm } else {
+                            Text(L10n.text("按列表排序冻结顺序；只写所选规范标签。EXIF 拍摄时间含亚秒与时区；其他字段不同步同义标签或配对文件。"))
+                                .font(.callout).foregroundStyle(.secondary)
+                            TabView {
+                                actionForm.tabItem { Text(L10n.text("编辑元数据…")) }
+                                presetForm.tabItem { Text(L10n.text("预设")) }
+                                exchangeForm.tabItem { Text(L10n.text("比较与交换")) }
+                            }.frame(minHeight: 430)
                         }
-                        ForEach(Array(Set(preview.skipped)).sorted(), id: \.self) { Text($0).font(.caption).foregroundStyle(.orange) }
-                    }.textSelection(.enabled)
-                }.frame(maxHeight: 200)
-            }
-            HStack {
+                    }.padding(18)
+                }.frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(.background, in: RoundedRectangle(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.quaternary))
+                workflowPreview.frame(width: 270)
+            }.frame(maxHeight: .infinity)
+            if !notice.isEmpty { Text(notice).font(.callout).foregroundStyle(.orange).textSelection(.enabled) }
+            Divider()
+            HStack(spacing: 12) {
                 Button(L10n.text("预览")) { makePreview() }.disabled(activeOperations.isEmpty || busy)
                 Spacer()
                 Button(L10n.text("取消")) { dismiss() }.keyboardShortcut(.cancelAction)
                 Button(L10n.text("加入待保存修改")) { apply() }
+                    .buttonStyle(.borderedProminent)
                     .disabled(preview?.items.isEmpty != false || busy || store.saveInProgress)
-            }
-        }.padding(20).frame(minWidth: 560, idealWidth: 680, maxWidth: 850)
+            }.controlSize(.large)
+        }.font(.system(size: 15)).controlSize(.large).textFieldStyle(.roundedBorder)
+            .padding(24).frame(width: 880, height: 660)
             .onAppear {
                 if isBatch {
                     mode = initialBatchMode; input = initialBatchInput
@@ -94,7 +100,10 @@ struct MetadataWorkflowView: View {
             .onChange(of: tag) { mode = tag.isDate ? "shift" : "set"; input = ""; preview = nil }
     }
 
-    private var actionForm: some View {
+}
+
+private extension MetadataWorkflowView {
+    var actionForm: some View {
         Form {
             Picker(L10n.text("字段"), selection: $tag) {
                 ForEach(availableTags, id: \.self) { Text("\($0.displayName) · \($0.rawValue)").tag($0) }
@@ -518,10 +527,13 @@ private extension MetadataWorkflowView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(initialTargets, id: \.self) { target in
-                        Text("\(target.displayName) · \(target.rawValue)").font(.caption)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(target.displayName).font(.system(size: 15, weight: .medium))
+                            Text(target.rawValue).font(.caption).foregroundStyle(.secondary)
+                        }.padding(.vertical, 4)
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading)
-            }.frame(height: min(CGFloat(initialTargets.count) * 36, 120))
+            }.frame(height: min(CGFloat(initialTargets.count) * 48, 150))
             if excludedFieldCount > 0 {
                 Text(L10n.text("已排除 %1$@ 个只读字段。", excludedFieldCount)).font(.caption).foregroundStyle(.secondary)
             }
@@ -548,4 +560,39 @@ private extension MetadataWorkflowView {
         }.padding(.vertical, 8)
     }
 
+}
+
+private extension MetadataWorkflowView {
+    var workflowPreview: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(L10n.text("当前内容 / 修改预览")).font(.headline)
+            ScrollView {
+                if let preview {
+                    LazyVStack(alignment: .leading, spacing: 14) {
+                        Text(L10n.text("预览：%1$@ 张将修改", preview.items.filter { !$0.changes.isEmpty }.count))
+                            .font(.callout.weight(.semibold)).foregroundStyle(Color.accentColor)
+                        ForEach(Array(preview.steps.enumerated()), id: \.offset) { _, item in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(item.imageURL.lastPathComponent).font(.caption.weight(.medium))
+                                Text(item.tag.displayName).font(.callout.weight(.medium))
+                                Text(display(item.originalValue)).foregroundStyle(.secondary)
+                                Image(systemName: "arrow.down").font(.caption).foregroundStyle(.secondary)
+                                Text(display(item.changeValue)).foregroundStyle(Color.accentColor)
+                                Text(item.target.path).font(.caption2).foregroundStyle(.tertiary)
+                            }
+                            Divider()
+                        }
+                        ForEach(Array(Set(preview.skipped)).sorted(), id: \.self) { Text($0).font(.caption).foregroundStyle(.orange) }
+                    }.textSelection(.enabled)
+                } else {
+                    Label(L10n.text("点击“预览”检查每张照片的修改结果。"), systemImage: "eye")
+                        .font(.callout).foregroundStyle(.secondary)
+                }
+            }.frame(maxWidth: .infinity, alignment: .leading)
+            Text(L10n.text("加入待保存后，回到列表保存照片。"))
+                .font(.caption).foregroundStyle(.secondary)
+        }.padding(18).frame(maxHeight: .infinity, alignment: .top)
+            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.quaternary))
+    }
 }
