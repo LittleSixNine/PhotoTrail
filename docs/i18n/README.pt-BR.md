@@ -4,13 +4,64 @@
 
 # PhotoTrail
 
-Adicione e edite locais de captura das fotos no macOS.
+Organize localizações, metadados e nomes de fotos no macOS.
 
-O PhotoTrail é um app para macOS baseado em parte no [GeoTag](https://github.com/marchyman/GeoTag). Combina Mapas da Apple, AMap, trilhas GPX, marcadores com miniaturas, locais favoritos e controle explícito sobre o salvamento de metadados.
+O PhotoTrail reúne **correspondência com trajetos, edição de metadados e renomeação em lote**. Complete os locais de uma viagem, corrija datas e informações e aplique um padrão aos nomes. Use os três fluxos em conjunto ou separadamente. Parte do processamento de fotos vem do [GeoTag](https://github.com/marchyman/GeoTag).
 
-**Vários formatos de trajeto:** importe GPX, KML e KMZ pelo mesmo fluxo. Trajetos com horário em cada ponto permitem localizar fotos; os demais servem apenas para visualização. KMZ lê doc.kml na raiz ou o único KML do arquivo, sem carregar links externos ou anexos. CSV fica para uma etapa futura; trajetos gerados de fotos continuam sendo exportados como GPX.
+| O que organizar | Recurso | Exemplos |
+| --- | --- | --- |
+| Locais de captura | Trajetos e mapas | Associar um trajeto e conferir posições no mapa |
+| Informações das fotos | Consulta e edição de metadados | Datas, autoria, palavras-chave e equipamento |
+| Nomes dos arquivos | Renomeação em lote | Data e sequência, substituição de texto e arquivos associados |
 
-**Edição rápida:** formulários agrupados para campos comuns e linhas compactas de nome e valor para a lista completa. As alterações de informações e localização compartilham Salvar todos os metadados.
+## Download e requisitos
+
+[Baixar a versão estável mais recente](https://github.com/LittleSixNine/PhotoTrail/releases/latest) · [Histórico de versões](https://github.com/LittleSixNine/PhotoTrail/releases)
+
+Requer **macOS 26 ou posterior**. Compatível com Apple silicon e Intel. A distribuição atual usa assinatura ad-hoc e ainda não tem assinatura Developer ID nem notarização da Apple; por isso, o macOS pode bloquear a primeira abertura.
+
+O PhotoTrail é gratuito. O download automático de atualizações fica desativado por padrão. A instalação é manual: abra o DMG, saia do PhotoTrail e arraste o app para Aplicativos.
+
+## Recursos
+
+### 1. Trajetos e localização no mapa
+
+- **Encontre posições pelo horário:** importe GPX, KML ou KMZ com horário em cada ponto. Confira as correspondências na lista ou use a barra do mapa para completar locais ausentes ou substituí-los explicitamente. A correspondência fica dentro do mesmo segmento e da cobertura registrada; não extrapola interrupções nem resolve conflitos sem avisar.
+- **Confira e ajuste no mapa:** use Mapas da Apple ou AMap, busca, favoritos e miniaturas. Aplique um local a várias fotos ou arraste um marcador individual. As posições confirmadas no AMap são verificadas e convertidas para WGS84.
+- **Crie e exporte trajetos:** gere GPX com fotos que tenham localização e data; intervalos longos criam segmentos. Exiba, oculte, armazene em cache e exporte trajetos, ou exporte cópias com localização e um relatório de verificação para uma nova pasta.
+
+Trajetos sem horário por ponto servem apenas para visualização. CSV de trajetos não é aceito; trajetos gerados de fotos são exportados como GPX. KMZ lê doc.kml na raiz ou o único KML do arquivo, sem carregar links externos ou anexos.
+
+### 2. Consulta e edição de metadados
+
+- **Edite os campos comuns:** formulários para informações, datas e dispositivos. Preencha títulos, descrições, autoria, direitos e palavras-chave; selecione o nome comercial ou modelo de metadados, ou digite um valor próprio. Veja o [catálogo e as fontes](../DEVICE_CATALOG.md).
+- **Consulte os campos completos:** linhas compactas com nome, valor e origem, busca, grupos, filtros e tags adicionais. A leitura em segundo plano prioriza as fotos selecionadas e distingue EXIF, IPTC, XMP e informações do fabricante.
+- **Edite várias fotos e campos:** selecione com ⌘/Shift para definir valores comuns ou copiar de outro campo. Por exemplo, copie a data de criação EXIF de cada foto para vários campos de data. Confira as operações em lote antes de adicioná-las como rascunhos que podem ser desfeitos.
+- **Organize e troque informações:** ajustes de datas, câmera, lente e exposição, predefinições, comparação entre fotos e importação/exportação controlada de metadados CSV/XMP.
+
+**Nem toda tag que pode ser lida pode ser editada.** Os novos editores aceitam 62 campos EXIF/IPTC/XMP em JPEG e arquivos XMP associados já existentes. Campos somente para leitura mostram um cadeado. RAW originais, HEIC e a fototeca da Apple não usam esses novos editores; as ferramentas anteriores de data e localização continuam disponíveis. O CSV de metadados é separado do CSV de trajetos ainda não aceito. Veja os [destinos e limites](../BEHAVIOR.md) (chinês).
+
+### 3. Renomeação em lote
+
+- **Comece por uma opção comum:** data de captura e sequência, prefixo ou localizar e substituir. Combine texto, datas, sequências, metadados, listas e expressões regulares: 97 entradas de ações, filtros e opções avançadas.
+- **Compare antes e depois:** organize as regras à esquerda e confira nomes originais e finais, arquivos associados e conflitos à direita. Mostre etapas intermediárias quando necessário e salve predefinições.
+- **Mantenha arquivos relacionados juntos:** confira fotos e arquivos auxiliares como um grupo, sem sobrescrever arquivos existentes. O histórico permite restaurar nomes se a identidade e o conteúdo ainda corresponderem ao registro.
+
+Use fotos locais importadas ou Adicionar arquivos para arquivos comuns. Pastas e itens da fototeca ficam excluídos. Se houver alterações de informações ou localização, o app pede para salvá-las primeiro; confira a prévia atualizada antes de confirmar a renomeação. Ela é executada separadamente do salvamento de metadados.
+
+### Salvar alterações
+
+**Salvar todos os metadados** (⌘S) grava todas as alterações pendentes de informações e localização da janela atual, sem limitar o alcance à aba, seleção ou filtro ativos. Consultar e visualizar não grava arquivos; é possível desfazer antes de salvar. A gravação local segue as configurações de backup e verifica os resultados por releitura, sem recomprimir os pixels. Pares JPG + RAW podem compartilhar alterações de localização, mas os novos campos não são copiados automaticamente para RAW. A fototeca usa a interface do sistema e tem outro escopo de edição.
+
+## Primeiros passos
+
+1. **Importe e confira:** configure idioma, backups e mapa, depois abra ou arraste fotos. Confira datas e fuso da câmera; corrija-os no espaço de metadados quando necessário.
+2. **Adicione locais:** importe GPX/KML/KMZ, selecione fotos, confira as correspondências e aplique os resultados confiáveis. Sem trajeto, use mapa, busca ou favoritos.
+3. **Complete as informações:** use campos comuns para editar rapidamente e a lista completa para outras tags e ferramentas em lote.
+4. **Salve tudo junto:** confira as alterações e clique em Salvar todos os metadados. O AMap exige sua Web JS API Key e securityJsCode; Mapas da Apple não precisa de credenciais do AMap.
+5. **Organize os nomes:** escolha o alcance e as regras, confira arquivos associados, conflitos e nomes finais e confirme. Pule esta etapa se quiser manter os nomes.
+
+Cada recurso pode ser usado separadamente. Gerar GPX ou exportar cópias com localização não sobrescreve os originais; remover fotos da lista não exclui os arquivos. Backups de arquivos locais não incluem itens da fototeca.
 
 ## Idiomas e configuração
 
@@ -20,54 +71,13 @@ Disponível em chinês simplificado, inglês, chinês tradicional, japonês, cor
 
 ![Configuração do idioma](../screenshots/pt-BR/setup.png)
 
-## Recursos
-
-**Renomeação de arquivos:** a terceira aba oferece regras e prévia em duas colunas, com 97 entradas de ações para texto, datas, sequências, etiquetas, listas e expressões regulares, além de filtros e configurações avançadas. Salve ou descarte rascunhos de metadados e confira arquivos associados e conflitos antes de executar. Adicione arquivos comuns com Adicionar arquivos; pastas e itens da fototeca ficam excluídos. O histórico permite restaurar nomes se a identidade e o conteúdo permanecerem iguais. Consulte os [limites de suporte](../BEHAVIOR.md) (chinês).
-
-- **Leitura em segundo plano e contagens:** armazena metadados completos e prioriza fotos selecionadas. As tags originais incluem dados do fabricante; as editadas contam campos pendentes de salvar. Clique para selecionar campos, use ⌘/Shift para seleção múltipla e clique duas vezes ou use a seta para editar. Copie a data de criação EXIF de cada foto para os campos de data selecionados, visualize e salve. [Histórico](../CHANGELOG.md).
-- **Editores e modelos de dispositivos:** 62 campos com controles por tipo. Escolha um nome comercial ou modelo de metadados observado, ou digite um valor próprio. O catálogo inclui 115 marcas/grupos, 7.360 pares observados e 5.023 opções marcadas como apenas nome comercial. [Catálogo e fontes](../DEVICE_CATALOG.md).
-- **Editor de metadados em lista:** títulos, descrições, autores, direitos e palavras-chave em JPEG e XMP existentes; datas, câmera/lente, exposição, predefinições, comparação e troca CSV/XMP. Inclui prévia, desfazer, salvamento manual, backup e releitura. [Destinos e limites](../BEHAVIOR.md) (chinês).
-- **Localização pelo mapa:** escolha um ponto no Mapas da Apple ou AMap. As coordenadas do AMap são verificadas e convertidas para WGS84 antes de serem aplicadas.
-- **Busca e favoritos:** visualize os resultados antes de aplicá-los. Salve locais com nomes e notas; edite, exclua ou reutilize.
-- **Lista e espaço de mapas:** filtre por localização ou alterações pendentes e ordene por importação, data de captura ou nome. A faixa de fotos tem filtros e ordenação próprios e um botão para voltar à foto atual.
-- **Edição em lote e desfazer:** selecione com Command ou Shift para aplicar, copiar, colar ou limpar localizações. Você pode desfazer e refazer antes de salvar. Remover fotos da lista não exclui os arquivos.
-- **Correspondência GPX cuidadosa:** visualize os resultados na lista e aplique os confiáveis. A interpolação fica dentro de um segmento e sua cobertura de tempo; conflitos entre trilhas não são resolvidos silenciosamente. A barra de trilhas permite preencher localizações ausentes ou substituir as da seleção.
-- **GPX a partir de fotos:** crie trilhas usando localizações e datas de captura. O fuso da câmera determina a saída UTC; intervalos longos criam segmentos separados. As trilhas ficam salvas localmente e podem ser exportadas.
-- **Histórico de trilhas:** mostre ou oculte trilhas, veja sua extensão, atualize e reutilize o cache local de conversões. As correspondências sempre usam o WGS84 original.
-- **Marcadores de fotos:** os dois mapas mostram miniaturas locais. Exiba todas as fotos ou apenas a seleção, selecione e arraste marcadores e encontre fotos selecionadas fora da área visível.
-- **Aparência e ajustes:** modo claro, escuro ou do sistema; onze estilos do AMap; visualização inicial; backups e resumo opcional antes de salvar.
-- **Pares JPG + RAW:** são exibidos juntos e ambos recebem as alterações de localização ao salvar.
-- **Cópias com localização:** exporte fora da pasta original, verifique as coordenadas gravadas e confira se os hashes dos originais permanecem iguais. Gera um relatório JSON local.
-- **Metadados:** edite a data de captura e outros campos compatíveis com salvamento explícito. Arquivos locais usam o ExifTool incluído, sem recomprimir os pixels. A fototeca usa a interface Photos do sistema.
-
-## Download e requisitos
-
-
-Veja os pacotes publicados e suas notas no [GitHub Releases](https://github.com/LittleSixNine/PhotoTrail/releases). O repositório pode conter mudanças ainda não publicadas; confira os idiomas disponíveis nas notas de cada versão.
-
-Requer **macOS 26 ou posterior**. Compatível com Apple silicon e Intel. A distribuição atual usa assinatura ad-hoc e ainda não tem assinatura Developer ID nem notarização da Apple; por isso, o macOS pode bloquear a primeira abertura.
-
-O PhotoTrail é gratuito. O download automático de atualizações fica desativado por padrão. A instalação é manual: abra o DMG, saia do PhotoTrail e arraste o app para Aplicativos.
-
-## Primeiros passos
-
-1. Configure idioma, backup das fotos, mapa e confirmação. O idioma do guia muda imediatamente; alguns avisos do sistema exigem reabrir o app.
-2. Abra fotos locais, arraste arquivos ou pastas para a janela ou selecione fotos da fototeca. Arquivos que não são imagens são ignorados; GPX são importados como trilhas.
-3. Para o AMap, insira sua **Key da API JS para web** e **securityJsCode**. Você pode fazer isso depois ou usar Mapas da Apple sem chaves do AMap.
-4. Selecione fotos e aplique um ponto do mapa, resultado de busca ou favorito. Isso cria alterações pendentes; não grava imediatamente no arquivo.
-5. Confira e salve. Você pode desfazer antes de salvar. Ao fechar com alterações pendentes, o app pede para continuar editando ou descartá-las.
-
-Para comparar com GPX, confira primeiro o fuso da câmera, importe a trilha, selecione fotos e visualize os resultados. O histórico de correspondências dura apenas a sessão atual. Importar ou mostrar uma trilha não altera as localizações das fotos.
-
-Criar GPX ou exportar cópias não sobrescreve as fotos originais. Backups de arquivos locais não incluem itens da fototeca. Atualizar a fototeca e exportar arquivos são operações distintas.
-
 ## Mapas e privacidade
 
 O AMap converte para WGS84 os locais escolhidos antes de aplicá-los. As alterações só são gravadas nas fotos quando você salva. Também é possível editar corretamente a localização de fotos tiradas na China continental.
 
 - Coordenadas existentes sem datum declarado são exibidas provisoriamente como WGS84; isso não reescreve os metadados.
 - O AMap recebe termos de busca e coordenadas necessárias para exibir o mapa e validar locais. Arquivos de fotos não são enviados.
-- Exibir uma trilha sem cache local válido envia suas coordenadas em lotes ao AMap para conversão. O arquivo GPX não é enviado nem modificado, e as correspondências continuam usando os dados WGS84 originais.
+- Exibir uma trilha sem cache local válido envia suas coordenadas em lotes ao AMap para conversão. O arquivo do trajeto não é enviado nem modificado, e as correspondências continuam usando os dados WGS84 originais.
 - As chaves ficam nas Chaves do macOS; favoritos e caches de trilhas, na pasta local do app.
 - Rótulos, resultados e nomes de lugares dependem do provedor. Sete idiomas de interface não garantem mapas em sete idiomas.
 - A validação reduz erros por misturar sistemas de coordenadas, mas não confirma a precisão do GPS original nem de um ponto escolhido manualmente.
