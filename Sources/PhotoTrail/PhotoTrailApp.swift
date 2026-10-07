@@ -163,6 +163,9 @@ extension PhotoTrailApp {
 
 extension PhotoTrailApp {
     nonisolated static let maxConcurrentTasks = 128
+    // Separate disk/ExifTool work from lightweight track parsing.
+    nonisolated static let maxConcurrentImageLoads = 8
+    nonisolated static let maxConcurrentSaves = 32
 }
 
 // Settings keys

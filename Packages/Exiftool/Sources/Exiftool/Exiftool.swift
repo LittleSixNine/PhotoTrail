@@ -17,7 +17,6 @@ public struct Exiftool: Sendable {
     // URL of the embedded version of ExifTool
     var url: URL
 
-    let dateFormatter = DateFormatter()
 
     // Build the url needed to access to the embedded version of ExifTool
 
@@ -481,7 +480,8 @@ extension Exiftool {
         ]
         // first, believe the file extension
         let ext = file.pathExtension.uppercased()
-        if Self.writableTypes.contains(ext) { return true }
+        let type = ["JPG": "JPEG", "TIF": "TIFF"][ext] ?? ext
+        if Self.writableTypes.contains(type) { return true }
 
         // Ask exiftool what it thinks the type might be and see if
         // it is in the table.
@@ -737,7 +737,7 @@ extension Exiftool {
 
         args.append(image.path)
 
-        try run(args)
+        try await runAsync(args)
     }
 
     // convert the dateTimeCreated string to a string with time zone to
@@ -747,6 +747,7 @@ extension Exiftool {
     func gpsTimestamp(for dateTime: String?,
                       in timeZone: TimeZone?) -> String? {
         if let dateTime {
+            let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = Metadata.dateFormat
             dateFormatter.timeZone = timeZone
             if let date = dateFormatter.date(from: dateTime) {
@@ -799,8 +800,27 @@ extension Exiftool {
     @discardableResult
     func run(_ args: [String]) throws -> Data {
         #if LOG_ARGS
-        Self.logger.info("\(args, privacy: .public)")
+        Self.logger.info("\(args, privacy: .private)")
         #endif
+        if ExiftoolCommandBatcher.canBatch(args) {
+            return try ExiftoolCommandBatcher.shared.run(url: url, args: args)
+        }
+        return try runOneShot(args)
+    }
+
+    private func runAsync(_ args: [String]) async throws -> Data {
+        try await ExiftoolCommandBatcher.shared.runAsync(url: url, args: args)
+    }
+
+    func runOneShot(_ args: [String]) throws -> Data {
+        let result = try Self.executeProcess(url: url, args: args)
+        Self.log(result.stderr)
+        guard result.status == 0 else { throw ExiftoolError.runFailed(code: result.status) }
+        return result.stdout
+    }
+
+    fileprivate static func executeProcess(url: URL, args: [String]) throws
+        -> (stdout: Data, stderr: Data, status: Int) {
         let exiftool = Process()
         let pipe = Pipe()
         let err = Pipe()
@@ -812,30 +832,160 @@ extension Exiftool {
 
         let output = ProcessOutput()
         let stderrFinished = DispatchSemaphore(value: 0)
-        // A dedicated reader must progress even when every cooperative worker is
-        // blocked in run(). Both pipes are drained before waiting for the result.
-        Thread.detachNewThread {
+        // Drain both pipes, including large metadata/error output, before waiting.
+        let stderrReader = Thread {
             output.setStderr(err.fileHandleForReading.readDataToEndOfFile())
             stderrFinished.signal()
         }
+        stderrReader.qualityOfService = Thread.current.qualityOfService
+        stderrReader.start()
         output.setStdout(pipe.fileHandleForReading.readDataToEndOfFile())
         exiftool.waitUntilExit()
         stderrFinished.wait()
         let data = output.data()
-        log(data.stderr)
-        let status = Int(exiftool.terminationStatus)
-        if exiftool.terminationStatus != 0 {
-            throw ExiftoolError.runFailed(code: status)
-        }
-        return data.stdout
+        return (data.stdout, data.stderr, Int(exiftool.terminationStatus))
     }
 
     // Write stderr data to the log.
 
-    private func log(_ data: Data) {
+    fileprivate static func log(_ data: Data) {
         if data.count > 0,
             let string = String(data: data, encoding: String.Encoding.utf8) {
             Self.logger.warning("stderr: \(string, privacy: .public)")
+        }
+    }
+}
+
+// Coalesce independent calls into short-lived ExifTool invocations. Unlike a
+// stay-open daemon, each process exits after its batch, including when the app exits.
+private final class ExiftoolCommandBatcher: @unchecked Sendable {
+    static let shared = ExiftoolCommandBatcher()
+    private final class Request: @unchecked Sendable {
+        let url: URL
+        let args: [String]
+        let marker = "PhotoTrail-" + UUID().uuidString + "="
+        private let condition = NSCondition()
+        private var result: Result<Data, Error>?
+        private let reply: (@Sendable (Result<Data, Error>) -> Void)?
+        init(url: URL, args: [String], reply: (@Sendable (Result<Data, Error>) -> Void)? = nil) {
+            self.url = url
+            self.args = args
+            self.reply = reply
+        }
+        func finish(_ value: Result<Data, Error>) {
+            if let reply { reply(value); return }
+            condition.lock()
+            result = value
+            condition.signal()
+            condition.unlock()
+        }
+        func wait() throws -> Data {
+            condition.lock()
+            defer { condition.unlock() }
+            while result == nil { condition.wait() }
+            return try result!.get()
+        }
+    }
+    private let condition = NSCondition()
+    private var pending: [Request] = []
+    private var active = 0
+    private let processLimit = min(8, max(1, ProcessInfo.processInfo.activeProcessorCount - 2))
+
+    private init() {
+        // Swift cooperative workers may all be waiting in run(). A native thread
+        // must own scheduling; dispatching back to the shared pool can deadlock.
+        let scheduler = Thread { self.schedule() }
+        scheduler.name = "PhotoTrail.ExifToolScheduler"
+        scheduler.qualityOfService = .userInitiated
+        scheduler.start()
+    }
+
+    static func canBatch(_ args: [String]) -> Bool {
+        !args.contains { arg in
+            let name = arg.lowercased()
+            return name == "-@" || name == "-config" || name == "-use" || name == "-common_args"
+                || name == "-stay_open" || name.hasPrefix("-execute") || name.hasPrefix("-echo")
+        }
+    }
+
+    func run(url: URL, args: [String]) throws -> Data {
+        let request = Request(url: url, args: args)
+        enqueue(request)
+        return try request.wait()
+    }
+
+    func runAsync(url: URL, args: [String]) async throws -> Data {
+        try await withCheckedThrowingContinuation { continuation in
+            enqueue(Request(url: url, args: args, reply: { continuation.resume(with: $0) }))
+        }
+    }
+
+    private func enqueue(_ request: Request) {
+        condition.lock()
+        pending.append(request)
+        condition.signal()
+        condition.unlock()
+    }
+
+    private func schedule() {
+        while true {
+            condition.lock()
+            while pending.isEmpty || active >= processLimit { condition.wait() }
+            let deadline = Date(timeIntervalSinceNow: 0.005)
+            while pending.count < 4 && Date() < deadline { _ = condition.wait(until: deadline) }
+            let first = pending[0]
+            let count = Self.canBatch(first.args)
+                ? min(4, pending.prefix { $0.url == first.url && Self.canBatch($0.args) }.count) : 1
+            let batch = Array(pending.prefix(count))
+            pending.removeFirst(count)
+            active += 1
+            condition.unlock()
+            let worker = Thread {
+                Self.execute(batch)
+                self.condition.lock()
+                self.active -= 1
+                self.condition.signal()
+                self.condition.unlock()
+            }
+            worker.name = "PhotoTrail.ExifToolBatch"
+            worker.qualityOfService = .userInitiated
+            worker.start()
+        }
+    }
+
+    private static func execute(_ batch: [Request]) {
+        // Every request gets its own exit status; never replay a write after a process error.
+        if batch.count == 1 {
+            let request = batch[0]
+            do {
+                let result = try Exiftool.executeProcess(url: request.url, args: request.args)
+                Exiftool.log(result.stderr)
+                request.finish(result.status == 0 ? .success(result.stdout)
+                               : .failure(Exiftool.ExiftoolError.runFailed(code: result.status)))
+            } catch { request.finish(.failure(error)) }
+            return
+        }
+        let args = batch.flatMap { $0.args + ["-echo3", $0.marker + "${status}", "-execute"] }
+        do {
+            let result = try Exiftool.executeProcess(url: batch[0].url, args: args)
+            Exiftool.log(result.stderr)
+            var offset = result.stdout.startIndex
+            var replies: [Result<Data, Error>] = []
+            for request in batch {
+                guard let marker = result.stdout.range(of: Data(request.marker.utf8), in: offset..<result.stdout.endIndex),
+                      let newline = result.stdout[marker.upperBound...].firstIndex(of: 10),
+                      let text = String(data: result.stdout[marker.upperBound..<newline], encoding: .utf8),
+                      let status = Int(text) else {
+                    throw Exiftool.ExiftoolError.invalidTagOutput
+                }
+                let payload = Data(result.stdout[offset..<marker.lowerBound])
+                replies.append(status == 0 ? .success(payload) : .failure(Exiftool.ExiftoolError.runFailed(code: status)))
+                offset = result.stdout.index(after: newline)
+            }
+            // Parse all command boundaries before publishing any success.
+            for (request, reply) in zip(batch, replies) { request.finish(reply) }
+        } catch {
+            for request in batch { request.finish(.failure(error)) }
         }
     }
 }

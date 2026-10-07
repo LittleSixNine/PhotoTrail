@@ -6,6 +6,7 @@ struct ImageTableView: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) var store
     @AppStorage(Self.hideInvalidImagesKey) var hideInvalidImages = false
     @Environment(MetadataLoadingQueue.self) private var metadataQueue
+    @Environment(\.displayScale) private var displayScale
     @Environment(LocationWorkspace.self) private var workspace
     @SceneStorage("PhotoTrailListFilter") private var filter: PhotoListFilter = .all
     @SceneStorage("PhotoTrailListUnmatchedOnly") private var unmatchedOnly = false
@@ -27,9 +28,11 @@ struct ImageTableView: View {
     private var resultsByID: [ImageData.ID: LocationHelper.LocationById] {
         Dictionary(uniqueKeysWithValues: workspace.listMatchResults.map { ($0.id, $0) })
     }
-    private var filteredImages: [ImageData] {
-        let results = resultsByID
-        return searchableImages.filter { image in
+    private var filteredImages: [ImageData] { filtered(searchableImages) }
+
+    private func filtered(_ images: [ImageData]) -> [ImageData] {
+        let results = unmatchedOnly ? resultsByID : [:]
+        return images.filter { image in
             filter.includes(image) && (!unmatchedOnly || results[image.id].map {
                 $0.status == .unmatched || $0.status == .ambiguous || $0.status == .missingTime
             } == true)
@@ -37,7 +40,13 @@ struct ImageTableView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        let searchable = searchableImages
+        let images = filtered(searchable)
+        var counts: [PhotoListFilter: Int] = [:]
+        for image in searchable {
+            for option in PhotoListFilter.allCases where option.includes(image) { counts[option, default: 0] += 1 }
+        }
+        return VStack(spacing: 0) {
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
                 TextField(L10n.text("搜索文件名"), text: Binding(get: { store.searchText }, set: {
@@ -53,7 +62,7 @@ struct ImageTableView: View {
                     .fixedSize()
                 Picker(L10n.text("筛选照片"), selection: $filter) {
                     ForEach(PhotoListFilter.allCases, id: \.self) { option in
-                        Text("\(L10n.text(option.rawValue)) \(searchableImages.filter { option.includes($0) }.count)").tag(option)
+                        Text("\(L10n.text(option.rawValue)) \(counts[option, default: 0])").tag(option)
                     }
                 }.pickerStyle(.menu).labelsHidden().fixedSize()
             }.padding(.leading, 14).padding(.vertical, 14)
@@ -64,17 +73,17 @@ struct ImageTableView: View {
                     Button(L10n.text("清除匹配记录")) { workspace.listMatchResults = []; unmatchedOnly = false }
                 }
                 Spacer()
-                Text(L10n.text("已选择 %1$@ 张（当前显示 %2$@ 张）", store.selection.count, store.selection.intersection(Set(filteredImages.map(\.id))).count))
+                Text(L10n.text("已选择 %1$@ 张（当前显示 %2$@ 张）", store.selection.count, store.selection.intersection(Set(images.map(\.id))).count))
                     .foregroundStyle(.secondary)
                 Button(batchActionsPresented ? L10n.text("收起照片操作") : L10n.text("照片操作")) { batchActionsPresented.toggle() }
                     .disabled(store.selection.isEmpty && !batchActionsPresented)
             }.font(.callout).padding(10)
-            photoTable
+            photoTable(images: images)
             Divider()
             HStack(spacing: 18) {
                 Label(L10n.text("待保存"), systemImage: "square.and.arrow.down").foregroundStyle(.orange)
                 Label(L10n.text("无待保存修改"), systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-                Text(L10n.text("显示 %1$@ / 共 %2$@ 张照片", filteredImages.count, store.visibleImages.count)).foregroundStyle(.secondary)
+                Text(L10n.text("显示 %1$@ / 共 %2$@ 张照片", images.count, store.visibleImages.count)).foregroundStyle(.secondary)
                 Spacer()
             }.font(.caption).padding(12)
         }
@@ -96,13 +105,13 @@ struct ImageTableView: View {
         store.send(.selectionChanged(store.selection.intersection(visible)), undoable: false)
     }
 
-    private var photoTable: some View {
+    private func photoTable(images: [ImageData]) -> some View {
         return Table(of: ImageData.self, selection: $selection, sortOrder: $sortOrder) {
             TableColumn(L10n.text("状态")) { image in
                 PhotoSaveStatus(image: image).frame(maxWidth: .infinity, alignment: .center)
             }.width(min: 40, ideal: 48, max: 160)
             TableColumn(L10n.text("预览")) { image in
-                PhotoThumbnail(image: image, showsPairedBadge: image.isPairedJPEG)
+                PhotoThumbnail(image: image, showsPairedBadge: image.isPairedJPEG, maxDimension: 80 * displayScale)
                     .frame(width: 60, height: 46).padding(.vertical, 5)
                     .frame(maxWidth: .infinity, alignment: .center)
             }.width(min: 68, ideal: 76, max: 220)
@@ -118,13 +127,7 @@ struct ImageTableView: View {
                     }
             }.width(min: 140, ideal: 220, max: 1000)
             TableColumn(L10n.text("原标签")) { image in
-                HStack(spacing: 6) {
-                    if metadataQueue.statuses[image.id] == .reading { ProgressView().controlSize(.mini) }
-                    else if metadataQueue.statuses[image.id] == .waiting { Image(systemName: "clock").foregroundStyle(.secondary) }
-                    else if metadataQueue.statuses[image.id] == .failed { Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange) }
-                    Text(metadataQueue.originalCounts[image.id].map(String.init) ?? "—").monospacedDigit()
-                }
-                .help(L10n.text("已读取的原始元数据标签数（含厂商私有信息）；不包含文件属性或派生字段。"))
+                PhotoMetadataReadStatus(row: metadataQueue.row(for: image.id))
             }.width(min: 80, ideal: 100, max: 220)
             TableColumn(L10n.text("已编辑")) { image in
                 let count = metadataQueue.editedCount(image)
@@ -132,7 +135,7 @@ struct ImageTableView: View {
                     .help(L10n.text("当前待保存的字段数；定位方向等配套标签不重复计数。"))
             }.width(min: 80, ideal: 100, max: 220)
         } rows: {
-            ForEach(filteredImages) { TableRow($0) }
+            ForEach(images) { TableRow($0) }
         }
         .background(IndependentTableColumns())
         .background(SubtleScrollbars())
@@ -173,7 +176,7 @@ struct ImageTableView: View {
             if store.imageData.isEmpty {
                 ContentUnavailableView(L10n.text("导入照片，开始整理"), systemImage: "photo.on.rectangle",
                                        description: Text(L10n.text("导入或拖入照片，即可编辑元数据、添加拍摄地点或批量重命名。")))
-            } else if filteredImages.isEmpty {
+            } else if images.isEmpty {
                 ContentUnavailableView.search(text: store.searchText)
             }
         }
@@ -183,4 +186,17 @@ struct ImageTableView: View {
 extension ImageTableView {
     static let imageTableConfigKey = "ImageTableConfig"
     static let hideInvalidImagesKey = "HideInvalidImages"
+}
+
+private struct PhotoMetadataReadStatus: View {
+    let row: MetadataLoadingQueue.Row
+    var body: some View {
+        HStack(spacing: 6) {
+            if row.status == .reading { ProgressView().controlSize(.mini) }
+            else if row.status == .waiting { Image(systemName: "clock").foregroundStyle(.secondary) }
+            else if row.status == .failed { Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange) }
+            Text(row.originalCount.map(String.init) ?? "—").monospacedDigit()
+        }
+        .help(L10n.text("已读取的原始元数据标签数（含厂商私有信息）；不包含文件属性或派生字段。"))
+    }
 }

@@ -1,6 +1,150 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "正在扫描文件…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在扫描文件…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Scanning files…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在掃描檔案…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ファイルをスキャン中…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "파일 검색 중…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Buscando archivos…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Buscando arquivos…"}}
+      }
+    },
+    "正在导入基础信息…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在导入基础信息…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Importing basic information…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在匯入基本資訊…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "基本情報を読み込み中…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "기본 정보 가져오는 중…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Importando información básica…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Importando informações básicas…"}}
+      }
+    },
+    "正在导入轨迹…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在导入轨迹…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Importing tracks…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在匯入軌跡…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "軌跡を読み込み中…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "경로 가져오는 중…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Importando rutas…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Importando trajetos…"}}
+      }
+    },
+    "已处理 %1$@/%2$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "已处理 %1$@/%2$@"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Processed: %1$@/%2$@"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "已處理 %1$@/%2$@"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "処理済み：%1$@/%2$@"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "처리됨: %1$@/%2$@"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Procesados: %1$@/%2$@"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Processados: %1$@/%2$@"}}
+      }
+    },
+    "正在估算当前阶段剩余时间…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在估算当前阶段剩余时间…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Estimating remaining time for this stage…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在估算目前階段剩餘時間…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "現在の段階の残り時間を計算中…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "현재 단계의 남은 시간 계산 중…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Estimando el tiempo restante de esta etapa…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Estimando o tempo restante desta etapa…"}}
+      }
+    },
+    "当前阶段预计剩余约 %1$@ 秒": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "当前阶段预计剩余约 %1$@ 秒"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Estimated time left in this stage: about %1$@ seconds"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "目前階段預計剩餘約 %1$@ 秒"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "現在の段階の残り時間：約 %1$@ 秒"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "현재 단계 예상 남은 시간: 약 %1$@초"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Tiempo estimado restante de esta etapa: unos %1$@ segundos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Tempo restante estimado desta etapa: cerca de %1$@ segundos"}}
+      }
+    },
+    "正在准备照片元数据…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在准备照片元数据…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Preparing photo metadata…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在準備照片中繼資料…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真のメタデータを準備中…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사진 메타데이터 준비 중…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Preparando metadatos de fotos…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Preparando metadados das fotos…"}}
+      }
+    },
+    "暂停读取": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "暂停读取"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Pause reading"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "暫停讀取"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "読み取りを一時停止"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "읽기 일시 중지"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Pausar lectura"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Pausar leitura"}}
+      }
+    },
+    "继续读取": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "继续读取"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Resume reading"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "繼續讀取"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "読み取りを再開"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "읽기 재개"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Reanudar lectura"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Retomar leitura"}}
+      }
+    },
+    "可以切换到其他应用，读取会继续。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "可以切换到其他应用，读取会继续。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "You can switch to another app while reading continues."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "可以切換到其他應用程式，讀取會繼續。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "他のアプリに切り替えても読み取りは続きます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "다른 앱으로 전환해도 읽기는 계속됩니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Puedes cambiar de aplicación mientras continúa la lectura."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Você pode mudar de aplicativo enquanto a leitura continua."}}
+      }
+    },
+    "可编辑字段：%1$@/%2$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "可编辑字段：%1$@/%2$@"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Editable fields: %1$@/%2$@"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "可編輯欄位：%1$@/%2$@"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "編集可能な項目：%1$@/%2$@"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "편집 가능한 필드: %1$@/%2$@"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Campos editables: %1$@/%2$@"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Campos editáveis: %1$@/%2$@"}}
+      }
+    },
+    "完整字段：%1$@/%2$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "完整字段：%1$@/%2$@"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Full fields: %1$@/%2$@"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "完整欄位：%1$@/%2$@"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "全項目：%1$@/%2$@"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "전체 필드: %1$@/%2$@"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Campos completos: %1$@/%2$@"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Campos completos: %1$@/%2$@"}}
+      }
+    },
     "设备": {
       "extractionState": "manual",
       "localizations": {

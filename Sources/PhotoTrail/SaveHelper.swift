@@ -4,6 +4,7 @@ import ImageData
 import Imagetool
 import Metadata
 import Phototool
+import OSLog
 import SwiftUI
 import UDF
 
@@ -16,7 +17,7 @@ enum SaveHelper {
         case saveTagError               // Metadata saved, optional Finder tag failed
     }
 
-    enum FileSaveOutcome {
+    enum FileSaveOutcome: Equatable, Sendable {
         case failed
         case saved
         case savedWithoutTag
@@ -239,7 +240,16 @@ enum SaveHelper {
                                       addTags, tagName)
     }
 
-    // Update the items in the info dictionary in a task group
+    struct LocalSaveResult: Equatable, Sendable {
+        let id: ImageData.ID
+        let metadata: Metadata
+        let sidecarCreated: Bool
+        let outcome: FileSaveOutcome
+    }
+
+    nonisolated private static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "PhotoTrail", category: "Save")
+    nonisolated private static let signposter = OSSignposter(logger: logger)
 
     // swiftlint:disable:next function_parameter_count
     nonisolated static func saveToImageTasks(_ store: Store<PhotoTrailState, PhotoTrailEvent>,
@@ -249,85 +259,8 @@ enum SaveHelper {
                                              _ timeZone: TimeZone?,
                                              _ tagFiles: Bool,
                                              _ tagName: String) async -> SaveStatus {
-        struct TaskInfo {
-            let id: ImageData.ID
-            let metadata: Metadata
-            let sidecarCreated: Bool
-            let outcome: FileSaveOutcome
-        }
-
-        var taskInfos: [TaskInfo] = []
-        var saveStatus: SaveStatus = .saveOK
-
-        func buildTaskInfo(id: ImageData.ID) async -> TaskInfo {
-            let metadata = info[id]!
-            guard case .image(let imageURL) = metadata.source else {
-                return TaskInfo(id: id, metadata: metadata,
-                                sidecarCreated: false, outcome: .failed)
-            }
-
-            var sidecarCreated = false
-            do {
-                let sandbox = try Sandbox(for: imageURL)
-                if let backupURL {
-                    try await sandbox.makeImageBackup(backupURL)
-                }
-                var savedMetadata = metadata
-                if createSidecarFiles {
-                    try sandbox.makeSidecarFile()
-                    sidecarCreated = true
-                    savedMetadata = metadata.xmp()
-                }
-                let outcome = await saveThenTag(
-                    save: { try await sandbox.saveChanges(from: savedMetadata,
-                                                          timeZone: timeZone) },
-                    tag: tagFiles ? { try await sandbox.setTag(name: tagName) } : nil)
-                return TaskInfo(id: id, metadata: savedMetadata,
-                                sidecarCreated: sidecarCreated,
-                                outcome: outcome)
-            } catch {
-                return TaskInfo(id: id, metadata: metadata,
-                                sidecarCreated: sidecarCreated,
-                                outcome: .failed)
-            }
-        }
-
-        await withTaskGroup(of: TaskInfo.self) { group in
-            let ids = Array(info.keys)
-            var limit = min(ids.count, PhotoTrailApp.maxConcurrentTasks)
-            for ix in 0..<limit {
-                group.addTask { return await buildTaskInfo(id: ids[ix]) }
-            }
-
-            for await taskInfo in group {
-                taskInfos.append(taskInfo)
-                await MainActor.run { store.send(.saveProgress(1), undoable: false) }
-                if limit < ids.count {
-                    let id = ids[limit]
-                    limit += 1
-                    group.addTask { return await buildTaskInfo(id: id) }
-                }
-            }
-        }
-        // Update state from the created TaskInfo on MainActor
-        await MainActor.run {
-            for taskInfo in taskInfos {
-                if taskInfo.sidecarCreated {
-                    store.send(.sidecarCreated(taskInfo.id), undoable: false)
-                }
-                if taskInfo.outcome.metadataSaved {
-                    store.send(.imageSaved(taskInfo.id, taskInfo.metadata),
-                               undoable: false)
-                }
-                if taskInfo.outcome == .failed {
-                    saveStatus = .saveError
-                } else if taskInfo.outcome == .savedWithoutTag,
-                          saveStatus == .saveOK {
-                    saveStatus = .saveTagError
-                }
-            }
-        }
-        return saveStatus
+        await saveLocalTasks(store, info, sidecar: false, createSidecar: createSidecarFiles,
+                             backup: backupURL, timeZone: timeZone, tagFiles: tagFiles, tagName: tagName)
     }
 
     // swiftlint:disable:next function_parameter_count
@@ -337,75 +270,94 @@ enum SaveHelper {
                                            _ timeZone: TimeZone?,
                                            _ tagFiles: Bool,
                                            _ tagName: String) async -> SaveStatus {
-        struct TaskInfo {
-            let id: ImageData.ID
-            let metadata: Metadata
-            let outcome: FileSaveOutcome
-        }
+        await saveLocalTasks(store, info, sidecar: true, createSidecar: false,
+                             backup: backupURL, timeZone: timeZone, tagFiles: tagFiles, tagName: tagName)
+    }
 
-        var taskInfos: [TaskInfo] = []
-        var saveStatus: SaveStatus = .saveOK
-
-        func buildTaskInfo(id: ImageData.ID) async -> TaskInfo {
-            let metadata = info[id]!
-            guard case .xmp(let imageURL) = metadata.source else {
-                return TaskInfo(id: id, metadata: metadata,
-                                outcome: .failed)
+    // swiftlint:disable:next function_parameter_count
+    nonisolated private static func saveLocalTasks(
+        _ store: Store<PhotoTrailState, PhotoTrailEvent>, _ info: [ImageData.ID: Metadata],
+        sidecar: Bool, createSidecar: Bool, backup: URL?, timeZone: TimeZone?,
+        tagFiles: Bool, tagName: String
+    ) async -> SaveStatus {
+        let started = ContinuousClock.now
+        var failed = 0
+        var tagFailed = 0
+        var status: SaveStatus = .saveOK
+        func buildResult(id: ImageData.ID) async -> LocalSaveResult {
+            var metadata = info[id]!
+            var created = false
+            let imageURL: URL
+            switch metadata.source {
+            case .image(let url) where !sidecar: imageURL = url
+            case .xmp(let url) where sidecar: imageURL = url
+            default: return LocalSaveResult(id: id, metadata: metadata, sidecarCreated: false, outcome: .failed)
             }
-
+            let interval = signposter.beginInterval("SaveFile", id: signposter.makeSignpostID())
+            defer { signposter.endInterval("SaveFile", interval) }
             do {
                 let sandbox = try Sandbox(for: imageURL)
-                if let backupURL {
-                    try await sandbox.makeSidecarBackup(backupURL)
+                defer { sandbox.removeSandboxFolder() }
+                if let backup {
+                    let backupInterval = signposter.beginInterval("Backup", id: signposter.makeSignpostID())
+                    defer { signposter.endInterval("Backup", backupInterval) }
+                    if sidecar { try await sandbox.makeSidecarBackup(backup) }
+                    else { try await sandbox.makeImageBackup(backup) }
                 }
+                if createSidecar {
+                    try sandbox.makeSidecarFile()
+                    created = true
+                    metadata = metadata.xmp()
+                }
+                let writeInterval = signposter.beginInterval("WriteMetadata", id: signposter.makeSignpostID())
+                let frozenMetadata = metadata
                 let outcome = await saveThenTag(
-                    save: { try await sandbox.saveChanges(from: metadata,
-                                                          timeZone: timeZone) },
+                    save: { try await sandbox.saveChanges(from: frozenMetadata, timeZone: timeZone) },
                     tag: tagFiles ? { try await sandbox.setTag(name: tagName) } : nil)
-                return TaskInfo(id: id, metadata: metadata,
-                                outcome: outcome)
+                signposter.endInterval("WriteMetadata", writeInterval)
+                if outcome == .failed { logger.error("Metadata write failed for photo ID \(id)") }
+                return LocalSaveResult(id: id, metadata: metadata, sidecarCreated: created, outcome: outcome)
             } catch {
-                return TaskInfo(id: id, metadata: metadata,
-                                outcome: .failed)
+                logger.error("Save preparation failed for photo ID \(id): \(error.localizedDescription, privacy: .private)")
+                return LocalSaveResult(id: id, metadata: metadata, sidecarCreated: created, outcome: .failed)
             }
         }
-
-        await withTaskGroup(of: TaskInfo.self) { group in
+        await withTaskGroup(of: LocalSaveResult.self) { group in
             let ids = Array(info.keys)
-            var limit = min(ids.count, PhotoTrailApp.maxConcurrentTasks)
-            for ix in 0..<limit {
-                group.addTask { return await buildTaskInfo(id: ids[ix]) }
-            }
-
-            for await taskInfo in group {
-                taskInfos.append(taskInfo)
-                await MainActor.run { store.send(.saveProgress(1), undoable: false) }
-                if limit < ids.count {
-                    let id = ids[limit]
-                    limit += 1
-                    group.addTask { return await buildTaskInfo(id: id) }
+            var next = min(ids.count, PhotoTrailApp.maxConcurrentSaves)
+            for index in 0..<next { group.addTask { await buildResult(id: ids[index]) } }
+            var pending: [LocalSaveResult] = []
+            var published = ContinuousClock.now
+            for await result in group {
+                // Replenish disk work before waiting for any UI publication.
+                if next < ids.count {
+                    let id = ids[next]
+                    next += 1
+                    group.addTask { await buildResult(id: id) }
+                }
+                if result.outcome == .failed { failed += 1; status = .saveError }
+                if result.outcome == .savedWithoutTag {
+                    tagFailed += 1
+                    if status == .saveOK { status = .saveTagError }
+                }
+                pending.append(result)
+                // Bounded batches avoid a main-thread round trip and a whole-state update per file.
+                if pending.count >= 32 || published.duration(to: .now) >= .milliseconds(150) {
+                    let batch = pending
+                    pending.removeAll(keepingCapacity: true)
+                    await MainActor.run { store.send(.localSaveBatch(batch), undoable: false) }
+                    published = .now
                 }
             }
-        }
-
-
-        // Update state from the created TaskInfo on MainActor
-        await MainActor.run {
-            for taskInfo in taskInfos {
-                if taskInfo.outcome.metadataSaved {
-                    store.send(.imageSaved(taskInfo.id, taskInfo.metadata),
-                               undoable: false)
-                }
-                if taskInfo.outcome == .failed {
-                    saveStatus = .saveError
-                } else if taskInfo.outcome == .savedWithoutTag,
-                          saveStatus == .saveOK {
-                    saveStatus = .saveTagError
-                }
+            if !pending.isEmpty {
+                let batch = pending
+                await MainActor.run { store.send(.localSaveBatch(batch), undoable: false) }
             }
         }
-        return saveStatus
+        logger.info("Local save finished: \(info.count) files, \(failed) failed, \(tagFailed) tag failures, wall time \(String(describing: started.duration(to: .now)), privacy: .public)")
+        return status
     }
+
 }
 
 extension SaveHelper {

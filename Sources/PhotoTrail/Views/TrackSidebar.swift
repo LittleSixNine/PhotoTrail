@@ -105,12 +105,7 @@ struct TrackSidebar: View {
             guard case .success(let urls) = result else { return }
             importNotice = urls.contains { library.record($0.standardizedFileURL.path) != nil }
                 ? L10n.text("已导入的文件会更新原条目，不会重复添加。") : nil
-            store.send(.openFiles(urls), undoable: false) {
-                if let unique = store.uniqueURLs {
-                    OpenHelper.open(store, urls: unique, description: L10n.text("导入轨迹"), spinnerEnabled: nil)
-                    store.send(.clearUniqueURLs, undoable: false)
-                }
-            }
+            OpenHelper.importFiles(store, urls: urls, description: L10n.text("导入轨迹"))
         }
         .fileExporter(isPresented: $exporting, document: exportDocument,
                       contentType: PhotoGPXDocument.contentType,

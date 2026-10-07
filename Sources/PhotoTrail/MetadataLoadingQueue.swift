@@ -3,7 +3,7 @@ import ImageData
 import Observation
 import SwiftUI
 
-/// One reader per window. Interactive jobs move ahead of waiting background jobs;
+/// A bounded reader queue per window. Interactive jobs move ahead of waiting background jobs;
 /// an already running ExifTool process is allowed to finish safely.
 @Observable @MainActor
 final class MetadataLoadingQueue {
@@ -17,36 +17,110 @@ final class MetadataLoadingQueue {
         let versions: [MetadataInspectionFileVersion]
         let value: MetadataInspectorReadCache.Value?
     }
-    var statuses: [ImageData.ID: Status] = [:]
-    var originalCounts: [ImageData.ID: Int] = [:]
-    var total = 0
+    @Observable final class Row {
+        var status: Status = .waiting
+        var originalCount: Int?
+        @ObservationIgnored var editableRead = false
+        @ObservationIgnored var displayRead = false
+    }
+    @ObservationIgnored private var rows: [ImageData.ID: Row] = [:]
+    var statuses: [ImageData.ID: Status] { rows.mapValues(\.status) }
+    var originalCounts: [ImageData.ID: Int] { rows.compactMapValues(\.originalCount) }
+    @Observable final class ReadProgress {
+        var completed = 0
+        var failures = 0
+        var total = 0
+        var editableRead = 0
+        var displayRead = 0
+        var isPaused = false
+        var remainingSeconds: Double?
+        @ObservationIgnored private var editableEstimate = RemainingTimeEstimate()
+        @ObservationIgnored private var displayEstimate = RemainingTimeEstimate()
+        func resetTiming() {
+            editableEstimate.reset(completed: editableRead)
+            displayEstimate.reset(completed: displayRead)
+            remainingSeconds = nil
+        }
+        func updateTiming() {
+            editableEstimate.update(completed: editableRead)
+            displayEstimate.update(completed: displayRead)
+            remainingSeconds = editableRead < total
+                ? editableEstimate.seconds(total: total) : displayEstimate.seconds(total: total)
+        }
+    }
+    let progress = ReadProgress()
+    var completed: Int { progress.completed }
+    var failures: Int { progress.failures }
+    var total: Int { progress.total }
+    private(set) var isPreparing = false
+    @ObservationIgnored private var userPaused = false
+    @ObservationIgnored private let maxConcurrentReads: Int
+    @ObservationIgnored private var paused = false
     @ObservationIgnored private var targets: [ImageData.ID: MetadataInspectionRequest] = [:]
     @ObservationIgnored private var records: [MetadataInspectorReadCache.Key: Record] = [:]
     @ObservationIgnored private var jobs: [Job] = []
     @ObservationIgnored private var queuedKeys: Set<MetadataInspectorReadCache.Key> = []
-    @ObservationIgnored private var current: Job?
+    @ObservationIgnored private var current: [Job] = []
     @ObservationIgnored private var worker: Task<Void, Never>?
     @ObservationIgnored private var selectedIDs: Set<ImageData.ID> = []
     @ObservationIgnored private var waiters:
         [MetadataInspectorReadCache.Key: [CheckedContinuation<MetadataInspectorReadCache.Value?, Never>]] = [:]
     @ObservationIgnored private let reader: @Sendable (Job) async -> MetadataInspectorReadCache.Value?
 
-    init(reader: @escaping @Sendable (Job) async -> MetadataInspectorReadCache.Value? = { job in
+    init(maxConcurrentReads: Int = min(4, max(1, ProcessInfo.processInfo.activeProcessorCount - 2)), reader: @escaping @Sendable (Job) async -> MetadataInspectorReadCache.Value? = { job in
         await Task.detached(priority: job.priority < 2 ? .userInitiated : .utility) {
             MetadataLoadingQueue.load(job)
         }.value
-    }) { self.reader = reader }
+    }) {
+        self.reader = reader
+        self.maxConcurrentReads = max(1, min(4, maxConcurrentReads))
+    }
 
-    var completed: Int { statuses.values.filter { $0 == .ready || $0 == .failed }.count }
-    var failures: Int { statuses.values.filter { $0 == .failed }.count }
+    func row(for id: ImageData.ID) -> Row {
+        if let row = rows[id] { return row }
+        let row = Row()
+        rows[id] = row
+        return row
+    }
+
+    private func setStatus(_ status: Status, for id: ImageData.ID) {
+        let row = row(for: id)
+        let wasCompleted = row.status == .ready || row.status == .failed
+        let isCompleted = status == .ready || status == .failed
+        if wasCompleted != isCompleted { progress.completed += isCompleted ? 1 : -1 }
+        if (status == .failed) != (row.status == .failed) { progress.failures += status == .failed ? 1 : -1 }
+        if row.status != status { row.status = status }
+    }
+
+    func setPaused(_ value: Bool) {
+        if paused != value { progress.resetTiming() }
+        paused = value
+        if !value { start() }
+    }
+
+    func pauseReading() {
+        progress.resetTiming()
+        userPaused = true
+        progress.isPaused = true
+        isPreparing = false
+    }
+
+    func resumeReading() {
+        progress.resetTiming()
+        userPaused = false
+        progress.isPaused = false
+        start()
+    }
 
     func synchronize(_ images: [ImageData]) {
+        let previousTargets = targets
         targets = Dictionary(uniqueKeysWithValues: images.map {
             ($0.id, MetadataInspectionRequest(id: $0.id, url: $0.metadataInspectionURL,
                                              creatorImageURL: $0.metadataCreatorImageURL))
         })
-        statuses = statuses.filter { targets[$0.key] != nil }
-        originalCounts = originalCounts.filter { targets[$0.key] != nil }
+        rows = rows.filter { targets[$0.key] != nil }
+        progress.completed = rows.values.filter { $0.status == .ready || $0.status == .failed }.count
+        progress.failures = rows.values.filter { $0.status == .failed }.count
         let retained = Set(targets.values.compactMap { key($0, kind: .editable) })
             .union(targets.values.compactMap { key($0, kind: .additional) })
         records = records.filter { retained.contains($0.key) }
@@ -56,14 +130,20 @@ final class MetadataLoadingQueue {
         for removed in Array(waiters.keys).filter({ !retained.contains($0) }) {
             waiters.removeValue(forKey: removed)?.forEach { $0.resume(returning: nil) }
         }
-        total = images.filter { $0.metadataInspectionURL != nil && $0.metadataCreatorImageURL != nil }.count
+        progress.editableRead = rows.values.filter(\.editableRead).count
+        progress.displayRead = rows.values.filter(\.displayRead).count
+        progress.total = images.filter { $0.metadataInspectionURL != nil && $0.metadataCreatorImageURL != nil }.count
         for image in images {
             let request = targets[image.id]!
-            guard key(request, kind: .editable) != nil else { statuses[image.id] = .unsupported; continue }
+            guard key(request, kind: .editable) != nil else { setStatus(.unsupported, for: image.id); continue }
             enqueue(request, kind: .editable)
             enqueue(request, kind: .additional)
             updateStatus(request)
         }
+        if previousTargets != targets { progress.resetTiming() }
+        // Small selections remain interactive; a large uncached import gets a preparation page.
+        if !userPaused && Set(jobs.map { $0.request.id }).count >= 100 { isPreparing = true }
+        if jobs.isEmpty && current.isEmpty { isPreparing = false }
         start()
     }
 
@@ -75,14 +155,16 @@ final class MetadataLoadingQueue {
 
     func refresh(ids: Set<ImageData.ID>) {
         let urls = Set(ids.compactMap { targets[$0] }.flatMap { [$0.url, $0.creatorImageURL].compactMap { $0 } })
+        progress.resetTiming()
         MetadataInspectorReadCache.shared.invalidate(urls: urls)
         records = records.filter { !urls.contains($0.key.url) && !urls.contains($0.key.imageURL) }
         for id in ids {
             guard let request = targets[id] else { continue }
-            originalCounts[id] = nil
-            statuses[id] = .waiting
+            row(for: id).originalCount = nil
+            setStatus(.waiting, for: id)
             enqueue(request, kind: .editable)
             enqueue(request, kind: .additional)
+            updateStatus(request)
         }
         start()
     }
@@ -121,7 +203,7 @@ final class MetadataLoadingQueue {
     private func enqueue(_ request: MetadataInspectionRequest, kind: MetadataInspectorReadCache.Kind) {
         guard let key = key(request, kind: kind) else { return }
         if let record = records[key], record.versions == request.versions { return }
-        guard current?.key != key, !queuedKeys.contains(key) else { return }
+        guard !current.contains(where: { $0.key == key }), !queuedKeys.contains(key) else { return }
         let job = Job(request: request, key: key, priority: rank(request, kind: kind))
         if jobs.last.map({ $0.priority <= job.priority }) ?? true {
             jobs.append(job)
@@ -131,32 +213,41 @@ final class MetadataLoadingQueue {
         queuedKeys.insert(key)
     }
     private func start() {
-        guard worker == nil, !jobs.isEmpty else { return }
+        guard !paused, !userPaused, worker == nil, !jobs.isEmpty else { return }
         worker = Task { [weak self] in
             guard let self else { return }
-            while !jobs.isEmpty {
-                let job = jobs.removeFirst()
-                queuedKeys.remove(job.key)
-                current = job
-                statuses[job.request.id] = .reading
-                let versions = job.request.versions
-                let value = await reader(job)
-                current = nil
-                if targets[job.request.id] == job.request, job.request.versions == versions {
-                    records[job.key] = Record(versions: versions, value: value)
-                    if let value { MetadataInspectorReadCache.shared.insert(value, for: job.key, versions: versions) }
-                    updateStatus(job.request)
-                    waiters.removeValue(forKey: job.key)?.forEach { $0.resume(returning: value) }
-                } else {
-                    waiters.removeValue(forKey: job.key)?.forEach { $0.resume(returning: nil) }
-                    if let latest = targets[job.request.id] {
-                        enqueue(latest, kind: job.key.kind)
-                        statuses[job.request.id] = .waiting
+            while !paused && !userPaused && !jobs.isEmpty {
+                let batch = Array(jobs.prefix(maxConcurrentReads))
+                jobs.removeFirst(batch.count)
+                current = batch
+                for job in batch {
+                    queuedKeys.remove(job.key)
+                    setStatus(.reading, for: job.request.id)
+                }
+                await withTaskGroup(of: (Job, [MetadataInspectionFileVersion], MetadataInspectorReadCache.Value?).self) { group in
+                    for job in batch {
+                        let versions = job.request.versions
+                        group.addTask { [reader] in (job, versions, await reader(job)) }
+                    }
+                    for await (job, versions, value) in group {
+                        current.removeAll { $0.key == job.key }
+                        if targets[job.request.id] == job.request, job.request.versions == versions {
+                            records[job.key] = Record(versions: versions, value: value)
+                            if let value { MetadataInspectorReadCache.shared.insert(value, for: job.key, versions: versions) }
+                            updateStatus(job.request)
+                            waiters.removeValue(forKey: job.key)?.forEach { $0.resume(returning: value) }
+                        } else {
+                            waiters.removeValue(forKey: job.key)?.forEach { $0.resume(returning: nil) }
+                            if let latest = targets[job.request.id] {
+                                enqueue(latest, kind: job.key.kind)
+                                updateStatus(latest)
+                            }
+                        }
                     }
                 }
-                current = nil
             }
             worker = nil
+            if jobs.isEmpty { isPreparing = false }
         }
     }
     private func updateStatus(_ request: MetadataInspectionRequest) {
@@ -164,12 +255,23 @@ final class MetadataLoadingQueue {
         let versions = request.versions
         let core = records[coreKey].flatMap { $0.versions == versions ? $0 : nil }
         let full = records[fullKey].flatMap { $0.versions == versions ? $0 : nil }
-        if case .display(let tags) = full?.value {
-            originalCounts[request.id] = Self.originalCount(tags)
-        } else { originalCounts[request.id] = nil }
+        let row = row(for: request.id)
+        if row.editableRead != (core != nil) {
+            progress.editableRead += core != nil ? 1 : -1
+            row.editableRead = core != nil
+        }
+        if row.displayRead != (full != nil) {
+            progress.displayRead += full != nil ? 1 : -1
+            row.displayRead = full != nil
+        }
+        progress.updateTiming()
+        let count: Int?
+        if case .display(let tags) = full?.value { count = Self.originalCount(tags) }
+        else { count = nil }
+        if row.originalCount != count { row.originalCount = count }
         if core != nil && full != nil {
-            statuses[request.id] = core?.value == nil || full?.value == nil ? .failed : .ready
-        } else { statuses[request.id] = current?.request.id == request.id ? .reading : .waiting }
+            setStatus(core?.value == nil || full?.value == nil ? .failed : .ready, for: request.id)
+        } else { setStatus(current.contains { $0.request.id == request.id } ? .reading : .waiting, for: request.id) }
     }
     static func originalCount(_ tags: [String: String]) -> Int {
         tags.keys.filter {
@@ -212,7 +314,16 @@ final class MetadataLoadingQueue {
             let value: MetadataInspectorReadCache.Value
             if job.key.kind == .editable {
                 let snapshot = try MetadataInspectionSnapshot.read(Set(MetadataTag.allCases), from: url)
-                let legacy = try Exiftool.helper.legacyCreatorTags(from: imageURL)
+                let legacy: [LegacyCreatorTag: [String]]
+                if imageURL == url {
+                    // These exact compatibility fields are already in the typed whitelist read.
+                    var existing: [LegacyCreatorTag: [String]] = [:]
+                    if case .text(let artist) = snapshot.values[.exifArtist] { existing[.exifArtist] = [artist] }
+                    if case .list(let byline) = snapshot.values[.iptcByline] { existing[.iptcByline] = byline }
+                    legacy = existing
+                } else {
+                    legacy = try Exiftool.helper.legacyCreatorTags(from: imageURL)
+                }
                 value = .editable(snapshot, legacy)
             } else {
                 var tags = try Exiftool.helper.inspectionTags(from: url)

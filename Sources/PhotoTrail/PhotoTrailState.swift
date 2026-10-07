@@ -61,6 +61,7 @@ struct PhotoTrailState {
     var textfieldActive = false
 
     // Image import variables
+    let importProgress = ImportProgress()
     var importFiles = false
     var uniqueURLs: [URL]?
     var ignoredFileCount = 0

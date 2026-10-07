@@ -2,12 +2,69 @@ import Coords
 import Foundation
 import ImageData
 import Metadata
+import SwiftUI
+import PhotosUI
 import Testing
 import UDF
 @testable import PhotoTrail
 
 @MainActor
 struct PhotoListTests {
+    @Test func thumbnailCacheCoalescesLoadsAndSeparatesDisplaySizes() async {
+        var reads = 0
+        let cache = PhotoThumbnailCache { _, _, _ in
+            reads += 1
+            await Task.yield()
+            return Image(systemName: "photo")
+        }
+        let image = ImageData(metadata: Metadata(source: .copy), name: "test.jpg")
+        async let first = cache.image(for: image, scale: 2, maxDimension: 160)
+        async let second = cache.image(for: image, scale: 2, maxDimension: 160)
+        _ = await (first, second)
+        #expect(reads == 1)
+        _ = await cache.image(for: image, scale: 2, maxDimension: 160)
+        #expect(reads == 1)
+        _ = await cache.image(for: image, scale: 2, maxDimension: 1024)
+        #expect(reads == 2)
+    }
+
+    @Test func photosCacheRetainsOriginalTransferSizeInsteadOfTinyBitmapAccounting() async {
+        var sizes: [Double] = []
+        let cache = PhotoThumbnailCache { _, _, size in
+            sizes.append(size)
+            return Image(systemName: "photo")
+        }
+        let image = ImageData(metadata: Metadata(source: .photos(PhotosPickerItem(itemIdentifier: "test"), nil)),
+                              name: "library.jpg")
+        _ = await cache.image(for: image, scale: 2, maxDimension: 160)
+        _ = await cache.image(for: image, scale: 2, maxDimension: 1024)
+        #expect(sizes == [1024])
+    }
+
+    @Test func cancellingOneThumbnailConsumerDoesNotCancelAnother() async {
+        var reads = 0
+        var release: CheckedContinuation<Void, Never>?
+        var secondStarted = false
+        let cache = PhotoThumbnailCache { _, _, _ in
+            reads += 1
+            await withCheckedContinuation { release = $0 }
+            return Image(systemName: "photo")
+        }
+        let image = ImageData(metadata: Metadata(source: .copy), name: "shared.jpg")
+        let first = Task { await cache.image(for: image, scale: 2, maxDimension: 160) }
+        while release == nil { await Task.yield() }
+        let second = Task {
+            secondStarted = true
+            return await cache.image(for: image, scale: 2, maxDimension: 160)
+        }
+        while !secondStarted { await Task.yield() }
+        first.cancel()
+        release?.resume()
+        _ = await (first.value, second.value)
+        _ = await cache.image(for: image, scale: 2, maxDimension: 160)
+        #expect(reads == 1)
+    }
+
     @Test func removeFromListPreservesFilesAndCanUndoPairedPendingEdits() throws {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

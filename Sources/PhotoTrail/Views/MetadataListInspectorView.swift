@@ -135,6 +135,7 @@ struct MetadataListInspectorView: View {
     @Environment(MetadataLoadingQueue.self) private var metadataQueue
     @Environment(\.scenePhase) private var scenePhase
     @State private var results: [ImageData.ID: MetadataInspectionRead] = [:]
+    @State private var checkingVersions = false
     @State private var observedVersions: [MetadataInspectionFileVersion] = []
     @State private var loading = false
     @State private var loadID = UUID()
@@ -174,9 +175,10 @@ struct MetadataListInspectorView: View {
     }
 
     private var loadKey: LoadKey {
-        LoadKey(ids: selected.map(\.id),
-                urls: selected.map(\.metadataInspectionURL),
-                creatorImageURLs: selected.map(\.metadataCreatorImageURL),
+        let images = selected
+        return LoadKey(ids: images.map(\.id),
+                urls: images.map(\.metadataInspectionURL),
+                creatorImageURLs: images.map(\.metadataCreatorImageURL),
                 revision: revision)
     }
 
@@ -184,13 +186,11 @@ struct MetadataListInspectorView: View {
         selected.flatMap(\.metadataInspectionVersions)
     }
 
-    private func reloadIfFilesChanged() {
-        guard selectedVersions != observedVersions else { return }
-        revision += 1
-    }
 
-    private var completeValues: [[MetadataTag: MetadataTagValue]]? {
-        let values = selected.compactMap { image -> [MetadataTag: MetadataTagValue]? in
+    private var completeValues: [[MetadataTag: MetadataTagValue]]? { completeValues(for: selected) }
+
+    private func completeValues(for images: [ImageData]) -> [[MetadataTag: MetadataTagValue]]? {
+        let values = images.compactMap { image -> [MetadataTag: MetadataTagValue]? in
             guard case .values(let snapshot, _) = results[image.id] else { return nil }
             var values = snapshot.values
             for (tag, change) in image.creatorDraft?.changes ?? [:] {
@@ -201,7 +201,7 @@ struct MetadataListInspectorView: View {
             }
             return values
         }
-        return values.count == selected.count ? values : nil
+        return values.count == images.count ? values : nil
     }
 
     private var completeLegacyValues: [[LegacyCreatorTag: [String]]]? {
@@ -222,7 +222,7 @@ struct MetadataListInspectorView: View {
     }
 
     private var editableCreatorReadings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)]? {
-        guard !selected.isEmpty, !store.saveInProgress else { return nil }
+        guard !store.saveInProgress, !selected.isEmpty else { return nil }
         var readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)] = []
         for image in selected {
             guard image.updatable, !image.hasLegacyChanges,
@@ -301,11 +301,13 @@ struct MetadataListInspectorView: View {
     }
 
     var body: some View {
-        ScrollViewReader { proxy in
+        let images = selected
+        let values = completeValues(for: images)
+        return ScrollViewReader { proxy in
             VStack(spacing: 0) {
                 inspectorHeader
                 Divider()
-                if selected.isEmpty {
+                if images.isEmpty {
                     Text(L10n.text("Please select an image"))
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -316,7 +318,7 @@ struct MetadataListInspectorView: View {
                         Group {
                             if loading {
                                 ProgressView()
-                            } else if completeValues == nil {
+                            } else if values == nil {
                                 Text(L10n.text("部分照片无法读取描述元数据；暂不汇总字段。"))
                                     .foregroundStyle(.secondary)
                                 if readFailureCount > 0 {
@@ -328,12 +330,12 @@ struct MetadataListInspectorView: View {
                             if advancedFailed {
                                 Text(L10n.text("部分照片无法读取描述元数据；暂不汇总字段。"))
                             }
-                            if commonOnly && fieldQuery.isEmpty, let completeValues {
+                            if commonOnly && fieldQuery.isEmpty, let completeValues = values {
                                 MetadataCommonFieldsView(values: completeValues, readings: editableCreatorReadings,
-                                    usesSidecar: selected.contains { if case .xmp = $0.metadata.source { true } else { false } },
+                                    usesSidecar: images.contains { if case .xmp = $0.metadata.source { true } else { false } },
                                     showField: { tag in
                                         matchesQuery(tag.rawValue, group: advancedGroup(tag.rawValue),
-                                                     selected: selected, completeValues: completeValues)
+                                                     selected: images, completeValues: completeValues)
                                     }, openEditor: { tag in
                                         if let readings = editableCreatorReadings {
                                             creatorEditor = MetadataCreatorEditorSelection(readings: readings, tag: tag)
@@ -343,14 +345,14 @@ struct MetadataListInspectorView: View {
                                             workflowEditor = MetadataCreatorEditorSelection(readings: readings, tag: .captureDate)
                                         }
                                     }, showAll: { commonOnly = false })
-                                    .id(selected.map(\.id))
+                                    .id(images.map(\.id))
                                     .selectionDisabled().listRowSeparator(.hidden)
-                            } else if completeValues != nil || !advanced.isEmpty { advancedFields() }
+                            } else if values != nil || !advanced.isEmpty { advancedFields() }
                             if store.metadataSaveCancelled {
                                 Text(L10n.text("已停止后续写入；尚未保存的草稿保留。"))
                                     .font(.caption).foregroundStyle(.orange)
                             }
-                            if editableCreatorReadings == nil, completeValues != nil, !store.saveInProgress {
+                            if !store.saveInProgress, editableCreatorReadings == nil, values != nil {
                                 Text(editUnavailableReason)
                                     .font(.caption).foregroundStyle(.secondary)
                             }
@@ -1166,4 +1168,23 @@ private extension MetadataListInspectorView {
         default: "list.bullet.rectangle"
         }
     }
+}
+
+extension MetadataListInspectorView {
+    private func reloadIfFilesChanged() {
+        guard !store.saveInProgress, !checkingVersions else { return }
+        let key = loadKey
+        let requests = selected.map {
+            MetadataInspectionRequest(id: $0.id, url: $0.metadataInspectionURL,
+                                      creatorImageURL: $0.metadataCreatorImageURL)
+        }
+        checkingVersions = true
+        Task { @MainActor in
+            defer { checkingVersions = false }
+            let versions = await Task.detached(priority: .utility) { requests.flatMap(\.versions) }.value
+            guard !store.saveInProgress, key == loadKey, versions != observedVersions else { return }
+            revision += 1
+        }
+    }
+
 }

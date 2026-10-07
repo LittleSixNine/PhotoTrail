@@ -15,7 +15,6 @@ struct ContentView: View {
     @State private var metadataQueue = MetadataLoadingQueue()
     @State private var sheetType: SheetType?
     @State private var importFiles = false
-    @State private var spinnerEnabled = false
     @State private var ignoredFileNotice: Int?
     @State private var ignoredFileNoticeID = UUID()
     @State private var inspectorPresented = false
@@ -67,18 +66,16 @@ struct ContentView: View {
                     .padding(.vertical, 8)
                     .background(Color.blue.opacity(0.10))
             }
-            if metadataQueue.total > 0 && !renameSelected {
-                HStack(spacing: 12) {
-                    ProgressView(value: Double(metadataQueue.completed), total: Double(metadataQueue.total))
-                        .frame(width: 160)
-                    Text(L10n.text("元数据：已读取 %1$@/%2$@，失败 %3$@",
-                                   metadataQueue.completed - metadataQueue.failures, metadataQueue.total, metadataQueue.failures))
-                        .font(.caption).monospacedDigit().foregroundStyle(.secondary)
-                    Spacer()
-                }.padding(.horizontal, 14).padding(.vertical, 6)
+            if !renameSelected && !metadataQueue.isPreparing && !store.importProgress.isActive {
+                MetadataReadProgressView(progress: metadataQueue.progress,
+                                         pause: metadataQueue.pauseReading, resume: metadataQueue.resumeReading)
             }
             Group {
-                if renameSelected {
+                if store.importProgress.isActive {
+                    ImportPreparationView(progress: store.importProgress)
+                } else if metadataQueue.isPreparing && !store.saveInProgress && !renameSelected {
+                    MetadataPreparationView(progress: metadataQueue.progress, pause: metadataQueue.pauseReading)
+                } else if renameSelected {
                     RenameWorkspaceView(workspace: renameWorkspace)
                 } else if alternateLayout {
                     PhotoDetailPage()
@@ -100,7 +97,6 @@ struct ContentView: View {
                 }
             }
             .id(language)
-            .overlay { if spinnerEnabled { ProgressView(L10n.text("正在导入照片…")) } }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .tint(.blue)
@@ -111,13 +107,19 @@ struct ContentView: View {
     var body: some View {
         workspaceContent
         .onAppear {
+            metadataQueue.setPaused(store.saveInProgress || store.importProgress.isActive)
             metadataQueue.prioritize(ids: store.selection)
             metadataQueue.synchronize(store.imageData)
         }
         .onChange(of: store.imageData.map(\.id)) { metadataQueue.synchronize(store.imageData) }
         .onChange(of: store.imageData.map(\.metadataInspectionURL)) { metadataQueue.synchronize(store.imageData) }
+        .onChange(of: store.importProgress.isActive) {
+            metadataQueue.setPaused(store.saveInProgress || store.importProgress.isActive)
+            if !store.importProgress.isActive { metadataQueue.synchronize(store.imageData) }
+        }
         .onChange(of: store.selection) { metadataQueue.prioritize(ids: store.selection) }
         .onChange(of: store.saveInProgress) {
+            metadataQueue.setPaused(store.saveInProgress || store.importProgress.isActive)
             if !store.saveInProgress { metadataQueue.synchronize(store.imageData) }
         }
         .background(CredentialChangeObserver(workspace: locationWorkspace))
@@ -253,20 +255,8 @@ struct ContentView: View {
     private func importLocalFiles(_ files: [URL], description: String) {
         ignoredFileNotice = nil
         ignoredFileNoticeID = UUID()
-        store.send(.openFiles(files), undoable: false) {
-            let urls = store.uniqueURLs ?? []
-            let ignoredCount = store.ignoredFileCount
-            store.send(.clearUniqueURLs, undoable: false)
-            guard !urls.isEmpty else {
-                showIgnoredFileNotice(ignoredCount)
-                return
-            }
-            let task = OpenHelper.open(store, urls: urls, description: description,
-                                       spinnerEnabled: $spinnerEnabled)
-            Task {
-                _ = await task.result
-                showIgnoredFileNotice(ignoredCount)
-            }
+        OpenHelper.importFiles(store, urls: files, description: description) {
+            showIgnoredFileNotice(store.ignoredFileCount)
         }
     }
 

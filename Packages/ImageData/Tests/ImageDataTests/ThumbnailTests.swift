@@ -20,6 +20,14 @@ struct ThumbnailTests {
         #expect(image != badImage)
     }
 
+    @Test func cancelledQueuedThumbnailCompletesWithoutRenderingPlaceholder() async throws {
+        let url = try #require(Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
+        let image = ImageData(metadata: Metadata(source: .image(url)), name: "cancelled.jpg")
+        let task = Task { await image.makeThumbnail(scale: 2, maxDimension: 160) }
+        task.cancel()
+        #expect(await task.value == badImage)
+    }
+
     @Test func imageWithXmpThumbnail() async throws {
         let url = try #require(
             Bundle.module.url(forResource: "262M1559",

@@ -19,8 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func application(_ application: NSApplication, open urls: [URL]) {
         if let store {
-            OpenHelper.open(store, urls: urls, description: "open with",
-                            spinnerEnabled: nil)
+            OpenHelper.importFiles(store, urls: urls, description: "open with")
             if store.mainWindow?.isVisible == false {
                 store.mainWindow?.orderFront(self)
             }

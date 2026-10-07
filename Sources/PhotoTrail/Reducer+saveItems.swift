@@ -58,6 +58,25 @@ struct SaveTargets {
 
 extension PhotoTrailReducer {
 
+    func applyLocalSaveBatch(_ newState: inout PhotoTrailState, _ results: [SaveHelper.LocalSaveResult]) {
+        let indices = Dictionary(uniqueKeysWithValues: newState.imageData.indices.map {
+            (newState.imageData[$0].id, $0)
+        })
+        for result in results {
+            guard let index = indices[result.id] else { continue }
+            if result.sidecarCreated, case .image = newState.imageData[index].metadata.source {
+                newState.imageData[index].metadata = newState.imageData[index].metadata.xmp()
+            }
+            if result.outcome.metadataSaved {
+                if newState.imageData[index].original?.location != result.metadata.location {
+                    newState.locationSavedPhotoIDs.insert(result.id)
+                }
+                newState.imageData[index].original = Metadata(copying: result.metadata)
+            }
+        }
+        newState.saveCompleted = min(newState.saveTotal, newState.saveCompleted + results.count)
+    }
+
     func clearCreatorDraft(_ state: inout PhotoTrailState, id: ImageData.ID, discard: Bool) {
         guard state.imageData.contains(where: { $0.id == id }) else { return }
         if state[id].creatorDraft?.captureDateChange != nil {

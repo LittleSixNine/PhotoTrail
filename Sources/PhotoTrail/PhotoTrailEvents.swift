@@ -42,6 +42,7 @@ enum PhotoTrailEvent: Equatable {
     case goodGpxFile(String)
     case gpxLoadViewClosed
     case imageSaved(ImageData.ID, Metadata)
+    case localSaveBatch([SaveHelper.LocalSaveResult])
     case initBackupURL
     case noBackupNotice
     case initPlaces([Place])
@@ -57,6 +58,7 @@ enum PhotoTrailEvent: Equatable {
     case newThumbnail(ImageData.ID, Image)
     case newTimestamp(Date, TimeInterval)
     case openCommand
+    case filesScanned([URL], ignored: Int, scoped: [URL])
     case openFiles([URL])
     case pasteRequest
     case placeSelection(Place)
@@ -119,6 +121,7 @@ extension PhotoTrailEvent: CustomStringConvertible {
         case .goodGpxFile: "goodGpxFile"
         case .gpxLoadViewClosed: "gpxLoadViewClosed"
         case .imageSaved: "imageSaved"
+        case .localSaveBatch: "localSaveBatch"
         case .initBackupURL: "initBackupURL"
         case .noBackupNotice: "noBackupNotice"
         case .initPlaces: "initPlaces"
@@ -134,6 +137,7 @@ extension PhotoTrailEvent: CustomStringConvertible {
         case .newThumbnail: "newThumbnail"
         case .newTimestamp: "newTimestamp"
         case .openCommand: "openCommand"
+        case .filesScanned: "filesScanned"
         case .openFiles: "openFiles"
         case .pasteRequest: "pasteRequest"
         case .placeSelection: "placeSelection"

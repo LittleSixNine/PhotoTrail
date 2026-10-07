@@ -6,14 +6,33 @@ import UDF
 
 enum OpenHelper {
 
+    @MainActor @discardableResult
+    static func importFiles(_ store: Store<PhotoTrailState, PhotoTrailEvent>, urls: [URL],
+                            description: String, finished: (@MainActor () -> Void)? = nil) -> Task<Void, Never> {
+        Task { @MainActor in
+            guard !store.saveInProgress, !store.importProgress.isActive else { return }
+            let progress = store.importProgress
+            progress.begin(.scanning)
+            defer { progress.finish(); finished?() }
+            let result = await Task.detached(priority: .utility) { PhotoTrailReducer().scanFiles(urls) }.value
+            store.send(.filesScanned(result.urls, ignored: result.ignored, scoped: result.scoped), undoable: false)
+            let unique = store.uniqueURLs ?? []
+            store.send(.clearUniqueURLs, undoable: false)
+            guard !unique.isEmpty else { return }
+            await open(store, urls: unique, description: description, spinnerEnabled: nil, ownsProgress: false).value
+        }
+    }
+
     // Start a mainactor task to process image and track files. The
     // task is returned so code tests can wait until the task is complete.
 
-    @discardableResult
+    @MainActor @discardableResult
     static func open(_ store: Store<PhotoTrailState, PhotoTrailEvent>, urls: [URL],
                      description: String,
-                     spinnerEnabled: Binding<Bool>?) -> Task<Void, Never> {
+                     spinnerEnabled: Binding<Bool>?, ownsProgress: Bool = true) -> Task<Void, Never> {
         let task = Task { @MainActor in
+            guard !store.saveInProgress, !ownsProgress || !store.importProgress.isActive else { return }
+            defer { if ownsProgress { store.importProgress.finish() } }
             if let spinnerEnabled {
                 spinnerEnabled.wrappedValue = true
             }
@@ -31,17 +50,19 @@ enum OpenHelper {
     // Create ImageData entries for imported images and add them
     // to the table.
 
-    static private
+    @MainActor static private
     func images(for urls: [URL],
                 store: Store<PhotoTrailState, PhotoTrailEvent>) async {
         let imageURLs = urls.filter(\.isSupportedPhotoImage)
         guard !imageURLs.isEmpty else { return }
+        store.importProgress.begin(.images, total: imageURLs.count)
         var newImages: [ImageData] = []
+        var lastProgress = ProcessInfo.processInfo.systemUptime
 
         let start = Date.now.timeIntervalSince1970
 
         await withTaskGroup { group in
-            var limit = min(imageURLs.count, PhotoTrailApp.maxConcurrentTasks)
+            var limit = min(imageURLs.count, PhotoTrailApp.maxConcurrentImageLoads)
             for ix in 0..<limit {
                 group.addTask {
                     let interval = Self.markStart(#function)
@@ -53,6 +74,11 @@ enum OpenHelper {
             }
             for await imageData in group {
                 newImages.append(imageData)
+                let now = ProcessInfo.processInfo.systemUptime
+                if now - lastProgress >= 0.15 || newImages.count == imageURLs.count {
+                    store.importProgress.update(completed: newImages.count)
+                    lastProgress = now
+                }
                 if limit < imageURLs.count {
                     let url = imageURLs[limit]
                     limit += 1
@@ -80,13 +106,15 @@ enum OpenHelper {
             """)
     }
 
-    static private
+    @MainActor static private
     func tracks(for urls: [URL],
                 store: Store<PhotoTrailState, PhotoTrailEvent>) async {
         let trackURLs = urls.filter(\.isTrackFile)
         guard !trackURLs.isEmpty else { return }
         await MainActor.run { store.send(.gpxLoadViewClosed, undoable: false) }
+        store.importProgress.begin(.tracks, total: trackURLs.count)
         var tracklogs: [(String, GpxTrackLog?)] = []
+        var lastProgress = ProcessInfo.processInfo.systemUptime
 
         let start = Date.now.timeIntervalSince1970
 
@@ -105,6 +133,11 @@ enum OpenHelper {
             }
             for await (path, tracklog) in group {
                 tracklogs.append((path, tracklog))
+                let now = ProcessInfo.processInfo.systemUptime
+                if now - lastProgress >= 0.15 || tracklogs.count == trackURLs.count {
+                    store.importProgress.update(completed: tracklogs.count)
+                    lastProgress = now
+                }
                 if limit < trackURLs.count {
                     let url = trackURLs[limit]
                     group.addTask {

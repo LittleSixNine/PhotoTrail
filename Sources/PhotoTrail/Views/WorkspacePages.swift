@@ -36,12 +36,7 @@ enum PhotoStripSort: String, CaseIterable {
 @MainActor private func importPhotoTrack(_ url: URL, store: Store<PhotoTrailState, PhotoTrailEvent>,
                               workspace: LocationWorkspace) {
     workspace.tracks.markPhotoGenerated(url)
-    store.send(.openFiles([url]), undoable: false) {
-        if let urls = store.uniqueURLs {
-            OpenHelper.open(store, urls: urls, description: L10n.text("导入照片轨迹"), spinnerEnabled: nil)
-            store.send(.clearUniqueURLs, undoable: false)
-        }
-    }
+    OpenHelper.importFiles(store, urls: [url], description: L10n.text("导入照片轨迹"))
 }
 
 private struct HorizontalFilmstripWheelMonitor: NSViewRepresentable {
@@ -131,7 +126,7 @@ struct PhotoThumbnail: View {
                     .accessibilityLabel(L10n.text("JPG 和 RAW 双文件"))
             }
         }
-        .task(id: "\(image.id)-\(Int(maxDimension))") {
+        .task(id: "\(image.id)-\(image.fullPath)-\(Int(maxDimension))-\(scale)") {
             let loaded = await PhotoThumbnailCache.shared.image(
                 for: image, scale: scale, maxDimension: maxDimension)
             guard !Task.isCancelled else { return }
@@ -141,25 +136,79 @@ struct PhotoThumbnail: View {
 }
 
 @MainActor
-private final class PhotoThumbnailCache {
+final class PhotoThumbnailCache {
     static let shared = PhotoThumbnailCache()
-    private struct Key: Hashable { let id: ImageData.ID; let size: Int }
-    private var images: [Key: Image] = [:]
+    private struct Key: Hashable {
+        let id: ImageData.ID
+        let path: String
+        let size: Int
+        let scale: CGFloat
+    }
+    private struct Entry { let image: Image; let cost: Int }
+    private var images: [Key: Entry] = [:]
     private var order: [Key] = []
+    private struct Loading {
+        let id = UUID()
+        let task: Task<Image, Never>
+        var consumers: Set<UUID>
+    }
+    private var loading: [Key: Loading] = [:]
+    private var cost = 0
     private let limit = 384
+    private let costLimit = 64 * 1024 * 1024
+    private let loader: (ImageData, CGFloat, Double) async -> Image
+
+    init(loader: @escaping (ImageData, CGFloat, Double) async -> Image = {
+        await $0.makeThumbnail(scale: $1, maxDimension: $2)
+    }) { self.loader = loader }
 
     func image(for image: ImageData, scale: CGFloat, maxDimension: Double) async -> Image {
         if let thumbnail = image.thumbnail { return thumbnail }
-        let key = Key(id: image.id, size: Int(maxDimension))
-        if let cached = images[key] { return cached }
-        let loaded = await image.makeThumbnail(scale: scale, maxDimension: maxDimension)
-        images[key] = loaded
+        // Photos transfers still return a full image; do not account them as tiny list bitmaps.
+        let size: Int
+        if case .photos = image.metadata.source { size = 1024 }
+        else { size = Int(min(4096, max(32, maxDimension))) }
+        let key = Key(id: image.id, path: image.fullPath, size: size, scale: scale)
+        if let cached = images[key] {
+            order.removeAll { $0 == key }
+            order.append(key)
+            return cached.image
+        }
+        let consumer = UUID()
+        if loading[key] == nil {
+            let task = Task { await loader(image, scale, Double(size)) }
+            loading[key] = Loading(task: task, consumers: [])
+        }
+        loading[key]!.consumers.insert(consumer)
+        let request = loading[key]!
+        let loaded = await withTaskCancellationHandler {
+            await request.task.value
+        } onCancel: {
+            Task { @MainActor in self.cancelConsumer(consumer, key: key, requestID: request.id) }
+        }
+        guard loading[key]?.id == request.id else { return loaded }
+        if Task.isCancelled {
+            cancelConsumer(consumer, key: key, requestID: request.id)
+            return loaded
+        }
+        loading[key] = nil
+        let entryCost = size * size * 4
+        images[key] = Entry(image: loaded, cost: entryCost)
         order.append(key)
-        if order.count > limit, let oldest = order.first {
-            order.removeFirst()
-            images.removeValue(forKey: oldest)
+        cost += entryCost
+        while order.count > limit || cost > costLimit {
+            let oldest = order.removeFirst()
+            if let removed = images.removeValue(forKey: oldest) { cost -= removed.cost }
         }
         return loaded
+    }
+
+    private func cancelConsumer(_ consumer: UUID, key: Key, requestID: UUID) {
+        guard loading[key]?.id == requestID else { return }
+        loading[key]!.consumers.remove(consumer)
+        if loading[key]!.consumers.isEmpty {
+            loading.removeValue(forKey: key)?.task.cancel()
+        }
     }
 }
 

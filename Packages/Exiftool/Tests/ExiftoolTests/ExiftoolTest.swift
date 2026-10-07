@@ -35,6 +35,69 @@ struct ExiftoolTests {
         print("Using Exiftool version: \(version)")
     }
 
+    @Test func concurrentCommandsKeepOutputAndErrorsSeparate() async throws {
+        let fixture = try #require(Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
+        let folder = try makeTestFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let files = try (0..<12).map { index in
+            let url = folder.appendingPathComponent("并发-\(index).jpg")
+            try FileManager.default.copyItem(at: fixture, to: url)
+            return url
+        }
+        await withTaskGroup(of: Void.self) { group in
+            for file in files {
+                group.addTask {
+                    do {
+                        let data = try Exiftool.helper.run(["-j", "-FileName", file.path])
+                        let values = try JSONSerialization.jsonObject(with: data) as? [[String: String]]
+                        #expect(values?.first?["FileName"] == file.lastPathComponent)
+                    } catch { Issue.record("Valid command failed: \(error)") }
+                }
+            }
+            group.addTask {
+                do {
+                    _ = try Exiftool.helper.run(["-j", folder.appendingPathComponent("missing.jpg").path])
+                    Issue.record("Missing file unexpectedly succeeded")
+                } catch let Exiftool.ExiftoolError.runFailed(code) { #expect(code != 0) }
+                catch { Issue.record("Wrong error: \(error)") }
+            }
+            group.addTask {
+                do { #expect(try Exiftool.helper.run(["-listx", "-EXIF:all"]).count > 64 * 1024) }
+                catch { Issue.record("Large output failed: \(error)") }
+            }
+        }
+        #expect(try Exiftool.helper.version() != nil)
+    }
+
+    @Test func failedProcessLaunchDoesNotReplayWritesOrBlockFollowingCommands() async throws {
+        let fixture = try #require(Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
+        let folder = try makeTestFolder(andCopy: fixture)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let file = folder.appendingPathComponent(fixture.lastPathComponent)
+        let bytes = try Data(contentsOf: file)
+        var failing = Exiftool.helper
+        failing.url = folder.appendingPathComponent("missing-executable")
+        let unavailable = failing
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<12 {
+                group.addTask {
+                    do {
+                        _ = try unavailable.run(["-overwrite_original", "-GPSLatitude=1", file.path])
+                        Issue.record("Unavailable executable unexpectedly succeeded")
+                    } catch { }
+                }
+            }
+            group.addTask {
+                do {
+                    try await unavailable.update(image: file, from: Metadata(source: .image(file)), timeZone: nil)
+                    Issue.record("Async write unexpectedly succeeded")
+                } catch { }
+            }
+        }
+        #expect(try Data(contentsOf: file) == bytes)
+        #expect(try Exiftool.helper.version() != nil)
+    }
+
     @Test func largeOutputDoesNotBlock() throws {
         let data = try Exiftool.helper.run(["-listx", "-EXIF:all"])
         #expect(data.count > 64 * 1_024)
@@ -45,6 +108,11 @@ struct ExiftoolTests {
     // and updated by exiftool. There are file types that could
     // be written by exiftool but are flagged as not writable
     // because core graphics can't read file metadata.
+
+    @Test func commonExtensionAliasesUseExistingKnownTypePolicy() {
+        #expect(Exiftool.helper.fileTypeIsWritable(for: URL(fileURLWithPath: "/not-present/photo.JPG")))
+        #expect(Exiftool.helper.fileTypeIsWritable(for: URL(fileURLWithPath: "/not-present/photo.TIF")))
+    }
 
     @Test func checkNotWritableType() async throws {
         let url = try #require(

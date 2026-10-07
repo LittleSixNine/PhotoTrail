@@ -8,6 +8,28 @@ import UniformTypeIdentifiers
 
 @MainActor
 struct OpenHelperTests {
+    @Test func backgroundScanImportsAndSkipsDuplicatesWithoutLosingProgress() async throws {
+        let source = try #require(Bundle.main.url(forResource: "P1000658", withExtension: "JPG"))
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("test.jpg")
+        try FileManager.default.copyItem(at: source, to: url)
+        try Data().write(to: directory.appendingPathComponent("ignored.txt"))
+        let store = Store(initialState: PhotoTrailState(), reduce: PhotoTrailReducer())
+        await OpenHelper.importFiles(store, urls: [directory, url], description: "scan copies").value
+        #expect(store.imageData.count == 1 && store.ignoredFileCount == 1)
+        #expect(!store.importProgress.isActive)
+        #expect(store.importProgress.completed == 1 && store.importProgress.total == 1)
+        #expect(store.uniqueURLs == nil)
+        await OpenHelper.importFiles(store, urls: [url], description: "duplicate").value
+        #expect(store.imageData.count == 1 && !store.importProgress.isActive)
+        store.importProgress.begin(.scanning)
+        await OpenHelper.importFiles(store, urls: [url], description: "busy").value
+        #expect(store.imageData.count == 1)
+        store.importProgress.finish()
+    }
+
     @Test func unsupportedFilesAreIgnoredWhilePhotosAndTracksAreKept() throws {
         let folder = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

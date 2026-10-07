@@ -4,6 +4,14 @@
 
 Release milestones and source development history are recorded below.
 
+## 2026-10-08 · v0.5.1
+
+- 优化大量照片的定位与元数据保存、后台读取及列表缩略图加载，减少批量处理期间的界面重复刷新。
+- 导入和大批量元数据读取显示准备页，提供阶段进度、失败计数及当前阶段预计剩余时间；元数据读取支持暂停和继续。
+- 目录扫描移至后台，保留原有过滤、配对、草稿、备份和文件版本保护。
+
+Version 0.5.1 improves bulk photo saves, metadata reading and thumbnail loading. Import and large metadata batches show a preparation page with stage progress and an estimated remaining time; metadata reading can be paused and resumed. Directory scanning runs in the background while existing draft, backup and file-version protections remain in place.
+
 ## 2026-10-05 · v0.5.0
 
 - 发布元数据编辑与文件重命名工作台，包含字段多选、批量复制和赋值、设备选项、规则预览、冲突检查及原名恢复。

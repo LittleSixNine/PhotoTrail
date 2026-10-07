@@ -10,6 +10,30 @@ import UDF
 
 @MainActor
 struct SaveHelperTests {
+    @Test func batchedSavePublishesSuccessFailureAndSidecarWithoutLosingDrafts() {
+        var first = ImageData(metadata: Metadata(source: .xmp(URL(fileURLWithPath: "/tmp/batch-success.jpg"))),
+                              name: "success.jpg")
+        first.metadata.location = Coords(latitude: 31, longitude: 121)
+        var second = ImageData(metadata: Metadata(source: .xmp(URL(fileURLWithPath: "/tmp/batch-failure.jpg"))),
+                           name: "failure.jpg")
+        second.metadata.location = Coords(latitude: 32, longitude: 122)
+        var state = PhotoTrailState()
+        state.imageData = [first, second]
+        PhotoTrailReducer().save(&state)
+        let revision = state.mapRevision
+        let updated = PhotoTrailReducer().reduce(state, .localSaveBatch([
+            .init(id: first.id, metadata: first.metadata, sidecarCreated: false, outcome: .savedWithoutTag),
+            .init(id: second.id, metadata: second.metadata, sidecarCreated: false, outcome: .failed)
+        ]))
+        #expect(updated.saveCompleted == 2)
+        #expect(!updated[first.id].hasPendingChanges)
+        #expect(updated[second.id].hasPendingChanges)
+        #expect(updated.locationSavedPhotoIDs == [first.id])
+        #expect(updated.mapRevision == revision)
+        #expect(updated.version == state.version + 1)
+        #expect(PhotoTrailReducer().reduce(updated, .saveComplete(.saveError)).unsavedChanges)
+    }
+
     @Test nonisolated func finderTagFailureDoesNotUndoSavedMetadata() async {
         enum ControlledFailure: Error { case save, tag }
         var saveCount = 0

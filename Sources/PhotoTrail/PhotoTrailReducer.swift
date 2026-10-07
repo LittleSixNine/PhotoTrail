@@ -15,7 +15,7 @@ struct PhotoTrailReducer: Reducer, Sendable {
     // swiftlint:disable:next function_body_length
     func reduce(_ state: PhotoTrailState,
                 _ event: PhotoTrailEvent) -> PhotoTrailState {
-        if state.saveInProgress {
+        if state.saveInProgress || state.importProgress.isActive {
             switch event {
             case .addressChanged, .clearImagesRequest, .deleteRequest, .removeImages, .discardChangesRequest,
                  .creatorDraftApplied, .creatorDraftRemoved, .locationChanged, .applyTrackMatches,
@@ -28,7 +28,7 @@ struct PhotoTrailReducer: Reducer, Sendable {
         var newState = state
         newState.version &+= 1
         switch event {
-        case .saveProgress, .imageSaved, .sidecarCreated, .creatorSaved, .creatorSaveResult: break
+        case .saveProgress, .imageSaved, .localSaveBatch, .sidecarCreated, .creatorSaved, .creatorSaveResult: break
         default: newState.mapRevision &+= 1
         }
         // logger.debug("event: \(event)")
@@ -166,6 +166,9 @@ struct PhotoTrailReducer: Reducer, Sendable {
             }
             newState[id].original = Metadata(copying: metadata)
 
+        case .localSaveBatch(let results):
+            applyLocalSaveBatch(&newState, results)
+
         case .initBackupURL:
             getBackupURL(&newState)
 
@@ -235,6 +238,11 @@ struct PhotoTrailReducer: Reducer, Sendable {
 
         case .openCommand:
             newState.importFiles.toggle()
+
+        case .filesScanned(let urls, let ignored, let scoped):
+            newState.scopedURLs.append(contentsOf: scoped)
+            newState.ignoredFileCount = ignored
+            selectUniqueFiles(&newState, imageURLs: urls)
 
         case .openFiles(let urls):
             openFiles(&newState, urls: urls)

@@ -35,8 +35,11 @@ struct IndependentTableColumns: NSViewRepresentable {
         }
 
         func installHandles() {
-            guard let root = window?.contentView, let found = findTable(root),
-                  let header = found.headerView else { return }
+            guard let root = window?.contentView else { return }
+            let found: NSTableView?
+            if let table, table.window === window { found = table }
+            else { found = findTable(root) }
+            guard let found, let header = found.headerView else { return }
             if table !== found || handles.first?.superview !== header {
                 handles.forEach { $0.removeFromSuperview() }
                 table = found

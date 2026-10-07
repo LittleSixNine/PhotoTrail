@@ -10,25 +10,13 @@ import UniformTypeIdentifiers
 
 extension PhotoTrailReducer {
     func openFiles(_ state: inout PhotoTrailState, urls: [URL]) {
-        // Needed to access when using the fileImporter
-        for url in urls {
-            let startedAccess = url.startAccessingSecurityScopedResource()
-            let importable = url.isSupportedPhotoImage || url.isTrackFile || isFolder(url)
-            if startedAccess, importable {
-                state.scopedURLs.append(url)
-            } else if startedAccess {
-                url.stopAccessingSecurityScopedResource()
-            }
-        }
+        let result = scanFiles(urls)
+        state.scopedURLs.append(contentsOf: result.scoped)
+        state.ignoredFileCount = result.ignored
+        selectUniqueFiles(&state, imageURLs: result.urls)
+    }
 
-        // Get all requested URLs
-        var seenPaths = Set<String>()
-        let requestedURLs = urls.flatMap { url in
-            isFolder(url) ? urlsIn(folder: url) : [url]
-        }.filter { seenPaths.insert($0.standardizedFileURL.path).inserted }
-        state.ignoredFileCount = requestedURLs.filter { !$0.isSupportedPhotoImage && !$0.isTrackFile }.count
-        let imageURLs = requestedURLs.filter { $0.isSupportedPhotoImage || $0.isTrackFile }
-
+    func selectUniqueFiles(_ state: inout PhotoTrailState, imageURLs: [URL]) {
         // check for duplicates of URLs already known
         let processed = Set(state.imageData.map { $0.fullPath })
         let duplicates = imageURLs.filter { processed.contains($0.path) }
@@ -45,15 +33,30 @@ extension PhotoTrailReducer {
         }
     }
 
+    /// Filesystem work runs in a detached utility task at production import entry points.
+    nonisolated func scanFiles(_ urls: [URL]) -> (urls: [URL], ignored: Int, scoped: [URL]) {
+        var scoped: [URL] = []
+        for url in urls {
+            let access = url.startAccessingSecurityScopedResource()
+            if access && (url.isSupportedPhotoImage || url.isTrackFile || isFolder(url)) { scoped.append(url) }
+            else if access { url.stopAccessingSecurityScopedResource() }
+        }
+        var seen = Set<String>()
+        let requested = urls.flatMap { isFolder($0) ? urlsIn(folder: $0) : [$0] }
+            .filter { seen.insert($0.standardizedFileURL.path).inserted }
+        let accepted = requested.filter { $0.isSupportedPhotoImage || $0.isTrackFile }
+        return (accepted, requested.count - accepted.count, scoped)
+    }
+
     // Check if a given file URL refers to a folder
-    private func isFolder(_ url: URL) -> Bool {
+    nonisolated func isFolder(_ url: URL) -> Bool {
         let resources = try? url.resourceValues(forKeys: [.isDirectoryKey])
         return resources?.isDirectory ?? false
     }
 
     // Recursivly iterate over a folder looking for files.
     // Returns an array of contained urls
-    private func urlsIn(folder url: URL) -> [URL] {
+    nonisolated func urlsIn(folder url: URL) -> [URL] {
         var foundURLs = [URL]()
         let fileManager = FileManager.default
         guard let urlEnumerator =

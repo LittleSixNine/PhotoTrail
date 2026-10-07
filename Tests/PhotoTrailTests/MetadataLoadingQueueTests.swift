@@ -30,6 +30,20 @@ private actor QueueReaderProbe {
     func unblock() { release?.resume(); release = nil }
 }
 
+private actor BoundedReaderProbe {
+    var active = 0
+    var maximum = 0
+    var reads = 0
+    func read(_ job: MetadataLoadingQueue.Job) async -> MetadataInspectorReadCache.Value? {
+        active += 1
+        maximum = max(maximum, active)
+        reads += 1
+        try? await Task.sleep(for: .milliseconds(10))
+        active -= 1
+        return .display([:])
+    }
+}
+
 @MainActor struct MetadataLoadingQueueTests {
     private func image(_ directory: URL, _ name: String) throws -> ImageData {
         let url = directory.appendingPathComponent(name + ".jpg")
@@ -52,12 +66,51 @@ private actor QueueReaderProbe {
             _ = await queue.read(request(image), kind: .additional)
         }
     }
+    @Test(arguments: [2, 4]) func boundedReadsDeduplicateAndTrackBothStages(concurrency: Int) async throws {
+        let dir = try directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let images = try (0..<6).map { try image(dir, "bounded-\($0)") }
+        let probe = BoundedReaderProbe()
+        let queue = MetadataLoadingQueue(maxConcurrentReads: concurrency, reader: { await probe.read($0) })
+        queue.synchronize(images)
+        queue.synchronize(images)
+        await finish(queue, images)
+        #expect(await probe.maximum == concurrency)
+        #expect(await probe.reads == 12)
+        #expect(queue.progress.editableRead == 6 && queue.progress.displayRead == 6)
+        queue.setPaused(true)
+        queue.refresh(ids: [images[0].id])
+        #expect(queue.progress.editableRead == 5 && queue.progress.displayRead == 5)
+        queue.setPaused(false)
+        await finish(queue, images)
+        #expect(await probe.reads == 14)
+    }
+    @Test func largeImportPreparationCanPauseAndResumeWithoutLosingWork() async throws {
+        let dir = try directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let images = try (0..<100).map { try image(dir, "large-\($0)") }
+        let probe = BoundedReaderProbe()
+        let queue = MetadataLoadingQueue(reader: { await probe.read($0) })
+        queue.synchronize(images)
+        #expect(queue.isPreparing)
+        queue.pauseReading()
+        await Task.yield()
+        #expect(!queue.isPreparing && queue.progress.isPaused)
+        #expect(await probe.reads == 0)
+        queue.resumeReading()
+        await finish(queue, images)
+        // Let the worker clear its phase after delivering the final read.
+        await Task.yield()
+        #expect(queue.completed == 100 && !queue.progress.isPaused)
+        #expect(!queue.isPreparing)
+        #expect(await probe.reads == 200)
+    }
     @Test func selectionJumpsWaitingJobsAndCachedReselectionDoesNotReadAgain() async throws {
         let dir = try directory()
         defer { try? FileManager.default.removeItem(at: dir) }
         let images = try [image(dir, "a"), image(dir, "b"), image(dir, "c")]
         let probe = QueueReaderProbe(blockFirst: true)
-        let queue = MetadataLoadingQueue(reader: { await probe.read($0) })
+        let queue = MetadataLoadingQueue(maxConcurrentReads: 1, reader: { await probe.read($0) })
         queue.synchronize(images)
         await probe.waitForFirst()
         queue.prioritize(ids: [images[2].id])
@@ -83,7 +136,7 @@ private actor QueueReaderProbe {
         defer { try? FileManager.default.removeItem(at: dir) }
         let image = try image(dir, "changed")
         let probe = QueueReaderProbe(blockFirst: true)
-        let queue = MetadataLoadingQueue(reader: { await probe.read($0) })
+        let queue = MetadataLoadingQueue(maxConcurrentReads: 1, reader: { await probe.read($0) })
         queue.synchronize([image])
         await probe.waitForFirst()
         try Data("a different size".utf8).write(to: image.metadataInspectionURL!)
@@ -99,7 +152,7 @@ private actor QueueReaderProbe {
         defer { try? FileManager.default.removeItem(at: dir) }
         let image = try image(dir, "failed")
         let failure = QueueReaderProbe(fail: true)
-        let queue = MetadataLoadingQueue(reader: { await failure.read($0) })
+        let queue = MetadataLoadingQueue(maxConcurrentReads: 1, reader: { await failure.read($0) })
         queue.synchronize([image])
         await finish(queue, [image])
         #expect(queue.completed == 1 && queue.failures == 1)
@@ -108,7 +161,7 @@ private actor QueueReaderProbe {
         #expect(queue.total == 0 && queue.statuses.isEmpty)
 
         let blocked = QueueReaderProbe(blockFirst: true)
-        let removed = MetadataLoadingQueue(reader: { await blocked.read($0) })
+        let removed = MetadataLoadingQueue(maxConcurrentReads: 1, reader: { await blocked.read($0) })
         removed.synchronize([image])
         await blocked.waitForFirst()
         removed.synchronize([])
@@ -126,11 +179,12 @@ private actor QueueReaderProbe {
         let queue = MetadataLoadingQueue()
         queue.synchronize([image])
         let core = await queue.read(request(image), kind: .editable)
-        guard case .editable(let snapshot, _) = core else { Issue.record("Real typed read failed"); return }
+        guard case .editable(let snapshot, let legacy) = core else { Issue.record("Real typed read failed"); return }
         guard case .display(let values) = await queue.read(request(image), kind: .additional) else {
             Issue.record("Real full read failed"); return
         }
         #expect(snapshot.requestedTags == Set(MetadataTag.allCases))
+        #expect(legacy == (try Exiftool.helper.legacyCreatorTags(from: url)))
         #expect(queue.statuses[image.id] == .ready)
         #expect(queue.originalCounts[image.id] == MetadataLoadingQueue.originalCount(values))
         #expect(queue.editedCount(image) == 0)
@@ -146,6 +200,29 @@ private actor QueueReaderProbe {
         image.metadata = try #require(image.original)
         #expect(queue.editedCount(image) == 0)
     }
+    @Test func savingPausesWaitingReadsWithoutCancellingActiveRead() async throws {
+        let dir = try directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let images = try [image(dir, "a"), image(dir, "b")]
+        let probe = QueueReaderProbe(blockFirst: true)
+        let queue = MetadataLoadingQueue(maxConcurrentReads: 1, reader: { await probe.read($0) })
+        queue.setPaused(true)
+        queue.synchronize(images)
+        await Task.yield()
+        #expect(await probe.jobs.isEmpty)
+        queue.setPaused(false)
+        await probe.waitForFirst()
+        queue.setPaused(true)
+        await probe.unblock()
+        _ = await queue.read(request(images[0]), kind: .editable)
+        #expect(await probe.jobs.count == 1)
+        #expect(queue.hasCached(request(images[0]), kind: .editable))
+        queue.setPaused(false)
+        await finish(queue, images)
+        #expect(await probe.jobs.count == 4)
+        #expect(queue.completed == 2)
+    }
+
     @Test func originalTagsExcludeFileAndDerivedFields() {
         #expect(MetadataLoadingQueue.originalCount([
             "File:FileName": "a", "System:FileModifyDate": "date", "Composite:GPSPosition": "0",
