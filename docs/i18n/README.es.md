@@ -53,6 +53,10 @@ Usa fotos locales importadas o Añadir archivos para archivos normales. Se exclu
 
 **Guardar todos los metadatos** (⌘S) escribe todos los cambios pendientes de información y ubicación de la ventana actual, sin limitarse a la pestaña, selección o filtro activos. Consultar y previsualizar no escribe archivos; puedes deshacer antes de guardar. Las escrituras locales respetan los ajustes de copia de seguridad y verifican los resultados mediante una nueva lectura, sin recomprimir los píxeles. Los pares JPG + RAW pueden compartir cambios de ubicación, pero los campos nuevos no se copian automáticamente a RAW. La fototeca usa la interfaz del sistema y tiene otro alcance de edición.
 
+## Muchas fotos y caché
+
+Tras importar las fotos y preparar sus metadatos, las miniaturas se cargan bajo demanda en la lista de metadatos y en la tira de fotos de ubicación, dando prioridad a la vista previa de la foto actual. Cambiar de foto y desplazarse por la tira evita cálculos repetidos. Las actualizaciones conservan los ajustes, favoritos y cachés de rutas; las cachés de miniaturas y lectura de metadatos solo duran durante la sesión y se reconstruyen al volver a abrir la app.
+
 ## Primeros pasos
 
 1. **Importa y comprueba:** configura idioma, copias y mapa; abre o arrastra fotos. Revisa fechas y zona horaria de la cámara y corrígelas en el espacio de metadatos si es necesario.

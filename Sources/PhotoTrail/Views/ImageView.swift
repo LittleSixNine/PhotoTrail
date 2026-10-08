@@ -5,13 +5,21 @@ struct ImageView: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) var store
     @Environment(\.displayScale) var displayScale
     @State private var thumbnail: Image?
-    @State private var thumbnailID: Int?
+    @State private var thumbnailKey: PreviewKey?
+
+    private struct PreviewKey: Hashable {
+        let id: Int
+        let path: String
+        let scale: CGFloat
+    }
+    private var previewKey: PreviewKey? {
+        store.mostSelected.map { PreviewKey(id: $0, path: store[$0].fullPath, scale: displayScale) }
+    }
 
     var body: some View {
         Group {
-            if let id = store.mostSelected,
-               let image = store[id].thumbnail ?? (thumbnailID == id ? thumbnail : nil) {
-                PhotoSelectionPreview(image: image, selectionCount: store.selection.count)
+            if let key = previewKey, thumbnailKey == key, let thumbnail {
+                PhotoSelectionPreview(image: thumbnail, selectionCount: store.selection.count)
             } else {
                 Image(systemName: "photo")
                     .font(.system(size: 96))
@@ -19,22 +27,13 @@ struct ImageView: View {
                     .padding()
             }
         }
-        .task(id: store.mostSelected) {
-            if let id = store.mostSelected {
-                if store[id].thumbnail == nil {
-                    let loaded = await store[id].makeThumbnail(scale: displayScale)
-                    guard !Task.isCancelled, store.mostSelected == id else { return }
-                    thumbnail = loaded
-                    thumbnailID = id
-                    store.send(.newThumbnail(id, loaded), undoable: false)
-                } else {
-                    thumbnail = store[id].thumbnail
-                    thumbnailID = id
-                }
-                return
-            }
-            thumbnail = nil
-            thumbnailID = nil
+        .task(id: previewKey) {
+            guard let key = previewKey else { thumbnail = nil; thumbnailKey = nil; return }
+            let loaded = await PhotoThumbnailCache.preview.image(
+                for: store[key.id], scale: displayScale, maxDimension: 1024)
+            guard !Task.isCancelled, previewKey == key else { return }
+            thumbnail = loaded
+            thumbnailKey = key
         }
     }
 }

@@ -106,3 +106,12 @@ PhotoTrail 基于 GeoTag v6.0.2 派生，仍使用其部分应用基础设施与
 ## 开发进度与元数据读取入口
 
 源码节点见 [开发历史](CHANGELOG.md)。`MetadataLoadingQueue.swift` 负责窗口级后台预读、选中插队、缓存和进度；`MetadataListInspectorView.swift` 负责显示与类型编辑入口；Exiftool 的 `inspectionTags` 读取所有可识别家族，写入仍受独立白名单约束。`MetadataCreatorEditPlan`、`SaveTargets` 和 `SaveHelper` 负责冻结目标、版本检查、备份及回读。`RenameWorkspaceView` 提供第三页双栏规则与预览；`RenameEngine` 只计算名称，`RenameWorkspace` 冻结输入、计数与来源，`RenameExecutor` 使用独立执行日志、原生不覆盖改名和哈希回读；`ImageData.applyFileRenames` 同步稳定 ID 的名称、来源和撤销基线。规则目录为 97 个动作加筛选与高级设置，具体支持边界见 [功能与数据约定](BEHAVIOR.md)。
+
+
+## 浏览性能与会话缓存
+
+`PhotoListProjection.swift` 按照片数据标记缓存列表筛选／计数、照片条排序和元数据面板的所选照片快照；数据变动使用 UUID，避免撤销后不同编辑分支共用旧缓存。日期解析只随该张照片时间或相机时区变化更新。照片条菜单延迟到打开时构建，避免布局期间反复扫描所选照片与读取剪贴板。
+
+元数据列表按 80 点乘屏幕倍率请求小图；定位照片条按显示宽度与倍率选择 160／256／384／512／768／1024 像素档位。小图和 1024 像素大预览分别有 64 MiB 估算预算及 384 项上限，画面持有的图像与正在解码的图像不计入该预算。本地解码最多并发 2 项，当前预览优先于等待中的普通缩略图。缩略图、元数据读取及列表计算缓存均不持久化；正式版标识和轨迹缓存路径继续保留。
+
+`PhotoInteractionTests` 覆盖 2000 张照片连续选择、时间／时区变化、配对、缓存分离和撤销后继续编辑；`MapPhotoPerformanceTests` 覆盖地图分组及滚动容器替换。逻辑检查不等同于实际滚动帧率或真实 RAW／外置盘验收。

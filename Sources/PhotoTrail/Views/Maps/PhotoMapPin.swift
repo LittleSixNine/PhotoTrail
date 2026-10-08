@@ -255,3 +255,16 @@ struct PhotoEdgePinShape: Shape {
         return path
     }
 }
+
+// Selection-only updates keep the all-photo geometry and clustering intact.
+struct MapPhotoLoadKey: Hashable {
+    let imageRevision: UUID
+    let saving: Bool
+    let selection: Set<ImageData.ID>?
+
+    init(_ state: PhotoTrailState, showAll: Bool) {
+        imageRevision = state.imageRevision
+        saving = state.saveInProgress
+        selection = showAll ? nil : state.selection
+    }
+}

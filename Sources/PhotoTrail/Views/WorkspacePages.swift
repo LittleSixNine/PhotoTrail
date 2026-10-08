@@ -46,6 +46,7 @@ private struct HorizontalFilmstripWheelMonitor: NSViewRepresentable {
 
     final class MonitorView: NSView {
         private var monitor: Any?
+        private weak var cachedScroll: NSScrollView?
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
@@ -55,7 +56,7 @@ private struct HorizontalFilmstripWheelMonitor: NSViewRepresentable {
                 guard let self, let window, event.window === window,
                       bounds.contains(convert(event.locationInWindow, from: nil)),
                       abs(event.scrollingDeltaY) > abs(event.scrollingDeltaX),
-                      let scroll = horizontalScroll(in: window.contentView, at: event.locationInWindow)
+                      let scroll = scrollView(in: window, at: event.locationInWindow)
                 else { return event }
                 let clip = scroll.contentView
                 let maximum = max(0, (scroll.documentView?.bounds.width ?? 0) - clip.bounds.width)
@@ -71,6 +72,17 @@ private struct HorizontalFilmstripWheelMonitor: NSViewRepresentable {
         func stop() {
             if let monitor { NSEvent.removeMonitor(monitor) }
             monitor = nil
+            cachedScroll = nil
+        }
+
+        private func scrollView(in window: NSWindow, at point: NSPoint) -> NSScrollView? {
+            if let cachedScroll, cachedScroll.window === window,
+               cachedScroll.bounds.contains(cachedScroll.convert(point, from: nil)),
+               (cachedScroll.documentView?.bounds.width ?? 0) > cachedScroll.contentView.bounds.width {
+                return cachedScroll
+            }
+            cachedScroll = horizontalScroll(in: window.contentView, at: point)
+            return cachedScroll
         }
 
         private func horizontalScroll(in view: NSView?, at point: NSPoint) -> NSScrollView? {
@@ -103,6 +115,11 @@ struct PhotoThumbnail: View {
     var maxDimension = 1024.0
     @State private var thumbnail: Image?
     @Environment(\.displayScale) private var scale
+
+    static func pixelDimension(width: CGFloat, scale: CGFloat) -> Double {
+        let pixels = Double(max(32, width * scale))
+        return [160.0, 256, 384, 512, 768, 1024].first { $0 >= pixels } ?? 1024
+    }
 
     var body: some View {
         ZStack {
@@ -138,6 +155,9 @@ struct PhotoThumbnail: View {
 @MainActor
 final class PhotoThumbnailCache {
     static let shared = PhotoThumbnailCache()
+    static let preview = PhotoThumbnailCache {
+        await $0.makeThumbnail(scale: $1, maxDimension: $2, prioritize: true)
+    }
     private struct Key: Hashable {
         let id: ImageData.ID
         let path: String
@@ -163,7 +183,6 @@ final class PhotoThumbnailCache {
     }) { self.loader = loader }
 
     func image(for image: ImageData, scale: CGFloat, maxDimension: Double) async -> Image {
-        if let thumbnail = image.thumbnail { return thumbnail }
         // Photos transfers still return a full image; do not account them as tiny list bitmaps.
         let size: Int
         if case .photos = image.metadata.source { size = 1024 }
@@ -494,6 +513,8 @@ struct PhotoActionSidebar: View {
 struct PhotoDetailPage: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
     @Environment(LocationWorkspace.self) private var workspace
+    @Environment(\.displayScale) private var displayScale
+    @State private var projection = PhotoListProjection()
 
     @AppStorage("PhotoTrailDetailWidthRatio") private var leftRatio = 0.26
     @AppStorage("PhotoTrailFilmstripHeightRatio") private var stripRatio = 0.13
@@ -546,7 +567,10 @@ struct PhotoDetailPage: View {
                                         select(image.id)
                                     } label: {
                                         VStack(spacing: 5) {
-                                            PhotoThumbnail(image: image, showsPairedBadge: image.isPairedJPEG)
+                                            PhotoThumbnail(image: image, showsPairedBadge: image.isPairedJPEG,
+                                                           maxDimension: PhotoThumbnail.pixelDimension(
+                                                            width: max(90, (geometry.size.height - 48) * 1.5),
+                                                            scale: displayScale))
                                                 .frame(width: max(90, (geometry.size.height - 48) * 1.5),
                                                        height: max(60, geometry.size.height - 48))
                                                 .overlay {
@@ -579,7 +603,7 @@ struct PhotoDetailPage: View {
                                         .contentShape(Rectangle())
                                     }
                                     .buttonStyle(.plain)
-                                    .contextMenu { photoMenu(image) }
+                                    .contextMenu { FilmstripPhotoMenu(page: self, image: image) }
                                     .id(image.id)
                                     }
                                 }.padding(14).padding(.trailing, 42)
@@ -663,39 +687,23 @@ struct PhotoDetailPage: View {
     }
 }
 
-private extension PhotoDetailPage {
+private struct FilmstripPhotoMenu: View {
+    let page: PhotoDetailPage
+    let image: ImageData
+
+    // Keep selection scans and pasteboard access out of lazy-stack item construction.
+    var body: some View { page.photoMenu(image) }
+}
+
+fileprivate extension PhotoDetailPage {
     var selectedImages: [ImageData] {
         store.imageData.filter { store.selection.contains($0.id) }
     }
 
     var sortedImages: [ImageData] {
-        let images = store.visibleImages.filter { stripFilter.includes($0) }
-        let mode = PhotoStripSort(rawValue: stripSort) ?? .capturedAt
-        if mode == .capturedAt {
-            let dated = images.map { ($0, $0.metadata.parsedDate(timeZone: store.timeZone)) }
-            return dated.sorted { left, right in
-                let ordered: Bool
-                switch (left.1, right.1) {
-                case let (lhs?, rhs?): ordered = lhs == rhs ? left.0.id < right.0.id : lhs < rhs
-                case (_?, nil): ordered = true
-                case (nil, _?): ordered = false
-                case (nil, nil): ordered = left.0.id < right.0.id
-                }
-                return stripAscending ? ordered : !ordered && left.0.id != right.0.id
-            }.map(\.0)
-        }
-        return images.sorted { left, right in
-            let ordered: Bool
-            switch mode {
-            case .importOrder:
-                ordered = left.id < right.id
-            case .filename:
-                let comparison = left.name.localizedStandardCompare(right.name)
-                ordered = comparison == .orderedSame ? left.id < right.id : comparison == .orderedAscending
-            case .capturedAt: ordered = false
-            }
-            return stripAscending ? ordered : !ordered && left.id != right.id
-        }
+        projection.filmstrip(store.state, filter: stripFilter,
+                             mode: PhotoStripSort(rawValue: stripSort) ?? .capturedAt,
+                             ascending: stripAscending)
     }
 
     var currentVisiblePhotoID: ImageData.ID? {

@@ -10,7 +10,19 @@ extension PhotoTrailReducer {
     func selectionChanged(_ state: inout PhotoTrailState,
                           selection: Set<ImageData.ID>) {
         state.trackMatches = []
-        let imagesByID = Dictionary(uniqueKeysWithValues: state.imageData.map { ($0.id, $0) })
+        // A normal click only needs the clicked photo and, possibly, its paired JPEG.
+        let imagesByID: [ImageData.ID: ImageData]
+        if selection.count <= 1 {
+            var images: [ImageData.ID: ImageData] = [:]
+            if let id = selection.first, let image = state.imageData.first(where: { $0.id == id }) {
+                images[id] = image
+                if let pairedID = image.pairedID,
+                   let paired = state.imageData.first(where: { $0.id == pairedID }) { images[pairedID] = paired }
+            }
+            imagesByID = images
+        } else {
+            imagesByID = Dictionary(uniqueKeysWithValues: state.imageData.map { ($0.id, $0) })
+        }
         state.selection = Set(selection.compactMap { id in
             guard let image = imagesByID[id] else { return nil }
             let visibleID = image.isJPEG ? id : image.pairedID ?? id

@@ -10,7 +10,11 @@ import SwiftUI
 struct PhotoTrailState {
     var version = 1
     var mapRevision = 1
-    var imageData: [ImageData] = []
+    // A unique token also distinguishes edits made after undo from the discarded branch.
+    private(set) var imageRevision = UUID()
+    var imageData: [ImageData] = [] {
+        didSet { imageRevision = UUID() }
+    }
     var pairingEligibleIDs: Set<ImageData.ID>?
 
     // individual images are accessed by ID.

@@ -69,8 +69,9 @@ struct MapView: View {
                 }
                 ForEach(photoPins) { group in
                     let pin = displayPin(for: group)
+                    let selected = store.selection.contains(pin.id)
                     Annotation(pin.image.name, coordinate: group.location, anchor: .bottom) {
-                        PhotoThumbnailMapPin(image: pin.image, selected: pin.selected,
+                        PhotoThumbnailMapPin(image: pin.image, selected: selected,
                                              clusterCount: group.pins.count)
                             .offset(photoDrag?.id == pin.id ? photoDrag?.translation ?? .zero : .zero)
                             .onTapGesture {
@@ -79,11 +80,11 @@ struct MapView: View {
                             }
                             .gesture(DragGesture(minimumDistance: 3, coordinateSpace: .named("photoMap"))
                                 .updating($photoDrag) { value, state, _ in
-                                    guard allowDragPin, pin.selected, pin.editable else { return }
+                                    guard allowDragPin, selected, pin.editable else { return }
                                     state = PhotoDrag(id: pin.id, translation: value.translation)
                                 }
                                 .onEnded { value in
-                                    guard allowDragPin, pin.selected, pin.editable,
+                                    guard allowDragPin, selected, pin.editable,
                                           let anchor = mapProxy.convert(group.location,
                                                                         to: .named("photoMap")),
                                           let location = mapProxy.convert(
@@ -92,7 +93,7 @@ struct MapView: View {
                                                                           from: .named("photoMap")) else { return }
                                     store.send(.locationForImageChanged(pin.id, location),
                                                description: L10n.text("拖动照片位置"))
-                                }, including: allowDragPin && pin.selected && pin.editable ? .all : .none)
+                                }, including: allowDragPin && selected && pin.editable ? .all : .none)
                     }
                 }
                 ForEach(tracks) { track in
@@ -228,13 +229,15 @@ struct MapView: View {
                 workspace.appleNavigation = nil
                 workspace.focusPhoto = nil
             }
-            .task(id: "\(store.mapRevision):\(showAllPhotoLocations)") {
+            .onChange(of: store.selection) {
+                if showAllPhotoLocations { updateEdgePhotos(mapProxy, size: mapSize) }
+            }
+            .task(id: MapPhotoLoadKey(store.state, showAll: showAllPhotoLocations)) {
                 let pins = SettingsPreferences.displayedPhotos(store.visibleImages, selection: store.selection,
                                                            showAll: showAllPhotoLocations).compactMap { image -> PhotoPin? in
                     guard image.metadata.canDisplayAsWGS84,
                           let location = image.metadata.location else { return nil }
                     return PhotoPin(image: image, location: location,
-                                    selected: store.selection.contains(image.id),
                                     editable: image.updatable && !store.saveInProgress)
                 }
                 allPhotoPins = pins
@@ -398,14 +401,12 @@ extension MapView {
         let id: ImageData.ID
         let image: ImageData
         let location: Coords
-        let selected: Bool
         let editable: Bool
 
-        init(image: ImageData, location: Coords, selected: Bool, editable: Bool) {
+        init(image: ImageData, location: Coords, editable: Bool) {
             id = image.id
             self.image = image
             self.location = location
-            self.selected = selected
             self.editable = editable
         }
     }

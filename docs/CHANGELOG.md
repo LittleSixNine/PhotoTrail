@@ -4,6 +4,14 @@
 
 Release milestones and source development history are recorded below.
 
+## 2026-10-08 · v0.5.2
+
+- 优化大量照片在元数据列表和定位照片条中的选择刷新，复用筛选、排序与所选照片快照，保持日期编辑、撤销及配对规则。
+- 定位照片条按显示尺寸加载缩略图，右键菜单在打开时构建；当前照片大预览优先加载，并使用独立的容量受限缓存。
+- 显示全部照片时，地图选择更新不再重建整批照片分组；滚动辅助控件复用已找到的原生对象。设置、收藏及轨迹缓存继续沿用，缩略图与元数据读取缓存仍为会话缓存。
+
+Version 0.5.2 improves photo selection in the metadata list and location filmstrip, sizes filmstrip thumbnails for their display area, defers context-menu construction and prioritizes the current preview. All-photo map selection reuses existing grouping. Settings, favorites and track caches remain compatible; thumbnail and metadata-read caches remain session-only.
+
 ## 2026-10-08 · v0.5.1
 
 - 优化大量照片的定位与元数据保存、后台读取及列表缩略图加载，减少批量处理期间的界面重复刷新。

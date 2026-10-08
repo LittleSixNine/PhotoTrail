@@ -53,6 +53,10 @@ Use fotos locais importadas ou Adicionar arquivos para arquivos comuns. Pastas e
 
 **Salvar todos os metadados** (⌘S) grava todas as alterações pendentes de informações e localização da janela atual, sem limitar o alcance à aba, seleção ou filtro ativos. Consultar e visualizar não grava arquivos; é possível desfazer antes de salvar. A gravação local segue as configurações de backup e verifica os resultados por releitura, sem recomprimir os pixels. Pares JPG + RAW podem compartilhar alterações de localização, mas os novos campos não são copiados automaticamente para RAW. A fototeca usa a interface do sistema e tem outro escopo de edição.
 
+## Muitas fotos e cache
+
+Após importar as fotos e preparar os metadados, as miniaturas são carregadas sob demanda na lista de metadados e na faixa de fotos da página de localização, com prioridade para a prévia da foto atual. A troca de fotos e a rolagem da faixa evitam cálculos repetidos. As atualizações preservam configurações, favoritos e caches de trajetos; os caches de miniaturas e leitura de metadados duram apenas durante a sessão e são recriados ao reabrir o app.
+
 ## Primeiros passos
 
 1. **Importe e confira:** configure idioma, backups e mapa, depois abra ou arraste fotos. Confira datas e fuso da câmera; corrija-os no espaço de metadados quando necessário.

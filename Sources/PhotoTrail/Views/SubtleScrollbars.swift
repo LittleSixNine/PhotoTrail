@@ -18,11 +18,15 @@ struct SubtleScrollbars: NSViewRepresentable {
 
     final class Installer: NSView {
         var reservesVerticalScroller = false
+        private weak var container: NSView?
+        private let installedScrolls = NSHashTable<NSScrollView>.weakObjects()
 
         override func hitTest(_ point: NSPoint) -> NSView? { nil }
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
+            container = nil
+            installedScrolls.removeAllObjects()
             DispatchQueue.main.async { [weak self] in self?.install() }
         }
 
@@ -33,10 +37,22 @@ struct SubtleScrollbars: NSViewRepresentable {
 
         func install() {
             guard window != nil else { return }
+            if let container, container.window === window, isDescendant(of: container) {
+                let scrolls = installedScrolls.allObjects.filter {
+                    $0.window === window && $0.isDescendant(of: container)
+                }
+                if !scrolls.isEmpty {
+                    scrolls.forEach { Self.configure($0, reservesVerticalScroller: reservesVerticalScroller) }
+                    return
+                }
+            }
+            installedScrolls.removeAllObjects()
             var ancestor = superview
             while let view = ancestor {
                 let scrolls = scrollViews(in: view)
                 if !scrolls.isEmpty {
+                    container = view
+                    scrolls.forEach { installedScrolls.add($0) }
                     scrolls.forEach { Self.configure($0, reservesVerticalScroller: reservesVerticalScroller) }
                     return
                 }

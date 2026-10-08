@@ -19,33 +19,20 @@ struct ImageTableView: View {
     @Binding var batchActionsPresented: Bool
     var openDetail: () -> Void = {}
 
-    private var searchableImages: [ImageData] {
-        store.visibleImages.filter {
-            (!hideInvalidImages || $0.updatable) && (store.searchText.isEmpty || $0.name.fuzzy(store.searchText))
-        }
-    }
+    @State private var projection = PhotoListProjection()
 
-    private var resultsByID: [ImageData.ID: LocationHelper.LocationById] {
-        Dictionary(uniqueKeysWithValues: workspace.listMatchResults.map { ($0.id, $0) })
-    }
-    private var filteredImages: [ImageData] { filtered(searchableImages) }
-
-    private func filtered(_ images: [ImageData]) -> [ImageData] {
-        let results = unmatchedOnly ? resultsByID : [:]
-        return images.filter { image in
-            filter.includes(image) && (!unmatchedOnly || results[image.id].map {
-                $0.status == .unmatched || $0.status == .ambiguous || $0.status == .missingTime
-            } == true)
-        }
+    private var listSnapshot: PhotoListProjection.TableSnapshot {
+        let unmatchedIDs: Set<ImageData.ID>? = unmatchedOnly ? Set(workspace.listMatchResults.compactMap {
+            $0.status == .unmatched || $0.status == .ambiguous || $0.status == .missingTime ? $0.id : nil
+        }) : nil
+        return projection.table(store.state, search: store.searchText, hideInvalid: hideInvalidImages,
+                                filter: filter, unmatchedIDs: unmatchedIDs)
     }
 
     var body: some View {
-        let searchable = searchableImages
-        let images = filtered(searchable)
-        var counts: [PhotoListFilter: Int] = [:]
-        for image in searchable {
-            for option in PhotoListFilter.allCases where option.includes(image) { counts[option, default: 0] += 1 }
-        }
+        let snapshot = listSnapshot
+        let images = snapshot.images
+        let counts = snapshot.counts
         return VStack(spacing: 0) {
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
@@ -73,7 +60,7 @@ struct ImageTableView: View {
                     Button(L10n.text("清除匹配记录")) { workspace.listMatchResults = []; unmatchedOnly = false }
                 }
                 Spacer()
-                Text(L10n.text("已选择 %1$@ 张（当前显示 %2$@ 张）", store.selection.count, store.selection.intersection(Set(images.map(\.id))).count))
+                Text(L10n.text("已选择 %1$@ 张（当前显示 %2$@ 张）", store.selection.count, store.selection.intersection(snapshot.ids).count))
                     .foregroundStyle(.secondary)
                 Button(batchActionsPresented ? L10n.text("收起照片操作") : L10n.text("照片操作")) { batchActionsPresented.toggle() }
                     .disabled(store.selection.isEmpty && !batchActionsPresented)
@@ -83,7 +70,7 @@ struct ImageTableView: View {
             HStack(spacing: 18) {
                 Label(L10n.text("待保存"), systemImage: "square.and.arrow.down").foregroundStyle(.orange)
                 Label(L10n.text("无待保存修改"), systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-                Text(L10n.text("显示 %1$@ / 共 %2$@ 张照片", images.count, store.visibleImages.count)).foregroundStyle(.secondary)
+                Text(L10n.text("显示 %1$@ / 共 %2$@ 张照片", images.count, snapshot.total)).foregroundStyle(.secondary)
                 Spacer()
             }.font(.caption).padding(12)
         }
@@ -101,7 +88,7 @@ struct ImageTableView: View {
     }
 
     private func retainVisibleSelection() {
-        let visible = Set(filteredImages.map(\.id))
+        let visible = listSnapshot.ids
         store.send(.selectionChanged(store.selection.intersection(visible)), undoable: false)
     }
 

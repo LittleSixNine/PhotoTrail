@@ -134,6 +134,7 @@ struct MetadataListInspectorView: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
     @Environment(MetadataLoadingQueue.self) private var metadataQueue
     @Environment(\.scenePhase) private var scenePhase
+    @State private var selectionProjection = PhotoListProjection()
     @State private var results: [ImageData.ID: MetadataInspectionRead] = [:]
     @State private var checkingVersions = false
     @State private var observedVersions: [MetadataInspectionFileVersion] = []
@@ -171,7 +172,7 @@ struct MetadataListInspectorView: View {
     }
 
     private var selected: [ImageData] {
-        store.imageData.filter { store.selection.contains($0.id) }.sorted(using: store.sortOrder)
+        selectionProjection.selected(store.state)
     }
 
     private var loadKey: LoadKey {

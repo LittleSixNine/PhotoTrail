@@ -173,7 +173,7 @@ struct AMapView: View {
         .onChange(of: workspace.ready) {
             if !workspace.ready { pendingPhotoDrag = nil }
         }
-        .task(id: "\(store.mapRevision):\(showAllPhotoLocations)") {
+        .task(id: MapPhotoLoadKey(store.state, showAll: showAllPhotoLocations)) {
             photos = SettingsPreferences.displayedPhotos(store.visibleImages, selection: store.selection,
                                                            showAll: showAllPhotoLocations).compactMap { image -> AMapPhoto? in
                 guard image.metadata.canDisplayAsWGS84,

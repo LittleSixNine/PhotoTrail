@@ -58,3 +58,12 @@ The app reads GitHub's public latest-release endpoint with URLSession. Automatic
 ## Development progress and metadata entry points
 
 See [development history](../CHANGELOG.md). `MetadataLoadingQueue.swift` manages per-window background reads, selection priority, cache and progress. `MetadataListInspectorView.swift` renders fields and opens typed editors. Exiftool `inspectionTags` reads every recognized family; writing keeps a separate allowlist. `MetadataCreatorEditPlan`, `SaveTargets` and `SaveHelper` freeze targets and validate versions, backups and readback. `RenameWorkspaceView` implements the third-tab rule editor and preview. `RenameEngine` computes names, `RenameWorkspace` freezes inputs and counters, and `RenameExecutor` journals native no-overwrite moves and verifies content hashes. `ImageData.applyFileRenames` updates names, source URLs and undo baselines while retaining IDs. The catalog has 97 actions plus filtering and advanced options; supported boundaries are documented in [behavior](../BEHAVIOR.md) (Chinese).
+
+
+## Browsing performance and session caches
+
+`PhotoListProjection.swift` reuses list filtering and counts, filmstrip sorting and the metadata inspector's selected-photo snapshot. A UUID changes with photo data, distinguishing edits on different undo branches. Parsed capture dates are reused until that photo's timestamp or the camera time zone changes. Filmstrip context menus are constructed when opened, keeping selection scans and pasteboard reads out of item layout.
+
+Metadata-list thumbnails use 80 points times the display scale. The location filmstrip chooses a 160/256/384/512/768/1024-pixel size from its display width and scale. Small thumbnails and 1024-pixel previews have separate estimated 64 MiB budgets and 384-entry limits; visible images and active decodes are outside those budgets. Local decoding remains limited to two operations, with the current preview ahead of waiting ordinary thumbnails. Thumbnail, metadata-read and list-projection caches are session-only; the released bundle identifier and persistent track-cache paths stay compatible.
+
+`PhotoInteractionTests` covers 2000-photo selection, date/time-zone changes, pairing, separate cache budgets and edits after undo. `MapPhotoPerformanceTests` covers map grouping and replacement scroll containers. These logic tests do not establish scrolling frame rates or acceptance with real RAW files and external disks.

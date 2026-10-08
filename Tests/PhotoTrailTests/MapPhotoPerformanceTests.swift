@@ -8,6 +8,42 @@ import UDF
 @testable import PhotoTrail
 
 @MainActor struct MapPhotoPerformanceTests {
+    @Test func mapGeometryKeyIgnoresSelectionOnlyInAllPhotoMode() {
+        var state = PhotoTrailState()
+        let all = MapPhotoLoadKey(state, showAll: true)
+        let selected = MapPhotoLoadKey(state, showAll: false)
+        state.selection = [1]
+        state.mostSelected = 1
+        state.mapRevision += 1
+        #expect(MapPhotoLoadKey(state, showAll: true) == all)
+        #expect(MapPhotoLoadKey(state, showAll: false) != selected)
+        state.saveInProgress = true
+        #expect(MapPhotoLoadKey(state, showAll: true) != all)
+        state.saveInProgress = false
+        state.imageData.append(ImageData())
+        #expect(MapPhotoLoadKey(state, showAll: true) != all)
+    }
+
+    @Test func scrollbarInstallerFindsReplacementScrollViews() throws {
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 300, height: 300),
+                              styleMask: [], backing: .buffered, defer: false)
+        let root = try #require(window.contentView)
+        let installer = SubtleScrollbars.Installer()
+        root.addSubview(installer)
+        let first = NSScrollView(frame: root.bounds)
+        first.hasVerticalScroller = true
+        root.addSubview(first)
+        installer.install()
+        #expect(first.verticalScroller is SubtleScroller)
+        installer.install()
+        first.removeFromSuperview()
+        let replacement = NSScrollView(frame: root.bounds)
+        replacement.hasVerticalScroller = true
+        root.addSubview(replacement)
+        installer.install()
+        #expect(replacement.verticalScroller is SubtleScroller)
+    }
+
     @Test func inspectorCacheChecksBothSourcesScopesAndExplicitInvalidation() {
         let cache = MetadataInspectorReadCache(limit: 2)
         let image = URL(fileURLWithPath: "/tmp/cache-image.jpg")
@@ -90,7 +126,7 @@ import UDF
             return MapView.PhotoPin(image: ImageData(metadata: Metadata(source: .copy),
                                                      name: "photo-\(index).jpg"),
                                     location: Coords(latitude: latitude, longitude: longitude),
-                                    selected: false, editable: true)
+                                    editable: true)
         }
 
         let groups = MapView.groupedPhotoPins(pins, in: .world)
@@ -104,7 +140,7 @@ import UDF
             MapView.PhotoPin(image: ImageData(metadata: Metadata(source: .copy),
                                               name: "photo-\(index).jpg"),
                              location: Coords(latitude: 31.23, longitude: 121.48),
-                             selected: false, editable: true)
+                             editable: true)
         }
 
         let groups = MapView.groupedPhotoPins(pins)

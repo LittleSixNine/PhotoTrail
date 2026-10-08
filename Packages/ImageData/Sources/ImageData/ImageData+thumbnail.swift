@@ -19,12 +19,14 @@ extension ImageData {
         return queue
     }()
 
-    public func makeThumbnail(scale: CGFloat, maxDimension: Double = 1024) async -> Image {
+    public func makeThumbnail(scale: CGFloat, maxDimension: Double = 1024, prioritize: Bool = false) async -> Image {
         var image: Image?
         switch metadata.source {
         case .image(let url), .xmp(let url):
             // ImageIO decoding must not occupy the UI executor. Bound RAW decoding as well.
             let operation = BlockOperation()
+            operation.queuePriority = prioritize ? .veryHigh : .normal
+            operation.qualityOfService = prioritize ? .userInitiated : .utility
             let result = ThumbnailResult()
             image = await withTaskCancellationHandler {
                 await withCheckedContinuation { continuation in

@@ -53,6 +53,10 @@ Use imported local photos or Add Files for ordinary files. Folders and Photos-li
 
 **Save All Metadata** (⌘S) writes every pending photo-information and location change in the current window, regardless of the active tab, selection or filter. Browsing and previews do not write files. Changes can be undone before saving; local writes follow backup settings and verify results by reading them back and do not recompress image pixels. JPG + RAW pairs can share location writes, but new metadata fields are not automatically copied to RAW. Apple Photos uses the system interface and has a different editing scope.
 
+## Large photo sets and caching
+
+After import and metadata preparation, thumbnails load on demand in the metadata list and location filmstrip, with priority given to the current photo preview. Switching photos and scrolling the filmstrip avoid repeated work. Updates preserve settings, favorites and track caches; thumbnail and metadata-read caches last only for the current session and are rebuilt after reopening.
+
 ## Getting started
 
 1. **Import and check:** finish language, backup and map setup, then open or drag in photos. Check capture times and the camera time zone; correct dates in the metadata workspace when necessary.
