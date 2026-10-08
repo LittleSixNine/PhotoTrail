@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 
 struct RenameWorkspaceView: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
+    @Environment(\.colorScheme) private var colorScheme
     @Bindable var workspace: RenameWorkspace
     @State private var selectedRule: UUID?
     @AppStorage("PhotoTrailRenameTableColumns.v1") private var tableColumns = TableColumnCustomization<RenamePreview>()
@@ -150,18 +151,7 @@ private extension RenameWorkspaceView {
                 Text(L10n.text("重命名规则")).font(.headline)
                 Spacer()
             }.padding(14)
-            HStack(alignment: .top, spacing: 10) {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(L10n.text("当前预设")).font(.caption).foregroundStyle(.secondary)
-                    Text(workspace.currentPresetName).fontWeight(.medium).lineLimit(1).help(workspace.currentPresetName)
-                    if workspace.presetModified {
-                        Text(L10n.text("已修改 · 尚未保存")).font(.caption).foregroundStyle(.orange)
-                    }
-                }.frame(maxWidth: .infinity, alignment: .leading)
-                Button(L10n.text("切换与管理…")) { showPresetManager = true }
-                    .accessibilityIdentifier("renamePresetManager")
-                    .popover(isPresented: $showPresetManager, arrowEdge: .trailing) { presetManager }
-            }.padding(.horizontal, 14).padding(.bottom, 14)
+            presetCard.padding(.horizontal, 14).padding(.bottom, 14)
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
@@ -216,6 +206,50 @@ private extension RenameWorkspaceView {
         }
         .disabled(workspace.executing || store.saveInProgress)
         .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    var presetCard: some View {
+        let dark = colorScheme == .dark
+        let background = dark
+            ? [Color(red: 0.07, green: 0.12, blue: 0.25), Color(red: 0.20, green: 0.22, blue: 0.51)]
+            : [Color(red: 0.93, green: 0.97, blue: 1), Color(red: 0.90, green: 0.87, blue: 1)]
+        let title = dark
+            ? [Color(red: 0.47, green: 0.82, blue: 1), Color(red: 0.76, green: 0.68, blue: 1)]
+            : [Color(red: 0.04, green: 0.46, blue: 1), Color(red: 0.48, green: 0.24, blue: 0.96)]
+        return HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(L10n.text("当前预设"))
+                    .font(.caption).foregroundStyle(dark ? Color.white.opacity(0.7) : Color.secondary)
+                Text(workspace.currentPresetName)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(LinearGradient(colors: title, startPoint: .leading, endPoint: .trailing))
+                    .lineLimit(1).minimumScaleFactor(0.65).help(workspace.currentPresetName)
+                if workspace.presetModified {
+                    Text(L10n.text("已修改 · 尚未保存"))
+                        .font(.caption).foregroundStyle(dark ? Color(red: 1, green: 0.78, blue: 0.43) : Color.orange)
+                }
+            }.frame(maxWidth: .infinity, alignment: .leading)
+            Button { showPresetManager = true } label: {
+                HStack(spacing: 6) {
+                    Text(L10n.text("切换与管理…"))
+                    Image(systemName: "chevron.right").font(.caption.weight(.semibold))
+                }
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(dark ? Color.white : Color.blue)
+                .padding(.horizontal, 12).padding(.vertical, 10)
+                .background(Color.white.opacity(dark ? 0.15 : 0.65), in: Capsule())
+                .overlay(Capsule().strokeBorder(Color.white.opacity(dark ? 0.20 : 0.5)))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("renamePresetManager")
+            .popover(isPresented: $showPresetManager, arrowEdge: .trailing) { presetManager }
+        }
+        .padding(16).frame(minHeight: 100)
+        .background(LinearGradient(colors: background, startPoint: .topLeading, endPoint: .bottomTrailing),
+                    in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(
+            dark ? Color.white.opacity(0.12) : Color.blue.opacity(0.16)))
+        .accessibilityIdentifier("renamePresetCard")
     }
 
     private func setCommonPreset(_ name: String, rules: [RenameRule]) {
@@ -567,7 +601,7 @@ private struct RenameRuleFrames: PreferenceKey {
     }
 }
 
-private struct RenameRuleCard: View {
+struct RenameRuleCard: View {
     @Binding var rule: RenameRule
     @Binding var selectedRule: UUID?
     let index: Int
@@ -625,19 +659,22 @@ private struct RenameRuleCard: View {
             }
         }
         .padding(12)
-        .background(selectedRule == rule.id || editing ? Color.blue.opacity(0.08) : Color(nsColor: .controlBackgroundColor),
+        .background(selectedRule == rule.id ? Color.blue.opacity(0.08) : Color(nsColor: .controlBackgroundColor),
                     in: RoundedRectangle(cornerRadius: 10))
     }
 
     var body: some View {
         cardContents
         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(
-            selectedRule == rule.id || editing ? Color.blue : Color.secondary.opacity(0.18),
-            lineWidth: selectedRule == rule.id || editing ? 1.5 : 1))
+            selectedRule == rule.id ? Color.blue : Color.secondary.opacity(0.18),
+            lineWidth: selectedRule == rule.id ? 1.5 : 1))
         .focused($editing)
         .simultaneousGesture(TapGesture().onEnded { selectedRule = rule.id })
         .onChange(of: editing) { if editing { selectedRule = rule.id } }
-        .onChange(of: rule) { selectedRule = rule.id }
+        .onChange(of: selectedRule) {
+            if selectedRule != rule.id { editing = false }
+        }
+        .onChange(of: rule) { if editing { selectedRule = rule.id } }
         .contentShape(Rectangle())
         .contextMenu {
             Button(L10n.text("复制规则"), action: duplicate)
@@ -667,7 +704,12 @@ private struct RenameRuleParameters: View {
                 if [32,94].contains(action) || (66...77).contains(action) {
                     Text(L10n.text(action == 94 ? "每行新名称，或旧名与新名的 TSV" : action == 32 ? "词汇大小写例外（每行一个）" : "标签模板，例如 <CameraModel>"))
                         .font(.caption).foregroundStyle(.secondary)
-                    TextEditor(text: $rule.text).font(.system(.callout, design: .monospaced)).frame(height: 80)
+                    TextEditor(text: $rule.text)
+                        .font(.system(.callout, design: .monospaced))
+                        .scrollContentBackground(.hidden)
+                        .background(Color(nsColor: .textBackgroundColor))
+                        .foregroundStyle(.primary)
+                        .frame(height: 80)
                         .border(Color.secondary.opacity(0.2))
                     if (66...77).contains(action) {
                         Button(L10n.text("插入标签…")) { tagPicker = true }
