@@ -450,6 +450,19 @@ extension RenameTests {
 }
 
 struct RenamePresetTests {
+    @MainActor @Test func executionHistoryLoadsOnlyWhenRequested() async throws {
+        let directory = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let journal = RenameJournal(state: "completed", entries: [])
+        try RenameExecutor.write(journal, directory: directory)
+        let defaults = try #require(UserDefaults(suiteName: UUID().uuidString))
+        let workspace = RenameWorkspace(defaults: defaults)
+        #expect(workspace.history.isEmpty)
+        await workspace.loadHistory(directory: directory)
+        #expect(workspace.history.map(\.id) == [journal.id])
+        #expect(!workspace.historyLoading)
+    }
+
     @Test @MainActor func restartingRestoresTheLastCommonPresetWithoutSavingDraftRulesOrScope() {
         let domain = "PhotoTrailRenameTests." + UUID().uuidString
         let defaults = UserDefaults(suiteName: domain)!

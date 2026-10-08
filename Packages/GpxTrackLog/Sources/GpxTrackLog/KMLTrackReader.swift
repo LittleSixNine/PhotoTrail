@@ -6,12 +6,13 @@ enum TrackReadError: Error {
 
 /// Reads local geometry only. Styles, links, overlays and embedded resources never execute or load.
 final class KMLTrackReader: NSObject, XMLParserDelegate {
-    private struct Geometry {
+    private final class Geometry {
         let name: String
         let depth: Int
         var coordinates = [String]()
         var times = [String]()
         var altitudeMode = "clampToGround"
+        init(name: String, depth: Int) { self.name = name; self.depth = depth }
     }
 
     private let parser: XMLParser
@@ -66,7 +67,7 @@ final class KMLTrackReader: NSObject, XMLParserDelegate {
     func parser(_ parser: XMLParser, didEndElement elementName: String,
                 namespaceURI: String?, qualifiedName qName: String?) {
         defer { path.removeLast(); text = "" }
-        guard var current = geometry else { return }
+        guard let current = geometry else { return }
         if path.count == current.depth + 1 {
             let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
             switch path.last {
@@ -76,7 +77,6 @@ final class KMLTrackReader: NSObject, XMLParserDelegate {
             case "altitudeMode": current.altitudeMode = value
             default: break
             }
-            geometry = current
         } else if path.count == current.depth {
             do { try append(current) } catch { fail(error) }
             geometry = nil

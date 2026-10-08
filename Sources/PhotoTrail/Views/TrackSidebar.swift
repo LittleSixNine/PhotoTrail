@@ -125,7 +125,8 @@ private extension TrackSidebar {
     var historySection: some View {
         DisclosureGroup(isExpanded: $historyExpanded) {
             VStack(alignment: .leading, spacing: 10) {
-                if library.records.isEmpty {
+                if library.restoring { ProgressView() }
+                if library.records.isEmpty && !library.restoring {
                     Text(L10n.text("导入过的轨迹会保存在这里。")).font(.caption).foregroundStyle(.secondary)
                 }
                 ForEach(library.records.reversed()) { record in
@@ -138,12 +139,15 @@ private extension TrackSidebar {
                             Text(record.cacheIsCurrent ? L10n.text("已缓存") : amap ? L10n.text("加入后转换") : L10n.text("原始轨迹"))
                                 .font(.caption2).foregroundStyle(record.cacheIsCurrent ? Color.green : .secondary)
                         }.frame(maxWidth: .infinity, alignment: .leading)
+                        if library.readingSources[record.id] != nil { ProgressView().controlSize(.small) }
                         Button(library.activeIDs.contains(record.id) ? L10n.text("已加入") : L10n.text("加入")) {
-                            if let log = library.addHistory(record.id, amap: amap) {
-                                store.send(.restoreTracks([log]), undoable: false)
+                            Task {
+                                if let log = await library.addHistory(record.id, amap: amap) {
+                                    store.send(.restoreTracks([log]), undoable: false)
+                                }
                             }
                         }
-                        .disabled(library.activeIDs.contains(record.id) || store.saveInProgress)
+                        .disabled(library.activeIDs.contains(record.id) || library.readingSources[record.id] != nil || store.saveInProgress)
                         .accessibilityLabel(L10n.text("加入历史轨迹 %1$@", record.name))
                     }
                 }
@@ -160,12 +164,12 @@ private extension TrackSidebar {
 
     private var matchingControls: some View {
         let selection = MapPhotoSelectionSummary(images: store.imageData, selectedIDs: store.selection)
-        let blocked = store.selection.isEmpty || !store.gpxTracks.contains(where: \.hasRecordedTimes) || store.saveInProgress || matching
+        let blocked = store.selection.isEmpty || !store.gpxTracks.contains(where: \.hasRecordedTimes) || store.saveInProgress || matching || !library.readingSources.isEmpty
         return VStack(alignment: .leading, spacing: 10) {
             Text(L10n.text("匹配所选照片：%1$@ 张", store.selection.count)).font(.callout.weight(.medium))
             Button(L10n.text("按轨迹时段选择照片")) { selectPhotosInTrackTime() }
                 .buttonStyle(.borderless)
-                .disabled(!store.gpxTracks.contains(where: \.hasRecordedTimes) || store.saveInProgress || matching)
+                .disabled(!store.gpxTracks.contains(where: \.hasRecordedTimes) || store.saveInProgress || matching || !library.readingSources.isEmpty)
                 .help(L10n.text("选中拍摄时间落在任一已导入轨迹记录段内的照片"))
             Button { applyTrackLocations(overwrite: false) } label: {
                 Text(L10n.text("补齐缺失定位")).frame(maxWidth: .infinity)
@@ -246,6 +250,7 @@ private extension TrackSidebar {
                         .menuStyle(.borderlessButton).fixedSize().help(L10n.text("轨迹操作"))
                 }
             }
+            if library.readingSources[record.id] != nil { ProgressView().controlSize(.small) }
             if record.sourceUnavailable {
                 Text(L10n.text("原文件不可用，仍可查看已有缓存；请重新导入以匹配照片。"))
                     .font(.caption).foregroundStyle(.orange)
@@ -284,7 +289,7 @@ private extension TrackSidebar {
     @ViewBuilder
     private func trackActions(_ record: TrackRecord) -> some View {
         Button(L10n.text("重新读取并刷新这条轨迹")) { refresh(record.id) }
-            .disabled(library.requests[record.id] != nil || store.saveInProgress)
+            .disabled(library.requests[record.id] != nil || library.readingSources[record.id] != nil || store.saveInProgress)
         if record.generatedFromPhotos {
             Button(L10n.text("导出 GPX…"), systemImage: "square.and.arrow.up") {
                 do {
@@ -311,8 +316,13 @@ private extension TrackSidebar {
     }
 
     private func refresh(_ id: String) {
-        if let log = library.refresh(id, amap: amap) {
-            store.send(.restoreTracks([log]), undoable: false)
+        Task {
+            if let log = await library.refresh(id, amap: amap) {
+                if log.sourceURL.path != id { store.send(.removeTrack(URL(filePath: id)), undoable: false) }
+                store.send(.restoreTracks([log]), undoable: false)
+            } else if library.record(id)?.sourceUnavailable == true {
+                store.send(.removeTrack(URL(filePath: id)), undoable: false)
+            }
         }
     }
 

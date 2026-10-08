@@ -146,6 +146,8 @@ struct MetadataListInspectorView: View {
     @AppStorage("metadataCommonFieldsOnly") private var commonOnly = true
 
     @State private var workflowEditor: MetadataCreatorEditorSelection?
+    @State private var selectedWorkflowPreset: MetadataPreset?
+    @AppStorage("PhotoTrail.MetadataPresets") private var presetData = Data()
     @State private var advanced: [ImageData.ID: [String: String]] = [:]
     @State private var advancedLoading = false
     @State private var advancedFailed = false
@@ -384,7 +386,7 @@ struct MetadataListInspectorView: View {
                                  initialBatchMode: selection.mode, initialBatchInput: selection.input)
         }
         .sheet(item: $workflowEditor) { selection in
-            MetadataWorkflowView(readings: selection.readings)
+            MetadataWorkflowView(readings: selection.readings, quickPreset: selectedWorkflowPreset)
         }
         .sheet(item: $creatorEditor) { selection in
             MetadataCreatorEditorView(readings: selection.readings, tag: selection.tag,
@@ -461,21 +463,47 @@ struct MetadataListInspectorView: View {
 }
 
 private extension MetadataListInspectorView {
+    var savedMetadataPresets: [MetadataPreset] {
+        ((try? JSONDecoder().decode([MetadataPreset].self, from: presetData)) ?? []).filter { $0.version == 1 }
+    }
+
     var inspectorHeader: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 12) {
                 Text(L10n.text("元数据")).font(.headline)
                 Spacer(minLength: 8)
-                Button {
-                    if let readings = editableCreatorReadings {
-                        workflowEditor = MetadataCreatorEditorSelection(readings: readings, tag: .creator)
+                Menu {
+                    if savedMetadataPresets.isEmpty {
+                        Text(L10n.text("暂无预设"))
+                    }
+                    ForEach(savedMetadataPresets, id: \.name) { preset in
+                        Button(preset.name) {
+                            if let readings = editableCreatorReadings {
+                                selectedWorkflowPreset = preset
+                                workflowEditor = MetadataCreatorEditorSelection(readings: readings, tag: .creator)
+                            }
+                        }
+                    }
+                    Divider()
+                    Button(L10n.text("编辑预设…")) {
+                        if let readings = editableCreatorReadings {
+                            selectedWorkflowPreset = nil
+                            workflowEditor = MetadataCreatorEditorSelection(readings: readings, tag: .creator)
+                        }
                     }
                 } label: {
-                    Label(L10n.text("批量预设…"), systemImage: "slider.horizontal.3")
+                    HStack(spacing: 8) {
+                        Image(systemName: "bolt.fill").font(.system(size: 16))
+                        Text(L10n.text("批量操作")).font(.system(size: 15, weight: .semibold))
+                        Image(systemName: "chevron.down").font(.system(size: 10, weight: .semibold))
+                    }.foregroundStyle(.white)
+                        .padding(.horizontal, 14).padding(.vertical, 10)
+                        .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 9))
+                        .opacity(editableCreatorReadings == nil ? 0.45 : 1)
                 }
-                .buttonStyle(.bordered).controlSize(.regular)
+                .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                 .disabled(editableCreatorReadings == nil)
-                .help(editableCreatorReadings == nil ? editUnavailableReason : L10n.text("批量预设…"))
+                .help(editableCreatorReadings == nil ? editUnavailableReason : L10n.text("批量操作"))
                 .accessibilityIdentifier("metadataPresetButton")
             }
             if !selected.isEmpty {

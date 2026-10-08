@@ -11,6 +11,7 @@ struct MetadataWorkflowView: View {
     var excludedFieldCount = 0
     var initialBatchMode = "copy"
     var initialBatchInput = ""
+    var quickPreset: MetadataPreset?
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
     @Environment(\.dismiss) private var dismiss
     @AppStorage("PhotoTrail.MetadataPresets") private var presetData = Data()
@@ -20,7 +21,9 @@ struct MetadataWorkflowView: View {
     @State private var copySource = MetadataTag.dateOriginal
     @State private var workflowTab = "actions"
     @State private var cards: [MetadataWorkflowCard] = []
+    @State private var selectedCard: UUID?
     @State private var namingPreset = false
+    @State private var renamingPreset: String?
     @State private var deletingPreset: String?
     private var operations: [MetadataOperation] {
         get { cards.flatMap(\.operations) }
@@ -42,13 +45,16 @@ struct MetadataWorkflowView: View {
         VStack(alignment: .leading, spacing: 20) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(isBatch ? L10n.text("批量编辑字段") : L10n.text("批量预设…"))
+                    Text(quickPreset?.name ?? (isBatch ? L10n.text("批量编辑字段") : L10n.text("编辑预设…")))
                         .font(.system(size: 24, weight: .semibold))
                     Text(L10n.text("已选择 %1$@ 张照片", readings.count)).foregroundStyle(.secondary)
                 }
                 Spacer()
                 Text(L10n.text("编辑 → 预览 → 加入待保存")).font(.callout).foregroundStyle(.secondary)
             }
+            if quickPreset != nil {
+                workflowPreview
+            } else {
             HStack(alignment: .top, spacing: 18) {
                 VStack(alignment: .leading, spacing: 12) {
                     if isBatch {
@@ -78,7 +84,7 @@ struct MetadataWorkflowView: View {
                     workflowPreview.frame(width: 270)
                 } else {
                     Button {
-                        presetName = ""; namingPreset = true
+                        renamingPreset = nil; presetName = ""; namingPreset = true
                     } label: {
                         Image(systemName: "arrow.right").font(.title2).frame(width: 30, height: 44)
                     }.buttonStyle(.borderless)
@@ -93,10 +99,13 @@ struct MetadataWorkflowView: View {
                         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.quaternary))
                 }
             }.frame(maxHeight: .infinity)
+            }
             if !notice.isEmpty { Text(notice).font(.callout).foregroundStyle(.orange).textSelection(.enabled) }
             Divider()
             HStack(spacing: 12) {
-                Button(L10n.text("预览")) { makePreview() }.disabled(activeOperations.isEmpty || busy || incompleteCards)
+                if quickPreset == nil {
+                    Button(L10n.text("预览")) { makePreview() }.disabled(activeOperations.isEmpty || busy || incompleteCards)
+                }
                 Spacer()
                 Button(L10n.text("取消")) { dismiss() }.keyboardShortcut(.cancelAction)
                 Button(L10n.text("加入待保存修改")) { apply() }
@@ -104,8 +113,14 @@ struct MetadataWorkflowView: View {
                     .disabled(preview?.items.isEmpty != false || busy || store.saveInProgress)
             }.controlSize(.large)
         }.font(.system(size: 15)).controlSize(.large).textFieldStyle(.roundedBorder)
-            .padding(24).frame(width: 880, height: 660)
+            .padding(24)
+            .frame(width: min(1120, (NSScreen.main?.visibleFrame.width ?? 1200) - 80),
+                   height: min(800, (NSScreen.main?.visibleFrame.height ?? 900) - 100))
             .onAppear {
+                if let quickPreset {
+                    operations = quickPreset.operations
+                    makePreview()
+                }
                 if isBatch {
                     mode = initialBatchMode; input = initialBatchInput
                     copySource = copySources.contains(.captureDate) ? .captureDate : copySources.first ?? .sidecarDate
@@ -116,18 +131,24 @@ struct MetadataWorkflowView: View {
             .onChange(of: mode) { if isBatch { preview = nil } }
             .onChange(of: input) { if isBatch { preview = nil } }
             .onChange(of: copySource) { if isBatch { preview = nil } }
-            .alert(L10n.text("新建预设"), isPresented: $namingPreset) {
+            .alert(renamingPreset == nil ? L10n.text("新建预设") : L10n.text("重命名"), isPresented: $namingPreset) {
                 TextField(L10n.text("预设名称"), text: $presetName)
                 Button(L10n.text("取消"), role: .cancel) {}
                 Button(L10n.text("保存")) {
                     perform {
                         let name = presetName.trimmingCharacters(in: .whitespacesAndNewlines)
-                        try storePreset(MetadataPreset(name: name, operations: operations))
-                        selectedPreset = name
+                        if let original = renamingPreset {
+                            presetData = try JSONEncoder().encode(MetadataWorkflowCard.renamePreset(original, to: name, in: presets))
+                            if selectedPreset == original { selectedPreset = name }
+                        } else {
+                            try storePreset(MetadataPreset(name: name, operations: operations))
+                            selectedPreset = name
+                        }
                         notice = L10n.text("预设已保存。")
                     }
                 }.disabled(presetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                           || presets.contains { $0.name == presetName.trimmingCharacters(in: .whitespacesAndNewlines) })
+                           || presets.contains { $0.name != renamingPreset
+                               && $0.name == presetName.trimmingCharacters(in: .whitespacesAndNewlines) })
             } message: {
                 Text(L10n.text("请输入一个未使用的预设名称。"))
             }
@@ -157,8 +178,11 @@ private extension MetadataWorkflowView {
                 MetadataOperationCardView(operations: Binding(
                     get: { cards.first(where: { $0.id == card.id })?.operations ?? [] },
                     set: { value in
-                        if let current = cards.firstIndex(where: { $0.id == card.id }) { cards[current].operations = value; preview = nil }
+                        if let current = cards.firstIndex(where: { $0.id == card.id }) {
+                            cards[current].operations = value; selectedCard = card.id; preview = nil
+                        }
                     }), readings: readings,
+                    selected: Binding(get: { selectedCard == card.id }, set: { if $0 { selectedCard = card.id } }),
                     availableTags: availableTags, index: index,
                     moveUp: index > 0 ? { cards.swapAt(index, index - 1); preview = nil } : nil,
                     moveDown: index + 1 < cards.count ? { cards.swapAt(index, index + 1); preview = nil } : nil,
@@ -168,6 +192,7 @@ private extension MetadataWorkflowView {
                 preview = nil
                 cards.append(MetadataWorkflowCard(operations: [MetadataOperation(tag: tag,
                     action: .offsetDate(years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0))]))
+                selectedCard = cards.last?.id
             }
             Button(L10n.text("清空操作")) { resetOperations() }.disabled(cards.isEmpty)
         }.padding(.vertical, 8)
@@ -197,7 +222,10 @@ private extension MetadataWorkflowView {
                                         try storePreset(MetadataPreset(name: name, operations: preset.operations))
                                     }
                                 }
-                                Button(L10n.text("删除预设"), role: .destructive) { deletingPreset = preset.name }
+                                Button(L10n.text("重命名")) {
+                                    renamingPreset = preset.name; presetName = preset.name; namingPreset = true
+                                }
+                                Button(L10n.text("删除"), role: .destructive) { deletingPreset = preset.name }
                             }
                     }
                 }
@@ -630,6 +658,17 @@ struct MetadataWorkflowCard: Identifiable, Equatable {
     let id = UUID()
     var operations: [MetadataOperation]
 
+    static func renamePreset(_ original: String, to name: String, in presets: [MetadataPreset]) throws -> [MetadataPreset] {
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let index = presets.firstIndex(where: { $0.name == original }),
+              !presets.contains(where: { $0.name == name && $0.name != original }) else {
+            throw MetadataFieldEditError.invalidValue
+        }
+        var result = presets
+        result[index] = try MetadataPreset(name: name, operations: presets[index].operations)
+        return result
+    }
+
     static func cards(from operations: [MetadataOperation]) -> [Self] {
         var cards: [Self] = []
         // Version 1 stores each copy destination as a separate operation.
@@ -655,6 +694,8 @@ struct MetadataWorkflowCard: Identifiable, Equatable {
 private struct MetadataOperationCardView: View {
     @Binding var operations: [MetadataOperation]
     let readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)]
+    @Binding var selected: Bool
+    @FocusState private var editing: Bool
     let availableTags: [MetadataTag]
     let index: Int
     let moveUp: (() -> Void)?
@@ -709,8 +750,14 @@ private struct MetadataOperationCardView: View {
             }.labelStyle(.iconOnly).buttonStyle(.borderless)
             if expanded { editor }
         }.padding(14)
-            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.quaternary))
+            .background(selected || editing ? Color.blue.opacity(0.08) : Color(nsColor: .controlBackgroundColor),
+                        in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(
+                selected || editing ? Color.blue : Color.secondary.opacity(0.18), lineWidth: selected || editing ? 1.5 : 1))
+            .contentShape(RoundedRectangle(cornerRadius: 10))
+            .focused($editing)
+            .simultaneousGesture(TapGesture().onEnded { selected = true })
+            .onChange(of: editing) { if editing { selected = true } }
             .onAppear {
                 guard !loaded, let first = operations.first else { return }
                 if case .copy(let source) = first.action {

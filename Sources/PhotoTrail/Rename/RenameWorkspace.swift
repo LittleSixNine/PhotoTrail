@@ -36,6 +36,8 @@ final class RenameWorkspace {
     var presetModified: Bool { rules != presetRules || settings != presetSettings }
     var counterRevision = 0
     var history: [RenameJournal] = []
+    private(set) var historyLoading = false
+    @ObservationIgnored private var historyLoadRevision = 0
     private static var operationActive = false
     @ObservationIgnored private var revision = 0
     @ObservationIgnored private var cache: [URL: (RenameFileIdentity, RenameInput)] = [:]
@@ -61,7 +63,16 @@ final class RenameWorkspace {
            let saved = try? JSONDecoder().decode(RenamePreset.self, from: data), saved.version == 1 {
             activatePreset(presets.first(where: { $0.id == saved.id }) ?? saved)
         }
-        history = RenameExecutor.journals()
+    }
+
+    func loadHistory(directory: URL = RenameExecutor.storage) async {
+        historyLoadRevision += 1
+        let revision = historyLoadRevision
+        historyLoading = true
+        let saved = await Task.detached(priority: .utility) { RenameExecutor.journals(directory: directory) }.value
+        guard revision == historyLoadRevision else { return }
+        history = saved
+        historyLoading = false
     }
 
     deinit { for url in directoryScopes { url.stopAccessingSecurityScopedResource() } }
@@ -318,7 +329,7 @@ final class RenameWorkspace {
             Self.operationActive = false
             self.plan = nil
             cache = [:]
-            history = RenameExecutor.journals()
+            await loadHistory()
         }
         cancelOperation = { cancellation.cancel() }
     }
@@ -364,7 +375,7 @@ final class RenameWorkspace {
             store.send(.renameFinished, undoable: false)
             notice = outcome.1.map { L10n.text("恢复未完成：%1$@。原文件未被覆盖。", $0) } ?? L10n.text("已恢复原文件名。")
             executing = false; restoring = false; Self.operationActive = false; plan = nil; cache = [:]
-            history = RenameExecutor.journals()
+            await loadHistory()
         }
     }
 }

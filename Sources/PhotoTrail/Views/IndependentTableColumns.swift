@@ -29,9 +29,12 @@ struct IndependentTableColumns: NSViewRepresentable {
             installHandles()
         }
 
-        private func findTable(_ view: NSView) -> NSTableView? {
+        func findTable(_ view: NSView) -> NSTableView? {
             if let table = view as? NSTableView, table.tableColumns.count == 5 { return table }
-            return view.subviews.lazy.compactMap { self.findTable($0) }.first
+            for child in view.subviews {
+                if let found = findTable(child) { return found }
+            }
+            return nil
         }
 
         func installHandles() {

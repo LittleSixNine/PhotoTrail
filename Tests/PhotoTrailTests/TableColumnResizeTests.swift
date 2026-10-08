@@ -53,8 +53,33 @@ struct TableColumnResizeTests {
         #expect(abs(columns[2].width + columns[3].width - pairWidth) < 0.01)
     }
 
+    @Test func tableSearchVisitsEachViewOnceAndStopsAtFirstMatch() {
+        final class CountedView: NSView {
+            var visits = 0
+            override var subviews: [NSView] {
+                get { visits += 1; return super.subviews }
+                set { super.subviews = newValue }
+            }
+        }
+        let table = NSTableView()
+        for index in 0..<5 { table.addTableColumn(NSTableColumn(identifier: .init("column\(index)"))) }
+        var child: NSView = table
+        var nodes: [CountedView] = []
+        for _ in 0..<20 {
+            let parent = CountedView(); parent.addSubview(child); child = parent; nodes.append(parent)
+        }
+        let ignored = CountedView(); child.addSubview(ignored)
+        for node in nodes { node.visits = 0 }
+        ignored.visits = 0
+        let observer = IndependentTableColumns.ColumnObserverView()
+        #expect(observer.findTable(child) === table)
+        #expect(nodes.allSatisfy { $0.visits == 1 })
+        #expect(ignored.visits == 0)
+    }
+
     private func findTable(_ view: NSView) -> NSTableView? {
         if let table = view as? NSTableView { return table }
-        return view.subviews.lazy.compactMap { findTable($0) }.first
+        for child in view.subviews { if let table = findTable(child) { return table } }
+        return nil
     }
 }

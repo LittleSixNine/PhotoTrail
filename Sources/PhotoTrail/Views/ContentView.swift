@@ -131,7 +131,7 @@ struct ContentView: View {
         .background(CredentialChangeObserver(workspace: locationWorkspace))
         .task {
             if ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] != "1" {
-                _ = locationWorkspace.tracks.restore()
+                await locationWorkspace.tracks.restore()
             }
             locationWorkspace.tracks.synchronize(store.gpxTracks, amap: mapProvider == "amap")
             if setupCompleted {

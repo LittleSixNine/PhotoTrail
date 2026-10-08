@@ -475,6 +475,7 @@ private extension RenameWorkspaceView {
             Text(L10n.text("执行记录与恢复")).font(.title2)
             Text(L10n.text("恢复前核对文件身份、内容与原名占用；不会覆盖后来创建的文件。"))
                 .foregroundStyle(.secondary)
+            if workspace.historyLoading { ProgressView() }
             List(workspace.history) { journal in
                 HStack {
                     VStack(alignment: .leading) {
@@ -485,13 +486,14 @@ private extension RenameWorkspaceView {
                     Spacer()
                     if journal.state != "restored" {
                         Button(L10n.text("恢复原名")) { workspace.restore(journal, store: store) }
-                            .disabled(workspace.executing || store.saveInProgress || dirty)
+                            .disabled(workspace.executing || workspace.historyLoading || store.saveInProgress || dirty)
                     }
                 }
             }
             if !workspace.notice.isEmpty { Text(workspace.notice).font(.callout) }
             HStack { Spacer(); Button(L10n.text("完成")) { showHistory = false }.keyboardShortcut(.cancelAction) }
         }.padding(20).frame(width: 700, height: 450)
+            .task { await workspace.loadHistory() }
             .overlay {
                 if workspace.executing { RenameExecutionProgressView(workspace: workspace) }
             }
@@ -562,6 +564,7 @@ private struct RenameRuleCard: View {
     let remove: () -> Void
     let duplicate: () -> Void
     @State private var expanded = true
+    @FocusState private var editing: Bool
     @State private var dragOffset: CGSize = .zero
     @State private var dragOriginFrame: CGRect = .zero
     private var title: String {
@@ -610,13 +613,19 @@ private struct RenameRuleCard: View {
             }
         }
         .padding(12)
-        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
+        .background(selectedRule == rule.id || editing ? Color.blue.opacity(0.08) : Color(nsColor: .controlBackgroundColor),
+                    in: RoundedRectangle(cornerRadius: 10))
     }
 
     var body: some View {
         cardContents
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(selectedRule == rule.id ? Color.blue.opacity(0.55) : Color.secondary.opacity(0.18)))
-        .onTapGesture { selectedRule = rule.id }
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(
+            selectedRule == rule.id || editing ? Color.blue : Color.secondary.opacity(0.18),
+            lineWidth: selectedRule == rule.id || editing ? 1.5 : 1))
+        .focused($editing)
+        .simultaneousGesture(TapGesture().onEnded { selectedRule = rule.id })
+        .onChange(of: editing) { if editing { selectedRule = rule.id } }
+        .onChange(of: rule) { selectedRule = rule.id }
         .contentShape(Rectangle())
         .contextMenu {
             Button(L10n.text("复制规则"), action: duplicate)

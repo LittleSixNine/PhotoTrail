@@ -15,6 +15,17 @@ struct KMLTests {
               tracks: try KMLTrackReader(data: Data(document(geometry).utf8)).parse())
     }
 
+    @Test func largeTrackRetainsEveryCoordinateWithoutChangingOrder() throws {
+        let count = 16_000
+        let geometry = "<g:Track>" + (0..<count).map { "<g:coord>\(120 + Double($0) / 100_000) 30 0</g:coord>" }.joined() + "</g:Track>"
+        let log = try parse(geometry)
+        let points = try #require(log.tracks.first?.segments.first?.points)
+        #expect(points.count == count)
+        #expect(points.first?.lon == 120)
+        #expect(points.last?.lon == 120 + Double(count - 1) / 100_000)
+        #expect(points.allSatisfy { !$0.hasRecordedTime })
+    }
+
     @Test func timedTrackRetainsPrecisionAndReusesMatching() throws {
         let log = try parse("""
         <g:Track><altitudeMode>absolute</altitudeMode>

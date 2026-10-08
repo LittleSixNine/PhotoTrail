@@ -2,13 +2,14 @@ import Coords
 import CryptoKit
 import Foundation
 import GpxTrackLog
+import ImageData
 import Observation
 
-enum TrackOrigin: String, Codable {
+enum TrackOrigin: String, Codable, Sendable {
     case photos
 }
 
-struct TrackRecord: Codable, Identifiable, Equatable {
+struct TrackRecord: Codable, Identifiable, Equatable, Sendable {
     var log: GpxTrackLog
     var bookmark: Data?
     var converted: [[MapCoordinate]]?
@@ -78,10 +79,14 @@ final class TrackLibrary {
     @ObservationIgnored private var unreadable = false
     @ObservationIgnored private var sequence = 0
     @ObservationIgnored private var storeIDs: Set<String> = []
-    @ObservationIgnored private var scopedURLs: [URL] = []
+    private(set) var restoring = false
+    private(set) var readingSources: [String: UUID] = [:]
+    @ObservationIgnored private var restoreTask: Task<[TrackRecord], Error>?
+    @ObservationIgnored private var needsPersist = false
+    @ObservationIgnored private let legacyURL: URL?
     @ObservationIgnored private var photoGeneratedURLs: Set<String> = []
 
-    private struct Archive: Codable {
+    private struct Archive: Codable, Sendable {
         var version = 1
         var records: [TrackRecord]
     }
@@ -89,11 +94,11 @@ final class TrackLibrary {
     init(url: URL? = nil) {
         let current = url ?? URL.applicationSupportDirectory
             .appendingPathComponent("PhotoTrail/Tracks/cache-v1.json")
-        if url == nil {
-            PhotoTrailMigration.file(at: current, legacyURL: URL.applicationSupportDirectory
-                .appendingPathComponent("GeoTagCN/Tracks/cache-v1.json"))
-        }
+        legacyURL = url == nil ? URL.applicationSupportDirectory
+            .appendingPathComponent("GeoTagCN/Tracks/cache-v1.json") : nil
         self.url = current
+        loaded = !FileManager.default.fileExists(atPath: current.path)
+            && !(legacyURL.map { FileManager.default.fileExists(atPath: $0.path) } ?? false)
     }
 
     func record(_ id: String) -> TrackRecord? { records.first { $0.id == id } }
@@ -102,56 +107,55 @@ final class TrackLibrary {
         photoGeneratedURLs.insert(url.standardizedFileURL.path)
     }
 
-    // Called once by the owning window. Cache and source files are never read on visibility toggles.
-    func restore() -> [GpxTrackLog] {
-        guard !loaded else { return [] }
-        loaded = true
-        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+    // Historical geometry is restored without reopening every original file.
+    func restore() async {
+        guard !loaded else { return }
+        let task: Task<[TrackRecord], Error>
+        if let existing = restoreTask { task = existing }
+        else {
+            let url = url, legacy = legacyURL
+            task = Task.detached(priority: .utility) { try Self.readArchive(at: url, legacy: legacy) }
+            restoreTask = task
+            restoring = true
+        }
         do {
-            let archive = try JSONDecoder().decode(Archive.self, from: Data(contentsOf: url))
-            guard archive.version == 1, Set(archive.records.map(\.id)).count == archive.records.count else {
-                throw CocoaError(.fileReadCorruptFile)
-            }
-            records = try archive.records.map { saved in
-                var record = saved
-                guard record.log.sourceURL.isFileURL,
-                      record.points.allSatisfy({ $0.lat.isFinite && $0.lon.isFinite }) else {
-                    throw CocoaError(.fileReadCorruptFile)
-                }
-                if let converted = record.converted, (!TrackRecord.valid(converted, for: record.segments) || !record.cacheIsCurrent) {
-                    record.converted = nil; record.convertedAt = nil
-                }
-                do {
-                    var source = record.log.sourceURL
-                    if let bookmark = record.bookmark {
-                        var stale = false
-                        source = try URL(resolvingBookmarkData: bookmark,
-                            options: [.withSecurityScope, .withoutUI], bookmarkDataIsStale: &stale)
-                    }
-                    if source.startAccessingSecurityScopedResource() { scopedURLs.append(source) }
-                    let log = try GpxTrackLog(contentsOf: source)
-                    let oldFingerprint = record.fingerprint
-                    record.log = log
-                    record.bookmark = bookmark(for: source)
-                    record.sourceUnavailable = false
-                    if record.fingerprint != oldFingerprint {
-                        record.converted = nil; record.convertedAt = nil
-                    }
-                } catch { record.sourceUnavailable = true }
-                return record
-            }
-            let logs = records.filter { !$0.sourceUnavailable }.map(\.log)
-            // History is restored independently of this window.
+            let saved = try await task.value
+            guard !loaded else { return }
+            let currentIDs = Set(records.map(\.id))
+            records = saved.filter { !currentIDs.contains($0.id) } + records
             revision += 1
-            return logs
         } catch {
+            guard !loaded else { return }
             unreadable = true
             storageError = L10n.text("轨迹缓存无法读取，原文件已保留。可重新导入轨迹；本次转换结果仅在内存中保留。")
-            return []
+        }
+        loaded = true; restoring = false; restoreTask = nil
+        if needsPersist { needsPersist = false; persist() }
+    }
+
+    nonisolated private static func readArchive(at url: URL, legacy: URL?) throws -> [TrackRecord] {
+        if let legacy { PhotoTrailMigration.file(at: url, legacyURL: legacy) }
+        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+        let archive = try JSONDecoder().decode(Archive.self, from: Data(contentsOf: url))
+        guard archive.version == 1, Set(archive.records.map(\.id)).count == archive.records.count else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        return try archive.records.map { saved in
+            var record = saved
+            guard record.log.sourceURL.isFileURL,
+                  record.points.allSatisfy({ $0.lat.isFinite && $0.lon.isFinite && abs($0.lat) <= 90 && abs($0.lon) <= 180 }) else {
+                throw CocoaError(.fileReadCorruptFile)
+            }
+            if let converted = record.converted,
+               !TrackRecord.valid(converted, for: record.segments) || !record.cacheIsCurrent {
+                record.converted = nil; record.convertedAt = nil
+            }
+            return record
         }
     }
 
     func synchronize(_ logs: [GpxTrackLog], amap: Bool = false) {
+        guard !logs.isEmpty || !storeIDs.isEmpty else { return }
         let ids = Set(logs.map { $0.sourceURL.path })
         for id in storeIDs.subtracting(ids) { remove(id) }
         for log in logs {
@@ -187,23 +191,24 @@ final class TrackLibrary {
         persist()
     }
 
-    // Revalidate on explicit addition; reuse valid conversions without another request.
     // Missing sources remain preview-only and never enter photo matching.
-    func addHistory(_ id: String, amap: Bool) -> GpxTrackLog? {
-        guard !activeIDs.contains(id), let index = records.firstIndex(where: { $0.id == id }) else { return nil }
-        do {
-            let log = try GpxTrackLog(contentsOf: records[index].log.sourceURL)
-            let fingerprint = records[index].fingerprint
-            records[index].log = log
-            records[index].sourceUnavailable = false
-            if records[index].fingerprint != fingerprint {
-                records[index].converted = nil; records[index].convertedAt = nil
-            }
-        } catch { records[index].sourceUnavailable = true }
-        activeIDs.append(id)
-        select(id, amap: amap)
+    func addHistory(_ id: String, amap: Bool) async -> GpxTrackLog? {
+        guard !activeIDs.contains(id) else { return nil }
+        guard let result = await readSource(id) else { return nil }
+        let log: GpxTrackLog?
+        switch result {
+        case .success(let value):
+            let newID = value.sourceURL.path
+            if !activeIDs.contains(newID) { activeIDs.append(newID) }
+            select(newID, amap: amap)
+            log = value
+        case .failure:
+            if !activeIDs.contains(id) { activeIDs.append(id) }
+            select(id, amap: false)
+            log = nil
+        }
         persist()
-        return records[index].sourceUnavailable ? nil : records[index].log
+        return log
     }
 
     func changeProvider(amap: Bool) {
@@ -234,23 +239,67 @@ final class TrackLibrary {
         revision += 1
     }
 
-    // Re-read only on explicit refresh, so changes to the source and its timestamps are picked up.
-    func refresh(_ id: String, amap: Bool) -> GpxTrackLog? {
-        guard let index = records.firstIndex(where: { $0.id == id }) else { return nil }
+    // Keep the last successful geometry while an explicit refresh is reading.
+    func refresh(_ id: String, amap: Bool) async -> GpxTrackLog? {
+        guard case .success(let log) = await readSource(id, preserveCache: true) else { return nil }
+        let newID = log.sourceURL.path
+        cancel(id)
+        if amap { start(newID) }
+        revision += 1
+        persist()
+        return log
+    }
+
+    private func readSource(_ id: String, preserveCache: Bool = false) async -> Result<GpxTrackLog, Error>? {
+        guard readingSources[id] == nil, let original = record(id) else { return nil }
+        let token = UUID()
+        readingSources[id] = token
+        defer { if readingSources[id] == token { readingSources.removeValue(forKey: id) } }
         do {
-            let log = try GpxTrackLog(contentsOf: records[index].log.sourceURL)
-            records[index].log = log
-            records[index].sourceUnavailable = false
-            // Keep the last successful geometry until the explicit refresh completes.
-            cancel(id)
-            if amap { start(id) }
+            let updated = try await Task.detached(priority: .userInitiated) {
+                try Self.readSource(original, preserveCache: preserveCache)
+            }.value
+            guard readingSources[id] == token, record(id) == original,
+                  let index = records.firstIndex(where: { $0.id == id }) else { return nil }
+            records[index] = updated
+            if updated.id != id {
+                activeIDs = activeIDs.map { $0 == id ? updated.id : $0 }
+                if visible.remove(id) != nil { visible.insert(updated.id) }
+                if selected == id { selected = updated.id }
+                if storeIDs.remove(id) != nil { storeIDs.insert(updated.id) }
+                cancel(id)
+            }
             revision += 1
-            persist()
-            return log
+            return .success(updated.log)
         } catch {
+            guard readingSources[id] == token, record(id) == original,
+                  let index = records.firstIndex(where: { $0.id == id }) else { return nil }
+            records[index].sourceUnavailable = true
             states[id] = .failed(L10n.text("无法读取原轨迹，请重新导入；已有缓存保留。"))
-            return nil
+            revision += 1
+            return .failure(error)
         }
+    }
+
+    nonisolated private static func readSource(_ original: TrackRecord, preserveCache: Bool) throws -> TrackRecord {
+        var source = original.log.sourceURL
+        if let bookmark = original.bookmark {
+            var stale = false
+            source = try URL(resolvingBookmarkData: bookmark, options: [.withSecurityScope, .withoutUI],
+                             bookmarkDataIsStale: &stale)
+        }
+        let scoped = source.startAccessingSecurityScopedResource()
+        defer { if scoped { source.stopAccessingSecurityScopedResource() } }
+        var record = original
+        let version = MetadataInspectionFileVersion.read(source)
+        record.log = try GpxTrackLog(contentsOf: source)
+        guard version == MetadataInspectionFileVersion.read(source) else { throw MetadataInspectionError.sourceChanged }
+        record.bookmark = try? source.bookmarkData(options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess])
+        record.sourceUnavailable = false
+        if !preserveCache, record.fingerprint != original.fingerprint {
+            record.converted = nil; record.convertedAt = nil
+        }
+        return record
     }
 
     func start(_ id: String) {
@@ -266,6 +315,7 @@ final class TrackLibrary {
     }
 
     func cancel(_ id: String) {
+        readingSources.removeValue(forKey: id)
         requests.removeValue(forKey: id)
         states.removeValue(forKey: id)
         revision += 1
@@ -343,6 +393,7 @@ private extension TrackLibrary {
     }
 
     private func persist() {
+        guard loaded else { needsPersist = true; return }
         guard !unreadable else { return }
         do {
             let directory = url.deletingLastPathComponent()
