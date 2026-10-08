@@ -4,6 +4,15 @@
 
 Release milestones and source development history are recorded below.
 
+## 2026-10-09 · v0.5.5
+
+- 优化旧轨迹缓存恢复和 KML 读取，减少启动窗口等待；执行记录改为打开时加载。
+- 新增启动页面、常用元数据字段和轨迹转换缓存设置；默认常用字段覆盖文件信息、日期时间、相机参数与 GPS。
+- 批量操作入口先显示已保存预设，支持打开编辑器；编辑窗口更大，批量操作及重命名卡片统一选中样式。
+- 重命名预览始终保留步骤结果列，未选操作时显示提示；状态列固定靠右，调整后的列宽在切页及重启后保留。
+
+Version 0.5.5 reduces startup delays from restored track caches and KML files, adds startup-page, common-field and conversion-cache preferences, improves the batch-operation menu and card styling, and keeps rename preview columns stable with persisted widths.
+
 ## 2026-10-08 · v0.5.4
 
 - 日期时间元数据统一上下两行显示，主时间字号更大，时区与亚秒使用较小灰字。

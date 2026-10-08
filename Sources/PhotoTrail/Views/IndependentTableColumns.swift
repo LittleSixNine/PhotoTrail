@@ -3,12 +3,16 @@ import SwiftUI
 // Install narrow handles inside the real header, so AppKit never starts its own
 // single-column tracking loop at these dividers. Header labels still sort normally.
 struct IndependentTableColumns: NSViewRepresentable {
+    var fitToViewport = false
     func makeNSView(context: Context) -> ColumnObserverView { ColumnObserverView() }
     func updateNSView(_ view: ColumnObserverView, context: Context) {
+        view.fitToViewport = fitToViewport
         DispatchQueue.main.async { view.installHandles() }
     }
 
     final class ColumnObserverView: NSView {
+        var fitToViewport = false
+        private var viewportWidth: CGFloat = 0
         private weak var table: NSTableView?
         private var handles: [DividerHandle] = []
 
@@ -19,6 +23,7 @@ struct IndependentTableColumns: NSViewRepresentable {
                 handles.forEach { $0.removeFromSuperview() }
                 handles = []
                 table = nil
+                viewportWidth = 0
                 return
             }
             DispatchQueue.main.async { [weak self] in self?.installHandles() }
@@ -67,7 +72,16 @@ struct IndependentTableColumns: NSViewRepresentable {
         }
 
         @objc private func refreshHandles() {
-            guard let header = table?.headerView else { return }
+            guard let table, let header = table.headerView else { return }
+            if fitToViewport, let scrollView = table.enclosingScrollView {
+                let width = scrollView.contentSize.width
+                if width > 0 && abs(width - viewportWidth) > 0.5 {
+                    viewportWidth = width
+                    table.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
+                    table.sizeToFit()
+                    table.columnAutoresizingStyle = .noColumnAutoresizing
+                }
+            }
             for handle in handles {
                 let rect = header.headerRect(ofColumn: handle.boundary)
                 let frame = NSRect(x: rect.maxX - 5, y: rect.minY, width: 10, height: rect.height)

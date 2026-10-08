@@ -8,6 +8,7 @@ struct RenameWorkspaceView: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
     @Bindable var workspace: RenameWorkspace
     @State private var selectedRule: UUID?
+    @AppStorage("PhotoTrailRenameTableColumns.v1") private var tableColumns = TableColumnCustomization<RenamePreview>()
     @State private var ruleFrames: [UUID: CGRect] = [:]
     @State private var confirm = false
     @State private var showHistory = false
@@ -296,6 +297,11 @@ private extension RenameWorkspaceView {
         showPresetManager = false; showPresetSave = true
     }
 
+    private var selectedStepTitle: String {
+        workspace.rules.firstIndex(where: { $0.id == selectedRule }).map { L10n.text("第 %1$@ 条执行后", $0 + 1) }
+            ?? L10n.text("步骤结果")
+    }
+
     private var preview: some View {
         VStack(spacing: 0) {
             HStack(spacing: 16) {
@@ -317,7 +323,7 @@ private extension RenameWorkspaceView {
                     .disabled(workspace.executing)
             }.padding(16)
             Divider()
-            Table(workspace.rows, selection: $workspace.selectedRows) {
+            Table(workspace.rows, selection: $workspace.selectedRows, columnCustomization: $tableColumns) {
                 TableColumn(L10n.text("预览")) { row in
                     if let image = store.imageData.first(where: { $0.metadataCreatorImageURL == row.source }) {
                         PhotoThumbnail(image: image, maxDimension: 100).frame(width: 38, height: 32)
@@ -325,27 +331,33 @@ private extension RenameWorkspaceView {
                         Image(systemName: "doc").foregroundStyle(.secondary).frame(width: 38, height: 32)
                     }
                 }.width(46)
+                    .customizationID("preview").disabledCustomizationBehavior(.all)
                 TableColumn(L10n.text("原文件名")) { row in Text(row.source.lastPathComponent).help(row.source.path) }
                     .width(min: 140, ideal: 170)
-                if let index = workspace.rules.firstIndex(where: { $0.id == selectedRule }) {
-                    TableColumn(L10n.text("第 %1$@ 条执行后", index + 1)) { row in
-                        Text(row.steps.first(where: { $0.id == selectedRule })?.name ?? "—")
-                            .foregroundStyle(.secondary)
-                    }.width(min: 120, ideal: 140)
-                }
+                    .customizationID("original").disabledCustomizationBehavior([.reorder, .visibility])
+                TableColumn(selectedStepTitle) { row in
+                    Text(selectedRule == nil ? L10n.text("选择操作以查看")
+                         : row.steps.first(where: { $0.id == selectedRule })?.name ?? "—")
+                        .foregroundStyle(.secondary)
+                }.width(min: 120, ideal: 140)
+                    .customizationID("step").disabledCustomizationBehavior([.reorder, .visibility])
                 TableColumn(L10n.text("新文件名")) { row in
                     Text(row.target.lastPathComponent).foregroundStyle(row.changes ? Color.primary : Color.secondary)
                         .help(row.target.path)
                 }.width(min: 160, ideal: 200)
+                    .customizationID("final").disabledCustomizationBehavior([.reorder, .visibility])
                 TableColumn(L10n.text("状态")) { row in
                     if let issue = row.issues.first(where: { $0 == .conflict || $0 == .invalidName }) ?? row.issues.first {
                         Label(RenameCopy.issue(issue), systemImage: row.issues.contains(.conflict) || row.issues.contains(.invalidName) ? "xmark.octagon" : "info.circle")
                             .foregroundStyle(row.issues.contains(.conflict) || row.issues.contains(.invalidName) ? Color.red : Color.secondary)
+                            .help(RenameCopy.issue(issue))
                     } else {
                         Label(L10n.text("将重命名"), systemImage: "checkmark.circle").foregroundStyle(.green)
                     }
-                }.width(min: 100, ideal: 120)
+                }.width(120)
+                    .customizationID("status").disabledCustomizationBehavior(.all)
             }
+            .background(IndependentTableColumns(fitToViewport: true))
             .accessibilityIdentifier("renamePreviewTable")
             .contextMenu(forSelectionType: URL.self) { urls in
                 let ids = sharedPhotoIDs(for: urls)
@@ -366,7 +378,7 @@ private extension RenameWorkspaceView {
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 if selectedRule != nil {
-                    Button(L10n.text("收起中间结果")) { selectedRule = nil }.font(.caption)
+                    Button(L10n.text("取消操作选择")) { selectedRule = nil }.font(.caption)
                 }
             }.padding(.horizontal, 16).padding(.top, 8)
             VStack(alignment: .leading, spacing: 8) {
