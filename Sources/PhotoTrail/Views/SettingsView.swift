@@ -1,9 +1,17 @@
 import Coords
+import Exiftool
 import SwiftUI
 import UDF
 
 struct SettingsView: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
+    @Environment(LocationWorkspace.self) private var locationWorkspace
+    @AppStorage(SettingsPreferences.startupWorkspaceKey) private var startupWorkspace = SettingsPreferences.Workspace.last.rawValue
+    @AppStorage(MetadataFieldFilter.commonFieldsKey) private var commonFieldsData = Data()
+    @State private var fieldSearch = ""
+    @State private var clearConversions = false
+    @State private var cacheNotice = ""
+    @State private var cacheBytes: Int64 = 0
     @AppStorage(PhotoTrailApp.doNotBackupKey) private var doNotBackup = false
     @AppStorage(Self.createSidecarFilesKey) private var createSidecarFiles = false
     @AppStorage(Coords.coordFormatKey) private var coordFormat: CoordFormat = .deg
@@ -41,6 +49,7 @@ struct SettingsView: View {
         TabView {
             general.tabItem { Label(L10n.text("通用"), systemImage: "gearshape") }
             map.tabItem { Label(L10n.text("地图"), systemImage: "map") }
+            metadata.tabItem { Label(L10n.text("元数据"), systemImage: "list.bullet.rectangle") }
             photos.tabItem { Label(L10n.text("照片与保存"), systemImage: "photo") }
             tracks.tabItem { Label(L10n.text("轨迹"), systemImage: "point.3.connected.trianglepath.dotted") }
             storage.tabItem { Label(L10n.text("存储"), systemImage: "externaldrive") }
@@ -65,6 +74,17 @@ struct SettingsView: View {
             extendedTimeText = String(extendedTime)
         }
         .onChange(of: photoGPXGap) { gapText = String(photoGPXGap) }
+        .alert(L10n.text("清除轨迹转换缓存？"), isPresented: $clearConversions) {
+            Button(L10n.text("取消"), role: .cancel) {}
+            Button(L10n.text("清除转换缓存"), role: .destructive) {
+                do {
+                    try locationWorkspace.tracks.clearConversionCaches()
+                    cacheNotice = L10n.text("转换缓存已清除。")
+                } catch { cacheNotice = L10n.text("转换缓存清除失败，原数据已保留。") }
+            }
+        } message: {
+            Text(L10n.text("原轨迹文件和历史记录会保留；高德轨迹在重新显示或刷新时需要再次转换。"))
+        }
         .onChange(of: backupURL) {
             if backupURL != store.backupURL { store.send(.backupURLChanged(backupURL)) }
         }
@@ -72,6 +92,13 @@ struct SettingsView: View {
 
     private var general: some View {
         settingsPage {
+            Section(L10n.text("启动页面")) {
+                Picker(L10n.text("启动时打开"), selection: $startupWorkspace) {
+                    ForEach(SettingsPreferences.Workspace.allCases) { page in Text(page.title).tag(page.rawValue) }
+                }.accessibilityIdentifier("startupWorkspacePicker")
+                Text(L10n.text("下次启动生效；首次使用默认打开元数据编辑。"))
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
             Section(L10n.text("显示")) {
                 AppAppearancePicker()
                 Picker(L10n.text("坐标格式"), selection: $coordFormat) {
@@ -254,6 +281,23 @@ struct SettingsView: View {
 
     private var storage: some View {
         settingsPage {
+            Section(L10n.text("轨迹缓存")) {
+                LabeledContent(L10n.text("历史轨迹数量"), value: String(locationWorkspace.tracks.records.count))
+                LabeledContent(L10n.text("缓存占用"), value: ByteCountFormatter.string(fromByteCount: cacheBytes, countStyle: .file))
+                LabeledContent(L10n.text("已转换的轨迹"), value: String(locationWorkspace.tracks.conversionCacheCount))
+                Button(L10n.text("清除转换缓存…"), role: .destructive) { clearConversions = true }
+                    .disabled(!locationWorkspace.tracks.canClearConversionCaches)
+                    .accessibilityIdentifier("clearTrackConversions")
+                Text(L10n.text("仅清除高德坐标转换结果，保留原轨迹文件和历史记录。"))
+                    .font(.footnote).foregroundStyle(.secondary)
+                if let error = locationWorkspace.tracks.storageError { Text(error).foregroundStyle(.orange) }
+                if !cacheNotice.isEmpty { Text(cacheNotice).foregroundStyle(.secondary) }
+            }
+            .task {
+                await locationWorkspace.tracks.restore()
+                cacheBytes = locationWorkspace.tracks.cacheFileSize
+            }
+            .onChange(of: locationWorkspace.tracks.revision) { cacheBytes = locationWorkspace.tracks.cacheFileSize }
             Section(L10n.text("照片备份")) {
                 Toggle(L10n.text("修改前备份照片"), isOn: Binding(
                     get: { !doNotBackup }, set: { doNotBackup = !$0 }))
@@ -331,7 +375,8 @@ extension SettingsView {
             SettingsPreferences.dragPinKey, SettingsPreferences.cameraTimeZoneKey,
             SettingsPreferences.photoGPXGapKey, SettingsPreferences.pairJPGRAWKey,
             SettingsPreferences.recursiveImportKey, SettingsPreferences.automaticRegionKey,
-            SettingsPreferences.backupReminderKey
+            SettingsPreferences.backupReminderKey, SettingsPreferences.startupWorkspaceKey,
+            SettingsPreferences.lastWorkspaceKey, MetadataFieldFilter.commonFieldsKey
         ]
         keys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
     }
@@ -355,4 +400,37 @@ extension Color: @retroactive RawRepresentable {
 
 extension Notification.Name {
     static let photoTrailAMapCredentialsChanged = Notification.Name("PhotoTrailAMapCredentialsChanged")
+}
+
+private extension SettingsView {
+    var metadata: some View {
+        let selected = MetadataFieldFilter.commonTags(from: commonFieldsData)
+        return settingsPage {
+            Section(L10n.text("常用字段")) {
+                Text(L10n.text("选择元数据面板中常用的字段，搜索仍包含全部字段。"))
+                    .font(.footnote).foregroundStyle(.secondary)
+                TextField(L10n.text("搜索字段名称或标签"), text: $fieldSearch)
+                    .accessibilityIdentifier("commonFieldSearch")
+                Button(L10n.text("恢复默认")) { commonFieldsData = Data() }
+                    .accessibilityIdentifier("restoreCommonFields")
+                ForEach(MetadataFieldFilter.configurableTags.filter {
+                    fieldSearch.isEmpty || $0.localizedCaseInsensitiveContains(fieldSearch)
+                        || (MetadataTag(rawValue: $0)?.displayName ?? MetadataFieldFilter.displayName($0)).localizedCaseInsensitiveContains(fieldSearch)
+                }, id: \.self) { tag in
+                    Toggle(isOn: Binding(get: { selected.contains(tag) },
+                        set: { enabled in
+                            var selected = MetadataFieldFilter.commonTags(from: commonFieldsData)
+                            if enabled { selected.insert(tag) } else { selected.remove(tag) }
+                            if let data = try? JSONEncoder().encode(selected.sorted()) { commonFieldsData = data }
+                        })) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(MetadataTag(rawValue: tag)?.displayName ?? MetadataFieldFilter.displayName(tag))
+                            Text(tag).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }.accessibilityIdentifier("commonField:" + tag)
+                }
+            }
+        }
+    }
+
 }

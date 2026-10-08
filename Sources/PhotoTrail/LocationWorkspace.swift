@@ -76,7 +76,7 @@ final class LocationWorkspace {
     init(favoritesURL: URL? = nil, tracks: TrackLibrary? = nil) {
         let current = favoritesURL ?? URL.applicationSupportDirectory
             .appendingPathComponent("PhotoTrail/Favorites.json")
-        if favoritesURL == nil {
+        if favoritesURL == nil, ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] != "1" {
             PhotoTrailMigration.file(at: current, legacyURL: URL.applicationSupportDirectory
                 .appendingPathComponent("GeoTagCN/Favorites.json"))
         }

@@ -358,6 +358,26 @@ final class TrackLibrary {
         // History and its cache remain available for re-adding.
     }
 
+    var conversionCacheCount: Int { records.filter { $0.converted != nil }.count }
+    var cacheFileSize: Int64 { Int64((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0) }
+    var canClearConversionCaches: Bool { loaded && !unreadable && readingSources.isEmpty && conversionCacheCount > 0 }
+
+    func clearConversionCaches() throws {
+        guard canClearConversionCaches else { throw CocoaError(.fileWriteUnknown) }
+        var updated = records
+        for index in updated.indices {
+            updated[index].converted = nil
+            updated[index].convertedAt = nil
+            updated[index].convertedSource = nil
+        }
+        // Commit first; a failed write must leave the current cache usable.
+        try writeArchive(updated)
+        records = updated
+        requests.removeAll(); states.removeAll()
+        storageError = nil
+        revision += 1
+    }
+
     func clearCache(_ id: String) {
         guard let index = records.firstIndex(where: { $0.id == id }) else { return }
         cancel(id)
@@ -396,12 +416,16 @@ private extension TrackLibrary {
         guard loaded else { needsPersist = true; return }
         guard !unreadable else { return }
         do {
-            let directory = url.deletingLastPathComponent()
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
-                attributes: [.posixPermissions: 0o700])
-            try JSONEncoder().encode(Archive(records: records)).write(to: url, options: .atomic)
-            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+            try writeArchive(records)
             storageError = nil
         } catch { storageError = L10n.text("缓存保存失败，本次仍可查看；下次启动可能需要重新转换。") }
     }
+    func writeArchive(_ records: [TrackRecord]) throws {
+        let directory = url.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700])
+        try JSONEncoder().encode(Archive(records: records)).write(to: url, options: .atomic)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+    }
+
 }

@@ -344,3 +344,47 @@ struct TrackLibraryTests {
     }
 
 }
+
+extension TrackLibraryTests {
+    @Test func clearingConversionsRetainsHistorySourcesAndRejectsLateConversion() async throws {
+        let dir = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let log = try fixture(dir), id = log.sourceURL.path
+        let bytes = try Data(contentsOf: log.sourceURL)
+        let cache = dir.appendingPathComponent("cache.json")
+        let library = TrackLibrary(url: cache)
+        library.synchronize([log], amap: true)
+        library.complete(id, request: try #require(library.requests[id]), converted: try #require(library.record(id)?.segments))
+        library.start(id)
+        let stale = try #require(library.requests[id])
+        #expect(library.conversionCacheCount == 1 && library.cacheFileSize > 0)
+        try library.clearConversionCaches()
+        #expect(library.conversionCacheCount == 0)
+        #expect(library.records.map(\.log) == [log])
+        #expect(library.activeIDs == [id] && library.visible == [id])
+        #expect(library.requests.isEmpty)
+        library.complete(id, request: stale, converted: try #require(library.record(id)?.segments))
+        #expect(library.conversionCacheCount == 0)
+        #expect(try Data(contentsOf: log.sourceURL) == bytes)
+        let reopened = TrackLibrary(url: cache)
+        await reopened.restore()
+        #expect(reopened.records.map(\.log) == [log])
+        #expect(reopened.conversionCacheCount == 0)
+    }
+
+    @Test func failedConversionClearKeepsInMemoryData() throws {
+        let dir = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let log = try fixture(dir), id = log.sourceURL.path
+        let cache = dir.appendingPathComponent("cache.json")
+        let library = TrackLibrary(url: cache)
+        library.synchronize([log], amap: true)
+        library.complete(id, request: try #require(library.requests[id]), converted: try #require(library.record(id)?.segments))
+        let before = try #require(library.record(id))
+        try FileManager.default.removeItem(at: cache)
+        try FileManager.default.createDirectory(at: cache, withIntermediateDirectories: false)
+        #expect(throws: Error.self) { try library.clearConversionCaches() }
+        #expect(library.record(id) == before)
+    }
+
+}

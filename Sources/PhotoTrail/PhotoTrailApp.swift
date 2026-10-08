@@ -7,6 +7,7 @@ import UDF
 struct PhotoTrailApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate: AppDelegate
     @State private var store: Store<PhotoTrailState, PhotoTrailEvent>
+    @State private var locationWorkspace = LocationWorkspace()
     @State private var mainWindow: NSWindow?
     @AppStorage(AppAppearance.preferenceKey) private var appearance: AppAppearance = .system
 
@@ -68,6 +69,7 @@ struct PhotoTrailApp: App {
                     store.send(.initPlaces(savedPlaces), undoable: false)
                 }
                 .environment(store)
+                .environment(locationWorkspace)
                 .environment(\.locale, Locale(identifier: language))
             }
         }
@@ -108,6 +110,7 @@ struct PhotoTrailApp: App {
 
         Settings {
             SettingsView()
+                .environment(locationWorkspace)
                 .preferredColorScheme(appearance.colorScheme)
                 .environment(store)
                 .environment(\.locale, Locale(identifier: language))

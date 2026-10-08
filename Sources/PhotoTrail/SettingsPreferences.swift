@@ -14,6 +14,29 @@ enum SettingsPreferences {
     static let automaticRegionKey = "PhotoTrailAutomaticRegionLookup"
     static let backupReminderKey = "PhotoTrailBackupReminderDays"
 
+    static let startupWorkspaceKey = "PhotoTrailStartupWorkspace"
+    static let lastWorkspaceKey = "PhotoTrailLastWorkspace"
+
+    enum Workspace: String, CaseIterable, Identifiable {
+        case last, metadata, map, rename
+        var id: Self { self }
+        var title: String {
+            switch self {
+            case .last: L10n.text("上次工作区")
+            case .metadata: L10n.text("元数据编辑")
+            case .map: L10n.text("地图定位")
+            case .rename: L10n.text("重命名")
+            }
+        }
+    }
+
+    static func initialWorkspace(defaults: UserDefaults = .standard) -> Workspace {
+        let preference = defaults.string(forKey: startupWorkspaceKey).flatMap(Workspace.init(rawValue:)) ?? .last
+        if preference != .last { return preference }
+        if let last = defaults.string(forKey: lastWorkspaceKey).flatMap(Workspace.init(rawValue:)), last != .last { return last }
+        return defaults.bool(forKey: "AlternateLayout") ? .map : .metadata
+    }
+
     enum MapStartupView: String, CaseIterable, Identifiable {
         case device, last
         var id: Self { self }

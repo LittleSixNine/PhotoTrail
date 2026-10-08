@@ -11,7 +11,7 @@ struct ContentView: View {
     @AppStorage("PhotoTrailMapProvider") private var mapProvider = "amap"
     @AppStorage(Self.alternateLayoutKey) var alternateLayout = false
 
-    @State private var locationWorkspace = LocationWorkspace()
+    @Environment(LocationWorkspace.self) private var locationWorkspace
     @State private var metadataQueue = MetadataLoadingQueue()
     @State private var sheetType: SheetType?
     @State private var importFiles = false
@@ -19,6 +19,7 @@ struct ContentView: View {
     @State private var ignoredFileNoticeID = UUID()
     @State private var inspectorPresented = false
     @State private var renameSelected = false
+    @State private var startupApplied = false
     @State private var renameWorkspace = RenameWorkspace()
     @State private var batchActionsPresented = false
     @State private var setupPresented = false
@@ -113,10 +114,19 @@ struct ContentView: View {
     var body: some View {
         workspaceContent
         .onAppear {
+            if !startupApplied {
+                let page = SettingsPreferences.initialWorkspace()
+                renameSelected = page == .rename
+                alternateLayout = page == .map
+                startupApplied = true
+                rememberWorkspace()
+            }
             metadataQueue.setPaused(store.saveInProgress || store.importProgress.isActive)
             metadataQueue.prioritize(ids: store.selection)
             metadataQueue.synchronize(store.imageData)
         }
+        .onChange(of: alternateLayout) { rememberWorkspace() }
+        .onChange(of: renameSelected) { rememberWorkspace() }
         .onChange(of: store.imageData.map(\.id)) { metadataQueue.synchronize(store.imageData) }
         .onChange(of: store.imageData.map(\.metadataInspectionURL)) { metadataQueue.synchronize(store.imageData) }
         .onChange(of: store.importProgress.isActive) {
@@ -285,6 +295,12 @@ struct ContentView: View {
 
     // the UTTypes that can be imported into this app.
 
+    private func rememberWorkspace() {
+        guard startupApplied else { return }
+        let page: SettingsPreferences.Workspace = renameSelected ? .rename : alternateLayout ? .map : .metadata
+        UserDefaults.standard.set(page.rawValue, forKey: SettingsPreferences.lastWorkspaceKey)
+    }
+
     private func importTypes() -> [UTType] {
         [.image, .folder] + UTType.photoTrailTracks
     }
@@ -302,6 +318,7 @@ extension ContentView {
 
 #Preview(traits: .store) {
     ContentView()
+        .environment(LocationWorkspace())
         .frame(width: 800, height: 1000)
 }
 

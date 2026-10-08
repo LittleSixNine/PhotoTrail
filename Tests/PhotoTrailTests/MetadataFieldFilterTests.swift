@@ -1,7 +1,40 @@
+import Foundation
 import Testing
 @testable import PhotoTrail
 
 struct MetadataFieldFilterTests {
+    @Test func configuredCommonFieldsPreserveDefaultsAndReadOnlyChoices() throws {
+        #expect(MetadataFieldFilter.commonTags.count == 25)
+        #expect(MetadataFieldFilter.commonTags(from: Data()) == MetadataFieldFilter.commonTags)
+        #expect(MetadataFieldFilter.commonTags(from: Data("broken".utf8)) == MetadataFieldFilter.commonTags)
+        #expect(Set(MetadataFieldFilter.configurableTags).isSuperset(of: MetadataFieldFilter.commonTags))
+        #expect(Set(MetadataFieldFilter.configurableTags).count == MetadataFieldFilter.configurableTags.count)
+        let data = try JSONEncoder().encode(["EXIF:GPSLatitude", "IFD0:Make", "private:unknown", "IFD0:Make"])
+        #expect(MetadataFieldFilter.commonTags(from: data) == ["EXIF:GPSLatitude", "IFD0:Make"])
+        #expect(MetadataFieldFilter.mappedTag("EXIF:Make")?.rawValue == "IFD0:Make")
+        #expect(MetadataFieldFilter.mappedTag("EXIF:GPSLatitude") == nil)
+        #expect(MetadataFieldFilter.commonTags(from: try JSONEncoder().encode([String]())).isEmpty)
+    }
+
+    @Test func startupWorkspaceUsesSavedChoiceAndLegacyFallback() {
+        let name = "PhotoTrail.StartupPreferencesTests." + UUID().uuidString
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        #expect(SettingsPreferences.initialWorkspace(defaults: defaults) == .metadata)
+        defaults.set(true, forKey: "AlternateLayout")
+        #expect(SettingsPreferences.initialWorkspace(defaults: defaults) == .map)
+        defaults.set("rename", forKey: SettingsPreferences.lastWorkspaceKey)
+        #expect(SettingsPreferences.initialWorkspace(defaults: defaults) == .rename)
+        for page in SettingsPreferences.Workspace.allCases where page != .last {
+            defaults.set(page.rawValue, forKey: SettingsPreferences.startupWorkspaceKey)
+            #expect(SettingsPreferences.initialWorkspace(defaults: defaults) == page)
+        }
+        defaults.set("unknown", forKey: SettingsPreferences.startupWorkspaceKey)
+        #expect(SettingsPreferences.initialWorkspace(defaults: defaults) == .rename)
+        defaults.set("last", forKey: SettingsPreferences.lastWorkspaceKey)
+        #expect(SettingsPreferences.initialWorkspace(defaults: defaults) == .map)
+    }
+
     @Test func timestampLabelsExposeTheirProtocol() {
         #expect(MetadataFieldSourceLabel.protocolName("Image/ExifIFD:DateTimeOriginal") == "EXIF")
         #expect(MetadataFieldSourceLabel.protocolName("XMP-exif:DateTimeOriginal") == "XMP")

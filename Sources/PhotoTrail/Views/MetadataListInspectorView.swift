@@ -144,6 +144,8 @@ struct MetadataListInspectorView: View {
     @State private var fieldQuery = ""
     @State private var showsEditingHelp = false
     @AppStorage("metadataCommonFieldsOnly") private var commonOnly = true
+    @AppStorage(MetadataFieldFilter.commonFieldsKey) private var commonFieldsData = Data()
+    @State private var commonFieldTags = MetadataFieldFilter.commonTags(from: UserDefaults.standard.data(forKey: MetadataFieldFilter.commonFieldsKey) ?? Data())
 
     @State private var workflowEditor: MetadataCreatorEditorSelection?
     @State private var selectedWorkflowPreset: MetadataPreset?
@@ -366,6 +368,10 @@ struct MetadataListInspectorView: View {
         .onChange(of: selected.map(\.id)) { selectedFields = [] }
         .onChange(of: fieldQuery) { selectedFields = [] }
         .onChange(of: commonOnly) { selectedFields = [] }
+        .onChange(of: commonFieldsData) {
+            commonFieldTags = MetadataFieldFilter.commonTags(from: commonFieldsData)
+            selectedFields = []
+        }
         .onReceive(Timer.publish(every: 5, on: .main, in: .common).autoconnect()) { _ in
             if scenePhase == .active { reloadIfFilesChanged() }
         }
@@ -806,84 +812,6 @@ private extension MetadataListInspectorView {
         return "Information"
     }
 
-    func advancedLabel(_ tag: String) -> String {
-        let name = tag.split(separator: ":").last.map(String.init) ?? tag
-        let labels: [String: String] = [
-            "FileName": "Metadata field: FileName",
-            "FilePath": "Metadata field: FilePath",
-            "MDItemUserTags": "Metadata field: MDItemUserTags",
-            "Artist": "Metadata field: Artist",
-            "By-line": "Metadata field: By-line",
-            "By-lineTitle": "Metadata field: By-lineTitle",
-            "Contact": "Metadata field: Contact",
-            "ImageDescription": "Metadata field: ImageDescription",
-            "Copyright": "Metadata field: Copyright",
-            "Software": "Metadata field: Software",
-            "UserComment": "Metadata field: UserComment",
-            "Headline": "Metadata field: Headline",
-            "Caption-Abstract": "Metadata field: Caption-Abstract",
-            "ObjectName": "Metadata field: ObjectName",
-            "Keywords": "Metadata field: Keywords",
-            "Subject": "Metadata field: Subject",
-            "Keyword": "Metadata field: Keyword",
-            "FileCreateDate": "Metadata field: FileCreateDate",
-            "FileModifyDate": "Metadata field: FileModifyDate",
-            "DateTimeOriginal": "Metadata field: DateTimeOriginal",
-            "CreateDate": "Metadata field: CreateDate",
-            "ModifyDate": "Metadata field: ModifyDate",
-            "DateCreated": "Metadata field: DateCreated",
-            "TimeCreated": "Metadata field: TimeCreated",
-            "Make": "Metadata field: Make",
-            "Model": "Metadata field: Model",
-            "SerialNumber": "Metadata field: SerialNumber",
-            "ISO": "Metadata field: ISO",
-            "FNumber": "Metadata field: FNumber",
-            "ApertureValue": "Metadata field: ApertureValue",
-            "ShutterSpeedValue": "Metadata field: ShutterSpeedValue",
-            "FocalLength": "Metadata field: FocalLength",
-            "FocalLengthIn35mmFormat": "Metadata field: FocalLengthIn35mmFormat",
-            "ExposureCompensation": "Metadata field: ExposureCompensation",
-            "Flash": "Metadata field: Flash",
-            "ColorSpace": "Metadata field: ColorSpace",
-            "MaxApertureValue": "Metadata field: MaxApertureValue",
-            "ExposureMode": "Metadata field: ExposureMode",
-            "ExposureProgram": "Metadata field: ExposureProgram",
-            "ExposureTime": "Metadata field: ExposureTime",
-            "MeteringMode": "Metadata field: MeteringMode",
-            "WhiteBalance": "Metadata field: WhiteBalance",
-            "Saturation": "Metadata field: Saturation",
-            "Sharpness": "Metadata field: Sharpness",
-            "LensMake": "Metadata field: LensMake",
-            "Lens": "Metadata field: Lens",
-            "LensModel": "Metadata field: LensModel",
-            "LensSerialNumber": "Metadata field: LensSerialNumber",
-            "LensInfo": "Metadata field: LensInfo",
-            "Orientation": "Metadata field: Orientation",
-            "ImageWidth": "Metadata field: ImageWidth",
-            "ImageHeight": "Metadata field: ImageHeight",
-            "ExifImageWidth": "Metadata field: ExifImageWidth",
-            "ExifImageHeight": "Metadata field: ExifImageHeight",
-            "XResolution": "Metadata field: XResolution",
-            "YResolution": "Metadata field: YResolution",
-            "GPSLatitude": "Metadata field: GPSLatitude",
-            "GPSLatitudeRef": "Metadata field: GPSLatitudeRef",
-            "GPSLongitude": "Metadata field: GPSLongitude",
-            "GPSLongitudeRef": "Metadata field: GPSLongitudeRef",
-            "GPSAltitude": "Metadata field: GPSAltitude",
-            "GPSAltitudeRef": "Metadata field: GPSAltitudeRef",
-            "GPSDateStamp": "Metadata field: GPSDateStamp",
-            "GPSTimeStamp": "Metadata field: GPSTimeStamp",
-            "City": "Metadata field: City",
-            "Province-State": "Metadata field: Province-State",
-            "Sub-location": "Metadata field: Sub-location",
-            "Country-PrimaryLocationName": "Metadata field: Country-PrimaryLocationName",
-            "Country-PrimaryLocationCode": "Metadata field: Country-PrimaryLocationCode"
-        ]
-        let label = labels[name].map { L10n.text($0) } ?? name
-        return name.contains("Date") || name.contains("Time")
-            ? MetadataFieldSourceLabel.label(label, tag: tag) : label
-    }
-
     @ViewBuilder
     func advancedFields() -> some View {
         let selected = self.selected
@@ -911,9 +839,9 @@ private extension MetadataListInspectorView {
                     Group {
                         ForEach(tags, id: \.self) { tag in
                             let values = selected.map { MetadataDisplaySection.value(for: tag, in: advanced[$0.id] ?? [:]) }
-                            if let editable = mappedTag(tag), let completeValues,
+                            if let editable = MetadataFieldFilter.mappedTag(tag), let completeValues,
                                editable.supportsSidecar || !selected.contains(where: { if case .xmp = $0.metadata.source { true } else { false } }) {
-                                field(advancedLabel(tag), tag: editable, values: completeValues, selected: selected, readings: readings)
+                                field(MetadataFieldFilter.displayName(tag), tag: editable, values: completeValues, selected: selected, readings: readings)
                                 if selected.contains(where: { MetadataDisplaySection.sourceKeys(for: tag, in: advanced[$0.id] ?? [:]).count > 1 }) {
                                     inspectionRow(tag, values: values, selected: selected)
                                 }
@@ -941,32 +869,14 @@ private extension MetadataListInspectorView {
         }
     }
 
-    var mappedTags: Set<MetadataTag> { Set(MetadataDisplaySection.standard.flatMap(\.tags).compactMap(mappedTag)) }
-
-    func mappedTag(_ tag: String) -> MetadataTag? {
-        if tag == "EXIF:DateTimeOriginal" { return .captureDate }
-        if tag == "EXIF:CreateDate" { return .exifCreateDate }
-        if tag == "EXIF:ModifyDate" { return .exifModifyDate }
-        if tag == "XMP:Subject" { return .subject }
-        if tag == "File:FileCreateDate" { return .fileCreateDate }
-        if tag == "File:FileModifyDate" { return .fileModifyDate }
-        if tag == "XMP:CreateDate" { return .sidecarDate }
-        if tag == "XMP:ModifyDate" { return .dateModified }
-        if tag == "XMP:Lens" { return .lens }
-        if tag == "XMP:FocalLength" { return .focalLength }
-        return MetadataTag.allCases.first { writable in
-            !writable.supportsSidecar && tag.split(separator: ":").last == writable.rawValue.split(separator: ":").last
-                && (tag.hasPrefix("EXIF:") ? writable.rawValue.hasPrefix("IFD0:") || writable.rawValue.hasPrefix("ExifIFD:")
-                    : tag.hasPrefix("IPTC:") && writable.rawValue.hasPrefix("IPTC:"))
-        }
-    }
+    var mappedTags: Set<MetadataTag> { Set(MetadataDisplaySection.standard.flatMap(\.tags).compactMap(MetadataFieldFilter.mappedTag)) }
 
     func matchesQuery(_ tag: String, group: String, selected: [ImageData],
                       completeValues: [[MetadataTag: MetadataTagValue]]?) -> Bool {
-        let editable = mappedTag(tag) ?? MetadataTag(rawValue: tag)
+        let editable = MetadataFieldFilter.mappedTag(tag) ?? MetadataTag(rawValue: tag)
         return MetadataFieldFilter.matches(query: fieldQuery, presentOnly: false, editedOnly: false,
-            commonOnly: commonOnly, isCommon: MetadataFieldFilter.commonTags.contains(editable?.rawValue ?? tag),
-            names: [tag, editable?.rawValue ?? "", L10n.text(group), advancedLabel(tag)],
+            commonOnly: commonOnly, isCommon: commonFieldTags.contains(editable?.rawValue ?? tag),
+            names: [tag, editable?.rawValue ?? "", L10n.text(group), MetadataFieldFilter.displayName(tag)],
             hasEdits: selected.contains { image in
                 editable.map { image.creatorDraft?.changes[$0] != nil } ?? false
             }, values: {
@@ -1003,7 +913,7 @@ private extension MetadataListInspectorView {
         let visibleText = available ? text : (advancedFailed ? L10n.text("未能读取") : L10n.text("正在读取元数据…"))
         return HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(advancedLabel(tag)).font(.system(size: 13, weight: .medium))
+                Text(MetadataFieldFilter.displayName(tag)).font(.system(size: 13, weight: .medium))
                 Text(tag).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(2)
             }.frame(minWidth: 140, idealWidth: 190, maxWidth: 240, alignment: .leading)
             metadataValue(visibleText, isDate: isDate, color: summary == .absent ? .secondary : .primary)
@@ -1019,7 +929,7 @@ private extension MetadataListInspectorView {
         .tag("display:" + tag)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(advancedLabel(tag) + " · " + tag)
+        .accessibilityLabel(MetadataFieldFilter.displayName(tag) + " · " + tag)
         .accessibilityValue(visibleText)
         .help(L10n.text("此字段为结构或计算信息，尚未接入可靠写回；GPS 请在地图定位中编辑。"))
         .contextMenu {
