@@ -666,9 +666,8 @@ private extension MetadataListInspectorView {
                 Text(tag.rawValue).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(2)
             }.frame(minWidth: 140, idealWidth: 190, maxWidth: 240, alignment: .leading)
             VStack(alignment: .leading, spacing: 3) {
-                Text(value).font(.system(size: 13, design: tag.isDate ? .monospaced : .default)).monospacedDigit()
-                    .lineLimit(2).help(value)
-                    .foregroundStyle(pending ? Color.orange : summary == .absent ? Color.secondary : Color.primary)
+                metadataValue(value, isDate: tag.isDate,
+                              color: pending ? .orange : summary == .absent ? .secondary : .primary)
                 if tag == .creator { creatorCompatibility(values: values) }
             }.frame(maxWidth: .infinity, alignment: .leading)
             if pending {
@@ -960,7 +959,8 @@ private extension MetadataListInspectorView {
 
     func inspectionRow(_ tag: String, values: [String?], selected: [ImageData]) -> some View {
         let summary = MetadataDisplaySection.summarize(values)
-        let isDate = MetadataDisplaySection.standard.first { $0.name == "Date and Time" }?.tags.contains(tag) == true
+        let name = tag.split(separator: ":").last.map(String.init) ?? tag
+        let isDate = name.contains("Date") || name.contains("Time")
         let text: String
         switch summary {
         case .absent: text = L10n.text("未填写")
@@ -978,9 +978,7 @@ private extension MetadataListInspectorView {
                 Text(advancedLabel(tag)).font(.system(size: 13, weight: .medium))
                 Text(tag).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(2)
             }.frame(minWidth: 140, idealWidth: 190, maxWidth: 240, alignment: .leading)
-            Text(visibleText).font(.system(size: 13, design: isDate ? .monospaced : .default)).monospacedDigit()
-                .lineLimit(2).help(visibleText)
-                .foregroundStyle(summary == .absent ? .secondary : .primary)
+            metadataValue(visibleText, isDate: isDate, color: summary == .absent ? .secondary : .primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Image(systemName: "lock").font(.system(size: 11)).foregroundStyle(.secondary)
                 .frame(width: 24).accessibilityLabel(L10n.text("只读"))
@@ -1112,6 +1110,23 @@ private extension MetadataListInspectorView {
         case .uniform(.text(let text)): text
         case .uniform(.list(let values)): values.joined(separator: "\n")
         default: nil
+        }
+    }
+
+    @ViewBuilder
+    private func metadataValue(_ value: String, isDate: Bool, color: Color) -> some View {
+        if isDate, let newline = value.firstIndex(of: "\n") {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(String(value[..<newline]))
+                    .font(.system(size: 15, design: .monospaced)).monospacedDigit()
+                    .foregroundStyle(color).lineLimit(1)
+                Text(String(value[value.index(after: newline)...]))
+                    .font(.system(size: 11, design: .monospaced)).monospacedDigit()
+                    .foregroundStyle(.secondary).lineLimit(1)
+            }.help(value)
+        } else {
+            Text(value).font(.system(size: 13, design: isDate ? .monospaced : .default)).monospacedDigit()
+                .lineLimit(2).help(value).foregroundStyle(color)
         }
     }
 

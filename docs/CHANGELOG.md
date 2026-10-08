@@ -4,6 +4,14 @@
 
 Release milestones and source development history are recorded below.
 
+## 2026-10-08 · v0.5.4
+
+- 日期时间元数据统一上下两行显示，主时间字号更大，时区与亚秒使用较小灰字。
+- 批量预设改为自动更新的操作卡片，支持多步编排、折叠、排序及删除；切页保留卡片配置。
+- 预设以可滚动列表展示，箭头新建命名预设；右键复制自动避开已有名称，删除须确认，导入导出集中在列表右下角。
+
+Version 0.5.4 separates primary timestamps from time-zone and subsecond details, introduces editable operation cards, and adds a scrollable preset list with named creation, duplication, confirmed deletion and import/export.
+
 ## 2026-10-08 · v0.5.3
 
 - 常用与完整元数据字段统一列表及编辑方式，移除筛选／显示管理菜单；日期标明来源，扩展文件时间与受控 EXIF／IPTC／XMP 编辑。
