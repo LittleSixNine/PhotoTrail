@@ -97,7 +97,7 @@ PhotoTrail 基于 GeoTag v6.0.2 派生，仍使用其部分应用基础设施与
 
 ### 元数据工作流定向验证
 
-`swift test --package-path Packages/Exiftool` 验证白名单、默认语言分支、精确 Unicode、日期成组写入和保护字段；`swift test --package-path Packages/ImageData` 验证草稿、日期边界、预设与 CSV 往返；App 的 `MetadataCreatorBatchTests` 覆盖 1／20／100 张、取消和主日期保存／重开。全部只使用公开测试资源的临时副本。
+`swift test --package-path Packages/Exiftool` 验证白名单、默认语言分支、精确 Unicode、日期成组写入、文件系统时间、IPTC 时区规则和保护字段；`swift test --package-path Packages/ImageData` 验证草稿、日期边界、预设与 CSV 往返；App 的 `MetadataCreatorBatchTests` 覆盖 1／20／100 张、取消和主日期保存／重开。全部只使用公开测试资源的临时副本。
 
 千文件验证默认跳过；需要测量时执行 `PHOTOTRAIL_SCALE_TESTS=1 swift test --package-path Packages/ImageData --filter MetadataScaleTests`。输出读取、计划、保存／核对耗时；这是包级测量，不代表 App UI 内存或用户验收。缓存／沙箱受限时可按实际环境指定临时 `CLANG_MODULE_CACHE_PATH` 并使用 `--disable-sandbox`，不要把环境权限失败视为测试通过。
 
@@ -115,3 +115,9 @@ PhotoTrail 基于 GeoTag v6.0.2 派生，仍使用其部分应用基础设施与
 元数据列表按 80 点乘屏幕倍率请求小图；定位照片条按显示宽度与倍率选择 160／256／384／512／768／1024 像素档位。小图和 1024 像素大预览分别有 64 MiB 估算预算及 384 项上限，画面持有的图像与正在解码的图像不计入该预算。本地解码最多并发 2 项，当前预览优先于等待中的普通缩略图。缩略图、元数据读取及列表计算缓存均不持久化；正式版标识和轨迹缓存路径继续保留。
 
 `PhotoInteractionTests` 覆盖 2000 张照片连续选择、时间／时区变化、配对、缓存分离和撤销后继续编辑；`MapPhotoPerformanceTests` 覆盖地图分组及滚动容器替换。逻辑检查不等同于实际滚动帧率或真实 RAW／外置盘验收。
+
+### 共享照片集合与预设回归
+
+三页导入统一为 `ContentView` 的导入入口和 `OpenHelper.importFiles`，照片集合／选择在 `PhotoTrailState`；重命名不再保存独立文件 URL 列表。移除复用 `.removeImages` 与撤销，改名／恢复仍通过 `.filesRenamed` 回写共享对象。导入层在保存或改名执行期间拒绝新任务。
+
+`RenameWorkspace` 通过 `PhotoTrailRenameLastPreset.v1` 记录上次方案的已保存规则与设置，恢复时优先读取对应个人预设；处理范围不随预设持久化，启动默认全部照片。`RenamePresetTests` 使用独立 UserDefaults 域，验证重启、更新、改名、删除及不保存规则草稿；`OpenHelperTests` 验证共享导入、去重、移除与撤销，`RenameTests` 验证共享照片改名后的路径回写。`MetadataClipboardTests` 和 `MetadataLoadingQueueTests` 分别覆盖多字段复制及保存刷新边界。逻辑测试不等于完整真实照片、NAS 或 GUI 验收。

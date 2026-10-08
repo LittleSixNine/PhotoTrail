@@ -3,36 +3,36 @@
     "number": 1,
     "category": "Text",
     "categoryChinese": "文字",
-    "title": "Add text to beginning",
-    "titleChinese": "前置文字"
+    "title": "Add at beginning",
+    "titleChinese": "在开头添加"
   },
   {
     "number": 2,
     "category": "Text",
     "categoryChinese": "文字",
-    "title": "Add text to end",
-    "titleChinese": "后置文字"
+    "title": "Add at end",
+    "titleChinese": "在结尾添加"
   },
   {
     "number": 3,
     "category": "Text",
     "categoryChinese": "文字",
-    "title": "Insert text in front of existing text",
-    "titleChinese": "在已有文字前插入"
+    "title": "Add before specified text",
+    "titleChinese": "在指定文字前添加"
   },
   {
     "number": 4,
     "category": "Text",
     "categoryChinese": "文字",
-    "title": "Insert text after existing text",
-    "titleChinese": "在已有文字后插入"
+    "title": "Add after specified text",
+    "titleChinese": "在指定文字后添加"
   },
   {
     "number": 5,
     "category": "Text",
     "categoryChinese": "文字",
-    "title": "Insert text at position",
-    "titleChinese": "在指定位置插入"
+    "title": "Add at specified position",
+    "titleChinese": "在指定位置添加"
   },
   {
     "number": 6,
@@ -276,85 +276,85 @@
     "number": 40,
     "category": "Date & Time",
     "categoryChinese": "日期与时间",
-    "title": "Rename to date/time",
-    "titleChinese": "用日期时间替换"
+    "title": "Replace",
+    "titleChinese": "替换"
   },
   {
     "number": 41,
     "category": "Date & Time",
     "categoryChinese": "日期与时间",
-    "title": "Add date/time to beginning",
-    "titleChinese": "前置日期时间"
+    "title": "Add at beginning",
+    "titleChinese": "在开头添加"
   },
   {
     "number": 42,
     "category": "Date & Time",
     "categoryChinese": "日期与时间",
-    "title": "Add date/time to end",
-    "titleChinese": "后置日期时间"
+    "title": "Add at end",
+    "titleChinese": "在结尾添加"
   },
   {
     "number": 43,
     "category": "Date & Time",
     "categoryChinese": "日期与时间",
-    "title": "Insert date/time in front of existing text",
-    "titleChinese": "在已有文字前插入日期时间"
+    "title": "Add before specified text",
+    "titleChinese": "在指定文字前添加"
   },
   {
     "number": 44,
     "category": "Date & Time",
     "categoryChinese": "日期与时间",
-    "title": "Insert date/time after existing text",
-    "titleChinese": "在已有文字后插入日期时间"
+    "title": "Add after specified text",
+    "titleChinese": "在指定文字后添加"
   },
   {
     "number": 45,
     "category": "Date & Time",
     "categoryChinese": "日期与时间",
-    "title": "Insert date/time at position",
-    "titleChinese": "在指定位置插入日期时间"
+    "title": "Add at specified position",
+    "titleChinese": "在指定位置添加"
   },
   {
     "number": 46,
     "category": "Sequence Numbers",
     "categoryChinese": "数字序列",
-    "title": "Produce sequence number list",
-    "titleChinese": "生成编号名称列表"
+    "title": "Replace",
+    "titleChinese": "替换"
   },
   {
     "number": 47,
     "category": "Sequence Numbers",
     "categoryChinese": "数字序列",
-    "title": "Add sequence number at beginning",
-    "titleChinese": "前置数字序列"
+    "title": "Add at beginning",
+    "titleChinese": "在开头添加"
   },
   {
     "number": 48,
     "category": "Sequence Numbers",
     "categoryChinese": "数字序列",
-    "title": "Add sequence number to end",
-    "titleChinese": "后置数字序列"
+    "title": "Add at end",
+    "titleChinese": "在结尾添加"
   },
   {
     "number": 49,
     "category": "Sequence Numbers",
     "categoryChinese": "数字序列",
-    "title": "Insert sequence number in front of existing text",
-    "titleChinese": "在已有文字前插入数字"
+    "title": "Add before specified text",
+    "titleChinese": "在指定文字前添加"
   },
   {
     "number": 50,
     "category": "Sequence Numbers",
     "categoryChinese": "数字序列",
-    "title": "Insert sequence number after existing text",
-    "titleChinese": "在已有文字后插入数字"
+    "title": "Add after specified text",
+    "titleChinese": "在指定文字后添加"
   },
   {
     "number": 51,
     "category": "Sequence Numbers",
     "categoryChinese": "数字序列",
-    "title": "Insert sequence number at position",
-    "titleChinese": "在指定位置插入数字"
+    "title": "Add at specified position",
+    "titleChinese": "在指定位置添加"
   },
   {
     "number": 52,
@@ -374,281 +374,281 @@
     "number": 54,
     "category": "Roman Numerals",
     "categoryChinese": "罗马数字",
-    "title": "Produce roman numeral list",
-    "titleChinese": "生成罗马数字名称列表"
+    "title": "Replace",
+    "titleChinese": "替换"
   },
   {
     "number": 55,
     "category": "Roman Numerals",
     "categoryChinese": "罗马数字",
-    "title": "Add roman numeral at beginning",
-    "titleChinese": "前置罗马数字"
+    "title": "Add at beginning",
+    "titleChinese": "在开头添加"
   },
   {
     "number": 56,
     "category": "Roman Numerals",
     "categoryChinese": "罗马数字",
-    "title": "Add roman numeral to end",
-    "titleChinese": "后置罗马数字"
+    "title": "Add at end",
+    "titleChinese": "在结尾添加"
   },
   {
     "number": 57,
     "category": "Roman Numerals",
     "categoryChinese": "罗马数字",
-    "title": "Insert roman numeral in front of existing text",
-    "titleChinese": "在已有文字前插入罗马数字"
+    "title": "Add before specified text",
+    "titleChinese": "在指定文字前添加"
   },
   {
     "number": 58,
     "category": "Roman Numerals",
     "categoryChinese": "罗马数字",
-    "title": "Insert roman numeral after existing text",
-    "titleChinese": "在已有文字后插入罗马数字"
+    "title": "Add after specified text",
+    "titleChinese": "在指定文字后添加"
   },
   {
     "number": 59,
     "category": "Roman Numerals",
     "categoryChinese": "罗马数字",
-    "title": "Insert roman numeral at position",
-    "titleChinese": "在指定位置插入罗马数字"
+    "title": "Add at specified position",
+    "titleChinese": "在指定位置添加"
   },
   {
     "number": 60,
     "category": "Alphabetical Sequences",
     "categoryChinese": "字母序列",
-    "title": "Produce alphabetical list",
-    "titleChinese": "生成字母名称列表"
+    "title": "Replace",
+    "titleChinese": "替换"
   },
   {
     "number": 61,
     "category": "Alphabetical Sequences",
     "categoryChinese": "字母序列",
-    "title": "Add alphabetical sequence at beginning",
-    "titleChinese": "前置字母序列"
+    "title": "Add at beginning",
+    "titleChinese": "在开头添加"
   },
   {
     "number": 62,
     "category": "Alphabetical Sequences",
     "categoryChinese": "字母序列",
-    "title": "Add alphabetical sequence to end",
-    "titleChinese": "后置字母序列"
+    "title": "Add at end",
+    "titleChinese": "在结尾添加"
   },
   {
     "number": 63,
     "category": "Alphabetical Sequences",
     "categoryChinese": "字母序列",
-    "title": "Insert alphabetical sequence in front of existing text",
-    "titleChinese": "在已有文字前插入字母序列"
+    "title": "Add before specified text",
+    "titleChinese": "在指定文字前添加"
   },
   {
     "number": 64,
     "category": "Alphabetical Sequences",
     "categoryChinese": "字母序列",
-    "title": "Insert alphabetical sequence after existing text",
-    "titleChinese": "在已有文字后插入字母序列"
+    "title": "Add after specified text",
+    "titleChinese": "在指定文字后添加"
   },
   {
     "number": 65,
     "category": "Alphabetical Sequences",
     "categoryChinese": "字母序列",
-    "title": "Insert alphabetical sequence at position",
-    "titleChinese": "在指定位置插入字母序列"
+    "title": "Add at specified position",
+    "titleChinese": "在指定位置添加"
   },
   {
     "number": 66,
     "category": "Tags",
     "categoryChinese": "通用标签",
-    "title": "Rename using tag(s)",
-    "titleChinese": "用标签模板替换"
+    "title": "Replace",
+    "titleChinese": "替换"
   },
   {
     "number": 67,
     "category": "Tags",
     "categoryChinese": "通用标签",
-    "title": "Add tag(s) to beginning",
-    "titleChinese": "前置标签模板"
+    "title": "Add at beginning",
+    "titleChinese": "在开头添加"
   },
   {
     "number": 68,
     "category": "Tags",
     "categoryChinese": "通用标签",
-    "title": "Add tag(s) to end",
-    "titleChinese": "后置标签模板"
+    "title": "Add at end",
+    "titleChinese": "在结尾添加"
   },
   {
     "number": 69,
     "category": "Tags",
     "categoryChinese": "通用标签",
-    "title": "Add tag(s) at position",
-    "titleChinese": "在指定位置插入标签模板"
+    "title": "Add at specified position",
+    "titleChinese": "在指定位置添加"
   },
   {
     "number": 70,
     "category": "Tags",
     "categoryChinese": "通用标签",
-    "title": "Insert tag(s) in front of existing text",
-    "titleChinese": "在已有文字前插入标签模板"
+    "title": "Add before specified text",
+    "titleChinese": "在指定文字前添加"
   },
   {
     "number": 71,
     "category": "Tags",
     "categoryChinese": "通用标签",
-    "title": "Insert tag(s) after existing text",
-    "titleChinese": "在已有文字后插入标签模板"
+    "title": "Add after specified text",
+    "titleChinese": "在指定文字后添加"
   },
   {
     "number": 72,
     "category": "MP3/AAC Music",
     "categoryChinese": "MP3/AAC 音乐信息",
-    "title": "Rename music files using MP3/AAC tags",
-    "titleChinese": "用音乐标签替换"
+    "title": "Replace",
+    "titleChinese": "替换"
   },
   {
     "number": 73,
     "category": "MP3/AAC Music",
     "categoryChinese": "MP3/AAC 音乐信息",
-    "title": "Add MP3/AAC tags to end",
-    "titleChinese": "后置音乐标签"
+    "title": "Add at end",
+    "titleChinese": "在结尾添加"
   },
   {
     "number": 74,
     "category": "MP3/AAC Music",
     "categoryChinese": "MP3/AAC 音乐信息",
-    "title": "Add MP3/AAC tags to beginning",
-    "titleChinese": "前置音乐标签"
+    "title": "Add at beginning",
+    "titleChinese": "在开头添加"
   },
   {
     "number": 75,
     "category": "MP3/AAC Music",
     "categoryChinese": "MP3/AAC 音乐信息",
-    "title": "Insert MP3/AAC tags in front of existing text",
-    "titleChinese": "在已有文字前插入音乐标签"
+    "title": "Add before specified text",
+    "titleChinese": "在指定文字前添加"
   },
   {
     "number": 76,
     "category": "MP3/AAC Music",
     "categoryChinese": "MP3/AAC 音乐信息",
-    "title": "Insert MP3/AAC tags after existing text",
-    "titleChinese": "在已有文字后插入音乐标签"
+    "title": "Add after specified text",
+    "titleChinese": "在指定文字后添加"
   },
   {
     "number": 77,
     "category": "MP3/AAC Music",
     "categoryChinese": "MP3/AAC 音乐信息",
-    "title": "Insert MP3/AAC tags at position",
-    "titleChinese": "在指定位置插入音乐标签"
+    "title": "Add at specified position",
+    "titleChinese": "在指定位置添加"
   },
   {
     "number": 78,
     "category": "Image Dimensions",
     "categoryChinese": "图像尺寸",
-    "title": "Add image dimensions to end",
-    "titleChinese": "后置图像尺寸"
+    "title": "Add at end",
+    "titleChinese": "在结尾添加"
   },
   {
     "number": 79,
     "category": "Image Dimensions",
     "categoryChinese": "图像尺寸",
-    "title": "Add image dimensions to beginning",
-    "titleChinese": "前置图像尺寸"
+    "title": "Add at beginning",
+    "titleChinese": "在开头添加"
   },
   {
     "number": 80,
     "category": "Image Dimensions",
     "categoryChinese": "图像尺寸",
-    "title": "Rename to image dimensions",
-    "titleChinese": "用图像尺寸替换"
+    "title": "Replace",
+    "titleChinese": "替换"
   },
   {
     "number": 81,
     "category": "Image Dimensions",
     "categoryChinese": "图像尺寸",
-    "title": "Insert image dimensions in front of existing text",
-    "titleChinese": "在已有文字前插入尺寸"
+    "title": "Add before specified text",
+    "titleChinese": "在指定文字前添加"
   },
   {
     "number": 82,
     "category": "Image Dimensions",
     "categoryChinese": "图像尺寸",
-    "title": "Insert Image dimensions after existing text",
-    "titleChinese": "在已有文字后插入尺寸"
+    "title": "Add after specified text",
+    "titleChinese": "在指定文字后添加"
   },
   {
     "number": 83,
     "category": "Image Dimensions",
     "categoryChinese": "图像尺寸",
-    "title": "Insert image dimensions at position",
-    "titleChinese": "在指定位置插入尺寸"
+    "title": "Add at specified position",
+    "titleChinese": "在指定位置添加"
   },
   {
     "number": 84,
     "category": "Parent Folder Name",
     "categoryChinese": "父文件夹名称",
-    "title": "Add folder name to beginning",
-    "titleChinese": "前置父目录名"
+    "title": "Add at beginning",
+    "titleChinese": "在开头添加"
   },
   {
     "number": 85,
     "category": "Parent Folder Name",
     "categoryChinese": "父文件夹名称",
-    "title": "Add folder name to end",
-    "titleChinese": "后置父目录名"
+    "title": "Add at end",
+    "titleChinese": "在结尾添加"
   },
   {
     "number": 86,
     "category": "Parent Folder Name",
     "categoryChinese": "父文件夹名称",
-    "title": "Insert folder name in front of existing text",
-    "titleChinese": "在已有文字前插入父目录名"
+    "title": "Add before specified text",
+    "titleChinese": "在指定文字前添加"
   },
   {
     "number": 87,
     "category": "Parent Folder Name",
     "categoryChinese": "父文件夹名称",
-    "title": "Insert folder name after existing text",
-    "titleChinese": "在已有文字后插入父目录名"
+    "title": "Add after specified text",
+    "titleChinese": "在指定文字后添加"
   },
   {
     "number": 88,
     "category": "Parent Folder Name",
     "categoryChinese": "父文件夹名称",
-    "title": "Insert folder name at position",
-    "titleChinese": "在指定位置插入父目录名"
+    "title": "Add at specified position",
+    "titleChinese": "在指定位置添加"
   },
   {
     "number": 89,
     "category": "Path Components",
     "categoryChinese": "路径组成",
-    "title": "Add path components to beginning",
-    "titleChinese": "前置路径组成"
+    "title": "Add at beginning",
+    "titleChinese": "在开头添加"
   },
   {
     "number": 90,
     "category": "Path Components",
     "categoryChinese": "路径组成",
-    "title": "Add path components to end",
-    "titleChinese": "后置路径组成"
+    "title": "Add at end",
+    "titleChinese": "在结尾添加"
   },
   {
     "number": 91,
     "category": "Path Components",
     "categoryChinese": "路径组成",
-    "title": "Insert path components in front of existing text",
-    "titleChinese": "在已有文字前插入路径组成"
+    "title": "Add before specified text",
+    "titleChinese": "在指定文字前添加"
   },
   {
     "number": 92,
     "category": "Path Components",
     "categoryChinese": "路径组成",
-    "title": "Insert path components after existing text",
-    "titleChinese": "在已有文字后插入路径组成"
+    "title": "Add after specified text",
+    "titleChinese": "在指定文字后添加"
   },
   {
     "number": 93,
     "category": "Path Components",
     "categoryChinese": "路径组成",
-    "title": "Insert path components at position",
-    "titleChinese": "在指定位置插入路径组成"
+    "title": "Add at specified position",
+    "titleChinese": "在指定位置添加"
   },
   {
     "number": 94,

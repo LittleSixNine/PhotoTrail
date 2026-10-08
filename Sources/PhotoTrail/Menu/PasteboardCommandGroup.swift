@@ -9,6 +9,7 @@ import UDF
 struct PasteboardCommands: Commands {
     var store: Store<PhotoTrailState, PhotoTrailEvent>
     @FocusedValue(\.metadataFieldSelection) private var metadataFieldSelection
+    @FocusedValue(\.metadataFieldClipboard) private var metadataFieldClipboard
     @AppStorage(SettingsView.extendedTimeKey) var extendedTime = 120.0
 
     var body: some Commands {
@@ -27,13 +28,15 @@ struct PasteboardCommands: Commands {
                 .disabled(metadataFieldSelection == true || store.saveInProgress || cutCopyDisabled())
 
                 Button(L10n.text("Copy"), systemImage: "document.on.document") {
-                    copy()
+                    if metadataFieldSelection == true { metadataFieldClipboard?.copy?() }
+                    else { copy() }
                 }
                 .keyboardShortcut("c")
-                .disabled(metadataFieldSelection == true || cutCopyDisabled())
+                .disabled(metadataFieldSelection == true ? metadataFieldClipboard?.copy == nil : cutCopyDisabled())
 
                 Button(L10n.text("Paste"), systemImage: "document.on.clipboard") {
-                    if store.textfieldActive {
+                    if metadataFieldSelection == true { metadataFieldClipboard?.paste?() }
+                    else if store.textfieldActive {
                         NSApp.sendAction(#selector(NSText.paste(_:)),
                                          to: nil, from: nil)
                     } else {
@@ -54,7 +57,9 @@ struct PasteboardCommands: Commands {
                     }
                 }
                 .keyboardShortcut("v")
-                .disabled(metadataFieldSelection == true || store.saveInProgress || pasteDisabled())
+                .disabled(store.saveInProgress || (metadataFieldSelection == true
+                    ? metadataFieldClipboard?.paste == nil || NSPasteboard.general.string(forType: .string)?.isEmpty != false
+                    : pasteDisabled()))
 
                 Button(L10n.text("Delete"), systemImage: "trash") {
                     if store.textfieldActive {

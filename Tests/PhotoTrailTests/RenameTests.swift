@@ -1,4 +1,6 @@
 import Foundation
+import CryptoKit
+import Darwin
 import Coords
 import Exiftool
 import ImageData
@@ -9,16 +11,31 @@ import Testing
 import UDF
 
 struct RenameTests {
-    @Test @MainActor func initialScopeFollowsPhotoSelectionWithoutOverridingLaterChoices() {
+    @Test @MainActor func initialScopeUsesAllPhotosWithoutOverridingLaterChoices() {
         let image = ImageData(metadata: Metadata(source: .image(URL(fileURLWithPath: "/tmp/scope.jpg"))), name: "scope.jpg")
         let workspace = RenameWorkspace()
         workspace.initializeScope(selection: [image.id])
-        #expect(workspace.onlySelected)
-        workspace.initializeScope(selection: [])
-        #expect(workspace.onlySelected)
-        workspace.onlySelected = false
-        workspace.initializeScope(selection: [image.id])
         #expect(!workspace.onlySelected)
+        workspace.onlySelected = true
+        workspace.initializeScope(selection: [image.id])
+        #expect(workspace.onlySelected)
+    }
+
+    @Test @MainActor func draggingRulesPreservesOtherRulesAndRejectsStaleDrops() {
+        let workspace = RenameWorkspace()
+        let rules = [RenameRule(action: 1), RenameRule(action: 40), RenameRule(action: 48), RenameRule(action: 61)]
+        workspace.rules = rules
+        workspace.moveRule(rules[0].id, to: rules[3].id)
+        #expect(workspace.rules.map(\.id) == [rules[1].id, rules[2].id, rules[3].id, rules[0].id])
+        workspace.moveRule(rules[0].id, to: rules[1].id)
+        #expect(workspace.rules == rules)
+        workspace.moveRule(rules[1].id, to: rules[1].id)
+        workspace.moveRule(UUID(), to: rules[2].id)
+        workspace.moveRule(rules[1].id, to: UUID())
+        #expect(workspace.rules == rules)
+        workspace.executing = true
+        workspace.moveRule(rules[0].id, to: rules[3].id)
+        #expect(workspace.rules == rules)
     }
 
     private func input(_ name: String = "IMG_001.JPG", directory: String = "/tmp/rename") -> RenameInput {
@@ -274,27 +291,29 @@ struct RenameTests {
 
     @Test @MainActor func countersPreviewAndExecutionUseActualMapping() async throws {
         let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
-        let source = root.appendingPathComponent("source.txt")
-        try Data("sample".utf8).write(to: source)
+        let source = root.appendingPathComponent("source.jpg")
+        let sample = try #require(Bundle.main.url(forResource: "P1000658", withExtension: "JPG"))
+        try FileManager.default.copyItem(at: sample, to: source)
+        let image = ImageData(from: source)
         let key = "PhotoTrailRenameCounter.10", old = UserDefaults.standard.object(forKey: "PhotoTrailRenameCounter.10")
         UserDefaults.standard.set(7, forKey: key)
         defer { UserDefaults.standard.set(old, forKey: key) }
         let workspace = RenameWorkspace()
-        workspace.includeImportedPhotos = false
-        workspace.addFiles([source,source])
         workspace.authorizeDirectory(root)
         workspace.rules = [RenameRule(action: 46, counter: 10)]
         workspace.settings.pair = false
         for _ in 0..<2 {
-            workspace.refresh(images: [], selection: [])
+            workspace.refresh(images: [image], selection: [])
             for _ in 0..<400 where workspace.busy { try await Task.sleep(for: .milliseconds(25)) }
             #expect(!workspace.busy)
             #expect(workspace.rows.count == 1)
             #expect(workspace.directoriesAuthorized)
-            #expect(workspace.rows.first?.target.lastPathComponent == "007.txt")
+            #expect(workspace.rows.first?.target.lastPathComponent == "007.jpg")
             #expect(RenameWorkspace.counters()[10] == 7)
         }
-        let store = Store(initialState: PhotoTrailState(), reduce: PhotoTrailReducer())
+        var state = PhotoTrailState()
+        state.imageData = [image]
+        let store = Store(initialState: state, reduce: PhotoTrailReducer())
         var pending = ImageData(metadata: Metadata(source: .xmp(root.appendingPathComponent("pending.xmp"))), name: "pending.jpg")
         pending.metadata.location = Coords(latitude: 31.23, longitude: 121.48)
         var pendingState = PhotoTrailState()
@@ -314,9 +333,213 @@ struct RenameTests {
         for _ in 0..<400 where workspace.executing { try await Task.sleep(for: .milliseconds(25)) }
         #expect(!workspace.executing)
         #expect(RenameWorkspace.counters()[10] == 8)
-        #expect(workspace.extraURLs == [root.appendingPathComponent("007.txt")])
+        #expect(store.imageData.first?.metadataCreatorImageURL == root.appendingPathComponent("007.jpg"))
         if let journal = workspace.history.first(where: { $0.entries.first?.original == source }) {
             try FileManager.default.removeItem(at: RenameExecutor.storage.appendingPathComponent(journal.id.uuidString + ".json"))
         }
     }
+}
+
+private final class RenameProgressRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var updates: [RenameProgress] = []
+    var values: [RenameProgress] { lock.withLock { updates } }
+    func record(_ value: RenameProgress) { lock.withLock { updates.append(value) } }
+}
+
+private final class RenameReadCancellation: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    var checks: Int { lock.withLock { count } }
+    func shouldCancel() -> Bool { lock.withLock { count += 1; return count >= 3 } }
+}
+
+extension RenameTests {
+    @Test func streamingDigestMatchesAndStopsBetweenBlocks() throws {
+        let root = try fixture()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let file = root.appendingPathComponent("large.JPG")
+        let bytes = Data(repeating: 0x5a, count: 3 * 1_048_576 + 17)
+        try bytes.write(to: file)
+        let expected = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
+        #expect(try RenameExecutor.digest(file) == expected)
+        let cancellation = RenameReadCancellation()
+        #expect(throws: CancellationError.self) {
+            try RenameExecutor.digest(file, cancelled: { cancellation.shouldCancel() })
+        }
+        #expect(cancellation.checks == 3)
+    }
+
+    @Test func stoppingAfterStagingRestoresAllFiles() throws {
+        let root = try fixture()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let original = root.appendingPathComponent("IMG.JPG")
+        let target = root.appendingPathComponent("renamed.JPG")
+        let data = Data(repeating: 0x5a, count: 2 * 1_048_576)
+        try data.write(to: original)
+        let recorder = RenameProgressRecorder()
+        let result = try RenameExecutor.execute(plan([(original, target)]), directory: root.appendingPathComponent("journal"),
+            cancelled: { recorder.values.contains { $0.phase == .renaming } },
+            progress: { recorder.record($0) })
+        #expect(result.error != nil)
+        #expect(!result.needsRecovery)
+        #expect(result.journal.state == "restored")
+        #expect(result.mappings.isEmpty)
+        #expect(try Data(contentsOf: original) == data)
+        #expect(!FileManager.default.fileExists(atPath: target.path))
+        #expect(recorder.values.last?.phase == .restoring)
+    }
+
+    @Test func batchOf3000FilesRenamesAndRestoresWithProgress() throws {
+        let root = try fixture()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let data = Data(repeating: 0x5a, count: 256 * 1024)
+        var mappings: [(URL, URL)] = []
+        for index in 0..<3000 {
+            let original = root.appendingPathComponent("IMG_\(index).JPG")
+            try data.write(to: original)
+            mappings.append((original, root.appendingPathComponent("renamed_\(index).JPG")))
+        }
+        let recorder = RenameProgressRecorder()
+        let result = try RenameExecutor.execute(plan(mappings), directory: root.appendingPathComponent("journal"),
+                                                progress: { recorder.record($0) })
+        #expect(result.error == nil)
+        #expect(result.mappings.count == 3000)
+        #expect(result.journal.state == "completed")
+        let updates = recorder.values
+        #expect(updates.first?.phase == .checking)
+        #expect(updates.last?.phase == .verifying)
+        #expect(updates.last?.completed == 3000)
+        #expect(zip(updates, updates.dropFirst()).allSatisfy { $0.fraction <= $1.fraction })
+        var journal = result.journal
+        try RenameExecutor.restore(&journal, directory: root.appendingPathComponent("journal"),
+                                   progress: { recorder.record($0) })
+        #expect(journal.state == "restored")
+        #expect(recorder.values.last?.phase == .restoring)
+        #expect(recorder.values.last?.completed == 3000)
+        for (original, target) in mappings {
+            #expect(FileManager.default.fileExists(atPath: original.path))
+            #expect(!FileManager.default.fileExists(atPath: target.path))
+        }
+        var usage = rusage()
+        getrusage(RUSAGE_SELF, &usage)
+        print("Rename 3000 files: peak RSS MiB=\(usage.ru_maxrss / 1_048_576)")
+    }
+
+}
+
+extension RenameTests {
+    @Test func conflictSuffixFormatsAndLegacySettings() throws {
+        let legacy = try JSONDecoder().decode(RenameSettings.self, from: JSONEncoder().encode(RenameSettings()))
+        #expect(legacy.numberSuffixFormat == nil && legacy.conflictDigits == nil)
+        for width in 2...5 {
+            for format in RenameSettings.SuffixFormat.allCases {
+                var settings = legacy
+                settings.keepFirst = false
+                settings.conflictDigits = width
+                settings.numberSuffixFormat = format
+                let rows = try RenameEngine.preview(inputs: [input()], rules: [RenameRule(action: 97, text: "new")], settings: settings, occupied: [:])
+                #expect(rows[0].target.lastPathComponent == "new" + format.format(RenameEngine.padded(1, width: width)) + ".JPG")
+                settings.conflict = .letters
+                settings.letterSuffixFormat = format
+                let letters = try RenameEngine.preview(inputs: [input()], rules: [RenameRule(action: 97, text: "new")], settings: settings, occupied: [:])
+                #expect(letters[0].target.lastPathComponent == "new" + format.format("A") + ".JPG")
+            }
+        }
+    }
+}
+
+struct RenamePresetTests {
+    @Test @MainActor func restartingRestoresTheLastCommonPresetWithoutSavingDraftRulesOrScope() {
+        let domain = "PhotoTrailRenameTests." + UUID().uuidString
+        let defaults = UserDefaults(suiteName: domain)!
+        defer { defaults.removePersistentDomain(forName: domain) }
+        let workspace = RenameWorkspace(defaults: defaults)
+        let rules = [RenameRule(action: 11)]
+        workspace.activateCommonPreset(name: "查找并替换", rules: rules)
+        workspace.rules[0].text = "未保存的修改"
+        workspace.onlySelected = true
+        let reopened = RenameWorkspace(defaults: defaults)
+        #expect(reopened.currentPresetName == "查找并替换")
+        #expect(reopened.rules == rules)
+        #expect(!reopened.presetModified)
+        #expect(!reopened.onlySelected)
+    }
+
+    @Test @MainActor func restartingRestoresUpdatedSavedPresetAndHandlesDeletion() {
+        let domain = "PhotoTrailRenameTests." + UUID().uuidString
+        let defaults = UserDefaults(suiteName: domain)!
+        defer { defaults.removePersistentDomain(forName: domain) }
+        let workspace = RenameWorkspace(defaults: defaults)
+        workspace.presetName = "旅行"
+        workspace.savePreset()
+        let id = workspace.currentPresetID!
+        workspace.rules[0].prefix = "trip_"
+        workspace.updateCurrentPreset()
+        workspace.renamePreset(id, name: "胶片")
+        let reopened = RenameWorkspace(defaults: defaults)
+        #expect(reopened.currentPresetID == id)
+        #expect(reopened.currentPresetName == "胶片")
+        #expect(reopened.rules == workspace.rules)
+        reopened.deletePreset(id)
+        let afterDeletion = RenameWorkspace(defaults: defaults)
+        #expect(afterDeletion.currentPresetID == nil)
+        #expect(afterDeletion.rules.map(\.action) == [40, 48])
+    }
+
+    @Test @MainActor func presetsTrackChangesAndKeepTheirIdentityWhenUpdated() {
+        let domain = "PhotoTrailRenameTests." + UUID().uuidString
+        let defaults = UserDefaults(suiteName: domain)!
+        defer { defaults.removePersistentDomain(forName: domain) }
+        let workspace = RenameWorkspace(defaults: defaults)
+        workspace.presets = []
+        #expect(!workspace.presetModified)
+        workspace.rules[0].prefix = "trip_"
+        #expect(workspace.presetModified)
+        workspace.presetName = "旅行"
+        workspace.savePreset()
+        let id = workspace.currentPresetID!
+        #expect(workspace.presets.count == 1)
+        #expect(!workspace.presetModified)
+        workspace.rules[0].prefix = "film_"
+        workspace.updateCurrentPreset()
+        #expect(workspace.currentPresetID == id)
+        #expect(workspace.presets[0].rules == workspace.rules)
+        #expect(!workspace.presetModified)
+        workspace.renamePreset(id, name: "胶片")
+        #expect(workspace.currentPresetName == "胶片")
+        workspace.presetName = "胶片"
+        workspace.savePreset()
+        #expect(workspace.presets.map(\.name) == ["胶片", "胶片 (2)"])
+        let rules = workspace.rules
+        workspace.deletePreset(workspace.currentPresetID!)
+        #expect(workspace.presets.count == 1)
+        #expect(workspace.currentPresetID == nil)
+        #expect(workspace.rules == rules)
+        #expect(workspace.presetModified)
+    }
+
+    @Test @MainActor func importedRenamePresetsRemainCompatibleAndDoNotOverwriteSavedPresets() throws {
+        let domain = "PhotoTrailRenameTests." + UUID().uuidString
+        let defaults = UserDefaults(suiteName: domain)!
+        defer { defaults.removePersistentDomain(forName: domain) }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let workspace = RenameWorkspace(defaults: defaults)
+        workspace.presets = []
+        workspace.presetName = "测试"
+        workspace.savePreset()
+        workspace.exportPreset(url)
+        let exported = try JSONDecoder().decode(RenamePreset.self, from: Data(contentsOf: url))
+        #expect(exported.version == 1)
+        #expect(exported.name == "测试")
+        workspace.importPreset(url)
+        #expect(workspace.presets.count == 2)
+        #expect(Set(workspace.presets.map(\.id)).count == 2)
+        #expect(workspace.currentPresetName == "测试 (2)")
+        #expect(workspace.rules == exported.rules)
+        #expect(workspace.settings == exported.settings)
+        #expect(!workspace.presetModified)
+    }
+
 }

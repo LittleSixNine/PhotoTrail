@@ -8,6 +8,54 @@ import UniformTypeIdentifiers
 
 @MainActor
 struct OpenHelperTests {
+    @Test func sharedImportAndRemovalDriveTheRenamePreview() async throws {
+        let sample = try #require(Bundle.main.url(forResource: "P1000658", withExtension: "JPG"))
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let photo = folder.appendingPathComponent("shared.jpg")
+        try FileManager.default.copyItem(at: sample, to: photo)
+        let store = Store(initialState: PhotoTrailState(), reduce: PhotoTrailReducer(), undoEnabled: true)
+        await OpenHelper.importFiles(store, urls: [photo], description: "rename page import").value
+        let image = try #require(store.imageData.first)
+        let rename = RenameWorkspace()
+        rename.rules = [RenameRule(action: 1, text: "trip_")]
+        rename.settings.pair = false
+        rename.authorizeDirectory(folder)
+        rename.refresh(images: store.imageData, selection: store.selection)
+        for _ in 0..<400 where rename.busy { try await Task.sleep(for: .milliseconds(25)) }
+        #expect(!rename.busy)
+        #expect(rename.rows.map(\.source) == [photo])
+        #expect(rename.rows.first?.target.lastPathComponent == "trip_shared.jpg")
+        store.send(.selectionChanged([image.id]))
+        #expect(store.selection == [image.id])
+        store.send(.removeImages([image.id]))
+        rename.refresh(images: store.imageData, selection: store.selection)
+        for _ in 0..<400 where rename.busy { try await Task.sleep(for: .milliseconds(25)) }
+        #expect(!rename.busy && rename.rows.isEmpty && store.imageData.isEmpty && store.selection.isEmpty)
+        #expect(FileManager.default.fileExists(atPath: photo.path))
+        store.undo()
+        #expect(store.imageData.count == 1)
+    }
+
+    @Test @MainActor func twoStepIndicatorOnlyForLargePhotoImports() {
+        let progress = ImportProgress()
+        progress.begin(.scanning)
+        #expect(!progress.preparesPhotoMetadata)
+        progress.begin(.images, total: 3000)
+        #expect(progress.preparesPhotoMetadata)
+        progress.begin(.tracks, total: 1)
+        #expect(progress.preparesPhotoMetadata)
+        #expect(progress.photoCount == 3000)
+        progress.finish()
+        progress.begin(.scanning)
+        progress.begin(.tracks, total: 1)
+        #expect(!progress.preparesPhotoMetadata)
+        #expect(progress.photoCount == 0)
+        progress.begin(.images, total: 1)
+        #expect(!progress.preparesPhotoMetadata)
+    }
+
     @Test func backgroundScanImportsAndSkipsDuplicatesWithoutLosingProgress() async throws {
         let source = try #require(Bundle.main.url(forResource: "P1000658", withExtension: "JPG"))
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

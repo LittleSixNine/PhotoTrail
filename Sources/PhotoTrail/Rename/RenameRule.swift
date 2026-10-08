@@ -73,6 +73,20 @@ struct RenameFilterCondition: Codable, Equatable, Identifiable, Sendable {
 struct RenameSettings: Codable, Equatable, Sendable {
     enum Conflict: String, Codable, CaseIterable { case stop, numbers, letters }
     enum Sort: String, Codable, CaseIterable { case input, name, natural, shooting, created, modified }
+    enum SuffixFormat: String, Codable, CaseIterable {
+        case plain, underscore, dash, parentheses
+        func format(_ value: String) -> String {
+            switch self {
+            case .plain: value
+            case .underscore: "_" + value
+            case .dash: "-" + value
+            case .parentheses: "(" + value + ")"
+            }
+        }
+    }
+    var numberSuffixFormat: SuffixFormat?
+    var letterSuffixFormat: SuffixFormat?
+    var conflictDigits: Int?
     var conflict = Conflict.numbers
     var sort = Sort.input
     var descending = false

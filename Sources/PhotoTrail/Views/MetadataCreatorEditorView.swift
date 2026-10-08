@@ -57,6 +57,7 @@ struct MetadataCreatorEditorView: View {
     private typealias Mode = MetadataCreatorEditorMode
 
     private var modes: [Mode] {
+        if tag.isFileTime { return [.set, .offset] }
         if tag.isDate { return [.set, .fillMissing, .offset, .remove] }
         return tag.isList && tag != .creator ? [.set, .append, .removeKeywords, .remove] : [.set, .fillMissing, .remove]
     }

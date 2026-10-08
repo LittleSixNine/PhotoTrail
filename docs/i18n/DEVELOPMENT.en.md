@@ -67,3 +67,9 @@ See [development history](../CHANGELOG.md). `MetadataLoadingQueue.swift` manages
 Metadata-list thumbnails use 80 points times the display scale. The location filmstrip chooses a 160/256/384/512/768/1024-pixel size from its display width and scale. Small thumbnails and 1024-pixel previews have separate estimated 64 MiB budgets and 384-entry limits; visible images and active decodes are outside those budgets. Local decoding remains limited to two operations, with the current preview ahead of waiting ordinary thumbnails. Thumbnail, metadata-read and list-projection caches are session-only; the released bundle identifier and persistent track-cache paths stay compatible.
 
 `PhotoInteractionTests` covers 2000-photo selection, date/time-zone changes, pairing, separate cache budgets and edits after undo. `MapPhotoPerformanceTests` covers map grouping and replacement scroll containers. These logic tests do not establish scrolling frame rates or acceptance with real RAW files and external disks.
+
+### Shared photos and preset regression coverage
+
+All tabs import through `ContentView` and `OpenHelper.importFiles`; `PhotoTrailState` owns photos and selection. Rename has no independent file URL list. Removal uses `.removeImages` and undo; rename/restore mappings update shared objects through `.filesRenamed`. Imports are rejected while saving or renaming.
+
+`PhotoTrailRenameLastPreset.v1` stores the last preset’s saved rules and settings, preferring its current saved entry on restart. Scope is not persisted with presets and defaults to all photos. `RenamePresetTests` uses isolated UserDefaults domains for restart, update, rename, deletion and unsaved-rule boundaries. `OpenHelperTests` covers shared imports, deduplication, removal and undo; `RenameTests` verifies shared-path updates. Clipboard and metadata-queue tests cover multi-field paste and refresh behavior. Logic tests do not establish complete real-photo, NAS or GUI acceptance.

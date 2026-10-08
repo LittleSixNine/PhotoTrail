@@ -105,6 +105,26 @@ private actor BoundedReaderProbe {
         #expect(!queue.isPreparing)
         #expect(await probe.reads == 200)
     }
+    @Test func refreshingManyExistingPhotosKeepsTheWorkspaceVisible() async throws {
+        let dir = try directory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let images = try (0..<100).map { try image(dir, "refresh-\($0)") }
+        let probe = BoundedReaderProbe()
+        let queue = MetadataLoadingQueue(reader: { await probe.read($0) })
+        queue.synchronize(images)
+        #expect(queue.isPreparing)
+        await finish(queue, images)
+        await Task.yield()
+        #expect(!queue.isPreparing)
+        queue.setPaused(true)
+        queue.refresh(ids: Set(images.map(\.id)))
+        queue.synchronize(images)
+        #expect(!queue.isPreparing)
+        queue.setPaused(false)
+        await finish(queue, images)
+        #expect(await probe.reads == 400)
+    }
+
     @Test func selectionJumpsWaitingJobsAndCachedReselectionDoesNotReadAgain() async throws {
         let dir = try directory()
         defer { try? FileManager.default.removeItem(at: dir) }

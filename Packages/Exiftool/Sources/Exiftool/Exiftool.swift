@@ -97,13 +97,31 @@ public enum MetadataTag: String, CaseIterable, Codable, Sendable {
     case exifCreateDate = "Composite:SubSecCreateDate"
     case exifModifyDate = "Composite:SubSecModifyDate"
 
+    case fileCreateDate = "System:FileCreateDate"
+    case fileModifyDate = "System:FileModifyDate"
+    case iptcDateCreated = "IPTC:DateCreated"
+    case iptcTimeCreated = "IPTC:TimeCreated"
+    case exifOrientation = "IFD0:Orientation"
+    case exifXResolution = "IFD0:XResolution"
+    case exifYResolution = "IFD0:YResolution"
+    case exifResolutionUnit = "IFD0:ResolutionUnit"
+    case lensSerial = "XMP-aux:LensSerialNumber"
+    case rating = "XMP-xmp:Rating"
+    case label = "XMP-xmp:Label"
+
+    public var isFileTime: Bool { self == .fileCreateDate || self == .fileModifyDate }
+    public var isPartialDate: Bool { self == .iptcDateCreated || self == .iptcTimeCreated }
     public var isList: Bool { [.creator, .subject, .iptcByline, .iptcBylineTitle, .iptcContact, .iptcKeywords].contains(self) }
     public var supportsSidecar: Bool { rawValue.hasPrefix("XMP-") }
 
-    public var isDate: Bool { [.captureDate, .sidecarDate, .dateOriginal, .dateDigitized, .dateModified, .exifCreateDate, .exifModifyDate].contains(self) }
+    public var isDate: Bool { [.captureDate, .sidecarDate, .dateOriginal, .dateDigitized, .dateModified, .exifCreateDate, .exifModifyDate, .fileCreateDate, .fileModifyDate].contains(self) }
 
     public var numericRange: ClosedRange<Double>? {
         switch self {
+        case .exifOrientation: 1...8
+        case .exifResolutionUnit: 1...3
+        case .exifXResolution, .exifYResolution: 0.000001...1000000
+        case .rating: -1...5
         case .exposureTime, .exifExposureTime, .exifShutter: 0.000001...86400
         case .fNumber, .exifFNumber: 0.1...128
         case .exifAperture, .exifMaxAperture: 1...128
@@ -129,6 +147,10 @@ public enum MetadataTag: String, CaseIterable, Codable, Sendable {
             let tolerance = [.exifAperture, .exifMaxAperture, .exifShutter].contains(self) ? 1e-6 : 1e-9
             return actual.isFinite && abs(actual - expected) <= max(1e-12, abs(expected) * tolerance)
         }
+        if isFileTime, case .text(let left) = actual, case .text(let right) = expected,
+           let actual = try? MetadataFileTime.parse(left), let expected = try? MetadataFileTime.parse(right) {
+            return abs(actual.timeIntervalSince(expected)) < 0.00001
+        }
         if isDate, case .text(let left) = actual, case .text(let right) = expected {
             return left.replacingOccurrences(of: "Z", with: "+00:00") == right.replacingOccurrences(of: "Z", with: "+00:00")
         }
@@ -153,6 +175,8 @@ public enum MetadataTag: String, CaseIterable, Codable, Sendable {
         if self == .iptcCountryCode && (text.utf8.count != 3 || !text.utf8.allSatisfy({ (65...90).contains($0) || (97...122).contains($0) })) {
             throw Exiftool.ExiftoolError.invalidTagValue(tag: rawValue)
         }
+        if isFileTime { _ = try MetadataFileTime.parse(text) }
+        if isPartialDate { return try MetadataFileTime.partial(text, tag: self) }
         guard let range = numericRange else { return text }
         let parts = text.split(separator: "/", omittingEmptySubsequences: false)
         let value: Double
@@ -160,7 +184,7 @@ public enum MetadataTag: String, CaseIterable, Codable, Sendable {
             value = numerator / denominator
         } else if let number = Double(text), parts.count == 1 { value = number }
         else { throw Exiftool.ExiftoolError.invalidTagValue(tag: rawValue) }
-        let integerTags: Set<MetadataTag> = [.iso, .exifISO, .exifFocal35, .exposureProgram, .exifExposureProgram,
+        let integerTags: Set<MetadataTag> = [.exifOrientation, .exifResolutionUnit, .rating, .iso, .exifISO, .exifFocal35, .exposureProgram, .exifExposureProgram,
                                              .whiteBalance, .exifWhiteBalance, .exifExposureMode, .exifSaturation,
                                              .exifSharpness, .exifFlash, .exifMeteringMode, .exifColorSpace]
         guard value.isFinite, range.contains(value), !integerTags.contains(self) || value.rounded() == value else {
@@ -321,6 +345,17 @@ extension Exiftool {
     public func metadataTags(_ tags: Set<MetadataTag>,
                              from image: URL) throws -> [MetadataTag: MetadataTagValue] {
         guard !tags.isEmpty else { return [:] }
+        if tags.contains(where: \.isFileTime) {
+            var values = try metadataTags(Set(tags.filter { !$0.isFileTime }), from: image)
+            guard image.pathExtension.lowercased() != "xmp" else { return values }
+            let attributes = try FileManager.default.attributesOfItem(atPath: image.resolvingSymlinksInPath().path)
+            for tag in tags where tag.isFileTime {
+                if let date = attributes[tag == .fileCreateDate ? .creationDate : .modificationDate] as? Date {
+                    values[tag] = .text(MetadataFileTime.text(date))
+                }
+            }
+            return values
+        }
         let sortedTags = tags.sorted { $0.rawValue < $1.rawValue }
         var args = ["-j", "-G1", "-n", "-api", "StructFormat=JSONQ"]
         args += sortedTags.map { "-\($0.readName)" }
@@ -367,7 +402,29 @@ extension Exiftool {
         image: URL,
         changes: [MetadataTag: MetadataTagChange]
     ) throws -> [MetadataTag: MetadataTagValue] {
-        try update(
+        if changes.keys.contains(where: \.isFileTime) {
+            guard image.pathExtension.lowercased() != "xmp" else {
+                throw ExiftoolError.invalidTagValue(tag: "System")
+            }
+            var attributes: [FileAttributeKey: Any] = [:]
+            for (tag, change) in changes where tag.isFileTime {
+                guard case .set(.text(let text)) = change else { throw ExiftoolError.invalidTagValue(tag: tag.rawValue) }
+                attributes[tag == .fileCreateDate ? .creationDate : .modificationDate] = try MetadataFileTime.parse(text)
+            }
+            _ = try update(image: image, changes: changes.filter { !$0.key.isFileTime })
+            do {
+                try FileManager.default.setAttributes(attributes, ofItemAtPath: image.resolvingSymlinksInPath().path)
+                let values = try metadataTags(Set(changes.keys), from: image)
+                for (tag, change) in changes {
+                    if case .set(let expected) = change, !tag.matches(values[tag], expected) {
+                        throw MetadataTagUpdateError.readbackMismatch(tag: tag)
+                    }
+                }
+                return values
+            } catch let error as MetadataTagUpdateError { throw error }
+            catch { throw MetadataTagUpdateError.writeFailed(underlying: error) }
+        }
+        return try update(
             image: image,
             changes: changes,
             write: { try run($0) },

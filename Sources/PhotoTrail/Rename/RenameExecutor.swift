@@ -58,17 +58,59 @@ struct RenameExecutionResult: Sendable {
     let needsRecovery: Bool
 }
 
+struct RenameProgress: Sendable {
+    enum Phase: Sendable { case checking, staging, renaming, verifying, restoring }
+    let phase: Phase
+    let completed: Int
+    let total: Int
+    var fraction: Double {
+        guard total > 0 else { return 0 }
+        let step: Int
+        switch phase {
+        case .checking, .restoring: step = 0
+        case .staging: step = 1
+        case .renaming: step = 2
+        case .verifying: step = 3
+        }
+        return phase == .restoring ? Double(completed) / Double(total)
+            : Double(step * total + completed) / Double(4 * total)
+    }
+}
+
+private struct RenameProgressReporter {
+    let report: @Sendable (RenameProgress) -> Void
+    private var last = -Double.infinity
+    private var phase: RenameProgress.Phase?
+    init(_ report: @escaping @Sendable (RenameProgress) -> Void) { self.report = report }
+    mutating func update(_ phase: RenameProgress.Phase, completed: Int, total: Int) {
+        let now = ProcessInfo.processInfo.systemUptime
+        guard self.phase != phase || completed == total || now - last >= 0.15 else { return }
+        self.phase = phase
+        last = now
+        report(.init(phase: phase, completed: completed, total: total))
+    }
+}
+
 enum RenameExecutor {
     static var storage: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("PhotoTrail/Rename", isDirectory: true)
     }
 
-    static func digest(_ url: URL) throws -> String {
+    static func digest(_ url: URL, cancelled: @Sendable () -> Bool = { false }) throws -> String {
         let handle = try FileHandle(forReadingFrom: url)
         defer { try? handle.close() }
         var hash = SHA256()
-        while let bytes = try handle.read(upToCount: 1_048_576), !bytes.isEmpty { hash.update(data: bytes) }
+        while true {
+            guard !cancelled() else { throw CancellationError() }
+            // FileHandle returns autoreleased NSData; a synchronous batch otherwise retains every block.
+            let count = try autoreleasepool {
+                let bytes = try handle.read(upToCount: 1_048_576) ?? Data()
+                hash.update(data: bytes)
+                return bytes.count
+            }
+            if count == 0 { break }
+        }
         return hash.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
@@ -142,7 +184,8 @@ enum RenameExecutor {
     }
 
     static func execute(_ plan: RenamePlan, directory: URL = storage,
-                        cancelled: @Sendable () -> Bool = { false }) throws -> RenameExecutionResult {
+                        cancelled: @Sendable () -> Bool = { false },
+                        progress: @escaping @Sendable (RenameProgress) -> Void = { _ in }) throws -> RenameExecutionResult {
         guard !plan.rows.contains(where: { $0.issues.contains(.conflict) || $0.issues.contains(.invalidName) }) else {
             throw RenameError.occupied
         }
@@ -151,41 +194,54 @@ enum RenameExecutor {
         guard rows.allSatisfy({ RenameEngine.validName($0.target.lastPathComponent) }) else { throw RenameError.invalidSource }
         var seen = Set<String>()
         var entries: [RenameJournal.Entry] = []
+        var reporter = RenameProgressReporter(progress)
+        reporter.update(.checking, completed: 0, total: rows.count)
+        var bookmarks: [URL: Data] = [:]
         // Revalidate every source before any mutation. Content hashes bind undo and crash recovery to these files.
         for row in rows {
             guard !cancelled(), let version = plan.versions[row.source], try RenameFileIdentity.read(row.source) == version else {
                 throw RenameError.stalePlan
             }
             guard seen.insert("\(version.device):\(version.inode)").inserted else { throw RenameError.invalidSource }
-            let hash = try digest(row.source)
+            let hash = try digest(row.source, cancelled: cancelled)
             guard try RenameFileIdentity.read(row.source) == version else { throw RenameError.stalePlan }
             let temporary = row.source.deletingLastPathComponent().appendingPathComponent(".phototrail-rename-" + UUID().uuidString)
-            let bookmark = try? row.source.deletingLastPathComponent().bookmarkData(options: .withSecurityScope,
-                                                        includingResourceValuesForKeys: nil, relativeTo: nil)
+            let parent = row.source.deletingLastPathComponent()
+            let bookmark = bookmarks[parent] ?? (try? autoreleasepool {
+                try parent.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
+            })
+            if let bookmark { bookmarks[parent] = bookmark }
             entries.append(.init(original: row.source, target: row.target, temporary: temporary,
                                  identity: version, hash: hash, bookmark: bookmark))
+            reporter.update(.checking, completed: entries.count, total: rows.count)
         }
         var journal = RenameJournal(entries: entries)
         try write(journal, directory: directory)
         do {
-            for entry in entries {
+            reporter.update(.staging, completed: 0, total: entries.count)
+            for (index, entry) in entries.enumerated() {
                 guard !cancelled(), try RenameFileIdentity.read(entry.original) == entry.identity else { throw RenameError.stalePlan }
                 try move(entry.original, to: entry.temporary)
-                guard entry.identity.sameFile(try RenameFileIdentity.read(entry.temporary)), try digest(entry.temporary) == entry.hash else {
+                guard entry.identity.sameFile(try RenameFileIdentity.read(entry.temporary)), try digest(entry.temporary, cancelled: cancelled) == entry.hash else {
                     throw RenameError.stalePlan
                 }
+                reporter.update(.staging, completed: index + 1, total: entries.count)
             }
             journal.state = "staged"
             try write(journal, directory: directory)
-            for entry in entries {
+            reporter.update(.renaming, completed: 0, total: entries.count)
+            for (index, entry) in entries.enumerated() {
                 guard !cancelled(), entry.identity.sameFile(try RenameFileIdentity.read(entry.temporary)),
-                      try digest(entry.temporary) == entry.hash else { throw RenameError.stalePlan }
+                      try digest(entry.temporary, cancelled: cancelled) == entry.hash else { throw RenameError.stalePlan }
                 try move(entry.temporary, to: entry.target)
+                reporter.update(.renaming, completed: index + 1, total: entries.count)
             }
-            for entry in entries {
-                guard entry.identity.sameFile(try RenameFileIdentity.read(entry.target)), try digest(entry.target) == entry.hash else {
+            reporter.update(.verifying, completed: 0, total: entries.count)
+            for (index, entry) in entries.enumerated() {
+                guard entry.identity.sameFile(try RenameFileIdentity.read(entry.target)), try digest(entry.target, cancelled: cancelled) == entry.hash else {
                     throw RenameError.stalePlan
                 }
+                reporter.update(.verifying, completed: index + 1, total: entries.count)
             }
             journal.state = "completed"
             try write(journal, directory: directory)
@@ -195,7 +251,7 @@ enum RenameExecutor {
             // Recovery locates by inode+content, never guesses from a filename or overwrites a newly created file.
             let failure = error.localizedDescription
             do {
-                try restore(&journal, directory: directory)
+                try restore(&journal, directory: directory, progress: progress)
                 return .init(journal: journal, mappings: [:], error: failure, needsRecovery: false)
             } catch {
                 journal.state = "recoveryRequired"
@@ -237,10 +293,13 @@ enum RenameExecutor {
     }
 
     /// Restage every changed file before restoring originals, so swap and longer cycles can be undone safely.
-    static func restore(_ journal: inout RenameJournal, directory: URL = storage) throws {
+    static func restore(_ journal: inout RenameJournal, directory: URL = storage,
+                        progress: @escaping @Sendable (RenameProgress) -> Void = { _ in }) throws {
         guard journal.version == 1 else { throw RenameError.invalidPreset }
         let scopes = access(journal)
         defer { scopes.forEach { $0.stopAccessingSecurityScopedResource() } }
+        var reporter = RenameProgressReporter(progress)
+        reporter.update(.restoring, completed: 0, total: journal.entries.count)
         let located = try journal.entries.map { entry in (entry, try locate(entry)) }
         let moving = located.filter { $0.1 != $0.0.original }
         let movingPaths = Set(moving.map { $0.1.standardizedFileURL.path })
@@ -262,8 +321,9 @@ enum RenameExecutor {
             guard entry.identity.sameFile(try RenameFileIdentity.read(entry.temporary)), try digest(entry.temporary) == entry.hash else { throw RenameError.stalePlan }
             try move(entry.temporary, to: entry.original)
         }
-        for entry in journal.entries {
+        for (index, entry) in journal.entries.enumerated() {
             guard entry.identity.sameFile(try RenameFileIdentity.read(entry.original)), try digest(entry.original) == entry.hash else { throw RenameError.stalePlan }
+            reporter.update(.restoring, completed: index + 1, total: journal.entries.count)
         }
         journal.state = "restored"
         try write(journal, directory: directory)

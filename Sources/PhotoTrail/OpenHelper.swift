@@ -10,7 +10,7 @@ enum OpenHelper {
     static func importFiles(_ store: Store<PhotoTrailState, PhotoTrailEvent>, urls: [URL],
                             description: String, finished: (@MainActor () -> Void)? = nil) -> Task<Void, Never> {
         Task { @MainActor in
-            guard !store.saveInProgress, !store.importProgress.isActive else { return }
+            guard !store.saveInProgress, !store.renameInProgress, !store.importProgress.isActive else { return }
             let progress = store.importProgress
             progress.begin(.scanning)
             defer { progress.finish(); finished?() }
@@ -31,12 +31,13 @@ enum OpenHelper {
                      description: String,
                      spinnerEnabled: Binding<Bool>?, ownsProgress: Bool = true) -> Task<Void, Never> {
         let task = Task { @MainActor in
-            guard !store.saveInProgress, !ownsProgress || !store.importProgress.isActive else { return }
+            guard !store.saveInProgress, !store.renameInProgress, !ownsProgress || !store.importProgress.isActive else { return }
             defer { if ownsProgress { store.importProgress.finish() } }
             if let spinnerEnabled {
                 spinnerEnabled.wrappedValue = true
             }
             store.beginUndoGroup(description: description)
+            store.importProgress.pendingTracks = urls.contains(where: \.isTrackFile)
             await Self.images(for: urls, store: store)
             await Self.tracks(for: urls, store: store)
             store.endUndoGroup()
@@ -112,6 +113,7 @@ enum OpenHelper {
         let trackURLs = urls.filter(\.isTrackFile)
         guard !trackURLs.isEmpty else { return }
         await MainActor.run { store.send(.gpxLoadViewClosed, undoable: false) }
+        store.importProgress.pendingTracks = false
         store.importProgress.begin(.tracks, total: trackURLs.count)
         var tracklogs: [(String, GpxTrackLog?)] = []
         var lastProgress = ProcessInfo.processInfo.systemUptime

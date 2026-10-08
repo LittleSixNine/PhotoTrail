@@ -5,6 +5,70 @@ import Testing
 @testable import ImageData
 
 struct MetadataWorkflowSaveTests {
+    @Test func customPresetCopiesEachCamerasModelIntoTitleAndUsesOrderedResults() async throws {
+        let folder = URL.temporaryDirectory.appending(component: UUID().uuidString, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let fixture = try #require(Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
+        let models = ["Camera A", "Camera B"]
+        let tags: Set<MetadataTag> = [.exifModel, .titleDefault, .descriptionDefault]
+        var readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)] = []
+        for (index, model) in models.enumerated() {
+            let url = folder.appending(component: "preset-\(index).jpg")
+            try FileManager.default.copyItem(at: fixture, to: url)
+            _ = try Exiftool.helper.update(image: url, changes: [.exifModel: .set(.text(model))])
+            readings.append((ImageData(metadata: Metadata(source: .image(url)), name: url.lastPathComponent),
+                             try MetadataInspectionSnapshot.read(tags, from: url)))
+        }
+        let configured = try MetadataPreset(name: "Camera as title", operations: [
+            MetadataOperation(tag: .titleDefault, action: .copy(.exifModel)),
+            MetadataOperation(tag: .titleDefault, action: .appendText(" · photo")),
+            MetadataOperation(tag: .descriptionDefault, action: .copy(.titleDefault))])
+        let imported = try MetadataPreset.decode(configured.encode())
+        let before = try readings.map { try Data(contentsOf: $0.snapshot.url) }
+        let preview = try MetadataWorkflowPreview.prepare(readings, operations: imported.operations)
+        #expect(try readings.map { try Data(contentsOf: $0.snapshot.url) } == before)
+        for (index, item) in preview.items.enumerated() {
+            #expect(await item.save(backup: .disabled) == .saved)
+            let values = try Exiftool.helper.metadataTags(tags, from: item.target)
+            #expect(values[.titleDefault] == .text(models[index] + " · photo"))
+            #expect(values[.descriptionDefault] == values[.titleDefault])
+            #expect(values[.exifModel] == .text(models[index]))
+        }
+    }
+
+    @Test func shootingDateCopiesToFileAndIPTCTimesThroughSandboxSave() async throws {
+        let folder = URL.temporaryDirectory.appending(component: UUID().uuidString, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let fixture = try #require(Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
+        let url = folder.appending(component: "copy-times.jpg")
+        try FileManager.default.copyItem(at: fixture, to: url)
+        let source = "2024:02:29 23:59:59.123456+08:00"
+        _ = try Exiftool.helper.update(image: url, changes: [.captureDate: .set(.text(source))])
+        let targets: [MetadataTag] = [.fileCreateDate, .fileModifyDate, .iptcDateCreated, .iptcTimeCreated, .dateModified]
+        let tags = Set(targets + [.captureDate])
+        let image = ImageData(metadata: Metadata(source: .image(url)), name: url.lastPathComponent)
+        let reading = (image: image, snapshot: try MetadataInspectionSnapshot.read(tags, from: url))
+        let before = try Data(contentsOf: url)
+        let preview = try MetadataWorkflowPreview.prepare([reading], operations: targets.map {
+            MetadataOperation(tag: $0, action: .copy(.captureDate))
+        })
+        #expect(try Data(contentsOf: url) == before)
+        let item = try #require(preview.items.first)
+        let backup = folder.appending(component: "backup", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: backup, withIntermediateDirectories: true)
+        #expect(await item.save(backup: .folder(backup)) == .saved)
+        #expect(try Data(contentsOf: backup.appending(component: url.lastPathComponent)) == before)
+        let actual = try Exiftool.helper.metadataTags(tags, from: url)
+        #expect(MetadataTag.fileCreateDate.matches(actual[.fileCreateDate], .text(source)))
+        #expect(MetadataTag.fileModifyDate.matches(actual[.fileModifyDate], .text(source)))
+        #expect(actual[.iptcDateCreated] == .text("2024:02:29"))
+        #expect(actual[.iptcTimeCreated] == .text("23:59:59+08:00"))
+        #expect(actual[.captureDate] == .text(source))
+        #expect(actual[.dateModified] == .text(source))
+    }
+
     @Test func copyCreateDateToMultipleFieldsPreservesEachPhotosPrecisionAndSkipsMissingSource() async throws {
         let folder = URL.temporaryDirectory.appending(component: UUID().uuidString, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

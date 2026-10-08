@@ -4,6 +4,53 @@ import Testing
 @testable import Exiftool
 
 struct MetadataTagTests {
+    @Test func newlyWritableFieldsPreservePixelsAndVerifyFileTimesLast() throws {
+        let fixture = try #require(Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
+        let folder = try makeTestFolder(andCopy: fixture)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let image = folder.appending(component: fixture.lastPathComponent)
+        let pixels = try textValue("ImageDataMD5", from: image)
+        let changes: [MetadataTag: MetadataTagChange] = [
+            .fileCreateDate: .set(.text("2020:01:02 03:04:05.123456+08:00")),
+            .fileModifyDate: .set(.text("2024:02:29 23:59:59.654321-03:30")),
+            .iptcDateCreated: .set(.text("2024:02:29")), .iptcTimeCreated: .set(.text("23:59:59+08:00")),
+            .exifOrientation: .set(.text("6")), .exifXResolution: .set(.text("300")),
+            .exifYResolution: .set(.text("300")), .exifResolutionUnit: .set(.text("2")),
+            .lensSerial: .set(.text("serial-123")), .rating: .set(.text("4")), .label: .set(.text("Red"))]
+        let actual = try Exiftool.helper.update(image: image, changes: changes)
+        for (tag, change) in changes {
+            if case .set(let expected) = change { #expect(tag.matches(actual[tag], expected)) }
+        }
+        #expect(try textValue("ImageDataMD5", from: image) == pixels)
+        let before = try Data(contentsOf: image)
+        #expect(throws: (any Error).self) {
+            _ = try Exiftool.helper.update(image: image, changes: [.titleDefault: .set(.text("must not write")), .fileModifyDate: .remove])
+        }
+        #expect(try Data(contentsOf: image) == before)
+    }
+
+    @Test(arguments: ["23:59:59Z", "23:59:59+00:00", "23:59:59-03:30"])
+    func iptcTimeInputVariantsRoundTrip(_ input: String) throws {
+        let fixture = try #require(Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
+        let folder = try makeTestFolder(andCopy: fixture)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let expected = try MetadataTag.iptcTimeCreated.checkedText(input)
+        let actual = try Exiftool.helper.update(image: folder.appending(component: fixture.lastPathComponent),
+                                              changes: [.iptcTimeCreated: .set(.text(expected))])
+        #expect(actual[.iptcTimeCreated] == .text(expected))
+    }
+
+    @Test func partialIPTCDatesAndNumericBoundsValidateBeforeWriting() throws {
+        #expect(try MetadataTag.iptcDateCreated.checkedText("2024:02:29 23:59:59.123456+08:00") == "2024:02:29")
+        #expect(try MetadataTag.iptcTimeCreated.checkedText("2024:02:29 23:59:59.123456+08:00") == "23:59:59+08:00")
+        #expect(throws: (any Error).self) { try MetadataTag.iptcDateCreated.checkedText("2023:02:29") }
+        #expect(throws: (any Error).self) { try MetadataTag.iptcTimeCreated.checkedText("25:00:00+08:00") }
+        #expect(throws: (any Error).self) { try MetadataTag.iptcTimeCreated.checkedText("23:59:59") }
+        #expect(throws: (any Error).self) { try MetadataTag.exifOrientation.checkedText("9") }
+        #expect(throws: (any Error).self) { try MetadataTag.rating.checkedText("2.5") }
+        #expect(throws: (any Error).self) { try MetadataTag.fileModifyDate.checkedText("bad date") }
+    }
+
     @Test func captureDateWritesAndClearsItsPrecisionGroupOnly() throws {
         let fixture = try #require(Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
         let folder = try makeTestFolder(andCopy: fixture)

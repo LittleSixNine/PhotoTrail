@@ -979,6 +979,7 @@ struct WorkspacePageSwitch: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
+        .accessibilityIdentifier(value == nil ? "workspaceRename" : value == true ? "workspaceMap" : "workspaceMetadata")
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }

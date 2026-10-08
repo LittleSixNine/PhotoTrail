@@ -34,26 +34,30 @@ Trajetos sem horário por ponto servem apenas para visualização. CSV de trajet
 
 ### 2. Consulta e edição de metadados
 
-- **Edite os campos comuns:** formulários para informações, datas e dispositivos. Preencha títulos, descrições, autoria, direitos e palavras-chave; selecione o nome comercial ou modelo de metadados, ou digite um valor próprio. Veja o [catálogo e as fontes](../DEVICE_CATALOG.md).
-- **Consulte os campos completos:** linhas compactas com nome, valor e origem, busca, grupos, filtros e tags adicionais. A leitura em segundo plano prioriza as fotos selecionadas e distingue EXIF, IPTC, XMP e informações do fabricante.
-- **Edite várias fotos e campos:** selecione com ⌘/Shift para definir valores comuns ou copiar de outro campo. Por exemplo, copie a data de criação EXIF de cada foto para vários campos de data. Confira as operações em lote antes de adicioná-las como rascunhos que podem ser desfeitos.
-- **Organize e troque informações:** ajustes de datas, câmera, lente e exposição, predefinições, comparação entre fotos e importação/exportação controlada de metadados CSV/XMP.
+Os campos comuns e completos usam a mesma lista e os mesmos controles. Datas indicam a origem EXIF, IPTC, XMP ou do sistema de arquivos.
 
-**Nem toda tag que pode ser lida pode ser editada.** Os novos editores aceitam 62 campos EXIF/IPTC/XMP em JPEG e arquivos XMP associados já existentes. Campos somente para leitura mostram um cadeado. RAW originais, HEIC e a fototeca da Apple não usam esses novos editores; as ferramentas anteriores de data e localização continuam disponíveis. O CSV de metadados é separado do CSV de trajetos ainda não aceito. Veja os [destinos e limites](../BEHAVIOR.md) (chinês).
+- **Consulte e edite campos:** pesquise nomes, tags ou valores e navegue por grupos. Texto, datas e dispositivos usam editores adequados. [Catálogo](../DEVICE_CATALOG.md).
+- **Predefinições em lote:** organize atribuições, cópias e ajustes de datas; confira a prévia antes de adicionar alterações pendentes. Crie, salve, carregue, exclua e troque arquivos JSON; copie um campo para vários destinos.
+- **Copie e cole campos:** ⌘C/⌘V ou Ctrl+C/Ctrl+V colam o valor original em vários campos editáveis. Valores alterados aparecem em laranja; ainda é preciso salvar para gravar os arquivos.
+- **Datas e troca de dados:** aumente ou diminua anos, meses, dias, horas, minutos e segundos separadamente. Altere uma parte da data, use intervalos fixos ou distribua datas igualmente; mantenha a troca controlada CSV/XMP e a comparação por foto.
+
+**Nem todo campo legível pode ser editado.** Os campos aceitos em JPEG e XMP existentes dependem da origem e formato. Datas de criação e modificação de JPEG locais também são editáveis. Tags estruturais, calculadas ou não verificadas continuam bloqueadas. RAW originais, HEIC e Fotos da Apple não usam estes novos editores; as ferramentas anteriores de data e localização permanecem. [Destinos e limites](../BEHAVIOR.md) (chinês).
 
 ### 3. Renomeação em lote
 
-- **Comece por uma opção comum:** data de captura e sequência, prefixo ou localizar e substituir. Combine texto, datas, sequências, metadados, listas e expressões regulares: 97 entradas de ações, filtros e opções avançadas.
-- **Compare antes e depois:** organize as regras à esquerda e confira nomes originais e finais, arquivos associados e conflitos à direita. Mostre etapas intermediárias quando necessário e salve predefinições.
-- **Mantenha arquivos relacionados juntos:** confira fotos e arquivos auxiliares como um grupo, sem sobrescrever arquivos existentes. O histórico permite restaurar nomes se a identidade e o conteúdo ainda corresponderem ao registro.
+- **Ordene regras:** arraste a alça de três linhas para mover o cartão; clique com o botão direito no espaço vazio para duplicar ou excluir. Texto, datas e sequências usam termos consistentes como Substituir e Adicionar no início.
+- **Gerencie predefinições:** o painel esquerdo mostra a atual. Alterne entre opções comuns ou pessoais, pesquise, atualize, salve uma cópia, renomeie, exclua e troque JSON. Ao iniciar, a última predefinição é restaurada sem ser sobrescrita por regras não salvas.
+- **Confira nomes e conflitos:** a tabela mostra nomes originais e finais, arquivos relacionados e conflitos, com uma coluna intermediária opcional. Sufixos numéricos oferecem 2–5 dígitos e separadores. A execução mostra progresso central e Parar e restaurar.
 
-Use fotos locais importadas ou Adicionar arquivos para arquivos comuns. Pastas e itens da fototeca ficam excluídos. Se houver alterações de informações ou localização, o app pede para salvá-las primeiro; confira a prévia atualizada antes de confirmar a renomeação. Ela é executada separadamente do salvamento de metadados.
+As três abas compartilham fotos e seleção, inclusive importações pela aba Renomear. O padrão é processar todas as fotos, com opção para as selecionadas. As associações JPG/RAW/XMP são mantidas. Remover uma foto sincroniza as abas, pode ser desfeito e não exclui o arquivo. Fotos sem caminho local não podem ser renomeadas diretamente. Salve alterações de informações ou localização, confira a prévia e confirme a renomeação. Os registros restauram nomes apenas quando identidade e conteúdo coincidem.
 
 ### Salvar alterações
 
 **Salvar todos os metadados** (⌘S) grava todas as alterações pendentes de informações e localização da janela atual, sem limitar o alcance à aba, seleção ou filtro ativos. Consultar e visualizar não grava arquivos; é possível desfazer antes de salvar. A gravação local segue as configurações de backup e verifica os resultados por releitura, sem recomprimir os pixels. Pares JPG + RAW podem compartilhar alterações de localização, mas os novos campos não são copiados automaticamente para RAW. A fototeca usa a interface do sistema e tem outro escopo de edição.
 
 ## Muitas fotos e cache
+
+A importação estima o tempo restante de todo o processo; sem dados de velocidade suficientes, indica que a estimativa está sendo calculada. Lotes com mais de 300 fotos mostram um aviso de espera. A renomeação mostra o progresso geral e permite parar e restaurar os nomes.
 
 Após importar as fotos e preparar os metadados, as miniaturas são carregadas sob demanda na lista de metadados e na faixa de fotos da página de localização, com prioridade para a prévia da foto atual. A troca de fotos e a rolagem da faixa evitam cálculos repetidos. As atualizações preservam configurações, favoritos e caches de trajetos; os caches de miniaturas e leitura de metadados duram apenas durante a sessão e são recriados ao reabrir o app.
 

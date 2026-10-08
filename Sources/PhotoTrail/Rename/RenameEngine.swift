@@ -629,7 +629,11 @@ extension RenameEngine {
             let originalTargets = indices.map { result[$0].target }
             var suffix = settings.keepFirst ? 0 : 1
             while true {
-                let tail = suffix == 0 ? "" : settings.conflict == .letters ? alphabet(suffix) ?? String(suffix) : "_" + padded(suffix, width: 3)
+                let digits = settings.conflictDigits ?? 3
+                guard (2...5).contains(digits) else { throw RenameError.invalidPreset }
+                let value = settings.conflict == .letters ? alphabet(suffix) ?? String(suffix) : padded(suffix, width: digits)
+                let format = settings.conflict == .letters ? settings.letterSuffixFormat ?? .plain : settings.numberSuffixFormat ?? .underscore
+                let tail = suffix == 0 ? "" : format.format(value)
                 let proposed = originalTargets.map { url -> URL in
                     let parts = split(url.lastPathComponent)
                     return url.deletingLastPathComponent().appendingPathComponent(parts.stem + tail + parts.ext)

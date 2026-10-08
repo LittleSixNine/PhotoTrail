@@ -34,16 +34,33 @@ final class MetadataLoadingQueue {
         var displayRead = 0
         var isPaused = false
         var remainingSeconds: Double?
+        private(set) var editableSecondsPerPhoto: Double?
+        private(set) var displaySecondsPerPhoto: Double?
+        var overallRemainingSeconds: Double? {
+            let editable = editableRead >= total ? 0 : (editableEstimate.secondsPerUnit ?? editableSecondsPerPhoto)
+                .map { Double(total - editableRead) * $0 }
+            let display = displayRead >= total ? 0 : (displayEstimate.secondsPerUnit ?? displaySecondsPerPhoto)
+                .map { Double(total - displayRead) * $0 }
+            guard let editable, let display else { return nil }
+            return editable + display
+        }
+        func estimatedSeconds(forPhotos count: Int) -> Double? {
+            guard count > 0 else { return 0 }
+            guard let editableSecondsPerPhoto, let displaySecondsPerPhoto else { return nil }
+            return Double(count) * (editableSecondsPerPhoto + displaySecondsPerPhoto)
+        }
         @ObservationIgnored private var editableEstimate = RemainingTimeEstimate()
         @ObservationIgnored private var displayEstimate = RemainingTimeEstimate()
-        func resetTiming() {
-            editableEstimate.reset(completed: editableRead)
-            displayEstimate.reset(completed: displayRead)
+        func resetTiming(now: Double = ProcessInfo.processInfo.systemUptime) {
+            editableEstimate.reset(completed: editableRead, now: now)
+            displayEstimate.reset(completed: displayRead, now: now)
             remainingSeconds = nil
         }
-        func updateTiming() {
-            editableEstimate.update(completed: editableRead)
-            displayEstimate.update(completed: displayRead)
+        func updateTiming(now: Double = ProcessInfo.processInfo.systemUptime) {
+            editableEstimate.update(completed: editableRead, now: now)
+            displayEstimate.update(completed: displayRead, now: now)
+            if let rate = editableEstimate.secondsPerUnit { editableSecondsPerPhoto = rate }
+            if let rate = displayEstimate.secondsPerUnit { displaySecondsPerPhoto = rate }
             remainingSeconds = editableRead < total
                 ? editableEstimate.seconds(total: total) : displayEstimate.seconds(total: total)
         }
@@ -141,8 +158,9 @@ final class MetadataLoadingQueue {
             updateStatus(request)
         }
         if previousTargets != targets { progress.resetTiming() }
-        // Small selections remain interactive; a large uncached import gets a preparation page.
-        if !userPaused && Set(jobs.map { $0.request.id }).count >= 100 { isPreparing = true }
+        // Re-reading saved files must not replace the current workspace and discard its scroll position.
+        let addedIDs = Set(targets.keys).subtracting(previousTargets.keys)
+        if !userPaused && Set(jobs.map { $0.request.id }).intersection(addedIDs).count >= 100 { isPreparing = true }
         if jobs.isEmpty && current.isEmpty { isPreparing = false }
         start()
     }

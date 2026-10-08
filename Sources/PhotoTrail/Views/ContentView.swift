@@ -72,9 +72,10 @@ struct ContentView: View {
             }
             Group {
                 if store.importProgress.isActive {
-                    ImportPreparationView(progress: store.importProgress)
+                    ImportPreparationView(progress: store.importProgress, metadataProgress: metadataQueue.progress)
                 } else if metadataQueue.isPreparing && !store.saveInProgress && !renameSelected {
-                    MetadataPreparationView(progress: metadataQueue.progress, pause: metadataQueue.pauseReading)
+                    MetadataPreparationView(importedPhotoCount: store.importProgress.photoCount,
+                                            progress: metadataQueue.progress, pause: metadataQueue.pauseReading)
                 } else if renameSelected {
                     RenameWorkspaceView(workspace: renameWorkspace)
                 } else if alternateLayout {
@@ -99,6 +100,11 @@ struct ContentView: View {
             .id(language)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay {
+            if renameWorkspace.executing {
+                RenameExecutionProgressView(workspace: renameWorkspace)
+            }
+        }
         .tint(.blue)
         .environment(locationWorkspace)
         .environment(metadataQueue)
@@ -215,6 +221,7 @@ struct ContentView: View {
         .toolbar {
             ToolbarItem(placement: .principal) {
                 WorkspacePageSwitch(selection: $alternateLayout, renameSelected: $renameSelected, showsRename: true)
+                    .disabled(store.renameInProgress)
             }
             ToolbarItem(placement: .primaryAction) {
                 HStack(spacing: 8) {

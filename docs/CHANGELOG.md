@@ -4,6 +4,18 @@
 
 Release milestones and source development history are recorded below.
 
+## 2026-10-08 · v0.5.3
+
+- 常用与完整元数据字段统一列表及编辑方式，移除筛选／显示管理菜单；日期标明来源，扩展文件时间与受控 EXIF／IPTC／XMP 编辑。
+- 自定义批量预设支持有序编排、预览、保存和 JSON 交换；一个来源可复制至多个字段。精简重复时间操作，保留旧预设兼容；年月日时分秒各行显示单位及增减方向。
+- 元数据字段支持 ⌘C／⌘V 与 Ctrl+C／Ctrl+V 的多目标粘贴，完整校验后加入草稿；修改值橙色显示，保存刷新保持已有字段列表。
+- 重命名规则整卡拖动排序，统一插入／替换术语；独立设置弹窗说明关联文件及扩展名优先级，冲突后缀增加格式与 2–5 位数字选择。
+- 重命名左栏统一预设管理，启动恢复上次方案，默认全部照片；三页共用照片集合及选择，移除可撤销。删除下方重复步骤区，保留列表中的可选中间列。
+- 导入显示全部流程的预计剩余时间，超过 300 张显示等待提示；重命名预览显示居中加载反馈，执行提供全局进度与停止恢复。
+- 重命名哈希读取及时释放临时块，并复用目录访问书签，减少大批量校验的内存累积。
+
+Version 0.5.3 unifies metadata rows and the three-tab photo collection, add editable batch presets and field copy/paste, improve date controls and rename presets, and update progress and bulk-rename memory handling. Version 0.5.2 below remains a separate release milestone.
+
 ## 2026-10-08 · v0.5.2
 
 - 优化大量照片在元数据列表和定位照片条中的选择刷新，复用筛选、排序与所选照片快照，保持日期编辑、撤销及配对规则。

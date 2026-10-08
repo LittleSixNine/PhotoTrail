@@ -1,6 +1,848 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "照片：%1$@；关联文件一并列入右侧预览。": {"extractionState": "manual", "localizations": {"en": {"stringUnit": {"state": "translated", "value": "Photos: %1$@; associated files are included in the preview on the right."}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "照片：%1$@；關聯檔案一併列入右側預覽。"}}, "ja": {"stringUnit": {"state": "translated", "value": "写真：%1$@。関連ファイルも右側のプレビューに含まれます。"}}, "ko": {"stringUnit": {"state": "translated", "value": "사진: %1$@장. 연결된 파일도 오른쪽 미리보기에 포함됩니다."}}, "es": {"stringUnit": {"state": "translated", "value": "Fotos: %1$@; los archivos asociados se incluyen en la vista previa de la derecha."}}, "pt-BR": {"stringUnit": {"state": "translated", "value": "Fotos: %1$@; arquivos associados são incluídos na prévia à direita."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "照片：%1$@；关联文件一并列入右侧预览。"}}}},
+    "其中 %1$@ 张不是本地文件，无法直接重命名。": {"extractionState": "manual", "localizations": {"en": {"stringUnit": {"state": "translated", "value": "%1$@ photos are not local files and cannot be renamed directly."}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "其中 %1$@ 張不是本機檔案，無法直接重新命名。"}}, "ja": {"stringUnit": {"state": "translated", "value": "%1$@ 枚はローカルファイルではないため、直接名前を変更できません。"}}, "ko": {"stringUnit": {"state": "translated", "value": "%1$@장의 사진은 로컬 파일이 아니므로 이름을 직접 변경할 수 없습니다."}}, "es": {"stringUnit": {"state": "translated", "value": "%1$@ fotos no son archivos locales y no se pueden renombrar directamente."}}, "pt-BR": {"stringUnit": {"state": "translated", "value": "%1$@ fotos não são arquivos locais e não podem ser renomeadas diretamente."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "其中 %1$@ 张不是本地文件，无法直接重命名。"}}}},
+    "拖动以调整规则顺序": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "拖动以调整规则顺序"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "拖動以調整規則順序"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Drag to reorder rules"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ドラッグしてルールを並べ替え"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "드래그하여 규칙 순서 변경"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Arrastra para ordenar las reglas"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Arraste para reordenar as regras"}}
+      }
+    },
+    "粘贴到所选字段": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "粘贴到所选字段"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "貼上到所選欄位"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Paste into selected fields"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "選択したフィールドに貼り付け"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "선택한 필드에 붙여넣기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Pegar en los campos seleccionados"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Colar nos campos selecionados"}}
+      }
+    },
+    "粘贴失败": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "粘贴失败"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "貼上失敗"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Paste failed"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "貼り付けに失敗しました"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "붙여넣기 실패"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Error al pegar"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Falha ao colar"}}
+      }
+    },
+    "未修改任何字段。请检查剪贴板内容、目标字段格式，并确认来源文件没有变化。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "未修改任何字段。请检查剪贴板内容、目标字段格式，并确认来源文件没有变化。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "未修改任何欄位。請檢查剪貼簿內容、目標欄位格式，並確認來源檔案沒有變化。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "No fields were changed. Check the clipboard content and destination formats, and confirm the source files have not changed."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "フィールドは変更されていません。クリップボードの内容とコピー先の形式を確認し、元ファイルが変更されていないことを確認してください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "변경된 필드가 없습니다. 클립보드 내용과 대상 필드 형식을 확인하고 원본 파일이 변경되지 않았는지 확인하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "No se ha modificado ningún campo. Revisa el contenido del portapapeles y los formatos de destino, y confirma que los archivos de origen no hayan cambiado."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Nenhum campo foi alterado. Verifique o conteúdo da área de transferência e os formatos de destino e confirme que os arquivos de origem não foram alterados."}}
+      }
+    },
+    "替换": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "替换"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "替換"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Replace"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "置き換え"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "바꾸기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Reemplazar"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Substituir"}}
+      }
+    },
+    "在开头添加": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "在开头添加"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "在開頭新增"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Add at beginning"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "先頭に追加"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "맨 앞에 추가"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Añadir al principio"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Adicionar no início"}}
+      }
+    },
+    "在结尾添加": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "在结尾添加"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "在結尾新增"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Add at end"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "末尾に追加"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "맨 뒤에 추가"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Añadir al final"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Adicionar no final"}}
+      }
+    },
+    "在指定文字前添加": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "在指定文字前添加"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "在指定文字前新增"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Add before specified text"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "指定文字の前に追加"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "지정한 텍스트 앞에 추가"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Añadir antes del texto indicado"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Adicionar antes do texto indicado"}}
+      }
+    },
+    "在指定文字后添加": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "在指定文字后添加"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "在指定文字後新增"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Add after specified text"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "指定文字の後に追加"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "지정한 텍스트 뒤에 추가"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Añadir después del texto indicado"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Adicionar depois do texto indicado"}}
+      }
+    },
+    "在指定位置添加": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "在指定位置添加"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "在指定位置新增"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Add at specified position"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "指定位置に追加"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "지정한 위치에 추가"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Añadir en la posición indicada"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Adicionar na posição indicada"}}
+      }
+    },
+    "按固定间隔设置时间": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "按固定间隔设置时间"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "按固定間隔設定時間"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Set times at fixed intervals"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "一定間隔で時刻を設定"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "일정 간격으로 시간 설정"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Asignar horas a intervalos fijos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Definir horários em intervalos fixos"}}
+      }
+    },
+    "在时间范围内均匀分配": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "在时间范围内均匀分配"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "在時間範圍內均勻分配"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Distribute evenly within a time range"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "指定した時間範囲に均等に割り当て"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "시간 범위 안에 균등하게 배분"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Distribuir uniformemente en un intervalo de tiempo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Distribuir uniformemente em um intervalo de tempo"}}
+      }
+    },
+    "把值复制到字段": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "把值复制到字段"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "把值複製到欄位"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Copy value to fields"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "値をフィールドにコピー"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "값을 필드에 복사"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Copiar el valor a campos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Copiar o valor para campos"}}
+      }
+    },
+    "修改预览": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "修改预览"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "修改預覽"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Change preview"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "変更のプレビュー"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "변경 미리 보기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Vista previa de cambios"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Prévia das alterações"}}
+      }
+    },
+    "开始时间": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "开始时间"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "開始時間"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Start time"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "開始時刻"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "시작 시간"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Hora de inicio"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Horário inicial"}}
+      }
+    },
+    "每张照片间隔（秒）": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "每张照片间隔（秒）"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "每張照片間隔（秒）"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Interval per photo (seconds)"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真ごとの間隔（秒）"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사진 간격(초)"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Intervalo por foto (segundos)"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Intervalo por foto (segundos)"}}
+      }
+    },
+    "接收字段": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "接收字段"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "接收欄位"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Destination fields"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "コピー先のフィールド"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "대상 필드"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Campos de destino"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Campos de destino"}}
+      }
+    },
+    "添加接收字段…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "添加接收字段…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "新增接收欄位…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Add destination fields…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "コピー先を追加…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "대상 필드 추가…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Añadir campos de destino…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Adicionar campos de destino…"}}
+      }
+    },
+    "将上方来源字段的值复制到以下字段，覆盖原值；来源字段保持不变。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "将上方来源字段的值复制到以下字段，覆盖原值；来源字段保持不变。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "將上方來源欄位的值複製到以下欄位，覆蓋原值；來源欄位保持不變。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Copy the source value to the destination fields, replacing their values; the source stays unchanged."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "コピー元の値をコピー先に上書きします。コピー元は変更されません。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "원본 값을 대상 필드에 복사하여 기존 값을 덮어씁니다. 원본 필드는 변경되지 않습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Copia el valor de origen a los campos de destino y sustituye sus valores; el origen no cambia."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Copie o valor de origem para os campos de destino, substituindo seus valores; a origem permanece inalterada."}}
+      }
+    },
+    "批量预设…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "批量预设…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "批次預設…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Batch presets…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "一括プリセット…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "일괄 프리셋…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Preajustes por lotes…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Predefinições em lote…"}}
+      }
+    },
+    "读取完成": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "读取完成"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "讀取完成"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Read complete"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "読み込み完了"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "읽기 완료"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Lectura completada"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Leitura concluída"}}
+      }
+    },
+    "搜索名称、标签或值": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "搜索名称、标签或值"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "搜尋名稱、標籤或值"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Search names, tags or values"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "名前・タグ・値を検索"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이름, 태그 또는 값 검색"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Buscar nombres, etiquetas o valores"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Pesquisar nomes, etiquetas ou valores"}}
+      }
+    },
+    "批量操作与预设…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "批量操作与预设…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "批次操作與預設…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Batch actions and presets…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "一括操作とプリセット…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "일괄 작업 및 프리셋…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Acciones por lotes y preajustes…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Ações em lote e predefinições…"}}
+      }
+    },
+    "编排操作": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "编排操作"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "編排操作"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Compose actions"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "操作を組み立てる"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "작업 구성"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Componer acciones"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Compor ações"}}
+      }
+    },
+    "操作按顺序执行；每张照片使用自己的字段值，后一步读取前一步的结果。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "操作按顺序执行；每张照片使用自己的字段值，后一步读取前一步的结果。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "操作依序執行；每張照片使用自己的欄位值，後一步讀取前一步的結果。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Actions run in order. Each photo uses its own values; later actions read earlier results."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "操作は順番に実行されます。各写真の値を使い、後の操作は前の結果を読みます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "작업은 순서대로 실행됩니다. 각 사진의 값을 사용하며 다음 작업은 이전 결과를 읽습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Las acciones se ejecutan en orden. Cada foto usa sus valores; las posteriores leen los resultados anteriores."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "As ações são executadas em ordem. Cada foto usa seus valores; as seguintes leem os resultados anteriores."}}
+      }
+    },
+    "目标字段": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "目标字段"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "目標欄位"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Target field"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "対象項目"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "대상 필드"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Campo de destino"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Campo de destino"}}
+      }
+    },
+    "更新操作": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "更新操作"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "更新操作"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Update action"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "操作を更新"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "작업 업데이트"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Actualizar acción"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Atualizar ação"}}
+      }
+    },
+    "取消编辑": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "取消编辑"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "取消編輯"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Cancel editing"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "編集をキャンセル"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "편집 취소"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Cancelar edición"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Cancelar edição"}}
+      }
+    },
+    "新建预设": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "新建预设"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "新增預設"}},
+        "en": {"stringUnit": {"state": "translated", "value": "New preset"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "新規プリセット"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "새 프리셋"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Nuevo preajuste"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Nova predefinição"}}
+      }
+    },
+    "预设已保存。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "预设已保存。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "預設已儲存。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Preset saved."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "プリセットを保存しました。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "프리셋이 저장되었습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Preajuste guardado."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Predefinição salva."}}
+      }
+    },
+    "预设已导入，可编辑并预览。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "预设已导入，可编辑并预览。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "預設已匯入，可編輯並預覽。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Preset imported. You can edit and preview it."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "プリセットを読み込みました。編集してプレビューできます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "프리셋을 가져왔습니다. 편집하고 미리 볼 수 있습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Preajuste importado. Puede editarlo y previsualizarlo."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Predefinição importada. Você pode editá-la e visualizá-la."}}
+      }
+    },
+    "删除操作": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "删除操作"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "刪除操作"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Delete action"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "操作を削除"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "작업 삭제"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Eliminar acción"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Excluir ação"}}
+      }
+    },
+    "IPTC 时间必须包含时区，例如 12:34:56+08:00。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "IPTC 时间必须包含时区，例如 12:34:56+08:00。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "IPTC 時間必須包含時區，例如 12:34:56+08:00。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "IPTC time requires a time zone, for example 12:34:56+08:00."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "IPTC 時刻にはタイムゾーンが必要です。例：12:34:56+08:00。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "IPTC 시간에는 시간대가 필요합니다. 예: 12:34:56+08:00."}},
+        "es": {"stringUnit": {"state": "translated", "value": "La hora IPTC requiere una zona horaria, por ejemplo 12:34:56+08:00."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "A hora IPTC exige um fuso horário, por exemplo 12:34:56+08:00."}}
+      }
+    },
+    "搜索包含全部字段。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "搜索包含全部字段。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "搜尋包含全部欄位。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Search includes all fields."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "検索対象はすべての項目です。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "검색에는 모든 필드가 포함됩니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "La búsqueda incluye todos los campos."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "A pesquisa inclui todos os campos."}}
+      }
+    },
+    "文件系统": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "文件系统"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "檔案系統"}},
+        "en": {"stringUnit": {"state": "translated", "value": "File system"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ファイルシステム"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "파일 시스템"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Sistema de archivos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Sistema de arquivos"}}
+      }
+    },
+    "XMP Rating": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "评分（XMP）"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "評分（XMP）"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Rating (XMP)"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "評価（XMP）"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "평점 (XMP)"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Valoración (XMP)"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Classificação (XMP)"}}
+      }
+    },
+    "XMP Label": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "标签（XMP）"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "標籤（XMP）"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Label (XMP)"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ラベル（XMP）"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "레이블 (XMP)"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Etiqueta (XMP)"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Rótulo (XMP)"}}
+      }
+    },
+    "Metadata field: ResolutionUnit": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "分辨率单位"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "解析度單位"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Resolution unit"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "解像度単位"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "해상도 단위"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Unidad de resolución"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Unidade de resolução"}}
+      }
+    },
+    "文件时间不能清除；未记录时区的输入按本机时区处理。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "文件时间不能清除；未记录时区的输入按本机时区处理。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "檔案時間不能清除；未記錄時區的輸入按本機時區處理。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "File timestamps cannot be cleared. Input without a time zone uses the local time zone."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ファイル時刻は消去できません。タイムゾーンのない入力にはローカル設定を使用します。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "파일 시간은 지울 수 없습니다. 시간대가 없는 입력은 로컬 시간대를 사용합니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Las fechas del archivo no se pueden borrar. Sin zona horaria se usa la zona local."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "As datas do arquivo não podem ser apagadas. Sem fuso horário, usa-se o fuso local."}}
+      }
+    },
+    "此字段为结构或计算信息，尚未接入可靠写回；GPS 请在地图定位中编辑。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "此字段为结构或计算信息，尚未接入可靠写回；GPS 请在地图定位中编辑。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "此欄位為結構或計算資訊，尚未接入可靠寫回；GPS 請在地圖定位中編輯。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "This structural or derived field has no verified write path. Edit GPS in the map workspace."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "構造情報または計算値のため、安全な書き込みに未対応です。GPS は地図で編集してください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "구조 또는 계산 필드로 검증된 저장 기능이 없습니다. GPS는 지도에서 편집하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Este campo estructural o calculado no tiene una ruta de escritura verificada. Edite el GPS en el mapa."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Este campo estrutural ou calculado não tem gravação verificada. Edite o GPS no mapa."}}
+      }
+    },
+    "全部导入预计剩余约 %1$@ 秒": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "全部导入预计剩余约 %1$@ 秒"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "全部導入預計剩餘約 %1$@ 秒"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Estimated time remaining for the entire import: about %1$@ seconds"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "読み込み全体の推定残り時間：約 %1$@ 秒"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "전체 가져오기 예상 남은 시간: 약 %1$@초"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Tiempo estimado restante para toda la importación: unos %1$@ segundos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Tempo estimado restante para toda a importação: cerca de %1$@ segundos"}}
+      }
+    },
+    "正在估算全部导入剩余时间…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在估算全部导入剩余时间…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在估算全部導入剩餘時間…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Estimating the remaining time for the entire import…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "読み込み全体の残り時間を推定中…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "전체 가져오기 남은 시간 계산 중…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Estimando el tiempo restante para toda la importación…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Estimando o tempo restante para toda a importação…"}}
+      }
+    },
+    "后缀格式": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "后缀格式"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "後綴格式"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Suffix format"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "接尾辞の形式"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "접미사 형식"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Formato del sufijo"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Formato do sufixo"}}
+      }
+    },
+    "数字位数": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "数字位数"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "數字位數"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Number width"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "数字の桁数"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "숫자 자릿수"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Número de dígitos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Quantidade de dígitos"}}
+      }
+    },
+    "正在计算文件名并检查冲突…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在计算文件名并检查冲突…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在計算檔名並檢查衝突…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Calculating filenames and checking conflicts…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ファイル名を計算し、重複を確認中…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "파일 이름 계산 및 충돌 확인 중…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Calculando nombres y comprobando conflictos…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Calculando nomes e verificando conflitos…"}}
+      }
+    },
+    "您导入的照片较多，处理需要一些时间，请耐心等待。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "您导入的照片较多，处理需要一些时间，请耐心等待。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "您導入的照片較多，處理需要一些時間，請耐心等待。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "You imported many photos. Processing may take some time; please wait."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "読み込む写真が多いため、処理に時間がかかります。しばらくお待ちください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "가져온 사진이 많아 처리에 시간이 걸릴 수 있습니다. 잠시 기다려 주세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ha importado muchas fotos. El procesamiento puede tardar; espere un momento."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Você importou muitas fotos. O processamento pode demorar; aguarde."}}
+      }
+    },
+    "正在生成重命名预览…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在生成重命名预览…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在生成重新命名預覽…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Generating rename preview…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "名前変更のプレビューを生成中…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이름 변경 미리보기 생성 중…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Generando la vista previa del cambio de nombre…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Gerando a prévia da renomeação…"}}
+      }
+    },
+    "正在读取照片信息并计算文件名，请稍候。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在读取照片信息并计算文件名，请稍候。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在讀取照片資訊並計算檔名，請稍候。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Reading photo information and calculating filenames. Please wait."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真情報を読み取り、ファイル名を計算しています。しばらくお待ちください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사진 정보를 읽고 파일 이름을 계산하고 있습니다. 잠시 기다려 주세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Leyendo la información de las fotos y calculando los nombres. Espere un momento."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Lendo as informações das fotos e calculando os nomes. Aguarde."}}
+      }
+    },
+    "正在导入照片": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在导入照片"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在導入照片"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Importing photos"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真を読み込み中"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사진 가져오는 중"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Importando fotos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Importando fotos"}}
+      }
+    },
+    "第 1 / 2 步：导入文件": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "第 1 / 2 步：导入文件"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "第 1 / 2 步：導入檔案"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Step 1 of 2: Import files"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ステップ 1 / 2：ファイルの読み込み"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "1 / 2단계: 파일 가져오기"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Paso 1 de 2: Importar archivos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Etapa 1 de 2: Importar arquivos"}}
+      }
+    },
+    "第 2 / 2 步：准备元数据": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "第 2 / 2 步：准备元数据"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "第 2 / 2 步：準備中繼資料"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Step 2 of 2: Prepare metadata"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ステップ 2 / 2：メタデータの準備"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "2 / 2단계: 메타데이터 준비"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Paso 2 de 2: Preparar metadatos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Etapa 2 de 2: Preparar metadados"}}
+      }
+    },
+    "正在恢复原文件名…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在恢复原文件名…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在恢復原檔名…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Restoring original filenames…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "元のファイル名を復元中…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "원래 파일 이름 복원 중…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Restaurando los nombres originales…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Restaurando os nomes originais…"}}
+      }
+    },
+    "正在停止…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在停止…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在停止…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Stopping…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "停止中…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "중지 중…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Deteniendo…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Parando…"}}
+      }
+    },
+    "正在检查文件…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在检查文件…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在檢查檔案…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Checking files…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ファイルを確認中…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "파일 확인 중…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Comprobando archivos…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Verificando arquivos…"}}
+      }
+    },
+    "正在准备修改名称…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在准备修改名称…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在準備修改名稱…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Preparing to rename…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "名前変更を準備中…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이름 변경 준비 중…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Preparando el cambio de nombre…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Preparando a renomeação…"}}
+      }
+    },
+    "正在修改文件名…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在修改文件名…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在修改檔名…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Renaming files…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ファイル名を変更中…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "파일 이름 변경 중…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Renombrando archivos…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Renomeando arquivos…"}}
+      }
+    },
+    "正在核对结果…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在核对结果…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在核對結果…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Verifying results…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "結果を確認中…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "결과 검증 중…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Verificando resultados…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Conferindo resultados…"}}
+      }
+    },
+    "正在重命名照片": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在重命名照片"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在重新命名照片"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Renaming photos"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真の名前を変更中"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사진 이름 변경 중"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Renombrando fotos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Renomeando fotos"}}
+      }
+    },
+    "检查文件 → 修改名称 → 核对结果": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "检查文件 → 修改名称 → 核对结果"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "檢查檔案 → 修改名稱 → 核對結果"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Check files → Rename → Verify results"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ファイル確認 → 名前変更 → 結果確認"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "파일 확인 → 이름 변경 → 결과 검증"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Comprobar archivos → Renombrar → Verificar resultados"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Verificar arquivos → Renomear → Conferir resultados"}}
+      }
+    },
+    "当前阶段已处理 %1$@/%2$@ 个文件": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "当前阶段已处理 %1$@/%2$@ 个文件"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "目前階段已處理 %1$@/%2$@ 個檔案"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Files processed in this stage: %1$@/%2$@"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "現在の段階で処理済み：%1$@/%2$@ ファイル"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "현재 단계 처리 파일: %1$@/%2$@"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Archivos procesados en esta etapa: %1$@/%2$@"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Arquivos processados nesta etapa: %1$@/%2$@"}}
+      }
+    },
+    "包含关联文件；完成前请勿关闭程序。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "包含关联文件；完成前请勿关闭程序。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "包含關聯檔案；完成前請勿關閉程式。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Includes related files. Do not close the app until finished."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "関連ファイルを含みます。完了するまでアプリを閉じないでください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "관련 파일을 포함합니다. 완료될 때까지 앱을 닫지 마세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Incluye archivos relacionados. No cierre la aplicación hasta que termine."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Inclui arquivos relacionados. Não feche o aplicativo antes de concluir."}}
+      }
+    },
+    "按从左到右的顺序优先选取实际存在的照片，依据它计算新文件名，其他文件跟随改名。例如 jpg 在 arw 前面时，以 JPG 为准；将 arw 放在前面则优先以 RAW 为准。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "按从左到右的顺序优先选取实际存在的照片，依据它计算新文件名，其他文件跟随改名。例如 jpg 在 arw 前面时，以 JPG 为准；将 arw 放在前面则优先以 RAW 为准。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "按從左到右的順序優先選取實際存在的照片，依據它計算新檔名，其他檔案跟隨改名。例如 jpg 在 arw 前面時，以 JPG 為準；將 arw 放在前面則優先以 RAW 為準。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "The first available photo extension from left to right determines the new filename; the other files follow. For example, jpg before arw gives JPG priority; placing arw first gives RAW priority."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "左から順に、実際に存在する写真を優先し、その写真を基に新しい名前を計算します。他のファイルも同じ名前になります。jpg が arw より前なら JPG、arw が先なら RAW を優先します。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "왼쪽부터 실제로 존재하는 사진을 우선 선택하여 새 파일 이름을 계산하고 나머지 파일도 같은 이름으로 변경합니다. jpg가 arw 앞이면 JPG를, arw가 앞이면 RAW를 우선합니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "La primera extensión de foto disponible, de izquierda a derecha, determina el nuevo nombre; los demás archivos lo siguen. Por ejemplo, jpg antes de arw da prioridad a JPG; arw primero da prioridad a RAW."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "A primeira extensão de foto disponível, da esquerda para a direita, determina o novo nome; os outros arquivos seguem. Por exemplo, jpg antes de arw prioriza JPG; arw primeiro prioriza RAW."}}
+      }
+    },
+    "这些附属文件跟随照片一起改名，排列顺序不影响优先级。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "这些附属文件跟随照片一起改名，排列顺序不影响优先级。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "這些附屬檔案跟隨照片一起改名，排列順序不影響優先級。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "These companion files are renamed with the photo. Their order does not affect priority."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "これらの関連ファイルは写真と一緒に名前が変更されます。並び順は優先順位に影響しません。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이 관련 파일은 사진과 함께 이름이 변경됩니다. 나열 순서는 우선순위에 영향을 주지 않습니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Estos archivos auxiliares se renombran con la foto. Su orden no afecta a la prioridad."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Esses arquivos auxiliares são renomeados com a foto. A ordem não afeta a prioridade."}}
+      }
+    },
+    "照片及关联文件一起改名": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "照片及关联文件一起改名"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "照片及關聯檔案一起改名"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Rename photos and related files together"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "同じ名前のファイルをまとめて変更"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "같은 이름의 파일을 함께 이름 변경"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Renombrar juntos los archivos del mismo nombre"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Renomear juntos os arquivos de mesmo nome"}}
+      }
+    },
+    "重命名设置": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "重命名设置"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "重新命名設定"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Rename settings"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "名前変更の設定"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이름 변경 설정"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Configuración de renombrado"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Configurações de renomeação"}}
+      }
+    },
+    "重命名设置…": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "重命名设置…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "重新命名設定…"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Rename settings…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "名前変更の設定…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이름 변경 설정…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Configuración de renombrado…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Configurações de renomeação…"}}
+      }
+    },
+    "照片文件扩展名": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "照片文件扩展名"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "照片檔案副檔名"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Photo extensions"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "写真の拡張子"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "사진 확장자"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Extensiones de fotos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Extensões de fotos"}}
+      }
+    },
+    "附属文件扩展名": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "附属文件扩展名"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "附屬檔案副檔名"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Companion file extensions"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "関連ファイルの拡張子"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "관련 파일 확장자"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Extensiones de archivos auxiliares"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Extensões de arquivos auxiliares"}}
+      }
+    },
+    "扩展名用逗号分隔，不加点。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "扩展名用逗号分隔，不加点。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "副檔名以逗號分隔，不加點。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Separate extensions with commas, without dots."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "拡張子はドットを付けず、カンマで区切ります。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "확장자는 점 없이 쉼표로 구분하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Separe las extensiones con comas, sin puntos."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Separe as extensões com vírgulas, sem pontos."}}
+      }
+    },
+    "同一文件夹内，同名的 JPG、RAW 和 XMP 等文件会一起改名，保留各自扩展名。": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "同一文件夹内，同名的 JPG、RAW 和 XMP 等文件会一起改名，保留各自扩展名。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "同一資料夾內，同名的 JPG、RAW 和 XMP 等檔案會一起改名，保留各自副檔名。"}},
+        "en": {"stringUnit": {"state": "translated", "value": "Files in the same folder with matching names and different extensions are renamed together, such as IMG_001.JPG, IMG_001.ARW and IMG_001.xmp. All files appear in the preview and keep their own extensions."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "同じフォルダ内で名前が同じで拡張子が異なるファイルをまとめて変更します（例：IMG_001.JPG、IMG_001.ARW、IMG_001.xmp）。すべてプレビューに表示され、それぞれの拡張子は保持されます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "같은 폴더에서 이름은 같고 확장자가 다른 파일을 함께 변경합니다. 예: IMG_001.JPG, IMG_001.ARW, IMG_001.xmp. 모든 파일은 미리보기에 표시되며 각 확장자는 유지됩니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Los archivos de la misma carpeta con el mismo nombre y distintas extensiones se renombran juntos, como IMG_001.JPG, IMG_001.ARW e IMG_001.xmp. Todos aparecen en la vista previa y conservan sus extensiones."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Arquivos na mesma pasta com o mesmo nome e extensões diferentes são renomeados juntos, como IMG_001.JPG, IMG_001.ARW e IMG_001.xmp. Todos aparecem na prévia e mantêm suas extensões."}}
+      }
+    },
     "正在扫描文件…": {
       "extractionState": "manual",
       "localizations": {
@@ -38192,18 +39034,6 @@
         "pt-BR": {"stringUnit": {"state": "translated", "value": "Sem alterações"}}
       }
     },
-    "保持照片与旁车同名": {
-      "extractionState": "manual",
-      "localizations": {
-        "zh-Hans": {"stringUnit": {"state": "translated", "value": "保持照片与旁车同名"}},
-        "zh-Hant": {"stringUnit": {"state": "translated", "value": "保持照片與旁車同名"}},
-        "en": {"stringUnit": {"state": "translated", "value": "Keep photos and sidecars paired"}},
-        "ja": {"stringUnit": {"state": "translated", "value": "写真とサイドカーの名前を揃える"}},
-        "ko": {"stringUnit": {"state": "translated", "value": "사진과 사이드카 이름 유지"}},
-        "es": {"stringUnit": {"state": "translated", "value": "Mantener fotos y archivos auxiliares emparejados"}},
-        "pt-BR": {"stringUnit": {"state": "translated", "value": "Manter fotos e arquivos auxiliares pareados"}}
-      }
-    },
     "停止并恢复": {
       "extractionState": "manual",
       "localizations": {
@@ -39584,30 +40414,6 @@
         "pt-BR": {"stringUnit": {"state": "translated", "value": "Alguns arquivos precisam de recuperação; verifique o histórico."}}
       }
     },
-    "配对来源扩展名": {
-      "extractionState": "manual",
-      "localizations": {
-        "zh-Hans": {"stringUnit": {"state": "translated", "value": "配对来源扩展名"}},
-        "zh-Hant": {"stringUnit": {"state": "translated", "value": "配對來源擴展名"}},
-        "en": {"stringUnit": {"state": "translated", "value": "Pairing source extensions"}},
-        "ja": {"stringUnit": {"state": "translated", "value": "ペア元の拡張子"}},
-        "ko": {"stringUnit": {"state": "translated", "value": "연결 원본 확장자"}},
-        "es": {"stringUnit": {"state": "translated", "value": "Extensiones de origen para emparejar"}},
-        "pt-BR": {"stringUnit": {"state": "translated", "value": "Extensões de origem para parear"}}
-      }
-    },
-    "配对目标扩展名": {
-      "extractionState": "manual",
-      "localizations": {
-        "zh-Hans": {"stringUnit": {"state": "translated", "value": "配对目标扩展名"}},
-        "zh-Hant": {"stringUnit": {"state": "translated", "value": "配對目標擴展名"}},
-        "en": {"stringUnit": {"state": "translated", "value": "Pairing target extensions"}},
-        "ja": {"stringUnit": {"state": "translated", "value": "ペア先の拡張子"}},
-        "ko": {"stringUnit": {"state": "translated", "value": "연결 대상 확장자"}},
-        "es": {"stringUnit": {"state": "translated", "value": "Extensiones de destino para emparejar"}},
-        "pt-BR": {"stringUnit": {"state": "translated", "value": "Extensões de destino para parear"}}
-      }
-    },
     "重命名失败：%1$@": {
       "extractionState": "manual",
       "localizations": {
@@ -39750,18 +40556,6 @@
         "ko": {"stringUnit": {"state": "translated", "value": "다음 필터가 범위를 다시 정할 때까지 후속 규칙에 적용됩니다."}},
         "es": {"stringUnit": {"state": "translated", "value": "Se aplica a reglas siguientes hasta que otro filtro restablezca el ámbito."}},
         "pt-BR": {"stringUnit": {"state": "translated", "value": "Aplica-se às regras seguintes até o próximo filtro redefinir o escopo."}}
-      }
-    },
-    "同目录、同主体的照片与旁车会加入预览，请核对实际文件范围。": {
-      "extractionState": "manual",
-      "localizations": {
-        "zh-Hans": {"stringUnit": {"state": "translated", "value": "同目录、同主体的照片与旁车会加入预览，请核对实际文件范围。"}},
-        "zh-Hant": {"stringUnit": {"state": "translated", "value": "同目錄、同主體的照片與旁車會加入預覽，請核對實际文件范围。"}},
-        "en": {"stringUnit": {"state": "translated", "value": "Photos and sidecars with the same stem in the same folder join the preview; review the file scope."}},
-        "ja": {"stringUnit": {"state": "translated", "value": "同じフォルダで同じ名前の写真とサイドカーをプレビューに追加します。対象範囲を確認してください。"}},
-        "ko": {"stringUnit": {"state": "translated", "value": "같은 폴더에서 이름이 같은 사진과 사이드카를 미리보기에 추가합니다. 범위를 확인하세요."}},
-        "es": {"stringUnit": {"state": "translated", "value": "Se incluyen fotos y auxiliares con el mismo nombre base en la misma carpeta; revise el ámbito."}},
-        "pt-BR": {"stringUnit": {"state": "translated", "value": "Fotos e auxiliares com o mesmo nome base na mesma pasta entram na prévia; revise o escopo."}}
       }
     },
     "导入本地照片后设置规则，先核对预览，再执行改名。照片图库项目不支持文件改名。": {
@@ -42032,6 +42826,215 @@
             "value": "Escolha a pasta dos arquivos para buscar arquivos associados, verificar conflitos e renomear com segurança. Apenas os arquivos da prévia são processados, sem percorrer subpastas."
           }
         }
+      }
+    },
+    "未保存方案": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Unsaved preset"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "未儲存方案"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "未保存のプリセット"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "저장되지 않은 프리셋"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Preajuste sin guardar"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Predefinição não salva"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "未保存方案"}}
+      }
+    },
+    "重命名预设": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Rename preset"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "重新命名預設"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "プリセット名を変更"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "프리셋 이름 변경"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Renombrar preajuste"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Renomear predefinição"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "重命名预设"}}
+      }
+    },
+    "当前预设": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Current preset"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "目前預設"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "現在のプリセット"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "현재 프리셋"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Preajuste actual"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Predefinição atual"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "当前预设"}}
+      }
+    },
+    "已修改 · 尚未保存": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Modified · Unsaved"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "已修改 · 尚未儲存"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "変更あり · 未保存"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "수정됨 · 저장되지 않음"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Modificado · Sin guardar"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Modificado · Não salvo"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "已修改 · 尚未保存"}}
+      }
+    },
+    "切换与管理…": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Switch and manage…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "切換與管理…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "切り替えと管理…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "전환 및 관리…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Cambiar y gestionar…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Alternar e gerenciar…"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "切换与管理…"}}
+      }
+    },
+    "切换与管理预设": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Switch and manage presets"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "切換與管理預設"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "プリセットの切り替えと管理"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "프리셋 전환 및 관리"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Cambiar y gestionar preajustes"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Alternar e gerenciar predefinições"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "切换与管理预设"}}
+      }
+    },
+    "搜索预设": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Search presets"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "搜尋預設"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "プリセットを検索"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "프리셋 검색"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Buscar preajustes"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Buscar predefinições"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "搜索预设"}}
+      }
+    },
+    "常用方案": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Common presets"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "常用方案"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "よく使うプリセット"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "기본 프리셋"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Preajustes comunes"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Predefinições comuns"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "常用方案"}}
+      }
+    },
+    "我的预设": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "My presets"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "我的預設"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "マイプリセット"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "내 프리셋"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Mis preajustes"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Minhas predefinições"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "我的预设"}}
+      }
+    },
+    "保存当前规则后，预设会显示在这里。": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Save the current rules to see your preset here."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "儲存目前規則後，預設會顯示在這裡。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "現在のルールを保存すると、ここに表示されます。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "현재 규칙을 저장하면 여기에 프리셋이 표시됩니다."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Guarda las reglas actuales para ver el preajuste aquí."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Salve as regras atuais para ver a predefinição aqui."}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "保存当前规则后，预设会显示在这里。"}}
+      }
+    },
+    "保存当前修改": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Save current changes"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "儲存目前修改"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "現在の変更を保存"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "현재 변경 사항 저장"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Guardar cambios actuales"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Salvar alterações atuais"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "保存当前修改"}}
+      }
+    },
+    "另存为新预设…": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Save as a new preset…"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "另存為新預設…"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "新しいプリセットとして保存…"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "새 프리셋으로 저장…"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Guardar como nuevo preajuste…"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Salvar como nova predefinição…"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "另存为新预设…"}}
+      }
+    },
+    "确认最终文件名后执行重命名。": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Check the final filenames before renaming."}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "確認最終檔名後執行重新命名。"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "最終ファイル名を確認してから名前を変更してください。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "최종 파일 이름을 확인한 후 이름을 변경하세요."}},
+        "es": {"stringUnit": {"state": "translated", "value": "Comprueba los nombres finales antes de renombrar."}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Confira os nomes finais antes de renomear."}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "确认最终文件名后执行重命名。"}}
+      }
+    },
+    "偏移方向": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Offset direction"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "偏移方向"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "調整方向"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "시간 조정 방향"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Dirección del ajuste"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Direção do ajuste"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "偏移方向"}}
+      }
+    },
+    "增加（＋）": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Increase (+)"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "增加（＋）"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "増やす（＋）"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "증가 (+)"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Aumentar (+)"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Aumentar (+)"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "增加（＋）"}}
+      }
+    },
+    "减少（－）": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Decrease (−)"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "減少（－）"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "減らす（－）"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "감소 (−)"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Reducir (−)"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Diminuir (−)"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "减少（－）"}}
+      }
+    },
+    "要修改的部分": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Part to change"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "要修改的部分"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "変更する部分"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "변경할 부분"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Parte que cambiar"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Parte a alterar"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "要修改的部分"}}
+      }
+    },
+    "修改时间中的指定部分": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Change a specific part of the date and time"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "修改時間中的指定部分"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "日時の指定部分を変更"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "날짜 및 시간의 특정 부분 변경"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Cambiar una parte de la fecha y hora"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Alterar uma parte da data e hora"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "修改时间中的指定部分"}}
+      }
+    },
+    "时间偏移 · %1$@ 年 · %2$@ 月 · %3$@ 日 · %4$@ 时 · %5$@ 分 · %6$@ 秒": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Time offset · %1$@ years · %2$@ months · %3$@ days · %4$@ hours · %5$@ minutes · %6$@ seconds"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "時間偏移 · %1$@ 年 · %2$@ 月 · %3$@ 日 · %4$@ 時 · %5$@ 分 · %6$@ 秒"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "日時調整 · %1$@ 年 · %2$@ 月 · %3$@ 日 · %4$@ 時 · %5$@ 分 · %6$@ 秒"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "시간 조정 · %1$@년 · %2$@개월 · %3$@일 · %4$@시간 · %5$@분 · %6$@초"}},
+        "es": {"stringUnit": {"state": "translated", "value": "Ajuste de tiempo · %1$@ años · %2$@ meses · %3$@ días · %4$@ horas · %5$@ minutos · %6$@ segundos"}},
+        "pt-BR": {"stringUnit": {"state": "translated", "value": "Ajuste de tempo · %1$@ anos · %2$@ meses · %3$@ dias · %4$@ horas · %5$@ minutos · %6$@ segundos"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "时间偏移 · %1$@ 年 · %2$@ 月 · %3$@ 日 · %4$@ 时 · %5$@ 分 · %6$@ 秒"}}
       }
     }
   },

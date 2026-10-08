@@ -113,7 +113,7 @@ public enum MetadataFieldEditAction: Equatable, Codable, Sendable {
             let final = try tag.checkedText(MetadataDate(text).offsetting(
                 years: years, months: months, days: days, hours: hours, minutes: minutes, seconds: seconds).text)
             return current == .text(final) ? nil : .set(.text(final))
-        case (_, .remove):
+        case (_, .remove) where !tag.isFileTime:
             return current == nil ? nil : .remove
         default:
             throw MetadataFieldEditError.invalidAction

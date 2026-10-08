@@ -8,12 +8,20 @@ struct RenameWorkspaceView: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
     @Bindable var workspace: RenameWorkspace
     @State private var selectedRule: UUID?
+    @State private var ruleFrames: [UUID: CGRect] = [:]
     @State private var confirm = false
     @State private var showHistory = false
     @State private var showPresetSave = false
+    @State private var showPresetManager = false
+    @State private var presetQuery = ""
+    @State private var renamingPresetID: UUID?
+    @State private var renamingPresetName = ""
+    @State private var showPresetRename = false
+    @State private var showSettings = false
     @State private var showAdvanced = false
     @State private var confirmSaveFirst = false
     @State private var awaitingSave = false
+    @State private var pendingRemoval = Set<ImageData.ID>()
 
     private var dirty: Bool { store.imageData.contains(where: \.hasPendingChanges) }
     private var canExecute: Bool {
@@ -26,6 +34,32 @@ struct RenameWorkspaceView: View {
             rulesSidebar.frame(minWidth: 320, idealWidth: 350, maxWidth: 420)
             preview.frame(minWidth: 480, maxWidth: .infinity, maxHeight: .infinity)
         }
+        .overlay {
+            if workspace.busy && !workspace.executing {
+                ZStack {
+                    Color.black.opacity(0.06)
+                    VStack(spacing: 14) {
+                        Text(L10n.text("正在生成重命名预览…")).font(.headline)
+                        if workspace.previewTotal > 0 && !workspace.previewCalculating {
+                            ProgressView(value: Double(workspace.previewCompleted), total: Double(workspace.previewTotal))
+                                .frame(width: 300)
+                            Text(L10n.text("已处理 %1$@/%2$@", workspace.previewCompleted, workspace.previewTotal)).monospacedDigit()
+                            RemainingTimeView(seconds: workspace.previewRemainingSeconds)
+                        } else {
+                            ProgressView().progressViewStyle(.linear).frame(width: 300)
+                        }
+                        Text(L10n.text(workspace.previewCalculating
+                            ? "正在计算文件名并检查冲突…" : "正在读取照片信息并计算文件名，请稍候。"))
+                            .font(.callout).foregroundStyle(.secondary)
+                    }
+                    .padding(28)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+                    .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(.quaternary))
+                }
+                .allowsHitTesting(false)
+                .accessibilityIdentifier("renamePreviewLoadingOverlay")
+            }
+        }
         .environment(workspace)
         .accessibilityIdentifier("renameWorkspace")
         .task {
@@ -35,11 +69,17 @@ struct RenameWorkspaceView: View {
         .onChange(of: workspace.rules) { refresh() }
         .onChange(of: workspace.settings) { refresh() }
         .onChange(of: workspace.onlySelected) { refresh() }
-        .onChange(of: workspace.includeImportedPhotos) { refresh() }
-        .onChange(of: workspace.extraURLs) { refresh() }
         .onChange(of: workspace.authorizedDirectories) { refresh() }
         .onChange(of: workspace.counterRevision) { refresh() }
-        .onChange(of: store.selection) { if workspace.onlySelected { refresh() } }
+        .onChange(of: store.selection) {
+            workspace.selectedRows = sharedSelectedRows
+            if workspace.onlySelected { refresh() }
+        }
+        .onChange(of: workspace.rows.map(\.source)) { workspace.selectedRows = sharedSelectedRows }
+        .onChange(of: workspace.selectedRows) {
+            guard workspace.selectedRows != sharedSelectedRows else { return }
+            store.send(.selectionChanged(sharedPhotoIDs(for: workspace.selectedRows)), undoable: false)
+        }
         .onChange(of: store.imageData.map(\.metadataCreatorImageURL)) { if !workspace.executing { refresh() } }
         .onChange(of: store.saveInProgress) {
             if !store.saveInProgress && !workspace.executing {
@@ -74,7 +114,26 @@ struct RenameWorkspaceView: View {
             Button(L10n.text("取消"), role: .cancel) {}
             Button(L10n.text("保存")) { workspace.savePreset() }
         }
+        .alert(L10n.text("重命名预设"), isPresented: $showPresetRename) {
+            TextField(L10n.text("预设名称"), text: $renamingPresetName)
+            Button(L10n.text("取消"), role: .cancel) {}
+            Button(L10n.text("保存")) {
+                if let id = renamingPresetID { workspace.renamePreset(id, name: renamingPresetName) }
+            }
+        }
         .sheet(isPresented: $showHistory) { historySheet }
+        .sheet(isPresented: $showSettings) { settingsSheet }
+        .alert(L10n.text("从列表移除照片？"), isPresented: Binding(get: { !pendingRemoval.isEmpty }, set: {
+            if !$0 { pendingRemoval = [] }
+        })) {
+            Button(L10n.text("取消"), role: .cancel) { pendingRemoval = [] }
+            Button(L10n.text("从列表移除"), role: .destructive) {
+                store.send(.removeImages(pendingRemoval), description: L10n.text("从列表移除照片"))
+                pendingRemoval = []
+            }
+        } message: {
+            Text(L10n.text("不会删除或修改磁盘原文件。选中照片及其配对 RAW 会一起移出列表；未保存的修改将从当前列表移除，可撤销恢复。"))
+        }
     }
 
 }
@@ -89,54 +148,46 @@ private extension RenameWorkspaceView {
             HStack {
                 Text(L10n.text("重命名规则")).font(.headline)
                 Spacer()
-                Menu(L10n.text("预设方案")) {
-                    Button(L10n.text("保存当前预设…")) { showPresetSave = true }
-                    if !workspace.presets.isEmpty {
-                        Divider()
-                        ForEach(workspace.presets) { preset in
-                            Button(preset.name) { workspace.rules = preset.rules; workspace.settings = preset.settings }
-                        }
-                        Menu(L10n.text("删除预设")) {
-                            ForEach(workspace.presets) { preset in
-                                Button(preset.name) { workspace.presets.removeAll { $0.id == preset.id }; workspace.persistPresets() }
-                            }
-                        }
-                    }
-                    Divider()
-                    Button(L10n.text("导入预设…")) { importPreset() }
-                    Button(L10n.text("导出预设…")) { exportPreset() }
-                }.fixedSize()
             }.padding(14)
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(L10n.text("当前预设")).font(.caption).foregroundStyle(.secondary)
+                    Text(workspace.currentPresetName).fontWeight(.medium).lineLimit(1).help(workspace.currentPresetName)
+                    if workspace.presetModified {
+                        Text(L10n.text("已修改 · 尚未保存")).font(.caption).foregroundStyle(.orange)
+                    }
+                }.frame(maxWidth: .infinity, alignment: .leading)
+                Button(L10n.text("切换与管理…")) { showPresetManager = true }
+                    .accessibilityIdentifier("renamePresetManager")
+                    .popover(isPresented: $showPresetManager, arrowEdge: .trailing) { presetManager }
+            }.padding(.horizontal, 14).padding(.bottom, 14)
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(L10n.text("本次处理范围")).font(.headline)
-                    Toggle(L10n.text("包含已导入照片"), isOn: $workspace.includeImportedPhotos)
-                    if workspace.includeImportedPhotos {
-                        Picker(L10n.text("照片范围"), selection: $workspace.onlySelected) {
-                            Text(L10n.text("全部导入照片")).tag(false)
-                            Text(L10n.text("选中照片及配对文件")).tag(true)
-                        }
-                        Text(L10n.text("照片：%1$@ · 额外文件：%2$@；配对文件一并列入右侧预览。",
-                            store.imageData.filter { (!workspace.onlySelected || store.selection.contains($0.id)) && $0.metadataCreatorImageURL != nil }.count,
-                            workspace.extraURLs.count))
-                            .font(.caption).foregroundStyle(.secondary)
-                    } else {
-                        Text(L10n.text("额外文件：%1$@；配对文件一并列入右侧预览。", workspace.extraURLs.count))
+                    Picker(L10n.text("照片范围"), selection: $workspace.onlySelected) {
+                        Text(L10n.text("全部导入照片")).tag(false)
+                        Text(L10n.text("选中照片及配对文件")).tag(true)
+                    }
+                    Text(L10n.text("照片：%1$@；关联文件一并列入右侧预览。", scopedPhotos.count))
+                        .font(.caption).foregroundStyle(.secondary)
+                    if scopedPhotos.contains(where: { $0.metadataCreatorImageURL == nil }) {
+                        Text(L10n.text("其中 %1$@ 张不是本地文件，无法直接重命名。", scopedPhotos.filter { $0.metadataCreatorImageURL == nil }.count))
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     Divider()
-                    Menu(L10n.text("从常用方案开始")) {
-                        Button(L10n.text("拍摄日期＋编号")) { setRules([RenameRule(action: 40), RenameRule(action: 48, prefix: "_")]) }
-                        Button(L10n.text("保留原名加前缀")) { setRules([RenameRule(action: 1)]) }
-                        Button(L10n.text("查找并替换")) { setRules([RenameRule(action: 11)]) }
-                        Button(L10n.text("自定义规则")) { setRules([]) }
-                    }
                     ForEach($workspace.rules) { $rule in
                         RenameRuleCard(rule: $rule, selectedRule: $selectedRule,
                                        index: workspace.rules.firstIndex(where: { $0.id == rule.id }) ?? 0,
-                                       count: workspace.rules.count,
-                                       move: { move(rule.id, offset: $0) },
+                                       restingFrame: ruleFrames[rule.id] ?? .zero,
+                                       reorder: { sourceID, point in
+                                           guard !store.saveInProgress,
+                                                 let target = ruleFrames.filter({ $0.key != sourceID && $0.value.minX <= point.x && point.x <= $0.value.maxX })
+                                                    .min(by: { abs($0.value.midY - point.y) < abs($1.value.midY - point.y) }),
+                                                 point.y >= (ruleFrames.values.map(\.minY).min() ?? 0),
+                                                 point.y <= (ruleFrames.values.map(\.maxY).max() ?? 0) + 20 else { return }
+                                           workspace.moveRule(sourceID, to: target.key); selectedRule = sourceID
+                                       },
                                        remove: { workspace.rules.removeAll { $0.id == rule.id } },
                                        duplicate: {
                                            var copy = rule; copy.id = UUID()
@@ -152,49 +203,97 @@ private extension RenameWorkspaceView {
                     .accessibilityIdentifier("renameAddRule")
                     .frame(maxWidth: .infinity, alignment: .leading)
                     Divider().padding(.vertical, 2)
-                    Text(L10n.text("任务选项")).font(.headline)
-                    Picker(L10n.text("排序"), selection: $workspace.settings.sort) {
-                        ForEach(RenameSettings.Sort.allCases, id: \.self) { Text(RenameLabels.sort($0)).tag($0) }
+                    Button { showSettings = true } label: {
+                        Label(L10n.text("重命名设置…"), systemImage: "slider.horizontal.3")
                     }
-                    Toggle(L10n.text("降序"), isOn: $workspace.settings.descending)
-                    Toggle(L10n.text("保持照片与旁车同名"), isOn: $workspace.settings.pair)
-                    if workspace.settings.pair {
-                        Text(L10n.text("同目录、同主体的照片与旁车会加入预览，请核对实际文件范围。"))
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                    Picker(L10n.text("文件名冲突"), selection: $workspace.settings.conflict) {
-                        Text(L10n.text("阻止执行")).tag(RenameSettings.Conflict.stop)
-                        Text(L10n.text("添加数字后缀")).tag(RenameSettings.Conflict.numbers)
-                        Text(L10n.text("添加字母后缀")).tag(RenameSettings.Conflict.letters)
-                    }
-                    Toggle(L10n.text("第一项保留无后缀名称"), isOn: $workspace.settings.keepFirst)
-                    DisclosureGroup(L10n.text("高级设置"), isExpanded: $showAdvanced) {
-                        VStack(alignment: .leading, spacing: 10) {
-                            TextField(L10n.text("配对来源扩展名"), text: $workspace.settings.sourceExtensions)
-                            TextField(L10n.text("配对目标扩展名"), text: $workspace.settings.targetExtensions)
-                            Text(L10n.text("拍摄时间来源优先级（每行一个标签）")).font(.caption)
-                            TextEditor(text: $workspace.settings.datePriority)
-                                .font(.system(.caption, design: .monospaced)).frame(height: 150)
-                                .border(Color.secondary.opacity(0.2))
-                        }.padding(.top, 8)
-                    }
+                    .accessibilityIdentifier("renameSettings")
                     Button(L10n.text("执行记录与恢复…")) { showHistory = true }
                 }.padding(14)
             }
+            .coordinateSpace(name: "renameRules")
+            .onPreferenceChange(RenameRuleFrames.self) { ruleFrames = $0 }
         }
         .disabled(workspace.executing || store.saveInProgress)
         .background(Color(nsColor: .windowBackgroundColor))
     }
 
-    private func setRules(_ rules: [RenameRule]) {
-        workspace.rules = rules
+    private func setCommonPreset(_ name: String, rules: [RenameRule]) {
+        workspace.activateCommonPreset(name: L10n.text(name), rules: rules)
         selectedRule = nil
+        showPresetManager = false
     }
 
-    private func move(_ id: UUID, offset: Int) {
-        guard let index = workspace.rules.firstIndex(where: { $0.id == id }),
-              workspace.rules.indices.contains(index + offset) else { return }
-        workspace.rules.swapAt(index, index + offset)
+    private var presetManager: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(L10n.text("切换与管理预设")).font(.headline)
+            TextField(L10n.text("搜索预设"), text: $presetQuery).textFieldStyle(.roundedBorder)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(L10n.text("常用方案")).font(.caption).foregroundStyle(.secondary)
+                    ForEach(["拍摄日期＋编号", "保留原名加前缀", "查找并替换"], id: \.self) { name in
+                        if presetQuery.isEmpty || L10n.text(name).localizedStandardContains(presetQuery) {
+                            Button {
+                                let rules: [RenameRule] = name == "拍摄日期＋编号"
+                                    ? [RenameRule(action: 40), RenameRule(action: 48, prefix: "_")]
+                                    : [RenameRule(action: name == "保留原名加前缀" ? 1 : 11)]
+                                setCommonPreset(name, rules: rules)
+                            } label: {
+                                presetChoice(L10n.text(name), selected: workspace.currentPresetID == nil && workspace.currentPresetName == L10n.text(name))
+                            }.buttonStyle(.plain)
+                        }
+                    }
+                    Divider()
+                    Text(L10n.text("我的预设")).font(.caption).foregroundStyle(.secondary)
+                    ForEach(workspace.presets.filter { presetQuery.isEmpty || $0.name.localizedStandardContains(presetQuery) }) { preset in
+                        HStack(spacing: 10) {
+                            Button {
+                                workspace.activatePreset(preset); selectedRule = nil; showPresetManager = false
+                            } label: { presetChoice(preset.name, selected: workspace.currentPresetID == preset.id) }
+                            .buttonStyle(.plain)
+                            Button {
+                                renamingPresetID = preset.id; renamingPresetName = preset.name
+                                showPresetManager = false; showPresetRename = true
+                            } label: { Image(systemName: "pencil") }
+                            .buttonStyle(.borderless).help(L10n.text("重命名预设"))
+                            Button(role: .destructive) { workspace.deletePreset(preset.id) } label: { Image(systemName: "trash") }
+                                .buttonStyle(.borderless).help(L10n.text("删除预设"))
+                        }
+                    }
+                    if workspace.presets.isEmpty {
+                        Text(L10n.text("保存当前规则后，预设会显示在这里。")).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }.frame(maxHeight: 280)
+            Divider()
+            HStack {
+                Button(L10n.text("新建预设")) { setCommonPreset("自定义规则", rules: []) }
+                Spacer()
+                Button(L10n.text("保存当前修改")) {
+                    if workspace.currentPresetID != nil { workspace.updateCurrentPreset() }
+                    else { saveAsNewPreset() }
+                }.disabled(workspace.currentPresetID != nil && !workspace.presetModified)
+            }
+            Button(L10n.text("另存为新预设…")) { saveAsNewPreset() }
+            HStack {
+                Button(L10n.text("导入预设…")) { showPresetManager = false; importPreset() }
+                Spacer()
+                Button(L10n.text("导出预设…")) { showPresetManager = false; exportPreset() }
+            }
+        }.padding(16).frame(width: 350)
+        .accessibilityIdentifier("renamePresetPopover")
+    }
+
+    private func presetChoice(_ name: String, selected: Bool) -> some View {
+        HStack {
+            Text(name).lineLimit(1)
+            Spacer()
+            if selected { Image(systemName: "checkmark").foregroundStyle(Color.accentColor) }
+        }.padding(.vertical, 4).contentShape(Rectangle())
+    }
+
+    private func saveAsNewPreset() {
+        workspace.presetName = workspace.currentPresetName
+        showPresetManager = false; showPresetSave = true
     }
 
     private var preview: some View {
@@ -206,18 +305,13 @@ private extension RenameWorkspaceView {
                         .font(.caption).foregroundStyle(.secondary).monospacedDigit()
                 }
                 Spacer()
-                Button(L10n.text("添加文件…")) { addFiles() }
+                Button(L10n.text("导入照片")) { store.send(.openCommand, undoable: false) }
                     .disabled(workspace.executing || store.saveInProgress)
                     .accessibilityIdentifier("renameAddFiles")
-                if !workspace.extraURLs.isEmpty {
-                    Button(L10n.text("清空额外文件")) { workspace.extraURLs = [] }
-                        .disabled(workspace.executing || store.saveInProgress)
-                }
                 if !workspace.rows.isEmpty && !workspace.directoriesAuthorized {
                     Button(L10n.text("授权文件目录…")) { authorizeDirectories(workspace.rows.map(\.source)) }
                         .disabled(workspace.executing || store.saveInProgress)
                 }
-                if workspace.busy { ProgressView().controlSize(.small) }
                 Button { refresh() } label: { Image(systemName: "arrow.clockwise") }
                     .help(L10n.text("重新预览"))
                     .disabled(workspace.executing)
@@ -231,12 +325,7 @@ private extension RenameWorkspaceView {
                         Image(systemName: "doc").foregroundStyle(.secondary).frame(width: 38, height: 32)
                     }
                 }.width(46)
-                TableColumn(L10n.text("原文件名")) { row in Text(row.source.lastPathComponent).help(row.source.path)
-                        .contextMenu {
-                            if workspace.extraURLs.contains(row.source) {
-                                Button(L10n.text("从重命名页移除")) { workspace.removeFile(row.source) }
-                            }
-                        } }
+                TableColumn(L10n.text("原文件名")) { row in Text(row.source.lastPathComponent).help(row.source.path) }
                     .width(min: 140, ideal: 170)
                 if let index = workspace.rules.firstIndex(where: { $0.id == selectedRule }) {
                     TableColumn(L10n.text("第 %1$@ 条执行后", index + 1)) { row in
@@ -258,32 +347,22 @@ private extension RenameWorkspaceView {
                 }.width(min: 100, ideal: 120)
             }
             .accessibilityIdentifier("renamePreviewTable")
+            .contextMenu(forSelectionType: URL.self) { urls in
+                let ids = sharedPhotoIDs(for: urls)
+                if !ids.isEmpty {
+                    Button(L10n.text("从列表移除照片")) { pendingRemoval = ids }
+                        .disabled(workspace.executing || store.saveInProgress)
+                }
+            }
             .overlay {
                 if workspace.rows.isEmpty && !workspace.busy {
                     ContentUnavailableView(L10n.text("暂无可重命名的文件"), systemImage: "character.cursor.ibeam",
                                            description: Text(L10n.text("导入本地照片或添加文件后设置规则，先核对预览，再执行改名。照片图库项目不支持文件改名。")))
                 }
             }
-            if let row = workspace.rows.first(where: { workspace.selectedRows.contains($0.source) }) {
-                Divider()
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(row.source.path).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
-                        ForEach(row.steps) { step in
-                            HStack(alignment: .firstTextBaseline) {
-                                let action = workspace.rules.first(where: { $0.id == step.id })?.action ?? 0
-                                Text("R\(action)").font(.caption.monospaced()).frame(width: 38, alignment: .leading)
-                                Text(step.name).textSelection(.enabled)
-                                Spacer()
-                                if let issue = step.issue { Text(RenameCopy.issue(issue)).foregroundStyle(.secondary).font(.caption) }
-                            }
-                        }
-                    }.padding(12).frame(maxWidth: .infinity, alignment: .leading)
-                }.frame(maxHeight: 140)
-            }
             Divider()
             HStack {
-                Text(L10n.text("选行可查看改名过程；执行范围以上方设置和完整预览为准。"))
+                Text(L10n.text("确认最终文件名后执行重命名。"))
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 if selectedRule != nil {
@@ -304,11 +383,7 @@ private extension RenameWorkspaceView {
                 HStack {
                     Text(L10n.text("先预览，确认后执行")).font(.callout).foregroundStyle(.secondary)
                     Spacer()
-                    if workspace.executing {
-                        ProgressView().controlSize(.small)
-                        if workspace.restoring { Text(L10n.text("恢复原名")) }
-                        else { Button(L10n.text("停止并恢复")) { workspace.cancel() } }
-                    } else {
+                    if !workspace.executing {
                         Button(L10n.text("执行重命名：%1$@ 个文件", workspace.actionable)) {
                             if dirty { confirmSaveFirst = true }
                             else { confirm = true }
@@ -319,6 +394,80 @@ private extension RenameWorkspaceView {
                 }
             }.padding(16)
         }
+    }
+
+    private var settingsSheet: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(L10n.text("重命名设置")).font(.title2)
+            ScrollView {
+                Form {
+                    Section {
+                        Toggle(L10n.text("照片及关联文件一起改名"), isOn: $workspace.settings.pair)
+                            .accessibilityIdentifier("renamePairFiles")
+                        Text(L10n.text("同一文件夹内，同名的 JPG、RAW 和 XMP 等文件会一起改名，保留各自扩展名。"))
+                            .font(.caption).foregroundStyle(.secondary)
+                        if workspace.settings.pair {
+                            TextField(L10n.text("照片文件扩展名"), text: $workspace.settings.sourceExtensions)
+                            Text(L10n.text("按从左到右的顺序优先选取实际存在的照片，依据它计算新文件名，其他文件跟随改名。例如 jpg 在 arw 前面时，以 JPG 为准；将 arw 放在前面则优先以 RAW 为准。"))
+                                .font(.caption).foregroundStyle(.secondary)
+                            TextField(L10n.text("附属文件扩展名"), text: $workspace.settings.targetExtensions)
+                            Text(L10n.text("这些附属文件跟随照片一起改名，排列顺序不影响优先级。"))
+                                .font(.caption).foregroundStyle(.secondary)
+                            Text(L10n.text("扩展名用逗号分隔，不加点。"))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    Section {
+                        Picker(L10n.text("排序"), selection: $workspace.settings.sort) {
+                            ForEach(RenameSettings.Sort.allCases, id: \.self) { Text(RenameLabels.sort($0)).tag($0) }
+                        }
+                        Toggle(L10n.text("降序"), isOn: $workspace.settings.descending)
+                        Picker(L10n.text("文件名冲突"), selection: $workspace.settings.conflict) {
+                            Text(L10n.text("阻止执行")).tag(RenameSettings.Conflict.stop)
+                            Text(L10n.text("添加数字后缀")).tag(RenameSettings.Conflict.numbers)
+                            Text(L10n.text("添加字母后缀")).tag(RenameSettings.Conflict.letters)
+                        }
+                        if workspace.settings.conflict != .stop {
+                            Picker(L10n.text("后缀格式"), selection: Binding(
+                                get: { workspace.settings.conflict == .letters
+                                    ? workspace.settings.letterSuffixFormat ?? .plain
+                                    : workspace.settings.numberSuffixFormat ?? .underscore },
+                                set: { value in
+                                    if workspace.settings.conflict == .letters { workspace.settings.letterSuffixFormat = value }
+                                    else { workspace.settings.numberSuffixFormat = value }
+                                })) {
+                                ForEach(RenameSettings.SuffixFormat.allCases, id: \.self) { format in
+                                    Text(format.format(workspace.settings.conflict == .letters ? "A"
+                                        : RenameEngine.padded(1, width: workspace.settings.conflictDigits ?? 3))).tag(format)
+                                }
+                            }
+                            if workspace.settings.conflict == .numbers {
+                                Picker(L10n.text("数字位数"), selection: Binding(
+                                    get: { workspace.settings.conflictDigits ?? 3 },
+                                    set: { workspace.settings.conflictDigits = $0 })) {
+                                    ForEach(2...5, id: \.self) { width in
+                                        Text(RenameEngine.padded(1, width: width)).tag(width)
+                                    }
+                                }
+                            }
+                        }
+                        Toggle(L10n.text("第一项保留无后缀名称"), isOn: $workspace.settings.keepFirst)
+                    }
+                    DisclosureGroup(L10n.text("高级设置"), isExpanded: $showAdvanced) {
+                        Text(L10n.text("拍摄时间来源优先级（每行一个标签）")).font(.caption)
+                        TextEditor(text: $workspace.settings.datePriority)
+                            .font(.system(.caption, design: .monospaced)).frame(height: 150)
+                            .border(Color.secondary.opacity(0.2))
+                    }
+                }.formStyle(.grouped)
+            }
+            HStack {
+                Spacer()
+                Button(L10n.text("完成")) { showSettings = false }.keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(20).frame(width: 580, height: 560)
+        .accessibilityIdentifier("renameSettingsSheet")
     }
 
     private var historySheet: some View {
@@ -343,17 +492,24 @@ private extension RenameWorkspaceView {
             if !workspace.notice.isEmpty { Text(workspace.notice).font(.callout) }
             HStack { Spacer(); Button(L10n.text("完成")) { showHistory = false }.keyboardShortcut(.cancelAction) }
         }.padding(20).frame(width: 700, height: 450)
+            .overlay {
+                if workspace.executing { RenameExecutionProgressView(workspace: workspace) }
+            }
     }
 
-    private func addFiles() {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = false
-        panel.canChooseFiles = true
-        panel.allowsMultipleSelection = true
-        if panel.runModal() == .OK {
-            authorizeDirectories(panel.urls)
-            workspace.addFiles(panel.urls)
-        }
+    private var scopedPhotos: [ImageData] {
+        store.imageData.filter { !workspace.onlySelected || store.selection.contains($0.id) }
+    }
+
+    private var sharedSelectedRows: Set<URL> {
+        Set(store.imageData.filter { store.selection.contains($0.id) }
+            .compactMap(\.metadataCreatorImageURL)).intersection(workspace.rows.map(\.source))
+    }
+
+    private func sharedPhotoIDs(for urls: Set<URL>) -> Set<ImageData.ID> {
+        Set(store.imageData.filter { image in
+            image.metadataCreatorImageURL.map(urls.contains) == true || image.metadataInspectionURL.map(urls.contains) == true
+        }.map(\.id))
     }
 
     private func authorizeDirectories(_ files: [URL]) {
@@ -390,18 +546,30 @@ private extension RenameWorkspaceView {
     }
 }
 
+private struct RenameRuleFrames: PreferenceKey {
+    static let defaultValue: [UUID: CGRect] = [:]
+    static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
+}
+
 private struct RenameRuleCard: View {
     @Binding var rule: RenameRule
     @Binding var selectedRule: UUID?
     let index: Int
-    let count: Int
-    let move: (Int) -> Void
+    let restingFrame: CGRect
+    let reorder: (UUID, CGPoint) -> Void
     let remove: () -> Void
     let duplicate: () -> Void
     @State private var expanded = true
-    private var title: String { RenameAction.all.first(where: { $0.number == rule.action }).map { L10n.text($0.titleChinese) } ?? "R\(rule.action)" }
+    @State private var dragOffset: CGSize = .zero
+    @State private var dragOriginFrame: CGRect = .zero
+    private var title: String {
+        RenameAction.all.first(where: { $0.number == rule.action })
+            .map { L10n.text($0.categoryChinese) + " · " + L10n.text($0.titleChinese) } ?? "R\(rule.action)"
+    }
 
-    var body: some View {
+    private var cardContents: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Toggle("", isOn: $rule.enabled).labelsHidden().toggleStyle(.checkbox)
@@ -410,14 +578,24 @@ private struct RenameRuleCard: View {
                     HStack { Text("\(index + 1)").monospacedDigit().foregroundStyle(.secondary)
                         Text(title).fontWeight(.medium)
                         Image(systemName: expanded ? "chevron.down" : "chevron.right").font(.caption) }
-                }.buttonStyle(.plain)
+                }.buttonStyle(.plain).accessibilityIdentifier("renameRuleTitle")
                 Spacer(minLength: 0)
-                Menu {
-                    Button(L10n.text("上移")) { move(-1) }.disabled(index == 0)
-                    Button(L10n.text("下移")) { move(1) }.disabled(index == count - 1)
-                    Button(L10n.text("复制规则"), action: duplicate)
-                    Button(L10n.text("删除规则"), role: .destructive, action: remove)
-                } label: { Image(systemName: "ellipsis") }.menuStyle(.borderlessButton).fixedSize()
+                Image(systemName: "line.3.horizontal")
+                    .font(.system(size: 15)).foregroundStyle(.secondary)
+                    .frame(width: 28, height: 28).contentShape(Rectangle())
+                    .help(L10n.text("拖动以调整规则顺序"))
+                    .accessibilityLabel(L10n.text("拖动以调整规则顺序"))
+                    .accessibilityIdentifier("renameRuleDragHandle")
+                    .gesture(DragGesture(minimumDistance: 4, coordinateSpace: .named("renameRules"))
+                        .onChanged { value in
+                            if dragOffset == .zero { dragOriginFrame = restingFrame }
+                            dragOffset = value.translation; selectedRule = rule.id
+                        }
+                        .onEnded { value in
+                            dragOffset = .zero
+                            guard !dragOriginFrame.contains(value.location) else { return }
+                            reorder(rule.id, value.location)
+                        })
             }
             if expanded {
                 Menu(L10n.text("更换动作")) { actionMenu { rule.action = $0.number; selectedRule = rule.id } }
@@ -433,8 +611,23 @@ private struct RenameRuleCard: View {
         }
         .padding(12)
         .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    var body: some View {
+        cardContents
         .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(selectedRule == rule.id ? Color.blue.opacity(0.55) : Color.secondary.opacity(0.18)))
         .onTapGesture { selectedRule = rule.id }
+        .contentShape(Rectangle())
+        .contextMenu {
+            Button(L10n.text("复制规则"), action: duplicate)
+            Button(L10n.text("删除规则"), role: .destructive, action: remove)
+        }
+        .background(GeometryReader { geometry in
+            Color.clear.preference(key: RenameRuleFrames.self, value: [rule.id: geometry.frame(in: .named("renameRules"))])
+        })
+        .offset(dragOffset)
+        .zIndex(dragOffset == .zero ? 0 : 1)
+        .shadow(color: .black.opacity(dragOffset == .zero ? 0 : 0.15), radius: 8)
     }
 }
 

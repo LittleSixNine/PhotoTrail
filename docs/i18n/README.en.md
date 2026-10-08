@@ -34,26 +34,30 @@ Untimed routes are view-only. Track CSV is not supported; tracks generated from 
 
 ### 2. Metadata viewing and editing
 
-- **Edit common fields quickly:** grouped forms for photo details, dates and devices. Fill titles, descriptions, credits, rights and keywords; choose a product name or metadata model, or enter custom text. See the [device catalog and sources](../DEVICE_CATALOG.md).
-- **Inspect complete fields:** compact name/value rows show tag sources, with search, groups, filters and additional tags. Metadata loads in the background, prioritizing selected photos; EXIF, IPTC, XMP and maker-specific information retain their source labels.
-- **Edit multiple photos and fields:** select with ⌘/Shift, set shared values or copy another field. For example, copy each photo’s own EXIF creation time to several date fields. Preview batch operations before adding undoable drafts.
-- **Organize and exchange:** date offsets, camera/lens and exposure details, named presets, per-photo comparisons and controlled metadata CSV/XMP import and export.
+Common and complete fields use the same list and editing controls. Dates identify EXIF, IPTC, XMP or filesystem sources.
 
-**Readable tags are not all writable.** The new editors cover 62 EXIF/IPTC/XMP fields in JPEG files and existing XMP sidecars. Read-only tags show a lock. RAW originals, HEIC and Apple Photos do not expose these new field editors; their existing date/location tools remain available. Metadata CSV exchange is separate from unsupported track CSV. See [supported targets and limits](../BEHAVIOR.md) (Chinese).
+- **Inspect and edit fields:** search names, tags or values and browse groups. Titles, descriptions, authors, rights, keywords, dates and devices use suitable editors. See the [device catalog](../DEVICE_CATALOG.md).
+- **Batch presets:** arrange assignments, copies and date adjustments; preview before adding pending changes. Create, save, load, delete, import or export JSON presets. Copy one source field to multiple destination fields.
+- **Copy and paste fields:** use ⌘C/⌘V or Ctrl+C/Ctrl+V to copy one field’s raw value into multiple writable fields. Edited values appear in orange; saving is still required to write files.
+- **Dates and exchange:** choose increase or decrease separately for years, months, days, hours, minutes and seconds. Change a specific date component, set fixed intervals or distribute dates evenly; controlled CSV/XMP exchange and per-photo comparisons remain available.
+
+**Readable fields are not all writable.** Supported JPEG and existing XMP fields depend on source and format. Local JPEG creation and modification times are editable. Structural, calculated and unverified tags remain locked. RAW originals, HEIC and Apple Photos do not expose these new editors; existing date/location tools remain available. See [targets and limits](../BEHAVIOR.md) (Chinese).
 
 ### 3. Batch renaming
 
-- **Start with a common recipe:** capture date and sequence, a prefix, or find and replace. Combine text, dates, sequences, metadata tags, lists and regular expressions, with 97 action entries plus filters and advanced options.
-- **Compare before and after:** arrange rules on the left and inspect original names, final names, paired files and conflicts on the right. Reveal intermediate steps when needed and save presets for reuse.
-- **Keep related files together:** preview photos and sidecars as a group without overwriting existing files. Execution history supports restoring original names when file identity and content still match the record.
+- **Arrange rules in order:** drag the three-line handle to move the whole card; right-click blank card space to duplicate or delete. Text, dates and sequences use consistent Replace, Add at beginning and Add at end wording.
+- **Manage presets:** the left panel shows the current preset. Switch and manage common or personal presets, search, update, save a copy, rename, delete and exchange JSON files. Restart restores the last preset without overwriting it with unsaved rule edits.
+- **Review names and conflicts:** the table shows original/final names, related files and conflicts, with an optional intermediate-result column. Numeric conflict suffixes offer 2–5 digits and separator formats. Execution shows central progress and Stop and Restore.
 
-Use imported local photos or Add Files for ordinary files. Folders and Photos-library items are excluded. Pending photo details or location changes prompt you to save first; review the refreshed preview before confirming a rename. Renaming runs separately from metadata saving.
+All three tabs share photos and selection, including imports from Rename. The default scope is all imported photos; selected photos are also supported. JPG/RAW/XMP associations remain intact. Removing a photo updates all tabs, supports undo and does not delete the disk file. Photos without local paths cannot be renamed directly. Save pending metadata/location changes first, then review and confirm renaming. Renaming runs separately; execution records restore names only when identity and content match.
 
 ### Saving changes
 
 **Save All Metadata** (⌘S) writes every pending photo-information and location change in the current window, regardless of the active tab, selection or filter. Browsing and previews do not write files. Changes can be undone before saving; local writes follow backup settings and verify results by reading them back and do not recompress image pixels. JPG + RAW pairs can share location writes, but new metadata fields are not automatically copied to RAW. Apple Photos uses the system interface and has a different editing scope.
 
 ## Large photo sets and caching
+
+Import estimates the remaining time for the full process; without reliable speed samples it shows that estimation is in progress. Batches of more than 300 photos show a wait notice. Renaming displays global progress and supports stopping and restoring names.
 
 After import and metadata preparation, thumbnails load on demand in the metadata list and location filmstrip, with priority given to the current photo preview. Switching photos and scrolling the filmstrip avoid repeated work. Updates preserve settings, favorites and track caches; thumbnail and metadata-read caches last only for the current session and are rebuilt after reopening.
 

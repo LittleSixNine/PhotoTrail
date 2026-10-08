@@ -22,3 +22,19 @@ enum MetadataFieldFilter {
         return nameMatches || fieldValues.contains { $0?.localizedCaseInsensitiveContains(query) == true }
     }
 }
+
+enum MetadataFieldSourceLabel {
+    static func protocolName(_ tag: String) -> String? {
+        let canonical = tag.split(separator: "/").last.map(String.init) ?? tag
+        let family = canonical.split(separator: ":").first.map(String.init) ?? ""
+        if family.hasPrefix("XMP") { return "XMP" }
+        if family == "IPTC" { return "IPTC" }
+        if ["EXIF", "IFD0", "IFD1", "ExifIFD", "Composite", "GPS"].contains(family) { return "EXIF" }
+        if ["File", "System"].contains(family) { return L10n.text("文件系统") }
+        return nil
+    }
+    static func label(_ label: String, tag: String) -> String {
+        guard let source = protocolName(tag), !label.contains(source) else { return label }
+        return label + "（" + source + "）"
+    }
+}

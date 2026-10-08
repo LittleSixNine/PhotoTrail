@@ -2,6 +2,13 @@ import Testing
 @testable import PhotoTrail
 
 struct MetadataFieldFilterTests {
+    @Test func timestampLabelsExposeTheirProtocol() {
+        #expect(MetadataFieldSourceLabel.protocolName("Image/ExifIFD:DateTimeOriginal") == "EXIF")
+        #expect(MetadataFieldSourceLabel.protocolName("XMP-exif:DateTimeOriginal") == "XMP")
+        #expect(MetadataFieldSourceLabel.protocolName("IPTC:DateCreated") == "IPTC")
+        #expect(MetadataFieldSourceLabel.label("拍摄时间（EXIF）", tag: "ExifIFD:DateTimeOriginal") == "拍摄时间（EXIF）")
+    }
+
     @Test func commonViewKeepsEmptyFieldsAndRevealsSearchAndPendingResults() {
         func matches(_ query: String = "", common: Bool = false, edited: Bool = false, changed: Bool = false) -> Bool {
             MetadataFieldFilter.matches(query: query, presentOnly: false, editedOnly: edited,
