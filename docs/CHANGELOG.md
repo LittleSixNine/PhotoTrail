@@ -4,11 +4,12 @@
 
 Release milestones and source development history are recorded below.
 
-## 2026-10-09 · macOS 14 兼容候选（未发布）
+## 2026-10-09 · v0.5.8
 
-- 应用和本地包部署目标降为 macOS 14；旧系统使用原生材质与 CLGeocoder，macOS 26 保留玻璃效果及新 MapKit 接口。
-- 照片 ID 使用兼容旧系统的原生锁，开发预览显式标注可用版本；保存、坐标、缓存及重命名行为保持。
-- Debug、双架构 Release 及相关自动检查通过；macOS 14／15／26 和原生 Intel 运行验收待补，已发布 0.5.7 的系统要求不变。
+- 支持 macOS 14 及以上系统，可使用照片元数据编辑、地图定位、轨迹匹配和批量重命名功能。
+- 安装包继续同时支持 Apple 芯片与 Intel Mac。
+
+Version 0.5.8 supports macOS 14 and later, with universal builds for Apple silicon and Intel Macs.
 
 ## 2026-10-09 · v0.5.7
 

@@ -19,9 +19,7 @@ PhotoTrail-相迹 是一款 macOS 照片信息整理工具。拍摄结束后，�
 
 [下载最新正式版](https://github.com/LittleSixNine/PhotoTrail/releases/latest) · [查看版本记录](https://github.com/LittleSixNine/PhotoTrail/releases)
 
-开发中的 macOS 14／15 兼容候选已降低源码部署目标，macOS 26 保留玻璃效果与新系统接口；旧系统运行验收尚未完成，尚未发布为正式支持。下述系统要求仍适用于已发布的 0.5.7。
-
-需要 **macOS 26 或更新版本**，安装包同时支持 Apple 芯片与 Intel Mac。打开 DMG，退出正在使用的 PhotoTrail，再将应用拖入“应用程序”文件夹。
+需要 **macOS 14 或更新版本**，安装包同时支持 Apple 芯片与 Intel Mac。打开 DMG，退出正在使用的 PhotoTrail，再将应用拖入“应用程序”文件夹。
 
 PhotoTrail 免费使用。当前安装包采用临时签名，尚未完成 Developer ID 签名与 Apple 公证，首次打开可能被 macOS 拦截。自动下载更新默认关闭，安装需手动完成。
 
@@ -138,7 +136,7 @@ PhotoTrail 提供可独立安装的 [skill 模块](skill/)，无需安装 Mac Ap
 
 ## 开发
 
-构建需要完整 Xcode（支持 Swift 6.2、macOS 26 SDK 或更新版本）、XcodeGen 和 SwiftLint。
+构建需要完整 Xcode（支持 Swift 6.3 或更新版本、macOS 26 SDK 或更新版本）、XcodeGen 和 SwiftLint。
 
 ```sh
 xcodegen generate
