@@ -5,5 +5,7 @@
   <Compile Include="../PhotoTrail.Windows/MapMessage.cs" Link="MapMessage.cs" />
   <Compile Include="../PhotoTrail.Windows/PhotoDocument.cs" Link="PhotoDocument.cs" />
   <Compile Include="../PhotoTrail.Windows/TrackReader.cs" Link="TrackReader.cs" />
+  <Compile Include="../PhotoTrail.Windows/KmlReader.cs" Link="KmlReader.cs" />
+  <Compile Include="../PhotoTrail.Windows/TrackMapPayload.cs" Link="TrackMapPayload.cs" />
  </ItemGroup>
 </Project>

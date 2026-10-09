@@ -11,10 +11,43 @@ maplibregl.setWorkerUrl(new URL('./vendor/maplibre-gl-worker.mjs',import.meta.ur
 const message = document.getElementById('message');
 const map = new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/liberty',center:[135.7681,35.0116],zoom:11});
 map.addControl(new maplibregl.NavigationControl());
-map.on('load',()=>{message.textContent='点击地图预览坐标，照片不会自动保存。';window.chrome.webview.postMessage({type:'ready'});});
+map.on('load',()=>{
+ map.addSource('trails',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+ map.addLayer({id:'trail-lines',type:'line',source:'trails',filter:['==','$type','LineString'],paint:{'line-color':'#1477d4','line-width':4}});
+ map.addLayer({id:'trail-points',type:'circle',source:'trails',filter:['==','$type','Point'],paint:{'circle-color':'#1477d4','circle-radius':5}});
+ map.addSource('photos',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+ map.addLayer({id:'photo-points',type:'circle',source:'photos',paint:{'circle-color':['case',['get','selected'],'#d95914','#217b43'],'circle-radius':7,'circle-stroke-color':'white','circle-stroke-width':2}});
+ message.textContent='点击地图预览坐标，照片不会自动保存。';window.chrome.webview.postMessage({type:'ready'});
+});
 map.on('error',()=>{message.textContent='地图加载失败，请检查网络；照片读取仍可使用。';});
 let marker;
+window.chrome.webview.addEventListener('message',event=>{
+ const data=event.data;
+ if(data.type==='tracks' && map.getSource('trails')) {
+  if(marker){marker.remove();marker=null;}
+  map.getSource('trails').setData(data.geojson);
+  const points=data.geojson.features.flatMap(feature=>feature.geometry.type==='Point'?[feature.geometry.coordinates]:feature.geometry.coordinates);
+  if(points.length){
+   const origin=points[0][0],bounds=new maplibregl.LngLatBounds();
+   for(const point of points){let lon=point[0];while(lon-origin>180)lon-=360;while(lon-origin < -180)lon+=360;bounds.extend([lon,point[1]]);}
+   map.fitBounds(bounds,{padding:40,maxZoom:16,duration:0});
+  }
+  message.textContent=points.length?'轨迹：'+data.name+'。图层留在本机，匹配只作预览。':'未选择轨迹；点击地图只作预览。';
+ } else if(data.type==='photos' && map.getSource('photos')) {
+  map.getSource('photos').setData(data.geojson);
+  if(data.focus)map.easeTo({center:[data.focus.Longitude,data.focus.Latitude],zoom:14,duration:0});
+ } else if(data.type==='match-preview') {
+  if(marker){marker.remove();marker=null;}
+  if(data.point && Number.isFinite(data.point.Longitude) && Number.isFinite(data.point.Latitude))
+   marker=new maplibregl.Marker({color:'#dd651c'}).setLngLat([data.point.Longitude,data.point.Latitude]).addTo(map);
+ }
+});
+map.on('click','photo-points',event=>{
+ const properties=event.features[0].properties;
+ window.chrome.webview.postMessage({type:'select-photo',id:Number(properties.id),revision:Number(properties.revision)});
+});
 map.on('click', event=>{
+ if(map.getLayer('photo-points') && map.queryRenderedFeatures(event.point,{layers:['photo-points']}).length)return;
  const longitude=event.lngLat.lng, latitude=event.lngLat.lat;
  if (!Number.isFinite(longitude)||!Number.isFinite(latitude)||longitude < -180||longitude > 180||latitude < -90||latitude > 90) return;
  if (!marker) marker=new maplibregl.Marker().setLngLat([longitude,latitude]).addTo(map);

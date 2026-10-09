@@ -54,9 +54,10 @@ public sealed class TrackData(IReadOnlyList<IReadOnlyList<TrackPoint>> segments)
     }
 }
 
-public static class TrackReader
+public static partial class TrackReader
 {
     public const long MaximumBytes = 64 * 1024 * 1024;
+    public static DateTimeOffset ParseTimestamp(string value) => Timestamp(value);
     public static TrackData ReadGpx(string path, CancellationToken cancellation = default)
     {
         using var input = File.OpenRead(path);

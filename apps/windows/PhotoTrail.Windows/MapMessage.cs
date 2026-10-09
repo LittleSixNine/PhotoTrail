@@ -7,6 +7,20 @@ public record MapPoint(double Longitude, double Latitude);
 public static class MapMessage
 {
     public const string Page = "https://phototrail.local/map.html";
+    public static bool TryPhoto(string source, string json, out int id, out int revision)
+    {
+        id = revision = -1;
+        if (source != Page || json.Length > 4096) return false;
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            var data = document.RootElement;
+            return data.ValueKind == JsonValueKind.Object && data.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String && type.GetString() == "select-photo" &&
+                data.TryGetProperty("id", out var identifier) && identifier.TryGetInt32(out id) && id >= 0 &&
+                data.TryGetProperty("revision", out var generation) && generation.TryGetInt32(out revision) && revision >= 0;
+        }
+        catch (Exception error) when (error is JsonException or InvalidOperationException) { return false; }
+    }
 
     public static bool IsReady(string source, string json)
     {

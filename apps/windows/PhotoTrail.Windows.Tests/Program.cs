@@ -13,6 +13,7 @@ if (args.FirstOrDefault()?.StartsWith("--fake-") == true)
 }
 static void Check(bool value, string message) { if (!value) throw new Exception(message); Console.WriteLine("PASS " + message); }
 if (args.FirstOrDefault() == "--track-checks") { TrackChecks.Run(); return; }
+if (args.FirstOrDefault() == "--kml-checks") { KmlChecks.Run(); return; }
 var point = "{\"type\":\"point\",\"longitude\":135.7681,\"latitude\":35.0116}";
 Check(MapMessage.TryPoint(MapMessage.Page, point, out var parsed) && parsed!.Latitude == 35.0116, "valid WGS84 point");
 Check(!MapMessage.TryPoint("https://unexpected.example/", point, out _), "foreign origin rejected");
@@ -136,3 +137,4 @@ using var saveCancel=new CancellationTokenSource(TimeSpan.FromMilliseconds(150))
 try { await MetadataCopy.SaveAsync(new ExifToolClient(Environment.ProcessPath!,"--fake-slow"),failurePhoto,cancelRoot,saveCancel.Token); throw new Exception("Cancelled save accepted"); } catch(OperationCanceledException) { Console.WriteLine("PASS cancelled writer terminated"); }
 Check(!Directory.EnumerateFileSystemEntries(cancelRoot).Any() && await PhotoDocument.HashAsync(failurePhoto.FilePath)==failurePhoto.SourceHash,"cancelled save leaves original unchanged and no output");
 Console.WriteLine("Metadata copy checks complete. Private evidence: " + testRoot);
+await GpsChecks.RunAsync(client,fixtures,evidence);

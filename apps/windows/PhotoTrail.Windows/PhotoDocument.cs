@@ -8,7 +8,7 @@ namespace PhotoTrail.Windows;
 
 public sealed class PhotoDocument
 {
-    public static readonly IReadOnlyList<string> EditableTags = Array.AsReadOnly(new[] { "XMP-dc:Creator", "XMP-dc:Title", "XMP-dc:Description", "XMP-dc:Subject", "XMP-exif:DateTimeOriginal" });
+    public static readonly IReadOnlyList<string> EditableTags = Array.AsReadOnly(new[] { "XMP-dc:Creator", "XMP-dc:Title", "XMP-dc:Description", "XMP-dc:Subject", "XMP-exif:DateTimeOriginal", "XMP-exif:GPSLatitude", "XMP-exif:GPSLongitude", "XMP-exif:GPSAltitude", "XMP-exif:GPSAltitudeRef", "XMP-exif:GPSMapDatum", "XMP-exif:GPSProcessingMethod", "XMP-exif:GPSDateTime" });
     public string FilePath { get; }
     public string? SidecarPath { get; }
     public JsonElement Embedded { get; }
@@ -60,11 +60,56 @@ public sealed class PhotoDocument
         }
     }
 
+    public static Dictionary<string, string> PositionChanges(MapPoint point, double? altitude, string method)
+    {
+        var changes = new Dictionary<string, string>
+        {
+            ["XMP-exif:GPSLatitude"] = point.Latitude.ToString("0.########", CultureInfo.InvariantCulture),
+            ["XMP-exif:GPSLongitude"] = point.Longitude.ToString("0.########", CultureInfo.InvariantCulture),
+            ["XMP-exif:GPSMapDatum"] = "WGS-84", ["XMP-exif:GPSProcessingMethod"] = method,
+            ["XMP-exif:GPSAltitude"] = altitude is { } height ? Math.Abs(height).ToString("0.########", CultureInfo.InvariantCulture) : "",
+            ["XMP-exif:GPSAltitudeRef"] = altitude is { } value ? (value < 0 ? "1" : "0") : "",
+            // Photo time does not imply GPS measurement time; never retain an old XMP measurement time for a new position.
+            ["XMP-exif:GPSDateTime"] = ""
+        };
+        if (!double.IsFinite(point.Latitude) || !double.IsFinite(point.Longitude) || (altitude is { } elevation && !double.IsFinite(elevation))) throw new ArgumentException("定位数字必须有限。");
+        ValidateChanges(changes);
+        return changes;
+    }
+
+    public MapPoint? Position()
+    {
+        var latitude = Value("XMP-exif:GPSLatitude"); var longitude = Value("XMP-exif:GPSLongitude");
+        string datum;
+        if (latitude.Length > 0 || longitude.Length > 0 || draft.ContainsKey("XMP-exif:GPSLatitude") || draft.ContainsKey("XMP-exif:GPSLongitude")) datum = Value("XMP-exif:GPSMapDatum");
+        else
+        {
+            string EmbeddedValue(string tag) => Embedded.TryGetProperty(tag, out var value) ? Text(value) : "";
+            latitude = EmbeddedValue("GPS:GPSLatitude"); longitude = EmbeddedValue("GPS:GPSLongitude");
+            if (EmbeddedValue("GPS:GPSLatitudeRef") == "S") latitude = "-" + latitude.TrimStart('-');
+            if (EmbeddedValue("GPS:GPSLongitudeRef") == "W") longitude = "-" + longitude.TrimStart('-');
+            datum = EmbeddedValue("GPS:GPSMapDatum");
+        }
+        if (datum.Length > 0 && datum.Replace("-", "").Replace(" ", "").ToUpperInvariant() != "WGS84") return null;
+        return double.TryParse(latitude, NumberStyles.Float, CultureInfo.InvariantCulture, out var lat) &&
+            double.TryParse(longitude, NumberStyles.Float, CultureInfo.InvariantCulture, out var lon) && double.IsFinite(lat) && double.IsFinite(lon) && lat is >= -90 and <= 90 && lon is >= -180 and <= 180 ? new(lon, lat) : null;
+    }
+
     public static void ValidateChanges(IReadOnlyDictionary<string, string> changes)
     {
         foreach (var (tag, value) in changes)
         {
             if (!EditableTags.Contains(tag) || value.Length > 8192 || value.Contains('\0')) throw new ArgumentException("字段或值不在允许范围。");
+            if (value.Length > 0 && tag is "XMP-exif:GPSLatitude" or "XMP-exif:GPSLongitude" or "XMP-exif:GPSAltitude")
+            {
+                if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) || !double.IsFinite(number) ||
+                    (tag.EndsWith("Latitude") && Math.Abs(number) > 90) || (tag.EndsWith("Longitude") && Math.Abs(number) > 180) ||
+                    (tag.EndsWith("Altitude") && (number < 0 || number > uint.MaxValue))) throw new ArgumentException("GPS数值超出可写范围。");
+            }
+            if (tag == "XMP-exif:GPSAltitudeRef" && value is not ("" or "0" or "1")) throw new ArgumentException("GPS海拔方向无效。");
+            if (tag == "XMP-exif:GPSMapDatum" && value is not ("" or "WGS-84")) throw new ArgumentException("当前只写入WGS-84基准。");
+            if (tag == "XMP-exif:GPSProcessingMethod" && value is not ("" or "GPS" or "MANUAL")) throw new ArgumentException("定位来源无效。");
+            if (tag == "XMP-exif:GPSDateTime" && value.Length > 0) throw new ArgumentException("当前仅清除旧XMP定位时间，不从照片时间猜测GPS测量时间。");
             if (tag is "XMP-dc:Creator" or "XMP-dc:Subject" && value.Split('\n').Length > 256) throw new ArgumentException("作者或关键词最多支持256项。");
             if (tag == "XMP-exif:DateTimeOriginal" && value.Length != 0 &&
                 !DateTimeOffset.TryParseExact(value, ["yyyy:MM:dd HH:mm:ss", "yyyy:MM:dd HH:mm:sszzz"], CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
@@ -108,7 +153,7 @@ public static class MetadataCopy
             await CopyNewAsync(photo.FilePath, stagedImage, cancellation);
             if (stagedSidecar is not null) await CopyNewAsync(photo.SidecarPath!, stagedSidecar, cancellation);
             var writable = stagedSidecar ?? stagedImage;
-            var arguments = new List<string> { "-charset", "filename=UTF8", "-overwrite_original" };
+            var arguments = new List<string> { "-charset", "filename=UTF8", "-n", "-overwrite_original" };
             foreach (var (tag, value) in changes)
             {
                 var writeTag = tag + (tag is "XMP-dc:Title" or "XMP-dc:Description" ? "-x-default" : "");
@@ -130,7 +175,14 @@ public static class MetadataCopy
             foreach (var (tag, expected) in changes)
             {
                 var actual = result.TryGetProperty(tag, out var value) ? PhotoDocument.Text(value) : "";
-                if (actual != expected.Replace("\r\n", "\n")) throw new InvalidDataException("保存后字段回读不一致：" + tag);
+                var numericGps = tag is "XMP-exif:GPSLatitude" or "XMP-exif:GPSLongitude" or "XMP-exif:GPSAltitude";
+                if (numericGps && expected.Length > 0)
+                {
+                    if (!double.TryParse(actual, NumberStyles.Float, CultureInfo.InvariantCulture, out var read) ||
+                        !double.TryParse(expected, NumberStyles.Float, CultureInfo.InvariantCulture, out var target) || !double.IsFinite(read) || Math.Abs(read - target) > 0.00000001)
+                        throw new InvalidDataException("GPS保存回读不一致：" + tag);
+                }
+                else if (actual != expected.Replace("\r\n", "\n")) throw new InvalidDataException("保存后字段回读不一致：" + tag);
             }
             var before = photo.Sidecar ?? photo.Embedded;
             foreach (var field in before.EnumerateObject())
