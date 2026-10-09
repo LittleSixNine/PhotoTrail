@@ -3,6 +3,7 @@ import SwiftUI
 
 struct Place: Identifiable, Codable {
     var name: String
+    var sublocation: String?
     var city: String?
     var state: String?
     var country: String?
@@ -10,9 +11,17 @@ struct Place: Identifiable, Codable {
     var coordinate: Coordinate
     var id = UUID()
 
+    var regionName: String {
+        var parts: [String] = []
+        for value in [state, city, sublocation].compactMap({ $0 })
+            where !value.isEmpty && !parts.contains(value) { parts.append(value) }
+        return parts.joined(separator: " · ")
+    }
+
     init(from item: MKMapItem) {
         name = item.name ?? "unknown"
         let address = item.placemark
+        sublocation = address.subLocality
         if let city = address.locality {
             self.city = city
             if city != name {
@@ -36,8 +45,9 @@ struct Place: Identifiable, Codable {
     }
 
     init(name: String, city: String?, state: String?, country: String?,
-         countryCode: String?, coordinate: Coordinate) {
+         countryCode: String?, coordinate: Coordinate, sublocation: String? = nil) {
         self.name = name
+        self.sublocation = sublocation
         self.city = city
         self.state = state
         self.country = country
@@ -48,6 +58,7 @@ struct Place: Identifiable, Codable {
     private enum CodingKeys: String, CodingKey {
         case name
         case city
+        case sublocation
         case state
         case country
         case countryCode

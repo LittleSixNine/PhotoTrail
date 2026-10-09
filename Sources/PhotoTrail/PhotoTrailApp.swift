@@ -80,7 +80,7 @@ struct PhotoTrailApp: App {
                 AutomaticUpdateDownloadsToggle()
             }
             NewItemCommands(store: store)
-            SaveItemCommands(store: store)
+            SaveItemCommands(store: store, locationWorkspace: locationWorkspace)
             UndoRedoCommands(store: store)
             PasteboardCommands(store: store)
             ToolbarCommands(store: store)

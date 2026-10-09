@@ -8,6 +8,39 @@ import UDF
 @MainActor
 enum LocationHelper {
 
+    static func canFillRegion(_ image: ImageData) -> Bool {
+        guard image.updatable, image.creatorDraft == nil, image.metadata.location != nil,
+              image.metadata.canDisplayAsWGS84 else { return false }
+        switch image.metadata.source {
+        case .image, .xmp: break
+        case .photos, .copy: return false
+        }
+        return [image.metadata.city, image.metadata.state, image.metadata.sublocation,
+                image.metadata.country, image.metadata.countryCode].contains { $0?.isEmpty != false }
+    }
+
+    static func fillRegions(_ store: Store<PhotoTrailState, PhotoTrailEvent>, workspace: LocationWorkspace) async {
+        guard !store.saveInProgress, !store.importProgress.isActive else { return }
+        let images = store.imageData.filter { store.selection.contains($0.id) }
+        let provider = UserDefaults.standard.string(forKey: "PhotoTrailMapProvider") ?? "amap"
+        var addresses: [ImageData.ID: Place] = [:]
+        var failed = 0
+        for image in images where canFillRegion(image) {
+            guard let point = image.metadata.location else { continue }
+            do {
+                addresses[image.id] = try await workspace.address(at:
+                    MapCoordinate(latitude: point.latitude, longitude: point.longitude), provider: provider)
+            } catch { failed += 1 }
+            if Task.isCancelled { return }
+        }
+        guard !store.saveInProgress, !store.importProgress.isActive else { return }
+        let before = Dictionary(uniqueKeysWithValues: images.map { ($0.id, store[$0.id].metadata) })
+        store.send(.missingAddressesFilled(addresses), description: L10n.text("补齐地区信息"))
+        let changed = images.filter { before[$0.id] != store[$0.id].metadata }.count
+        workspace.status = L10n.text("地区信息已暂存：%1$@ 张；查询失败：%2$@ 张；未补齐：%3$@ 张。请写入所有元数据。",
+                                     changed, failed, images.count - changed - failed)
+    }
+
     static func photoIDs(in images: [ImageData], timeZone: TimeZone,
                          tracks: [GpxTrackLog]) -> Set<ImageData.ID> {
         let ranges = tracks.flatMap(\.tracks).flatMap(\.segments).compactMap { segment -> ClosedRange<TimeInterval>? in

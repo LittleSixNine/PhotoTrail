@@ -1,5 +1,6 @@
 import Coords
 import Foundation
+import MapKit
 import Observation
 
 struct SavedLocation: Codable, Identifiable, Equatable {
@@ -57,8 +58,8 @@ final class LocationWorkspace {
     let tracks: TrackLibrary
     @ObservationIgnored var appleNavigation: ((String) -> Void)?
     @ObservationIgnored var amapNavigation: ((String) -> Void)?
-    @ObservationIgnored var lookupAMapRegion: ((MapCoordinate) async throws -> String)?
-    @ObservationIgnored var regionCache: [String: String] = [:]
+    @ObservationIgnored var lookupAMapRegion: ((MapCoordinate) async throws -> Place)?
+    @ObservationIgnored var regionCache: [String: Place] = [:]
 
     @ObservationIgnored var setSatellite: ((Bool) -> Void)?
     @ObservationIgnored var invalidateSelection: (() -> Void)?
@@ -82,6 +83,31 @@ final class LocationWorkspace {
         }
         self.favoritesURL = current
         self.tracks = tracks ?? TrackLibrary()
+    }
+
+    func address(at point: MapCoordinate, provider: String) async throws -> Place {
+        let key = "\(L10n.language.rawValue):\(provider):\(point.latitude):\(point.longitude)"
+        if let cached = regionCache[key] { return cached }
+        guard ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] != "1" else {
+            throw URLError(.notConnectedToInternet)
+        }
+        let place: Place
+        if provider == "amap", let lookupAMapRegion, ready {
+            place = try await lookupAMapRegion(point)
+        } else {
+            guard let request = MKReverseGeocodingRequest(location:
+                CLLocation(latitude: point.latitude, longitude: point.longitude)) else {
+                throw URLError(.badURL)
+            }
+            request.preferredLocale = L10n.locale
+            guard let item = try await request.mapItems.first else { throw URLError(.badServerResponse) }
+            var address = Place(from: item)
+            address.coordinate = Coordinate(latitude: point.latitude, longitude: point.longitude)
+            place = address
+        }
+        if regionCache.count >= 256 { regionCache.removeAll() }
+        regionCache[key] = place
+        return place
     }
 
     func load() async {

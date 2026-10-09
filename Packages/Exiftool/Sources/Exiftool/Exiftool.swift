@@ -607,7 +607,7 @@ extension Exiftool {
             "-args", "-c", "%.15f", "-createdate",
             "-gpsstatus", "-gpslatitude", "-gpslongitude",
             "-gpsaltitude", "-gpsmapdatum", "-gpsprocessingmethod", "-xmp:city", "-xmp:state",
-            "-xmp:country", "-xmp:countrycode", url.path
+            "-xmp:country", "-xmp:countrycode", "-xmp-iptcCore:Location", url.path
         ]
 
         do {
@@ -663,6 +663,8 @@ extension Exiftool {
                         metadata.gpsMapDatum = String(value)
                     case "-GPSProcessingMethod":
                         metadata.gpsProcessingMethod = String(value)
+                    case "-Location":
+                        metadata.sublocation = String(value)
                     case "-City":
                         metadata.city = String(value)
                     case "-State":
@@ -706,6 +708,7 @@ extension Exiftool {
         var lonRefArg = "-GPSLongitudeRef="
         var eleArg = "-GPSaltitude="
         var eleRefArg = "-GPSaltitudeRef="
+        var sublocationArg = "-xmp-iptcCore:Location="
         var cityArg = "-xmp:city="
         var stateArg = "-xmp:state="
         var countryArg = "-xmp:country="
@@ -733,6 +736,7 @@ extension Exiftool {
                     eleRefArg += "1"
                 }
             }
+            sublocationArg += metadata.sublocation ?? ""
             cityArg += metadata.city ?? ""
             stateArg += metadata.state ?? ""
             countryArg += metadata.country ?? ""
@@ -742,7 +746,7 @@ extension Exiftool {
         // build exiftool arguments array
         var args = [
             "-q", "-m", "-overwrite_original_in_place",
-            cityArg, stateArg,
+            sublocationArg, cityArg, stateArg,
             countryArg, countryCodeArg
         ]
 

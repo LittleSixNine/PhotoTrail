@@ -32,6 +32,8 @@ O PhotoTrail é gratuito. O download automático de atualizações fica desativa
 
 Trajetos sem horário por ponto servem apenas para visualização. CSV de trajetos não é aceito; trajetos gerados de fotos são exportados como GPX. KMZ lê doc.kml na raiz ou o único KML do arquivo, sem carregar links externos ou anexos.
 
+Ao salvar uma localização, também é possível gravar estado/província, cidade, distrito e o país/código retornado pelo serviço. Desative o preenchimento automático nos ajustes ou complete campos regionais ausentes em fotos locais/XMP com GPS pela aba do mapa. O Fotos da Apple continua limitado a atualizações de localização e data pela interface do sistema.
+
 ### 2. Consulta e edição de metadados
 
 Os campos comuns e completos usam a mesma lista e os mesmos controles. Datas indicam a origem EXIF, IPTC, XMP ou do sistema de arquivos.
@@ -46,14 +48,14 @@ Os campos comuns e completos usam a mesma lista e os mesmos controles. Datas ind
 ### 3. Renomeação em lote
 
 - **Ordene regras:** arraste a alça de três linhas para mover o cartão; clique com o botão direito no espaço vazio para duplicar ou excluir. Texto, datas e sequências usam termos consistentes como Substituir e Adicionar no início.
-- **Gerencie predefinições:** o painel esquerdo mostra a atual. Alterne entre opções comuns ou pessoais, pesquise, atualize, salve uma cópia, renomeie, exclua e troque JSON. Ao iniciar, a última predefinição é restaurada sem ser sobrescrita por regras não salvas.
+- **Gerencie esquemas:** os cinco padrões e os esquemas pessoais ficam em uma lista editável, com exclusão, salvamento e troca por JSON. Dispositivo e cidade têm cartões próprios. Alterar regras atualiza o exemplo com o primeiro resultado da prévia; ele é salvo com o esquema. Cartões salvos abrem recolhidos, e regras não salvas não sobrescrevem o esquema.
 - **Confira nomes e conflitos:** a tabela mostra nomes originais e finais, arquivos relacionados e conflitos, com uma coluna intermediária opcional. Sufixos numéricos oferecem 2–5 dígitos e separadores. A execução mostra progresso central e Parar e restaurar.
 
 As três abas compartilham fotos e seleção, inclusive importações pela aba Renomear. O padrão é processar todas as fotos, com opção para as selecionadas. As associações JPG/RAW/XMP são mantidas. Remover uma foto sincroniza as abas, pode ser desfeito e não exclui o arquivo. Fotos sem caminho local não podem ser renomeadas diretamente. Salve alterações de informações ou localização, confira a prévia e confirme a renomeação. Os registros restauram nomes apenas quando identidade e conteúdo coincidem.
 
 ### Salvar alterações
 
-**Salvar todos os metadados** (⌘S) grava todas as alterações pendentes de informações e localização da janela atual, sem limitar o alcance à aba, seleção ou filtro ativos. Consultar e visualizar não grava arquivos; é possível desfazer antes de salvar. A gravação local segue as configurações de backup e verifica os resultados por releitura, sem recomprimir os pixels. Pares JPG + RAW podem compartilhar alterações de localização, mas os novos campos não são copiados automaticamente para RAW. A fototeca usa a interface do sistema e tem outro escopo de edição.
+Por padrão, **Salvar todos os metadados** (⌘S) salva as alterações pendentes das duas abas, independentemente da seleção ou filtros. O aviso permite confirmar, cancelar, mudar para a aba atual ou não mostrar novamente. Nos ajustes de fotos e salvamento, escolha salvar somente a aba atual para manter as alterações da outra. Consultar e visualizar não grava arquivos. A gravação local segue os ajustes de backup e verifica os resultados por releitura, sem recomprimir pixels. JPG + RAW podem compartilhar localização; campos novos não são copiados automaticamente para RAW. O Fotos usa a interface do sistema com outro escopo de edição.
 
 ## Muitas fotos e cache
 

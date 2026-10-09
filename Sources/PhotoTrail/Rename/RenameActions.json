@@ -457,42 +457,42 @@
   {
     "number": 66,
     "category": "Tags",
-    "categoryChinese": "通用标签",
+    "categoryChinese": "自定义（通用标签）",
     "title": "Replace",
     "titleChinese": "替换"
   },
   {
     "number": 67,
     "category": "Tags",
-    "categoryChinese": "通用标签",
+    "categoryChinese": "自定义（通用标签）",
     "title": "Add at beginning",
     "titleChinese": "在开头添加"
   },
   {
     "number": 68,
     "category": "Tags",
-    "categoryChinese": "通用标签",
+    "categoryChinese": "自定义（通用标签）",
     "title": "Add at end",
     "titleChinese": "在结尾添加"
   },
   {
     "number": 69,
     "category": "Tags",
-    "categoryChinese": "通用标签",
+    "categoryChinese": "自定义（通用标签）",
     "title": "Add at specified position",
     "titleChinese": "在指定位置添加"
   },
   {
     "number": 70,
     "category": "Tags",
-    "categoryChinese": "通用标签",
+    "categoryChinese": "自定义（通用标签）",
     "title": "Add before specified text",
     "titleChinese": "在指定文字前添加"
   },
   {
     "number": 71,
     "category": "Tags",
-    "categoryChinese": "通用标签",
+    "categoryChinese": "自定义（通用标签）",
     "title": "Add after specified text",
     "titleChinese": "在指定文字后添加"
   },
@@ -691,5 +691,89 @@
     "categoryChinese": "高级与特殊",
     "title": "Advanced Options",
     "titleChinese": "任务级高级选项（控制项）"
+  },
+  {
+    "number": 100,
+    "category": "Device information",
+    "categoryChinese": "设备信息",
+    "title": "Replace",
+    "titleChinese": "替换"
+  },
+  {
+    "number": 101,
+    "category": "Device information",
+    "categoryChinese": "设备信息",
+    "title": "Add at beginning",
+    "titleChinese": "在开头添加"
+  },
+  {
+    "number": 102,
+    "category": "Device information",
+    "categoryChinese": "设备信息",
+    "title": "Add at end",
+    "titleChinese": "在结尾添加"
+  },
+  {
+    "number": 103,
+    "category": "Device information",
+    "categoryChinese": "设备信息",
+    "title": "Add at position",
+    "titleChinese": "在指定位置添加"
+  },
+  {
+    "number": 104,
+    "category": "Device information",
+    "categoryChinese": "设备信息",
+    "title": "Add before text",
+    "titleChinese": "在指定文字前添加"
+  },
+  {
+    "number": 105,
+    "category": "Device information",
+    "categoryChinese": "设备信息",
+    "title": "Add after text",
+    "titleChinese": "在指定文字后添加"
+  },
+  {
+    "number": 106,
+    "category": "Location information",
+    "categoryChinese": "定位信息",
+    "title": "Replace",
+    "titleChinese": "替换"
+  },
+  {
+    "number": 107,
+    "category": "Location information",
+    "categoryChinese": "定位信息",
+    "title": "Add at beginning",
+    "titleChinese": "在开头添加"
+  },
+  {
+    "number": 108,
+    "category": "Location information",
+    "categoryChinese": "定位信息",
+    "title": "Add at end",
+    "titleChinese": "在结尾添加"
+  },
+  {
+    "number": 109,
+    "category": "Location information",
+    "categoryChinese": "定位信息",
+    "title": "Add at position",
+    "titleChinese": "在指定位置添加"
+  },
+  {
+    "number": 110,
+    "category": "Location information",
+    "categoryChinese": "定位信息",
+    "title": "Add before text",
+    "titleChinese": "在指定文字前添加"
+  },
+  {
+    "number": 111,
+    "category": "Location information",
+    "categoryChinese": "定位信息",
+    "title": "Add after text",
+    "titleChinese": "在指定文字后添加"
   }
 ]

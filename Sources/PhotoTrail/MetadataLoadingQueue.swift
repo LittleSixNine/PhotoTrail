@@ -316,6 +316,7 @@ final class MetadataLoadingQueue {
                 image.metadata.location?.longitude != original.location?.longitude,
                 image.metadata.elevation != original.elevation, image.metadata.gpsMapDatum != original.gpsMapDatum,
                 image.metadata.gpsProcessingMethod != original.gpsProcessingMethod,
+                image.metadata.sublocation != original.sublocation,
                 image.metadata.city != original.city,
                 image.metadata.state != original.state, image.metadata.country != original.country,
                 image.metadata.countryCode != original.countryCode]

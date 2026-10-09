@@ -4,7 +4,9 @@ import Testing
 
 struct MetadataFieldFilterTests {
     @Test func configuredCommonFieldsPreserveDefaultsAndReadOnlyChoices() throws {
-        #expect(MetadataFieldFilter.commonTags.count == 25)
+        #expect(MetadataFieldFilter.commonTags.count == 24)
+        #expect(MetadataFieldFilter.commonTags.contains("ExifIFD:FNumber"))
+        #expect(!MetadataFieldFilter.commonTags.contains("ExifIFD:ApertureValue"))
         #expect(MetadataFieldFilter.commonTags(from: Data()) == MetadataFieldFilter.commonTags)
         #expect(MetadataFieldFilter.commonTags(from: Data("broken".utf8)) == MetadataFieldFilter.commonTags)
         #expect(Set(MetadataFieldFilter.configurableTags).isSuperset(of: MetadataFieldFilter.commonTags))

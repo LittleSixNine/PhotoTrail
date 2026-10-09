@@ -60,7 +60,7 @@ struct TableColumnResizeTests {
         defer { defaults.removePersistentDomain(forName: domain) }
         let workspace = RenameWorkspace(defaults: defaults)
         let store = Store(initialState: PhotoTrailState(), reduce: PhotoTrailReducer())
-        let host = NSHostingView(rootView: RenameWorkspaceView(workspace: workspace).environment(store).defaultAppStorage(defaults))
+        let host = NSHostingView(rootView: RenameWorkspaceView(workspace: workspace).environment(LocationWorkspace()).environment(store).defaultAppStorage(defaults))
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 700),
                               styleMask: [.titled], backing: .buffered, defer: false)
         defer { window.close() }
@@ -83,7 +83,7 @@ struct TableColumnResizeTests {
         #expect(abs(table.tableColumns[3].width - finalWidth + 20) < 0.01)
         try await Task.sleep(for: .milliseconds(100))
         #expect(defaults.data(forKey: "PhotoTrailRenameTableColumns.v1") != nil)
-        let reopened = NSHostingView(rootView: RenameWorkspaceView(workspace: workspace).environment(store).defaultAppStorage(defaults))
+        let reopened = NSHostingView(rootView: RenameWorkspaceView(workspace: workspace).environment(LocationWorkspace()).environment(store).defaultAppStorage(defaults))
         reopened.frame = host.frame
         window.contentView = reopened
         reopened.layoutSubtreeIfNeeded()

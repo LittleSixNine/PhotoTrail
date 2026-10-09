@@ -53,18 +53,39 @@ extension PhotoTrailReducer {
 
     func update(_ state: inout PhotoTrailState, selected: Set<ImageData.ID>,
                 address: Place) {
+        guard UserDefaults.standard.object(forKey: SettingsPreferences.writeRegionKey) as? Bool != false else { return }
         for id in selected {
+            guard state[id].updatable, state[id].metadata.location == Coords(
+                latitude: address.coordinate.latitude, longitude: address.coordinate.longitude) else { continue }
+            state[id].metadata.sublocation = address.sublocation
             state[id].metadata.city = address.city
             state[id].metadata.state = address.state
             state[id].metadata.country = address.country
             state[id].metadata.countryCode = address.countryCode
             if let pairedID = state[id].pairedID, state[pairedID].updatable {
+                state[pairedID].metadata.sublocation = address.sublocation
                 state[pairedID].metadata.city = address.city
                 state[pairedID].metadata.state = address.state
                 state[pairedID].metadata.country = address.country
                 state[pairedID].metadata.countryCode = address.countryCode
             }
         }
+    }
+
+    func fillMissingAddresses(_ state: inout PhotoTrailState, addresses: [ImageData.ID: Place]) {
+        for (id, address) in addresses {
+            guard LocationHelper.canFillRegion(state[id]),
+                  state[id].metadata.location == Coords(latitude: address.coordinate.latitude,
+                                                           longitude: address.coordinate.longitude) else { continue }
+            var metadata = state[id].metadata
+            if metadata.city?.isEmpty != false { metadata.city = address.city }
+            if metadata.state?.isEmpty != false { metadata.state = address.state }
+            if metadata.sublocation?.isEmpty != false { metadata.sublocation = address.sublocation }
+            if metadata.country?.isEmpty != false { metadata.country = address.country }
+            if metadata.countryCode?.isEmpty != false { metadata.countryCode = address.countryCode }
+            state[id].metadata = metadata
+        }
+        state.unsavedChanges = state.imageData.contains { $0.hasPendingChanges }
     }
 
     // adjust the timestamp of all selected images by the given amount

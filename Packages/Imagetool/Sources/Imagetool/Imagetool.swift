@@ -94,6 +94,7 @@ public struct Imagetool {
 
             // grab IPTC info for city/state/country/countryCode
             if let iptcInfo = imgProps[Self.IPTCDictionary] as? [String: AnyObject] {
+                metadata.sublocation = iptcInfo[kCGImagePropertyIPTCSubLocation as String] as? String
                 metadata.city = iptcInfo[Self.IPTCCity] as? String
                 metadata.state = iptcInfo[Self.IPTCState] as? String
                 metadata.country = iptcInfo[Self.IPTCCountry] as? String

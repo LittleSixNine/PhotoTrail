@@ -19,6 +19,9 @@ enum RenameEngine {
 
     static func tag(_ token: String, input: RenameInput) -> String? {
         if let exact = input.tags[token], !exact.isEmpty { return exact }
+        let regionTags = ["IPTCCity": "XMP-photoshop:City", "IPTCProvinceState": "XMP-photoshop:State",
+                          "IPTCSubLocation": "XMP-iptcCore:Location", "IPTCCountry": "XMP-photoshop:Country"]
+        if let tag = regionTags[token], let value = input.tags[tag], !value.isEmpty { return value }
         if ["DurationInSeconds", "Duration_MM_SS", "Duration_HH_MM_SS"].contains(token),
            let raw = tag("Duration", input: input), let seconds = durationSeconds(raw) {
             if token == "DurationInSeconds" { return String(seconds) }
@@ -32,7 +35,7 @@ enum RenameEngine {
             "ImageKeywords": ["Keywords", "Subject"], "ImageUserComment": ["UserComment"],
             "Lens": ["LensModel", "LensID", "Lens"], "Aperture": ["FNumber", "Aperture"],
             "ShutterSpeed": ["ExposureTime", "ShutterSpeed"], "FocalLength35mm": ["FocalLengthIn35mmFormat"],
-            "IPTCCity": ["City"], "IPTCCountry": ["Country-PrimaryLocationName", "Country"],
+            "IPTCCity": ["City"], "IPTCSubLocation": ["Sub-location", "Location"], "IPTCCountry": ["Country-PrimaryLocationName", "Country"],
             "IPTCProvinceState": ["Province-State", "State"], "Artist": ["Artist", "Creator"],
             "Track": ["Track", "TrackNumber"], "TrackNum": ["Track", "TrackNumber"],
             "NumTracks": ["TrackCount", "TotalTracks"], "CDNum": ["DiscNumber", "DiskNumber"],
@@ -268,7 +271,7 @@ enum RenameEngine {
 
     static func transform(_ name: String, input: RenameInput, rule: RenameRule, index: Int,
                           settings: RenameSettings) throws -> (String, RenameIssue?) {
-        guard (1...97).contains(rule.action), rule.position >= 0, rule.length >= 0,
+        guard ((1...97).contains(rule.action) || (100...111).contains(rule.action)), rule.position >= 0, rule.length >= 0,
               (0...32).contains(rule.padding), (0...23).contains(rule.nightHour) else { throw RenameError.invalidRule(rule.action) }
         let parts = split(name)
         let selected: String
@@ -460,6 +463,11 @@ extension RenameEngine {
                 content = rule.caseSensitive ? value : value.lowercased(); mode = action - 54
             } else { content = padded(n, width: rule.padding); mode = action - 46 }
             content = rule.prefix + content + rule.suffix
+        } else if (100...111).contains(action) {
+            let field = rule.metadataField ?? (action < 106 ? "CameraModel" : "IPTCCity")
+            guard let value = tag(field, input: input) else { return (name, .missingTag) }
+            content = rule.prefix + value + rule.suffix
+            mode = [0, 1, 2, 5, 3, 4][(action - 100) % 6]
         } else if (66...77).contains(action) {
             guard let value = try template(rule.text, input: input, rule: rule, settings: settings) else { return (name, .missingTag) }
             content = value

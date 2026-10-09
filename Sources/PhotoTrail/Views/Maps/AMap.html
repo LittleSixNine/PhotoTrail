@@ -621,8 +621,11 @@
         const result = await timedCall(done => geocoder.getAddress([displayed.longitude, displayed.latitude],
           (state, value) => state === "complete" ? done(null, value) : done(new Error("region_lookup_failed"))));
         const address = result?.regeocode?.addressComponent || {};
-        return [...new Set([address.province, address.city, address.district]
-          .filter(value => typeof value === "string" && value.length))].join(" · ");
+        const text = value => typeof value === "string" ? value.trim() : "";
+        const province = text(address.province);
+        return { state: province, city: text(address.city) || (province.endsWith("市") ? province : ""),
+          sublocation: text(address.district), country: text(address.country),
+          countryCode: text(address.countryCode) || (text(address.country) === "中国" ? "CN" : "") };
       }
       const mapStyles = new Set(["normal", "dark", "light", "whitesmoke", "fresh", "grey",
         "graffiti", "macaron", "blue", "darkblue", "wine"]);

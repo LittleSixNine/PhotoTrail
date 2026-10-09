@@ -36,6 +36,8 @@ struct SettingsView: View {
     @AppStorage(SettingsPreferences.pairJPGRAWKey) private var pairJPGRAW = true
     @AppStorage(SettingsPreferences.recursiveImportKey) private var recursiveImport = true
     @AppStorage(SettingsPreferences.automaticRegionKey) private var automaticRegion = true
+    @AppStorage(SettingsPreferences.saveCurrentPageKey) private var saveCurrentPage = false
+    @AppStorage(SettingsPreferences.writeRegionKey) private var writeRegion = true
     @AppStorage(SettingsPreferences.backupReminderKey) private var reminderDays = 7
 
     @State private var backupURL: URL?
@@ -196,10 +198,17 @@ struct SettingsView: View {
                     .font(.footnote).foregroundStyle(.secondary)
             }
             Section(L10n.text("保存")) {
+                Picker(L10n.text("保存按钮范围"), selection: $saveCurrentPage) {
+                    Text(L10n.text("写入所有元数据")).tag(false)
+                    Text(L10n.text("写入当前页元数据")).tag(true)
+                }
                 Toggle(L10n.text("保存前显示修改摘要"), isOn: $showSaveSummary)
                 Toggle(L10n.text("创建 XMP 附属文件"), isOn: $createSidecarFiles)
                 Toggle(L10n.text("设置文件修改时间"), isOn: $updateFileModificationTimes)
                 Toggle(L10n.text("更新 GPS 日期与时间"), isOn: $updateGPSTimestamps)
+                Toggle(L10n.text("保存定位时自动补齐地区信息"), isOn: $writeRegion)
+                Text(L10n.text("包括省／州、市、区县、国家和国家代码；手动补齐不受此开关影响。"))
+                    .font(.footnote).foregroundStyle(.secondary)
                 Toggle(L10n.text("给更新的文件添加 Finder 标签"), isOn: $addTags)
                 if addTags {
                     TextField(L10n.text("标签名称"), text: $finderTag)
@@ -376,6 +385,7 @@ extension SettingsView {
             SettingsPreferences.photoGPXGapKey, SettingsPreferences.pairJPGRAWKey,
             SettingsPreferences.recursiveImportKey, SettingsPreferences.automaticRegionKey,
             SettingsPreferences.backupReminderKey, SettingsPreferences.startupWorkspaceKey,
+            SettingsPreferences.writeRegionKey, SettingsPreferences.saveCurrentPageKey, SettingsPreferences.skipSaveScopePromptKey,
             SettingsPreferences.lastWorkspaceKey, MetadataFieldFilter.commonFieldsKey
         ]
         keys.forEach { UserDefaults.standard.removeObject(forKey: $0) }

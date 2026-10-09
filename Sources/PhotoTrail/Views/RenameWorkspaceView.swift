@@ -5,6 +5,7 @@ import UDF
 import UniformTypeIdentifiers
 
 struct RenameWorkspaceView: View {
+    @Environment(LocationWorkspace.self) private var locationWorkspace
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
     @Environment(\.colorScheme) private var colorScheme
     @Bindable var workspace: RenameWorkspace
@@ -18,6 +19,7 @@ struct RenameWorkspaceView: View {
     @State private var presetQuery = ""
     @State private var renamingPresetID: UUID?
     @State private var renamingPresetName = ""
+    @State private var renamingPresetExample = ""
     @State private var showPresetRename = false
     @State private var showSettings = false
     @State private var showAdvanced = false
@@ -97,7 +99,7 @@ struct RenameWorkspaceView: View {
         .alert(L10n.text("先保存元数据，再重命名？"), isPresented: $confirmSaveFirst) {
             Button(L10n.text("取消"), role: .cancel) {}
             Button(L10n.text("保存全部修改并重新预览")) {
-                awaitingSave = SaveHelper.requestSave(store)
+                awaitingSave = SaveHelper.requestSave(store, workspace: locationWorkspace, forceAll: true)
             }
         } message: {
             Text(L10n.text("有 %1$@ 项未保存修改，包含元数据编辑和地图定位两个页面的修改，不限当前选中照片。保存后将重新生成改名预览，仍需你确认执行；保存失败或取消不会改名。", store.imageData.filter(\.hasPendingChanges).count))
@@ -111,16 +113,18 @@ struct RenameWorkspaceView: View {
         } message: {
             Text(L10n.text("将按预览重命名 %1$@ 个文件，包括列表中的配对文件。文件内容不改写；执行记录可用于恢复原名。", workspace.actionable))
         }
-        .alert(L10n.text("保存重命名预设"), isPresented: $showPresetSave) {
-            TextField(L10n.text("预设名称"), text: $workspace.presetName)
+        .alert(L10n.text("保存重命名方案"), isPresented: $showPresetSave) {
+            TextField(L10n.text("方案名称"), text: $workspace.presetName)
+            TextField(L10n.text("文件名示例"), text: $workspace.presetExample)
             Button(L10n.text("取消"), role: .cancel) {}
             Button(L10n.text("保存")) { workspace.savePreset() }
         }
-        .alert(L10n.text("重命名预设"), isPresented: $showPresetRename) {
-            TextField(L10n.text("预设名称"), text: $renamingPresetName)
+        .alert(L10n.text("重命名方案"), isPresented: $showPresetRename) {
+            TextField(L10n.text("方案名称"), text: $renamingPresetName)
+            TextField(L10n.text("文件名示例"), text: $renamingPresetExample)
             Button(L10n.text("取消"), role: .cancel) {}
             Button(L10n.text("保存")) {
-                if let id = renamingPresetID { workspace.renamePreset(id, name: renamingPresetName) }
+                if let id = renamingPresetID { workspace.renamePreset(id, name: renamingPresetName, example: renamingPresetExample) }
             }
         }
         .sheet(isPresented: $showHistory) { historySheet }
@@ -169,6 +173,7 @@ private extension RenameWorkspaceView {
                     Divider()
                     ForEach($workspace.rules) { $rule in
                         RenameRuleCard(rule: $rule, selectedRule: $selectedRule,
+                                       collapseToken: workspace.currentPresetID == nil ? nil : workspace.presetActivationID,
                                        index: workspace.rules.firstIndex(where: { $0.id == rule.id }) ?? 0,
                                        restingFrame: ruleFrames[rule.id] ?? .zero,
                                        reorder: { sourceID, point in
@@ -216,35 +221,49 @@ private extension RenameWorkspaceView {
         let title = dark
             ? [Color(red: 0.47, green: 0.82, blue: 1), Color(red: 0.76, green: 0.68, blue: 1)]
             : [Color(red: 0.04, green: 0.46, blue: 1), Color(red: 0.48, green: 0.24, blue: 0.96)]
-        return HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.text("当前预设"))
-                    .font(.caption).foregroundStyle(dark ? Color.white.opacity(0.7) : Color.secondary)
-                Text(workspace.currentPresetName)
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(LinearGradient(colors: title, startPoint: .leading, endPoint: .trailing))
-                    .lineLimit(1).minimumScaleFactor(0.65).help(workspace.currentPresetName)
-                if workspace.presetModified {
-                    Text(L10n.text("已修改 · 尚未保存"))
-                        .font(.caption).foregroundStyle(dark ? Color(red: 1, green: 0.78, blue: 0.43) : Color.orange)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L10n.text("当前方案"))
+                        .font(.caption).foregroundStyle(dark ? Color.white.opacity(0.7) : Color.secondary)
+                    if workspace.presetModified {
+                        Text(L10n.text("已修改 · 尚未保存"))
+                            .font(.caption).foregroundStyle(dark ? Color(red: 1, green: 0.78, blue: 0.43) : Color.orange)
+                    }
+                }.frame(maxWidth: .infinity, alignment: .leading)
+                Button { showPresetManager = true } label: {
+                    HStack(spacing: 6) {
+                        Text(L10n.text("切换与管理…"))
+                        Image(systemName: "chevron.right").font(.caption.weight(.semibold))
+                    }
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(dark ? Color.white : Color.blue)
+                    .padding(.horizontal, 12).padding(.vertical, 10)
+                    .background(Color.white.opacity(dark ? 0.15 : 0.65), in: Capsule())
+                    .overlay(Capsule().strokeBorder(Color.white.opacity(dark ? 0.20 : 0.5)))
                 }
-            }.frame(maxWidth: .infinity, alignment: .leading)
-            Button { showPresetManager = true } label: {
-                HStack(spacing: 6) {
-                    Text(L10n.text("切换与管理…"))
-                    Image(systemName: "chevron.right").font(.caption.weight(.semibold))
-                }
-                .font(.callout.weight(.semibold))
-                .foregroundStyle(dark ? Color.white : Color.blue)
-                .padding(.horizontal, 12).padding(.vertical, 10)
-                .background(Color.white.opacity(dark ? 0.15 : 0.65), in: Capsule())
-                .overlay(Capsule().strokeBorder(Color.white.opacity(dark ? 0.20 : 0.5)))
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("renamePresetManager")
+                .popover(isPresented: $showPresetManager, arrowEdge: .trailing) { presetManager }
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("renamePresetManager")
-            .popover(isPresented: $showPresetManager, arrowEdge: .trailing) { presetManager }
+            .padding(.horizontal, 16).padding(.top, 14)
+            if !workspace.presetExample.isEmpty {
+                Text(L10n.text("示例：%1$@", workspace.presetExample))
+                    .font(.callout).foregroundStyle(dark ? Color.white.opacity(0.88) : Color.primary)
+                    .shadow(color: dark ? .black.opacity(0.45) : .white.opacity(0.9), radius: 2)
+                    .lineLimit(1).truncationMode(.middle).help(workspace.presetExample)
+                    .padding(.horizontal, 16)
+            }
+            Text(workspace.currentPresetName)
+                .font(.system(size: 52, weight: .bold))
+                .foregroundStyle(LinearGradient(colors: title, startPoint: .leading, endPoint: .trailing))
+                .mask(LinearGradient(colors: [.white.opacity(dark ? 0.16 : 0.10),
+                                              .white.opacity(dark ? 0.60 : 0.42)],
+                                     startPoint: .top, endPoint: .bottom))
+                .lineLimit(1).minimumScaleFactor(0.12).help(workspace.currentPresetName)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12).padding(.bottom, 2)
         }
-        .padding(16).frame(minHeight: 100)
         .background(LinearGradient(colors: background, startPoint: .topLeading, endPoint: .bottomTrailing),
                     in: RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(
@@ -260,67 +279,59 @@ private extension RenameWorkspaceView {
 
     private var presetManager: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(L10n.text("切换与管理预设")).font(.headline)
-            TextField(L10n.text("搜索预设"), text: $presetQuery).textFieldStyle(.roundedBorder)
+            Text(L10n.text("切换与管理方案")).font(.headline)
+            TextField(L10n.text("搜索方案"), text: $presetQuery).textFieldStyle(.roundedBorder)
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(L10n.text("常用方案")).font(.caption).foregroundStyle(.secondary)
-                    ForEach(["拍摄日期＋编号", "保留原名加前缀", "查找并替换"], id: \.self) { name in
-                        if presetQuery.isEmpty || L10n.text(name).localizedStandardContains(presetQuery) {
-                            Button {
-                                let rules: [RenameRule] = name == "拍摄日期＋编号"
-                                    ? [RenameRule(action: 40), RenameRule(action: 48, prefix: "_")]
-                                    : [RenameRule(action: name == "保留原名加前缀" ? 1 : 11)]
-                                setCommonPreset(name, rules: rules)
-                            } label: {
-                                presetChoice(L10n.text(name), selected: workspace.currentPresetID == nil && workspace.currentPresetName == L10n.text(name))
-                            }.buttonStyle(.plain)
-                        }
-                    }
-                    Divider()
-                    Text(L10n.text("我的预设")).font(.caption).foregroundStyle(.secondary)
                     ForEach(workspace.presets.filter { presetQuery.isEmpty || $0.name.localizedStandardContains(presetQuery) }) { preset in
                         HStack(spacing: 10) {
                             Button {
                                 workspace.activatePreset(preset); selectedRule = nil; showPresetManager = false
-                            } label: { presetChoice(preset.name, selected: workspace.currentPresetID == preset.id) }
+                            } label: { presetChoice(preset.name, example: preset.example ?? "", selected: workspace.currentPresetID == preset.id) }
                             .buttonStyle(.plain)
                             Button {
                                 renamingPresetID = preset.id; renamingPresetName = preset.name
+                                renamingPresetExample = preset.example ?? ""
                                 showPresetManager = false; showPresetRename = true
                             } label: { Image(systemName: "pencil") }
-                            .buttonStyle(.borderless).help(L10n.text("重命名预设"))
+                            .buttonStyle(.borderless).help(L10n.text("重命名方案"))
                             Button(role: .destructive) { workspace.deletePreset(preset.id) } label: { Image(systemName: "trash") }
-                                .buttonStyle(.borderless).help(L10n.text("删除预设"))
+                                .buttonStyle(.borderless).help(L10n.text("删除方案"))
                         }
                     }
                     if workspace.presets.isEmpty {
-                        Text(L10n.text("保存当前规则后，预设会显示在这里。")).font(.caption).foregroundStyle(.secondary)
+                        Text(L10n.text("保存当前规则后，方案会显示在这里。")).font(.caption).foregroundStyle(.secondary)
                     }
                 }
             }.frame(maxHeight: 280)
             Divider()
+            Button { setCommonPreset("自定义规则", rules: []) } label: {
+                Text(L10n.text("新建方案")).frame(maxWidth: .infinity, minHeight: 30)
+            }
             HStack {
-                Button(L10n.text("新建预设")) { setCommonPreset("自定义规则", rules: []) }
-                Spacer()
                 Button(L10n.text("保存当前修改")) {
                     if workspace.currentPresetID != nil { workspace.updateCurrentPreset() }
                     else { saveAsNewPreset() }
                 }.disabled(workspace.currentPresetID != nil && !workspace.presetModified)
-            }
-            Button(L10n.text("另存为新预设…")) { saveAsNewPreset() }
-            HStack {
-                Button(L10n.text("导入预设…")) { showPresetManager = false; importPreset() }
                 Spacer()
-                Button(L10n.text("导出预设…")) { showPresetManager = false; exportPreset() }
+                Button(L10n.text("另存为新方案…")) { saveAsNewPreset() }
             }
-        }.padding(16).frame(width: 350)
+            HStack(spacing: 10) {
+                Spacer()
+                Button(L10n.text("导入方案…")) { showPresetManager = false; importPreset() }
+                Button(L10n.text("导出方案…")) { showPresetManager = false; exportPreset() }
+            }
+
+        }.padding(16).frame(width: 420)
         .accessibilityIdentifier("renamePresetPopover")
     }
 
-    private func presetChoice(_ name: String, selected: Bool) -> some View {
+    private func presetChoice(_ name: String, example: String, selected: Bool) -> some View {
         HStack {
-            Text(name).lineLimit(1)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(name).fontWeight(.medium).lineLimit(1)
+                if !example.isEmpty { Text(example).font(.caption).foregroundStyle(.secondary).lineLimit(1).help(example) }
+            }
             Spacer()
             if selected { Image(systemName: "checkmark").foregroundStyle(Color.accentColor) }
         }.padding(.vertical, 4).contentShape(Rectangle())
@@ -584,7 +595,14 @@ private extension RenameWorkspaceView {
 }
 
 @MainActor @ViewBuilder private func actionMenu(_ choose: @escaping @MainActor (RenameAction) -> Void) -> some View {
-    let categories = RenameAction.all.reduce(into: [String]()) { if !$0.contains($1.categoryChinese) { $0.append($1.categoryChinese) } }
+    let original = RenameAction.all.reduce(into: [String]()) { if !$0.contains($1.categoryChinese) { $0.append($1.categoryChinese) } }
+    let categories: [String] = {
+        var ordered = original.filter { !["自定义（通用标签）", "设备信息", "定位信息"].contains($0) }
+        if let index = ordered.firstIndex(of: "日期与时间") {
+            ordered.insert(contentsOf: ["设备信息", "定位信息"], at: index + 1)
+        }
+        return ordered + ["自定义（通用标签）"]
+    }()
     ForEach(categories, id: \.self) { category in
         Menu(L10n.text(category)) {
             ForEach(RenameAction.all.filter { $0.categoryChinese == category }) { action in
@@ -604,6 +622,7 @@ private struct RenameRuleFrames: PreferenceKey {
 struct RenameRuleCard: View {
     @Binding var rule: RenameRule
     @Binding var selectedRule: UUID?
+    var collapseToken: UUID? = nil
     let index: Int
     let restingFrame: CGRect
     let reorder: (UUID, CGPoint) -> Void
@@ -614,8 +633,13 @@ struct RenameRuleCard: View {
     @State private var dragOffset: CGSize = .zero
     @State private var dragOriginFrame: CGRect = .zero
     private var title: String {
-        RenameAction.all.first(where: { $0.number == rule.action })
-            .map { L10n.text($0.categoryChinese) + " · " + L10n.text($0.titleChinese) } ?? "R\(rule.action)"
+        guard let action = RenameAction.all.first(where: { $0.number == rule.action }) else { return "R\(rule.action)" }
+        let category: String
+        if (100...111).contains(rule.action) {
+            let field = rule.metadataField ?? (rule.action < 106 ? "CameraModel" : "IPTCCity")
+            category = renameMetadataFields(device: rule.action < 106).first(where: { $0.0 == field })?.1 ?? action.categoryChinese
+        } else { category = action.categoryChinese }
+        return L10n.text(category) + " · " + L10n.text(action.titleChinese)
     }
 
     private var cardContents: some View {
@@ -647,7 +671,12 @@ struct RenameRuleCard: View {
                         })
             }
             if expanded {
-                Menu(L10n.text("更换动作")) { actionMenu { rule.action = $0.number; selectedRule = rule.id } }
+                Menu(L10n.text("更换动作")) {
+                    actionMenu { action in
+                        if (100...105).contains(rule.action) != (100...105).contains(action.number) { rule.metadataField = nil }
+                        rule.action = action.number; selectedRule = rule.id
+                    }
+                }
                     .font(.caption)
                 RenameRuleParameters(rule: $rule)
                     .disabled(!rule.enabled)
@@ -669,6 +698,8 @@ struct RenameRuleCard: View {
             selectedRule == rule.id ? Color.blue : Color.secondary.opacity(0.18),
             lineWidth: selectedRule == rule.id ? 1.5 : 1))
         .focused($editing)
+        .onAppear { if collapseToken != nil { expanded = false } }
+        .onChange(of: collapseToken) { if collapseToken != nil { expanded = false } }
         .simultaneousGesture(TapGesture().onEnded { selectedRule = rule.id })
         .onChange(of: editing) { if editing { selectedRule = rule.id } }
         .onChange(of: selectedRule) {
@@ -695,11 +726,21 @@ private struct RenameRuleParameters: View {
     @State private var lexicalExpanded = false
     @Binding var rule: RenameRule
     private var action: Int { rule.action }
-    private var needsAnchor: Bool { [3,4,15,16,43,44,49,50,57,58,63,64,70,71,75,76,81,82,86,87,91,92].contains(action) }
-    private var needsPosition: Bool { [5,14,26,27,45,51,59,65,69,77,83,88,93].contains(action) }
+    private var needsAnchor: Bool { [3,4,15,16,43,44,49,50,57,58,63,64,70,71,75,76,81,82,86,87,91,92,104,105,110,111].contains(action) }
+    private var needsPosition: Bool { [5,14,26,27,45,51,59,65,69,77,83,88,93,103,109].contains(action) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
+            if (100...111).contains(action) {
+                Picker(L10n.text("字段"), selection: Binding(
+                    get: { rule.metadataField ?? (action < 106 ? "CameraModel" : "IPTCCity") },
+                    set: { rule.metadataField = $0 })) {
+                    ForEach(renameMetadataFields(device: action < 106), id: \.0) { field in
+                        Text(L10n.text(field.1)).tag(field.0)
+                    }
+                }
+                affixFields
+            }
             if action <= 19 || [32,94,95,96,97].contains(action) || (66...77).contains(action) {
                 if [32,94].contains(action) || (66...77).contains(action) {
                     Text(L10n.text(action == 94 ? "每行新名称，或旧名与新名的 TSV" : action == 32 ? "词汇大小写例外（每行一个）" : "标签模板，例如 <CameraModel>"))
@@ -740,8 +781,7 @@ private struct RenameRuleParameters: View {
                 number(L10n.text("最小位数"), value: $rule.padding)
             }
             if (78...93).contains(action) {
-                TextField(L10n.text("前缀"), text: $rule.prefix)
-                TextField(L10n.text("后缀"), text: $rule.suffix)
+                affixFields
                 if (78...83).contains(action) || action >= 89 { TextField(L10n.text("分隔符"), text: $rule.text) }
                 if action >= 89 {
                     number(L10n.text("祖先层级（父目录为 0）"), value: $rule.position)
@@ -762,7 +802,7 @@ private struct RenameRuleParameters: View {
                 }
             }
             if action == 96 { Toggle(L10n.text("要求整段匹配"), isOn: $rule.fullMatch) }
-            if (40...45).contains(action) || (66...83).contains(action) || action == 94 || (89...93).contains(action) {
+            if (40...45).contains(action) || (66...83).contains(action) || action == 94 || (89...93).contains(action) || (100...111).contains(action) {
                 Toggle(L10n.text("必需内容缺失时保留整个原名"), isOn: $rule.skipMissing)
             }
             if action == 98 { filterParameters }
@@ -826,9 +866,20 @@ private struct RenameRuleParameters: View {
             } else { number(L10n.text("起始值"), value: $rule.start) }
             number(L10n.text("步长"), value: $rule.step)
             if action <= 51 { number(L10n.text("最小位数"), value: $rule.padding) }
-            TextField(L10n.text("前缀"), text: $rule.prefix)
-            TextField(L10n.text("后缀"), text: $rule.suffix)
+            affixFields
             Toggle(L10n.text("每个目录独立编号"), isOn: $rule.perDirectory)
+        }
+    }
+
+    private var affixFields: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 8) {
+                TextField(L10n.text("前缀"), text: $rule.prefix)
+                TextField(L10n.text("后缀"), text: $rule.suffix)
+            }
+            Text(L10n.text("通常用于添加分隔符；完整文字请使用文字卡片。"))
+                .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -966,4 +1017,10 @@ private struct RenameTagPicker: View {
             HStack { Spacer(); Button(L10n.text("完成")) { dismiss() }.keyboardShortcut(.cancelAction) }
         }.padding(20).frame(width: 700, height: 500)
     }
+}
+
+private func renameMetadataFields(device: Bool) -> [(String, String)] {
+    device ? [("CameraModel", "设备型号"), ("CameraMake", "设备品牌"), ("Lens", "镜头型号"), ("CameraSerialNumber", "设备序列号")]
+        : [("IPTCCity", "城市"), ("IPTCProvinceState", "省／州"), ("IPTCSubLocation", "区／县"),
+           ("IPTCCountry", "国家"), ("CountryCode", "国家代码"), ("GPSLatitude", "纬度"), ("GPSLongitude", "经度")]
 }

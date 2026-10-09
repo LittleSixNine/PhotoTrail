@@ -232,31 +232,38 @@ final class PhotoThumbnailCache {
 }
 
 struct WorkspaceSaveButton: View {
+    @AppStorage(SettingsPreferences.saveCurrentPageKey) private var saveCurrentPage = false
+    @AppStorage(SettingsPreferences.lastWorkspaceKey) private var page = "metadata"
+    @Environment(LocationWorkspace.self) private var locationWorkspace
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
     @State private var showCompletedRing = false
     @State private var saveHovered = false
     @State private var showSaveHint = false
+    private var targets: SaveTargets {
+        SaveTargets(images: store.imageData, scope: saveCurrentPage ? (page == "map" ? .map : .metadata) : .all)
+    }
     private var saveHint: String {
-        L10n.text("新的信息将写入文件，包括照片信息与定位修改，不限当前选中的照片。")
+        saveCurrentPage ? L10n.text("只保存当前页的待保存修改，其他页修改保留。")
+            : L10n.text("新的信息将写入文件，包括照片信息与定位修改，不限当前选中的照片。")
     }
 
     var body: some View {
         Button {
             saveHovered = false
             showSaveHint = false
-            SaveHelper.requestSave(store)
+            SaveHelper.requestSave(store, workspace: locationWorkspace)
         } label: {
             HStack(spacing: 7) {
                 Image(systemName: "square.and.arrow.down")
                 Text(store.saveInProgress
                      ? L10n.text("保存中 %1$@/%2$@", store.saveCompleted, store.saveTotal)
-                     : L10n.text("写入所有元数据"))
+                     : L10n.text(saveCurrentPage ? "写入当前页元数据" : "写入所有元数据"))
                     .monospacedDigit()
                     .frame(minWidth: 110, alignment: .leading)
             }
         }
         .buttonStyle(WorkspaceToolbarButtonStyle(prominent: true))
-        .disabled(store.saveInProgress || !store.unsavedChanges)
+        .disabled(store.saveInProgress || (targets.total == 0 && targets.conflicts.isEmpty))
         .overlay {
             if store.saveInProgress || showCompletedRing {
                 ZStack {

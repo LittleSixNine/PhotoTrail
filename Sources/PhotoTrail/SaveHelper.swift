@@ -1,4 +1,5 @@
 import AppKit
+import Coords
 import Exiftool
 import ImageData
 import Imagetool
@@ -91,56 +92,37 @@ enum SaveHelper {
 
     @discardableResult
     static func requestSave(_ store: Store<PhotoTrailState, PhotoTrailEvent>,
-                            confirm: ((SaveTargets) -> Bool)? = nil) -> Bool {
+                            confirm: ((SaveTargets) -> Bool)? = nil,
+                            workspace: LocationWorkspace? = nil, forceAll: Bool = false) -> Bool {
         // Finish native inline editing first; invalid input keeps focus and blocks writing an older value.
         if let window = store.mainWindow, !window.makeFirstResponder(nil) { return false }
         guard !store.saveInProgress, store.unsavedChanges else { return false }
-        let targets = SaveTargets(images: store.imageData)
+        var scope = forceAll ? MetadataSaveScope.all : preferredScope
+        var targets = SaveTargets(images: store.imageData, scope: scope)
         guard targets.conflicts.isEmpty else {
             store.send(.creatorSaveConflict, undoable: false)
             return false
         }
-        if targets.total > 0,
-           UserDefaults.standard.bool(forKey: SettingsPreferences.showSaveSummaryKey),
-           !(confirm?(targets) ?? confirmSave(targets, backupURL: store.backupURL)) {
-            return false
+        guard targets.total > 0 else { return false }
+        let prompt = !forceAll && scope == .all && !UserDefaults.standard.bool(forKey: SettingsPreferences.skipSaveScopePromptKey)
+        if let confirm {
+            guard confirm(targets) else { return false }
+        } else if ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] != "1",
+                  prompt || UserDefaults.standard.bool(forKey: SettingsPreferences.showSaveSummaryKey) {
+            guard let chosen = confirmSave(targets, backupURL: store.backupURL, scope: scope,
+                                           allowCurrentPage: !forceAll, showScopeOptions: prompt) else { return false }
+            scope = chosen
+            targets = SaveTargets(images: store.imageData, scope: scope)
+            guard targets.conflicts.isEmpty, targets.total > 0 else { return false }
         }
-        store.send(.saveRequest, undoable: false) { save(store) }
+        let event: PhotoTrailEvent = scope == .all ? .saveRequest : .savePageRequest(scope)
+        store.send(event, undoable: false) { save(store, workspace: workspace) }
         store.discardAllUndo()
         return true
     }
 
-    private static func confirmSave(_ targets: SaveTargets, backupURL: URL?) -> Bool {
-        let localCount = targets.files.count + targets.xmp.count + targets.creator.count
-        let backupMessage: String
-        if localCount == 0 {
-            backupMessage = L10n.text("本次不写入本地文件；备份设置不适用。")
-        } else if UserDefaults.standard.bool(forKey: PhotoTrailApp.doNotBackupKey) {
-            backupMessage = L10n.text("本地文件备份：已关闭。")
-        } else if backupURL != nil {
-            backupMessage = L10n.text("本地文件备份：已开启；照片图库项目不在备份范围内。")
-        } else {
-            backupMessage = L10n.text("尚未设置备份文件夹，本地照片和 XMP 将无法保存；照片图库仍可能更新。")
-        }
-        let sidecarMessage = targets.files.isEmpty ||
-            !UserDefaults.standard.bool(forKey: SettingsView.createSidecarFilesKey)
-            ? "" : L10n.text("\n本地照片另会尝试创建 XMP 附属文件。")
-
-        let alert = NSAlert()
-        alert.messageText = L10n.text("保存全部 %1$@ 项修改？", targets.total)
-        alert.informativeText = L10n.text(
-            "本地照片：%1$@ 项\n已导入的 XMP：%2$@ 项\n照片图库：%3$@ 项\n\n%4$@%5$@",
-            targets.files.count + targets.creatorFiles,
-            targets.xmp.count + targets.creator.count - targets.creatorFiles,
-            targets.library.count, backupMessage, sidecarMessage)
-            + "\n\n" + L10n.text("保存元数据编辑和地图定位两个页面的全部待保存修改，不限当前页或选中的照片。")
-        alert.addButton(withTitle: L10n.text("保存"))
-        alert.addButton(withTitle: L10n.text("取消"))
-        return alert.runModal() == .alertFirstButtonReturn
-    }
-
     @discardableResult
-    static func save(_ store: Store<PhotoTrailState, PhotoTrailEvent>) -> Task<Void, Never> {
+    static func save(_ store: Store<PhotoTrailState, PhotoTrailEvent>, workspace: LocationWorkspace? = nil) -> Task<Void, Never> {
         // capture the data needed to update images
         let libraryImages =
             Dictionary(uniqueKeysWithValues: store.libraryImages.map {
@@ -162,9 +144,11 @@ enum SaveHelper {
         }
         // Do the save in the background, report when done.
         let task = Task {
+            let resolvedFiles = await resolveAddresses(fileImages, images: store.imageData, workspace: workspace)
+            let resolvedXmp = await resolveAddresses(xmpImages, images: store.imageData, workspace: workspace)
             async let libUpdated = saveToLibrary(store, libraryImages)
-            async let imgUpdated = saveToImage(store, fileImages)
-            async let xmpUpdated = saveToImage(store, xmpImages, xmp: true)
+            async let imgUpdated = saveToImage(store, resolvedFiles)
+            async let xmpUpdated = saveToImage(store, resolvedXmp, xmp: true)
 
             let legacyStatus = await [libUpdated, imgUpdated, xmpUpdated]
             // Do not write a physical target concurrently with the legacy save.
@@ -184,6 +168,42 @@ enum SaveHelper {
             store.send(.saveComplete(sendStatus), undoable: false)
         }
         return task
+    }
+
+    static func resolveAddresses(_ snapshots: [ImageData.ID: Metadata], images: [ImageData],
+                                 workspace: LocationWorkspace?) async -> [ImageData.ID: Metadata] {
+        guard let workspace else { return snapshots }
+        guard UserDefaults.standard.object(forKey: SettingsPreferences.writeRegionKey) as? Bool != false else {
+            return snapshots
+        }
+        let locationChanged = Dictionary(uniqueKeysWithValues: images.map {
+            ($0.id, $0.metadata.location != $0.original?.location)
+        })
+        let provider = UserDefaults.standard.string(forKey: "PhotoTrailMapProvider") ?? "amap"
+        var resolved = snapshots
+        for (id, snapshot) in snapshots {
+            guard let point = snapshot.location, snapshot.canDisplayAsWGS84,
+                  locationChanged[id] == true else { continue }
+            var metadata = snapshot
+            metadata.city = nil
+            metadata.state = nil
+            metadata.sublocation = nil
+            metadata.country = nil
+            metadata.countryCode = nil
+            do {
+                let address = try await workspace.address(at:
+                    MapCoordinate(latitude: point.latitude, longitude: point.longitude), provider: provider)
+                metadata.city = address.city
+                metadata.state = address.state
+                metadata.sublocation = address.sublocation
+                metadata.country = address.country
+                metadata.countryCode = address.countryCode
+            } catch {
+                logger.notice("Address lookup failed; saving coordinates without region fields for photo ID \(id)")
+            }
+            resolved[id] = metadata
+        }
+        return resolved
     }
 
     static func saveToLibrary(_ store: Store<PhotoTrailState, PhotoTrailEvent>,
@@ -392,4 +412,63 @@ extension SaveHelper {
         }
         return status
     }
+}
+
+extension SaveHelper {
+    static var currentPageScope: MetadataSaveScope {
+        UserDefaults.standard.string(forKey: SettingsPreferences.lastWorkspaceKey) == "map" ? .map : .metadata
+    }
+
+    static var preferredScope: MetadataSaveScope {
+        guard UserDefaults.standard.bool(forKey: SettingsPreferences.saveCurrentPageKey),
+              UserDefaults.standard.string(forKey: SettingsPreferences.lastWorkspaceKey) != "rename" else { return .all }
+        return currentPageScope
+    }
+
+    private static func confirmSave(_ targets: SaveTargets, backupURL: URL?, scope: MetadataSaveScope,
+                                    allowCurrentPage: Bool, showScopeOptions: Bool) -> MetadataSaveScope? {
+        let localCount = targets.files.count + targets.xmp.count + targets.creator.count
+        let backupMessage: String
+        if localCount == 0 {
+            backupMessage = L10n.text("本次不写入本地文件；备份设置不适用。")
+        } else if UserDefaults.standard.bool(forKey: PhotoTrailApp.doNotBackupKey) {
+            backupMessage = L10n.text("本地文件备份：已关闭。")
+        } else if backupURL != nil {
+            backupMessage = L10n.text("本地文件备份：已开启；照片图库项目不在备份范围内。")
+        } else {
+            backupMessage = L10n.text("尚未设置备份文件夹，本地照片和 XMP 将无法保存；照片图库仍可能更新。")
+        }
+        let sidecarMessage = targets.files.isEmpty ||
+            !UserDefaults.standard.bool(forKey: SettingsView.createSidecarFilesKey)
+            ? "" : L10n.text("\n本地照片另会尝试创建 XMP 附属文件。")
+
+        let alert = NSAlert()
+        alert.messageText = scope == .all ? L10n.text("同时保存两个页面的元数据？") : L10n.text("保存当前页的元数据？")
+        alert.informativeText = L10n.text(
+            "本地照片：%1$@ 项\n已导入的 XMP：%2$@ 项\n照片图库：%3$@ 项\n\n%4$@%5$@",
+            targets.files.count + targets.creatorFiles,
+            targets.xmp.count + targets.creator.count - targets.creatorFiles,
+            targets.library.count, backupMessage, sidecarMessage)
+            + "\n\n" + (scope == .all
+                ? L10n.text("保存元数据编辑和地图定位两个页面的全部待保存修改，不限当前页或选中的照片。")
+                : L10n.text("只保存当前页的待保存修改，其他页修改保留。"))
+        alert.addButton(withTitle: L10n.text("保存"))
+        alert.addButton(withTitle: L10n.text("取消"))
+        if showScopeOptions {
+            alert.showsSuppressionButton = true
+            alert.suppressionButton?.title = L10n.text("下次不再提示")
+            if allowCurrentPage { alert.addButton(withTitle: L10n.text("改为仅保存本页")) }
+        }
+        let response = alert.runModal()
+        guard response != .alertSecondButtonReturn else { return nil }
+        if showScopeOptions, alert.suppressionButton?.state == .on {
+            UserDefaults.standard.set(true, forKey: SettingsPreferences.skipSaveScopePromptKey)
+        }
+        if response == .alertThirdButtonReturn {
+            UserDefaults.standard.set(true, forKey: SettingsPreferences.saveCurrentPageKey)
+            return nil
+        }
+        return scope
+    }
+
 }

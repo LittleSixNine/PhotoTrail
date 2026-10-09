@@ -45,7 +45,9 @@ actor ReverseLocationFinder {
                 // MKPlacemarks have been deprecated but I've not yet found
                 // something to replace them
                 if let item = mapItems.first {
-                    return Place(from: item)
+                    var place = Place(from: item)
+                    place.coordinate = Coordinate(location.coordinate)
+                    return place
                 }
             }
             return nil

@@ -194,3 +194,22 @@ import UDF
         #expect(store[embedded.id].importedWithLocation)
     }
 }
+
+extension MapPhotoPerformanceTests {
+    @Test func missingCityCountUsesSelectedGeotaggedPhotosAndActualFields() {
+        var empty = Metadata(source: .xmp(URL(fileURLWithPath: "/tmp/missing-city.xmp")))
+        empty.location = Coords(latitude: 31, longitude: 121)
+        let first = ImageData(metadata: empty, name: "first.jpg")
+        empty.city = "  "
+        let whitespace = ImageData(metadata: empty, name: "whitespace.jpg")
+        empty.city = "上海市"
+        let complete = ImageData(metadata: empty, name: "complete.jpg")
+        empty.city = nil; empty.location = nil
+        let unlocated = ImageData(metadata: empty, name: "unlocated.jpg")
+        let summary = MapPhotoSelectionSummary(images: [first, whitespace, complete, unlocated],
+            selectedIDs: [first.id, whitespace.id, complete.id, unlocated.id])
+        #expect(summary.located == 3 && summary.missingCity == 2 && summary.missing == 1)
+        let single = MapPhotoSelectionSummary(images: [first, complete], selectedIDs: [complete.id])
+        #expect(single.missingCity == 0)
+    }
+}

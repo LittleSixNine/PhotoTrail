@@ -101,7 +101,7 @@ struct RenameTests {
     }
 
     @Test func all97ActionsHaveRunnableCore() throws {
-        #expect(RenameAction.all.count == 99)
+        #expect(RenameAction.all.count == 111)
         for action in 1...97 {
             let rule = RenameRule(action: action, text: action == 94 ? "new" : "0", replacement: "x", anchor: "IMG",
                                   position: 0, length: 1, start: 1)
@@ -450,6 +450,107 @@ extension RenameTests {
 }
 
 struct RenamePresetTests {
+    @Test @MainActor func defaultPrefixPlaceholderMigratesOnlyUntouchedSchemes() throws {
+        let domain = "PhotoTrail.PrefixPlaceholderTests." + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: domain))
+        defer { defaults.removePersistentDomain(forName: domain) }
+        let workspace = RenameWorkspace(defaults: defaults)
+        let original = try #require(workspace.presets.last)
+        #expect(original.rules.last?.text == L10n.text("请自定义文字") + "_")
+        #expect(original.example == L10n.text("请自定义文字") + "_0001.jpg")
+        var legacy = original
+        legacy.rules = [RenameRule(action: 46, padding: 4), RenameRule(action: 1, text: "哈尔滨之旅_")]
+        legacy.example = "哈尔滨之旅_0001.jpg"
+        var custom = legacy
+        custom.id = UUID()
+        custom.rules[1].text = "我的旅行_"
+        defaults.set(try JSONEncoder().encode([legacy, custom]), forKey: "PhotoTrailRenamePresets.v1")
+        defaults.set(try JSONEncoder().encode(legacy), forKey: "PhotoTrailRenameLastPreset.v1")
+        let reopened = RenameWorkspace(defaults: defaults)
+        #expect(reopened.presetExample == L10n.text("请自定义文字") + "_0001.jpg")
+        #expect(reopened.rules.last?.text == L10n.text("请自定义文字") + "_")
+        #expect(reopened.presets.last?.rules.last?.text == "我的旅行_")
+        #expect(reopened.presets.last?.example == "哈尔滨之旅_0001.jpg")
+    }
+
+    @Test @MainActor func ruleChangesRefreshExamplesWithoutSavingDraftRulesOrReplacingManualExamples() async throws {
+        let domain = "PhotoTrail.ExampleTests." + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: domain))
+        defer { defaults.removePersistentDomain(forName: domain) }
+        let root = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let source = root.appendingPathComponent("source.jpg")
+        let sample = try #require(Bundle.main.url(forResource: "P1000658", withExtension: "JPG"))
+        try FileManager.default.copyItem(at: sample, to: source)
+        let image = ImageData(from: source)
+        let workspace = RenameWorkspace(defaults: defaults)
+        workspace.authorizeDirectory(root)
+        workspace.rules = [RenameRule(action: 1, text: "old_")]
+        workspace.settings.pair = false
+        workspace.presetExample = "手动示例.jpg"
+        workspace.presetName = "示例更新"
+        workspace.savePreset()
+        workspace.rules[0].text = "trip_"
+        workspace.refresh(images: [], selection: [])
+        for _ in 0..<400 where workspace.busy { try await Task.sleep(for: .milliseconds(25)) }
+        #expect(!workspace.busy && workspace.presetExample == "手动示例.jpg")
+        workspace.refresh(images: [image], selection: [])
+        workspace.rules[0].text = "film_"
+        workspace.refresh(images: [image], selection: [])
+        for _ in 0..<400 where workspace.busy { try await Task.sleep(for: .milliseconds(25)) }
+        #expect(!workspace.busy && workspace.presetExample == "film_source.jpg")
+        #expect(RenameWorkspace(defaults: defaults).presetExample == "手动示例.jpg")
+        workspace.updateCurrentPreset()
+        #expect(RenameWorkspace(defaults: defaults).presetExample == "film_source.jpg")
+        workspace.presetExample = "新的手动示例.jpg"
+        workspace.refresh(images: [image], selection: [])
+        for _ in 0..<400 where workspace.busy { try await Task.sleep(for: .milliseconds(25)) }
+        #expect(!workspace.busy && workspace.presetExample == "新的手动示例.jpg")
+        workspace.rules[0].text = "travel_"
+        workspace.refresh(images: [image], selection: [])
+        workspace.presetExample = "计算期间手动编辑.jpg"
+        for _ in 0..<400 where workspace.busy { try await Task.sleep(for: .milliseconds(25)) }
+        #expect(!workspace.busy && workspace.presetExample == "计算期间手动编辑.jpg")
+        workspace.rules[0].text = "saved_"
+        workspace.refresh(images: [image], selection: [])
+        workspace.updateCurrentPreset()
+        for _ in 0..<400 where workspace.busy { try await Task.sleep(for: .milliseconds(25)) }
+        #expect(!workspace.busy && workspace.presetExample == "saved_source.jpg")
+        #expect(RenameWorkspace(defaults: defaults).presetExample == "saved_source.jpg")
+    }
+
+    @Test @MainActor func defaultSchemesAreEditablePersistExamplesAndStayDeleted() throws {
+        let domain = "PhotoTrail.SchemeTests." + UUID().uuidString
+        let defaults = UserDefaults(suiteName: domain)!
+        defer { defaults.removePersistentDomain(forName: domain) }
+        let workspace = RenameWorkspace(defaults: defaults)
+        #expect(workspace.presets.count == 5)
+        let input = RenameInput(url: URL(fileURLWithPath: "/tmp/DSC_1234.jpg"), tags: [
+            "ExifIFD:DateTimeOriginal": "2026:10:06 17:16:49", "IFD0:Model": "NIKON D750",
+            "IPTC:City": "旧城市", "XMP-photoshop:City": "上海市"])
+        for preset in workspace.presets {
+            var name = input.name
+            for rule in preset.rules {
+                name = try RenameEngine.transform(name, input: input, rule: rule, index: 0, settings: preset.settings).0
+            }
+            #expect(name == preset.example)
+        }
+        let first = try #require(workspace.presets.first)
+        let token = workspace.presetActivationID
+        workspace.activatePreset(first)
+        #expect(workspace.presetActivationID != token)
+        workspace.presetExample = "手动示例.jpg"
+        #expect(workspace.presetModified)
+        workspace.updateCurrentPreset()
+        let reopened = RenameWorkspace(defaults: defaults)
+        #expect(reopened.presetExample == "手动示例.jpg")
+        for preset in reopened.presets { reopened.deletePreset(preset.id) }
+        let empty = RenameWorkspace(defaults: defaults)
+        #expect(empty.presets.isEmpty && empty.rules.isEmpty)
+        #expect(empty.currentPresetID == nil)
+    }
+
     @MainActor @Test func executionHistoryLoadsOnlyWhenRequested() async throws {
         let directory = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -496,8 +597,8 @@ struct RenamePresetTests {
         #expect(reopened.rules == workspace.rules)
         reopened.deletePreset(id)
         let afterDeletion = RenameWorkspace(defaults: defaults)
-        #expect(afterDeletion.currentPresetID == nil)
-        #expect(afterDeletion.rules.map(\.action) == [40, 48])
+        #expect(afterDeletion.currentPresetID == afterDeletion.presets.first?.id)
+        #expect(afterDeletion.rules == afterDeletion.presets.first?.rules)
     }
 
     @Test @MainActor func presetsTrackChangesAndKeepTheirIdentityWhenUpdated() {
@@ -555,4 +656,19 @@ struct RenamePresetTests {
         #expect(!workspace.presetModified)
     }
 
+}
+
+extension RenameTests {
+    @Test func deviceAndRegionFieldsUseReadableActionsAndKeepMissingValuesSafe() throws {
+        let input = RenameInput(url: URL(fileURLWithPath: "/tmp/source.jpg"), tags: [
+            "IFD0:Model": "D750", "IPTC:Sub-location": "旧区", "XMP-iptcCore:Location": "新区"])
+        #expect(try RenameEngine.transform(input.name, input: input, rule: RenameRule(action: 100),
+            index: 0, settings: RenameSettings()).0 == "D750.jpg")
+        #expect(try RenameEngine.transform(input.name, input: input,
+            rule: RenameRule(action: 106, metadataField: "IPTCSubLocation"), index: 0, settings: RenameSettings()).0 == "新区.jpg")
+        let missing = try RenameEngine.preview(inputs: [input], rules: [RenameRule(action: 106)],
+            settings: RenameSettings(), occupied: [:])
+        #expect(missing[0].target == input.url)
+        #expect(missing[0].issues.contains(.missingTag))
+    }
 }

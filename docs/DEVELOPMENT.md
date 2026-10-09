@@ -105,7 +105,7 @@ PhotoTrail 基于 GeoTag v6.0.2 派生，仍使用其部分应用基础设施与
 
 ## 开发进度与元数据读取入口
 
-源码节点见 [开发历史](CHANGELOG.md)。`MetadataLoadingQueue.swift` 负责窗口级后台预读、选中插队、缓存和进度；`MetadataListInspectorView.swift` 负责显示与类型编辑入口；Exiftool 的 `inspectionTags` 读取所有可识别家族，写入仍受独立白名单约束。`MetadataCreatorEditPlan`、`SaveTargets` 和 `SaveHelper` 负责冻结目标、版本检查、备份及回读。`RenameWorkspaceView` 提供第三页双栏规则与预览；`RenameEngine` 只计算名称，`RenameWorkspace` 冻结输入、计数与来源，`RenameExecutor` 使用独立执行日志、原生不覆盖改名和哈希回读；`ImageData.applyFileRenames` 同步稳定 ID 的名称、来源和撤销基线。规则目录为 97 个动作加筛选与高级设置，具体支持边界见 [功能与数据约定](BEHAVIOR.md)。
+源码节点见 [开发历史](CHANGELOG.md)。`MetadataLoadingQueue.swift` 负责窗口级后台预读、选中插队、缓存和进度；`MetadataListInspectorView.swift` 负责显示与类型编辑入口；Exiftool 的 `inspectionTags` 读取所有可识别家族，写入仍受独立白名单约束。`MetadataCreatorEditPlan`、`SaveTargets` 和 `SaveHelper` 负责冻结目标、版本检查、备份及回读。`RenameWorkspaceView` 提供第三页双栏规则与预览；`RenameEngine` 只计算名称，`RenameWorkspace` 冻结输入、计数与来源，`RenameExecutor` 使用独立执行日志、原生不覆盖改名和哈希回读；`ImageData.applyFileRenames` 同步稳定 ID 的名称、来源和撤销基线。规则目录包含文字、日期、序列、设备及定位字段等动作，以及筛选与高级设置，具体支持边界见 [功能与数据约定](BEHAVIOR.md)。
 
 
 ## 浏览性能与会话缓存

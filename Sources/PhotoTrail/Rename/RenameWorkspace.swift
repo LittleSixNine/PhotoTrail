@@ -7,8 +7,13 @@ import UDF
 
 @Observable @MainActor
 final class RenameWorkspace {
-    var rules: [RenameRule] = [RenameRule(action: 40), RenameRule(action: 48, prefix: "_")]
-    var settings = RenameSettings()
+    var rules: [RenameRule] = [RenameRule(action: 40), RenameRule(action: 48, prefix: "_")] {
+        didSet { if rules != oldValue { needsExampleUpdate = true } }
+    }
+    var settings = RenameSettings() {
+        didSet { if settings != oldValue { needsExampleUpdate = true } }
+    }
+    @ObservationIgnored private var needsExampleUpdate = false
     var onlySelected = false
     private var scopeInitialized = false
     var authorizedDirectories = Set<URL>()
@@ -29,11 +34,14 @@ final class RenameWorkspace {
     var selectedRows = Set<URL>()
     var presets: [RenamePreset] = []
     var presetName = ""
+    var presetExample = ""
+    var presetActivationID = UUID()
+    private var savedExample = ""
     private(set) var currentPresetID: UUID?
     private(set) var currentPresetName = L10n.text("拍摄日期＋编号")
     private var presetRules: [RenameRule] = []
     private var presetSettings = RenameSettings()
-    var presetModified: Bool { rules != presetRules || settings != presetSettings }
+    var presetModified: Bool { rules != presetRules || settings != presetSettings || presetExample != savedExample }
     var counterRevision = 0
     var history: [RenameJournal] = []
     private(set) var historyLoading = false
@@ -57,12 +65,7 @@ final class RenameWorkspace {
         self.defaults = defaults
         presetRules = rules
         presetSettings = settings
-        if let data = defaults.data(forKey: "PhotoTrailRenamePresets.v1"),
-           let saved = try? JSONDecoder().decode([RenamePreset].self, from: data) { presets = saved }
-        if let data = defaults.data(forKey: "PhotoTrailRenameLastPreset.v1"),
-           let saved = try? JSONDecoder().decode(RenamePreset.self, from: data), saved.version == 1 {
-            activatePreset(presets.first(where: { $0.id == saved.id }) ?? saved)
-        }
+        loadPresets()
     }
 
     func loadHistory(directory: URL = RenameExecutor.storage) async {
@@ -97,22 +100,15 @@ final class RenameWorkspace {
         authorizedDirectories.insert(parent)
     }
 
-    func savePreset() {
-        let name = presetName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !executing, !name.isEmpty else { return }
-        let preset = RenamePreset(name: uniquePresetName(name), rules: rules, settings: settings)
-        presets.append(preset)
-        persistPresets()
-        presetName = ""
-        activatePreset(preset)
-    }
-
     func activatePreset(_ preset: RenamePreset) {
         guard !executing else { return }
         rules = preset.rules; settings = preset.settings
         currentPresetID = presets.contains(where: { $0.id == preset.id }) ? preset.id : nil
         currentPresetName = preset.name
+        presetExample = preset.example ?? ""; savedExample = presetExample
+        presetActivationID = UUID()
         presetRules = rules; presetSettings = settings
+        needsExampleUpdate = false
         persistCurrentPreset()
     }
 
@@ -120,24 +116,30 @@ final class RenameWorkspace {
         guard !executing else { return }
         self.rules = rules
         currentPresetID = nil; currentPresetName = name
+        presetExample = rows.first?.target.lastPathComponent ?? ""; savedExample = presetExample
+        presetActivationID = UUID()
         presetRules = rules; presetSettings = settings
+        needsExampleUpdate = false
         persistCurrentPreset()
     }
 
     func updateCurrentPreset() {
         guard !executing, let index = presets.firstIndex(where: { $0.id == currentPresetID }) else { return }
         presets[index].rules = rules; presets[index].settings = settings
+        presets[index].example = presetExample; savedExample = presetExample
         presetRules = rules; presetSettings = settings
         persistPresets()
         persistCurrentPreset()
     }
 
-    func renamePreset(_ id: UUID, name: String) {
+    func renamePreset(_ id: UUID, name: String, example: String? = nil) {
         let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !executing, !name.isEmpty, let index = presets.firstIndex(where: { $0.id == id }) else { return }
         presets[index].name = uniquePresetName(name, excluding: id)
+        if let example { presets[index].example = example }
         if currentPresetID == id {
             currentPresetName = presets[index].name
+            presetExample = presets[index].example ?? ""; savedExample = presetExample
             persistCurrentPreset()
         }
         persistPresets()
@@ -161,9 +163,6 @@ final class RenameWorkspace {
         return result
     }
 
-    func persistPresets() {
-        if let data = try? JSONEncoder().encode(presets) { defaults.set(data, forKey: "PhotoTrailRenamePresets.v1") }
-    }
 
     func importPreset(_ url: URL) {
         do {
@@ -172,7 +171,7 @@ final class RenameWorkspace {
             var preset = try JSONDecoder().decode(RenamePreset.self, from: data)
             guard preset.version == 1, preset.rules.count <= 200,
                   Set(preset.rules.map(\.id)).count == preset.rules.count,
-                  preset.rules.allSatisfy({ (1...99).contains($0.action) }) else { throw RenameError.invalidPreset }
+                  preset.rules.allSatisfy({ (1...111).contains($0.action) }) else { throw RenameError.invalidPreset }
             guard !executing else { return }
             if presets.contains(where: { $0.id == preset.id }) { preset.id = UUID() }
             preset.name = uniquePresetName(preset.name)
@@ -182,7 +181,7 @@ final class RenameWorkspace {
 
     func exportPreset(_ url: URL) {
         do {
-            let preset = RenamePreset(name: currentPresetName, rules: rules, settings: settings)
+            let preset = RenamePreset(name: currentPresetName, rules: rules, settings: settings, example: presetExample)
             try JSONEncoder().encode(preset).write(to: url, options: .atomic)
         } catch { notice = RenameCopy.error(error) }
     }
@@ -204,7 +203,9 @@ final class RenameWorkspace {
         previewEstimate.reset()
         let selected = images.filter { !onlySelected || selection.contains($0.id) }
         let urls = selected.compactMap(\.metadataCreatorImageURL)
-        var rules = self.rules
+        let sourceRules = self.rules, previousExample = presetExample
+        let updateExample = needsExampleUpdate
+        var rules = sourceRules
         let counterValues = Self.counters()
         for index in rules.indices where rules[index].counter > 0 {
             rules[index].start = counterValues[rules[index].counter] ?? 1
@@ -235,6 +236,9 @@ final class RenameWorkspace {
                 self.rows = result.plan.rows
                 self.plan = result.plan
                 self.cache = result.cache
+                if updateExample, self.rules == sourceRules, self.settings == settings {
+                    self.updateExample(previous: previousExample)
+                }
                 if !self.directoriesAuthorized { self.notice = L10n.text("请授权文件所在目录后重新预览，才能扫描配对文件并检查重名。") }
                 else if self.notice == L10n.text("请授权文件所在目录后重新预览，才能扫描配对文件并检查重名。") { self.notice = "" }
             } catch {
@@ -243,13 +247,6 @@ final class RenameWorkspace {
             }
             if token == self.revision { self.busy = false }
         }
-    }
-
-    static func counters(defaults: UserDefaults = .standard) -> [Int: Int] {
-        Dictionary(uniqueKeysWithValues: (1...10).map { index in
-            let key = "PhotoTrailRenameCounter.\(index)"
-            return (index, defaults.object(forKey: key) == nil ? 1 : defaults.integer(forKey: key))
-        })
     }
 
     func resetCounter(_ rule: RenameRule) {
@@ -381,6 +378,69 @@ final class RenameWorkspace {
 }
 
 private extension RenameWorkspace {
+    func persistPresets() {
+        if let data = try? JSONEncoder().encode(presets) { defaults.set(data, forKey: "PhotoTrailRenamePresets.v1") }
+    }
+
+    func loadPresets() {
+        if let data = defaults.data(forKey: "PhotoTrailRenamePresets.v1") {
+            guard let saved = try? JSONDecoder().decode([RenamePreset].self, from: data) else {
+                notice = L10n.text("方案格式或版本不受支持。")
+                return
+            }
+            presets = saved
+        }
+        if !defaults.bool(forKey: "PhotoTrailRenameDefaultSchemes.v1") {
+            let names = ["市＋拍摄时间", "数字编号＋原名", "拍摄时间＋设备型号", "拍摄时间＋原名", "自定义前缀＋编号"]
+            let rules = [
+                [RenameRule(action: 106, suffix: "_"), RenameRule(action: 42)],
+                [RenameRule(action: 47, padding: 4, suffix: "_")],
+                [RenameRule(action: 40), RenameRule(action: 102, prefix: "_")],
+                [RenameRule(action: 41, dateFormat: "yyyyMMdd_HHmmss_")],
+                [RenameRule(action: 46, padding: 4), RenameRule(action: 1, text: L10n.text("请自定义文字") + "_")]
+            ]
+            let examples = ["上海市_20261006_171649.jpg", "0001_DSC_1234.jpg", "20261006_171649_NIKON D750.jpg",
+                            "20261006_171649_DSC_1234.jpg", L10n.text("请自定义文字") + "_0001.jpg"]
+            presets.insert(contentsOf: names.indices.map {
+                RenamePreset(name: L10n.text(names[$0]), rules: rules[$0], settings: RenameSettings(), example: examples[$0])
+            }, at: 0)
+            persistPresets()
+            defaults.set(true, forKey: "PhotoTrailRenameDefaultSchemes.v1")
+        }
+        if !defaults.bool(forKey: "PhotoTrailRenameFriendlyRules.v1") {
+            let date = "<ShootingDate4DigitYear><ShootingDate0Month><ShootingDate0Day>_<ShootingDate0Hour24><ShootingDate0Minute><ShootingDate0Second>"
+            for index in presets.indices where presets[index].rules.count == 1 && presets[index].settings == RenameSettings() {
+                let old = presets[index].rules[0]
+                let original = RenameRule(id: old.id, action: old.action, text: old.text,
+                    padding: old.action == 46 ? 4 : 3, prefix: old.action == 46 ? "哈尔滨之旅_" : "")
+                guard old == original else { continue }
+                switch (presets[index].name, old.action, old.text) {
+                case (L10n.text("市＋拍摄时间"), 66, "<IPTCCity>_" + date):
+                    presets[index].rules = [RenameRule(action: 106, suffix: "_"), RenameRule(action: 42)]
+                case (L10n.text("拍摄时间＋设备型号"), 66, date + "_<CameraModel>"):
+                    presets[index].rules = [RenameRule(action: 40), RenameRule(action: 102, prefix: "_")]
+                case (L10n.text("拍摄时间＋原名"), 66, date + "_<FileNameWithoutExtension>"):
+                    presets[index].rules = [RenameRule(action: 41, dateFormat: "yyyyMMdd_HHmmss_")]
+                case (L10n.text("自定义前缀＋编号"), 46, "") where old.prefix == "哈尔滨之旅_" && old.padding == 4:
+                    presets[index].rules = [RenameRule(action: 46, padding: 4), RenameRule(action: 1, text: "哈尔滨之旅_")]
+                default: break
+                }
+            }
+            persistPresets()
+            defaults.set(true, forKey: "PhotoTrailRenameFriendlyRules.v1")
+        }
+        migrateDefaultPrefixExample()
+        if let data = defaults.data(forKey: "PhotoTrailRenameLastPreset.v1"),
+           let saved = try? JSONDecoder().decode(RenamePreset.self, from: data), saved.version == 1 {
+            if !presets.contains(where: { $0.id == saved.id }) { presets.append(saved); persistPresets() }
+            activatePreset(presets.first(where: { $0.id == saved.id }) ?? saved)
+        } else if let first = presets.first {
+            activatePreset(first)
+        } else {
+            rules = []; presetRules = []; currentPresetName = L10n.text("未保存方案")
+        }
+    }
+
     private struct Prepared: Sendable {
         let plan: RenamePlan
         let cache: [URL: (RenameFileIdentity, RenameInput)]
@@ -396,7 +456,10 @@ private extension RenameWorkspace {
         var inputs: [RenameInput] = []
         var versions: [URL: RenameFileIdentity] = [:]
         var updated: [URL: (RenameFileIdentity, RenameInput)] = [:]
-        let needsTags = rules.contains { $0.enabled && ((40...45).contains($0.action) || (66...83).contains($0.action) || $0.action == 98) } || settings.sort == .shooting
+        let needsTags = rules.contains { rule in
+            rule.enabled && ((40...45).contains(rule.action) || (66...83).contains(rule.action)
+                || rule.action == 98 || (100...111).contains(rule.action))
+        } || settings.sort == .shooting
         for (index, url) in urls.enumerated() {
             try Task.checkCancellation()
             let before = try RenameFileIdentity.read(url)
@@ -497,15 +560,61 @@ enum RenameCopy {
         case RenameError.stalePlan: L10n.text("源文件已变化，请重新预览。")
         case RenameError.occupied: L10n.text("目标被占用，未覆盖文件。")
         case RenameError.invalidSource: L10n.text("源文件不可用、重复或为符号链接。")
-        case RenameError.invalidPreset: L10n.text("预设格式或版本不受支持。")
+        case RenameError.invalidPreset: L10n.text("方案格式或版本不受支持。")
         default: L10n.text("重命名失败：%1$@", error.localizedDescription)
         }
     }
 }
 
-private extension RenameWorkspace {
-    func persistCurrentPreset() {
-        let preset = RenamePreset(id: currentPresetID ?? UUID(), name: currentPresetName, rules: presetRules, settings: presetSettings)
+extension RenameWorkspace {
+    private func persistCurrentPreset() {
+        let preset = RenamePreset(id: currentPresetID ?? UUID(), name: currentPresetName, rules: presetRules, settings: presetSettings, example: savedExample)
         if let data = try? JSONEncoder().encode(preset) { defaults.set(data, forKey: "PhotoTrailRenameLastPreset.v1") }
     }
+
+    private func updateExample(previous: String) {
+        guard let first = rows.first else { return }
+        if presetExample == previous {
+            presetExample = first.target.lastPathComponent
+            if rules == presetRules, settings == presetSettings { updateCurrentPreset() }
+        }
+        needsExampleUpdate = false
+    }
+
+    func savePreset() {
+        let name = presetName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !executing, !name.isEmpty else { return }
+        let preset = RenamePreset(name: uniquePresetName(name), rules: rules, settings: settings, example: presetExample)
+        presets.append(preset)
+        persistPresets()
+        presetName = ""
+        let pendingExample = needsExampleUpdate
+        activatePreset(preset)
+        needsExampleUpdate = pendingExample
+    }
+
+    static func counters(defaults: UserDefaults = .standard) -> [Int: Int] {
+        Dictionary(uniqueKeysWithValues: (1...10).map { index in
+            let key = "PhotoTrailRenameCounter.\(index)"
+            return (index, defaults.object(forKey: key) == nil ? 1 : defaults.integer(forKey: key))
+        })
+    }
+
+    private func migrateDefaultPrefixExample() {
+        for index in presets.indices where presets[index].name == L10n.text("自定义前缀＋编号")
+            && presets[index].example == "哈尔滨之旅_0001.jpg"
+            && presets[index].settings == RenameSettings() && presets[index].rules.count == 2 {
+            let old = presets[index].rules
+            guard old.allSatisfy({ $0.filters.count == 1 }) else { continue }
+            let expected = [RenameRule(id: old[0].id, action: 46, padding: 4,
+                                       filters: [RenameFilterCondition(id: old[0].filters[0].id)]),
+                            RenameRule(id: old[1].id, action: 1, text: "哈尔滨之旅_",
+                                       filters: [RenameFilterCondition(id: old[1].filters[0].id)])]
+            guard old == expected else { continue }
+            presets[index].rules[1].text = L10n.text("请自定义文字") + "_"
+            presets[index].example = L10n.text("请自定义文字") + "_0001.jpg"
+            persistPresets()
+        }
+    }
+
 }

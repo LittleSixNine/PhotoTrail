@@ -16,6 +16,7 @@ enum PhotoTrailEvent: Equatable {
     case addImage(ImageData)
     case addImages([ImageData])
     case addressChanged(Set<ImageData.ID>, Place)
+    case missingAddressesFilled([ImageData.ID: Place])
     case backupFolderSizeCheck
     case backupURLChanged(URL?)
     case badGpxFile(String)
@@ -68,6 +69,7 @@ enum PhotoTrailEvent: Equatable {
     case saveComplete(SaveHelper.SaveStatus)
     case saveProgress(Int)
     case saveRequest
+    case savePageRequest(MetadataSaveScope)
     case searchActiveChanged(Bool)
     case searchTextChanged(String)
     case selectAllRequest
@@ -95,6 +97,7 @@ extension PhotoTrailEvent: CustomStringConvertible {
         case .addImage: "addImage"
         case .addImages: "addImages"
         case .addressChanged: "addressChanged"
+        case .missingAddressesFilled: "missingAddressesFilled"
         case .backupFolderSizeCheck: "backupFolderSizeCheck"
         case .backupURLChanged: "backupURLChanged"
         case .badGpxFile: "badGpxFile"
@@ -147,6 +150,7 @@ extension PhotoTrailEvent: CustomStringConvertible {
         case .saveComplete: "saveComplete"
         case .saveProgress: "saveProgress"
         case .saveRequest: "saveReqest"
+        case .savePageRequest: "savePageRequest"
         case .searchActiveChanged: "searchActiveChanged"
         case .searchTextChanged: "searchTextChanged"
         case .selectAllRequest: "selectAllRequest"

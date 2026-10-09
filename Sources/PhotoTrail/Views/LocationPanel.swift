@@ -15,7 +15,7 @@ struct LocationPanel: View {
     @State private var displayedRegionKey = ""
     @State private var manualLookup = 0
     @State private var manualLookupKey = ""
-    @State private var coordinatesExpanded = false
+    @State private var fillingRegions = false
     @State private var favoritesExpanded = true
     @State private var showsAllFavorites = false
 
@@ -50,36 +50,17 @@ struct LocationPanel: View {
             region = ""
             let metadata = store[store.mostSelected].metadata
             guard let point = metadata.location, metadata.canDisplayAsWGS84 else { return }
-            if let cached = workspace.regionCache[key] { region = cached; return }
+            if let cached = workspace.regionCache[key] { region = cached.regionName; return }
             guard automaticRegion || (manualLookup > 0 && manualLookupKey == key) else { return }
             region = L10n.text("正在读取地区…")
             do {
                 if automaticRegion { try await Task.sleep(for: .milliseconds(500)) }
-                let name: String
-                if provider == "amap" {
-                    guard let lookup = workspace.lookupAMapRegion, workspace.ready else {
-                        region = L10n.text("地图就绪后读取地区")
-                        return
-                    }
-                    name = try await lookup(MapCoordinate(latitude: point.latitude, longitude: point.longitude))
-                } else {
-                    guard let request = MKReverseGeocodingRequest(location:
-                        CLLocation(latitude: point.latitude, longitude: point.longitude)) else { return }
-                    request.preferredLocale = L10n.locale
-                    let items = try await request.mapItems
-                    let place = items.first?.placemark
-                    var parts: [String] = []
-                    for value in [place?.administrativeArea, place?.locality, place?.subLocality]
-                        .compactMap({ $0 }) where !parts.contains(value) { parts.append(value) }
-                    name = parts.joined(separator: " · ")
-                }
+                let place = try await workspace.address(at:
+                    MapCoordinate(latitude: point.latitude, longitude: point.longitude), provider: provider)
+                let name = place.regionName
                 guard !Task.isCancelled, key == regionKey,
                       automaticRegion || (manualLookup > 0 && manualLookupKey == key) else { return }
                 region = name.isEmpty ? L10n.text("暂无地区信息") : name
-                if !name.isEmpty {
-                    if workspace.regionCache.count >= 256 { workspace.regionCache.removeAll() }
-                    workspace.regionCache[key] = name
-                }
             } catch {
                 guard !Task.isCancelled, key == regionKey,
                       automaticRegion || (manualLookup > 0 && manualLookupKey == key) else { return }
@@ -169,7 +150,8 @@ private extension LocationPanel {
                 Text(L10n.text("选择照片以查看定位")).foregroundStyle(.secondary)
             } else {
                 if selection.total > 1 {
-                    Text(L10n.text("%1$@ 张缺少定位 · %2$@ 张已有定位", selection.missing, selection.located))
+                    Text(L10n.text("%1$@ 张缺少定位 · %2$@ 张已有定位 · %3$@ 张缺少城市信息",
+                                   selection.missing, selection.located, selection.missingCity))
                         .font(.system(size: 15, weight: .medium))
                         .fixedSize(horizontal: false, vertical: true)
                     if selection.unreadable > 0 {
@@ -185,6 +167,25 @@ private extension LocationPanel {
                         .font(.caption).foregroundStyle(.orange)
                 }
             }
+            Button {
+                fillingRegions = true
+                Task {
+                    await LocationHelper.fillRegions(store, workspace: workspace)
+                    fillingRegions = false
+                }
+            } label: {
+                Text(L10n.text("为已有定位的图片写入城市数据"))
+                    .font(.system(size: 14, weight: .semibold))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity, minHeight: 29)
+            }
+            .buttonStyle(RegionFillButtonStyle())
+            .disabled(fillingRegions || store.saveInProgress || store.importProgress.isActive
+                      || !store.imageData.contains { store.selection.contains($0.id) && LocationHelper.canFillRegion($0) })
+            .accessibilityIdentifier("fillPhotoRegions")
+            Text(L10n.text("补齐省、市、区县等地区信息，可用于按城市重命名。"))
+                .font(.system(size: 11)).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             if !workspace.status.isEmpty,
                !workspace.status.hasPrefix(L10n.text("高德地图已就绪")),
                !workspace.status.hasPrefix(L10n.text("选择照片后")),
@@ -208,21 +209,30 @@ private extension LocationPanel {
                     Button(L10n.text("查询地区")) { manualLookupKey = regionKey; manualLookup += 1 }
                         .buttonStyle(.borderless)
                 }
-                DisclosureGroup(L10n.text("坐标详情"), isExpanded: $coordinatesExpanded) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(L10n.text("纬度 %1$@",
-                                       coordToString(for: point.latitude, ref: Coords.latRef, format: coordFormat)))
-                        Text(L10n.text("经度 %1$@",
-                                       coordToString(for: point.longitude, ref: Coords.lonRef, format: coordFormat)))
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 16) {
+                        coordinateText(point, latitude: true).fixedSize()
+                        Spacer(minLength: 0)
+                        coordinateText(point, latitude: false).fixedSize()
                     }
-                    .font(.callout).monospacedDigit().foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 8)
+                    VStack(alignment: .leading, spacing: 4) {
+                        coordinateText(point, latitude: true)
+                        coordinateText(point, latitude: false)
+                    }
                 }
+                .font(.system(size: 12)).monospacedDigit().foregroundStyle(.secondary)
+
             } else {
                 Label(L10n.text("暂无定位"), systemImage: "mappin.slash")
                     .font(.system(size: 18, weight: .semibold)).foregroundStyle(.secondary)
             }
         }
+    }
+
+    private func coordinateText(_ point: Coords, latitude: Bool) -> some View {
+        Text(L10n.text(latitude ? "纬度 %1$@" : "经度 %1$@",
+            coordToString(for: latitude ? point.latitude : point.longitude,
+                          ref: latitude ? Coords.latRef : Coords.lonRef, format: coordFormat)))
     }
 
     private func favoritesSection(_ selection: MapPhotoSelectionSummary) -> some View {
@@ -349,6 +359,7 @@ private struct FavoriteEditor: View {
 struct MapPhotoSelectionSummary {
     var total = 0
     var located = 0
+    var missingCity = 0
     var missing = 0
     var unreadable = 0
     var readOnly = 0
@@ -362,9 +373,23 @@ struct MapPhotoSelectionSummary {
             total += 1
             if !image.metadata.readable { unreadable += 1 } else if image.metadata.location == nil {
                 missing += 1
-            } else { located += 1 }
+            } else {
+                located += 1
+                if image.metadata.city?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false { missingCity += 1 }
+            }
             if !image.updatable { readOnly += 1 }
             if image.hasPendingLocationChanges { pending += 1 }
         }
+    }
+}
+
+private struct RegionFillButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var enabled
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, 12)
+            .foregroundStyle(enabled ? Color.primary : Color.secondary)
+            .background(configuration.isPressed ? Color(nsColor: .controlColor) : Color(nsColor: .controlBackgroundColor), in: Capsule())
+            .overlay(Capsule().strokeBorder(Color.primary.opacity(0.10)))
     }
 }

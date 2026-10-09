@@ -3,6 +3,7 @@ import SwiftUI
 import UDF
 
 struct PhotoPickerView: View {
+    private static let photosIcon = NSWorkspace.shared.icon(forFile: "/System/Applications/Photos.app")
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) var store
     @State private var photoLibrary = PhotoLibrary.shared
     @State private var pickerItems: [PhotosPickerItem] = []
@@ -15,7 +16,7 @@ struct PhotoPickerView: View {
                 PhotosPicker(selection: $pickerItems,
                              matching: .images,
                              photoLibrary: .shared()) {
-                    Image(systemName: "photo").frame(width: 16)
+                    Image(nsImage: Self.photosIcon).resizable().frame(width: 24, height: 24)
                         .accessibilityLabel(L10n.text("照片图库"))
                 }
                 .keyboardShortcut("i", modifiers: [.shift, .command])
@@ -31,7 +32,7 @@ struct PhotoPickerView: View {
                         }
                     }
                 } label: {
-                    Image(systemName: "photo").frame(width: 16)
+                    Image(nsImage: Self.photosIcon).resizable().frame(width: 24, height: 24)
                         .accessibilityLabel(L10n.text("照片图库"))
                 }
             }
@@ -50,21 +51,6 @@ struct PhotoPickerView: View {
         }
         .photoLibraryEnabledAlert(isPresented: $libraryEnabled)
         .photoLibraryDisabledAlert(isPresented: $libraryDisabled)
-    }
-}
-
-struct InspectorButtonView: View {
-    @Binding var presented: Bool
-
-    var body: some View {
-        Button {
-            presented.toggle()
-        } label: {
-            Image(systemName: "info.circle").frame(width: 16)
-                .accessibilityLabel(L10n.text("照片信息"))
-        }
-        .help(L10n.text("显示或隐藏照片信息（⌘I）"))
-        .keyboardShortcut("i")
     }
 }
 

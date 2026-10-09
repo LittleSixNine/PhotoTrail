@@ -13,6 +13,9 @@ enum SettingsPreferences {
     static let recursiveImportKey = "PhotoTrailRecursiveImport"
     static let automaticRegionKey = "PhotoTrailAutomaticRegionLookup"
     static let backupReminderKey = "PhotoTrailBackupReminderDays"
+    static let saveCurrentPageKey = "PhotoTrailSaveCurrentPage"
+    static let skipSaveScopePromptKey = "PhotoTrailSkipSaveScopePrompt"
+    static let writeRegionKey = "PhotoTrailWriteRegionWithLocation"
 
     static let startupWorkspaceKey = "PhotoTrailStartupWorkspace"
     static let lastWorkspaceKey = "PhotoTrailLastWorkspace"
@@ -68,3 +71,5 @@ enum SettingsPreferences {
         return [7, 30, 90].contains(value) ? value : nil
     }
 }
+
+enum MetadataSaveScope: String { case all, metadata, map }

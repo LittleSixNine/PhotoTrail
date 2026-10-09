@@ -5,11 +5,12 @@ import UDF
 
 struct SaveItemCommands: Commands {
     var store: Store<PhotoTrailState, PhotoTrailEvent>
+    var locationWorkspace: LocationWorkspace
 
     var body: some Commands {
         CommandGroup(after: .saveItem) {
             Button(L10n.text("Save…"), systemImage: "square.and.arrow.down.on.square") {
-                SaveHelper.requestSave(store)
+                SaveHelper.requestSave(store, workspace: locationWorkspace)
             }
             .keyboardShortcut("s")
             .disabled(saveDisabled())

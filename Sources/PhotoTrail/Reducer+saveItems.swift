@@ -14,14 +14,14 @@ struct SaveTargets {
     var creatorFiles = 0
     var conflicts: [Int] = []
 
-    init(images: [ImageData]) {
+    init(images: [ImageData], scope: MetadataSaveScope = .all) {
         var targets: [String: Int] = [:]
         for index in images.indices {
             let image = images[index]
             guard image.updatable else { continue }
-            let metadataChanged = image.hasLegacyChanges
-            let creatorChanged = image.creatorDraft?.changes.isEmpty == false
-            if metadataChanged || creatorChanged, let url = image.metadataInspectionURL {
+            let metadataChanged = image.hasLegacyChanges && scope != .metadata
+            let creatorChanged = image.creatorDraft?.changes.isEmpty == false && scope != .map
+            if image.hasLegacyChanges || image.creatorDraft?.changes.isEmpty == false, let url = image.metadataInspectionURL {
                 let key: String
                 if case .file(let device, let inode, _, _, _, _, _) = MetadataInspectionFileVersion.read(url) {
                     key = "\(device):\(inode)"
@@ -34,7 +34,7 @@ struct SaveTargets {
                     targets[key] = index
                 }
             }
-            if metadataChanged && creatorChanged {
+            if image.hasLegacyChanges && image.creatorDraft?.changes.isEmpty == false && (metadataChanged || creatorChanged) {
                 conflicts.append(index)
                 continue
             }
@@ -96,10 +96,10 @@ extension PhotoTrailReducer {
     // save the indices of all updatable images that have changed.
     // The save process continues in a future step.
 
-    func save(_ state: inout PhotoTrailState) {
+    func save(_ state: inout PhotoTrailState, scope: MetadataSaveScope = .all) {
         state.saveInProgress = true
         state.metadataSaveCancelled = false
-        let targets = SaveTargets(images: state.imageData)
+        let targets = SaveTargets(images: state.imageData, scope: scope)
         state.libraryImages = targets.library
         state.fileImages = targets.files
         state.xmpImages = targets.xmp

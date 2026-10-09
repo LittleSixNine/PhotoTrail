@@ -235,8 +235,9 @@ struct ExiftoolSerializedTests {
         metadata.location = Coords(latitude: 33.123,
                                    longitude: -122.345)
         metadata.elevation = 125.5
-        metadata.city = "some city"
-        metadata.state = "some state"
+        metadata.sublocation = "香坊区"
+        metadata.city = "哈尔滨市"
+        metadata.state = "黑龙江省"
         metadata.country = "United States"
         metadata.countryCode = "USA"
     }

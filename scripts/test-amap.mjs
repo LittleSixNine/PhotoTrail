@@ -324,8 +324,10 @@ test('navigation and region lookup never write photo coordinates', async () => {
   await new Promise(resolve => setImmediate(resolve));
   assert.deepEqual(Array.from(h.addresses[0].point), [121.49, 31.24]);
   h.addresses[0].callback('complete', { regeocode: { addressComponent:
-    { province: '上海市', city: '上海市', district: '浦东新区' } } });
-  assert.equal(await lookup, '上海市 · 浦东新区');
+    { province: '上海市', city: [], district: '浦东新区', country: '中国' } } });
+  assert.deepEqual(JSON.parse(JSON.stringify(await lookup)), {
+    state: '上海市', city: '上海市', sublocation: '浦东新区', country: '中国', countryCode: 'CN'
+  });
   assert.equal(h.messages.filter(m => m.type === 'pick').length, 0);
 });
 

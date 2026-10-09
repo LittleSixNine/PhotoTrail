@@ -1,9 +1,31 @@
 import Foundation
+import Exiftool
 import Metadata
 import Testing
 @testable import Imagetool
 
 struct ImagetoolTests {
+    @Test func structuredRegionSurvivesJPEGReopening() async throws {
+        let source = try #require(Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let copy = folder.appendingPathComponent("region.jpg")
+        try FileManager.default.copyItem(at: source, to: copy)
+        var metadata = Imagetool.metadata(from: copy)
+        metadata.state = "黑龙江省"
+        metadata.city = "哈尔滨市"
+        metadata.sublocation = "香坊区"
+        metadata.country = "中国"
+        metadata.countryCode = "CN"
+        try await Exiftool.helper.update(image: copy, from: metadata, timeZone: nil)
+        let reopened = Imagetool.metadata(from: copy)
+        #expect(reopened.state == metadata.state && reopened.city == metadata.city)
+        #expect(reopened.sublocation == metadata.sublocation)
+        #expect(reopened.country == metadata.country && reopened.countryCode == metadata.countryCode)
+        #expect(reopened.location == metadata.location)
+    }
+
     @Test func imageSourceCreateFailure() async throws {
         let url = URL(string: "bad url")!
         let metadata = Imagetool.metadata(from: url)

@@ -44,12 +44,20 @@ struct ReducerTests {
         #expect(!store.imageData.isEmpty)
         let id = store.imageData[1].id
         let selection: Set<ImageData.ID> = [id]
-        let place = testPlace()
+        var place = testPlace()
+        place.sublocation = "Test District"
+        store.send(.locationForImageChanged(id, Coords(latitude: place.coordinate.latitude,
+                                                      longitude: place.coordinate.longitude)))
         store.send(.addressChanged(selection, place))
         #expect(store[id].metadata.city == place.city)
         #expect(store[id].metadata.state == place.state)
         #expect(store[id].metadata.country == place.country)
         #expect(store[id].metadata.countryCode == place.countryCode)
+        #expect(store[id].metadata.sublocation == place.sublocation)
+        store.send(.locationForImageChanged(id, Coords(latitude: 30, longitude: 120)))
+        place.city = "Stale City"
+        store.send(.addressChanged(selection, place))
+        #expect(store[id].metadata.city != place.city)
         // .addressChanged event does not update location/coordinate
     }
 

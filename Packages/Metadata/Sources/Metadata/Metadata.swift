@@ -40,6 +40,7 @@ public struct Metadata: Sendable {
 
     // A save-snapshot flag, not image metadata. Excluded from copying/equality.
     public var preserveGPSOnSave = false
+    public var sublocation: String?
     public var city: String?
     public var state: String?
     public var country: String?
@@ -63,6 +64,7 @@ public struct Metadata: Sendable {
         elevation = converting.elevation
         gpsMapDatum = converting.gpsMapDatum
         gpsProcessingMethod = converting.gpsProcessingMethod
+        sublocation = converting.sublocation
         city = converting.city
         state = converting.state
         country = converting.country
@@ -87,6 +89,7 @@ extension Metadata {
         elevation = copy.elevation
         gpsMapDatum = copy.gpsMapDatum
         gpsProcessingMethod = copy.gpsProcessingMethod
+        sublocation = copy.sublocation
         city = copy.city
         state = copy.state
         country = copy.country
@@ -204,6 +207,7 @@ extension Metadata: Equatable {
             && lhs.elevation == rhs.elevation
             && lhs.gpsMapDatum == rhs.gpsMapDatum
             && lhs.gpsProcessingMethod == rhs.gpsProcessingMethod
+            && lhs.sublocation == rhs.sublocation
             && lhs.city == rhs.city
             && lhs.state == rhs.state
             && lhs.country == rhs.country

@@ -26,6 +26,7 @@ struct RenameRule: Codable, Equatable, Identifiable, Sendable {
     var action = 40
     var enabled = true
     var part = Part.stem
+    var metadataField: String? = nil
     var text = ""
     var replacement = ""
     var anchor = ""
@@ -107,6 +108,7 @@ struct RenamePreset: Codable, Identifiable, Sendable {
     var name: String
     var rules: [RenameRule]
     var settings: RenameSettings
+    var example: String? = nil
 }
 
 struct RenameInput: Sendable, Equatable {

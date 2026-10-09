@@ -1,4 +1,5 @@
 import AppKit
+import Coords
 import Foundation
 import ImageData
 import Metadata
@@ -17,10 +18,10 @@ struct PhotoTrailReducer: Reducer, Sendable {
                 _ event: PhotoTrailEvent) -> PhotoTrailState {
         if state.saveInProgress || state.importProgress.isActive {
             switch event {
-            case .addressChanged, .clearImagesRequest, .deleteRequest, .removeImages, .discardChangesRequest,
+            case .addressChanged, .missingAddressesFilled, .clearImagesRequest, .deleteRequest, .removeImages, .discardChangesRequest,
                  .creatorDraftApplied, .creatorDraftRemoved, .locationChanged, .applyTrackMatches,
                  .newTimestamp, .pasteRequest,
-                 .placeSelection, .timeZoneChanged, .openCommand, .openFiles, .saveRequest:
+                 .placeSelection, .timeZoneChanged, .openCommand, .openFiles, .saveRequest, .savePageRequest:
                 return state
             default: break
             }
@@ -60,6 +61,9 @@ struct PhotoTrailReducer: Reducer, Sendable {
 
         case .addressChanged(let selected, let address):
             update(&newState, selected: selected, address: address)
+
+        case .missingAddressesFilled(let addresses):
+            fillMissingAddresses(&newState, addresses: addresses)
 
         case .backupFolderSizeCheck:
             checkBackupFolderSize(&newState)
@@ -286,6 +290,9 @@ struct PhotoTrailReducer: Reducer, Sendable {
 
         case .saveProgress(let completed):
             newState.saveCompleted = min(newState.saveTotal, newState.saveCompleted + max(0, completed))
+
+        case .savePageRequest(let scope):
+            save(&newState, scope: scope)
 
         case .saveRequest:
             save(&newState)

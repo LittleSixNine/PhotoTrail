@@ -4,6 +4,23 @@
 
 Release milestones and source development history are recorded below.
 
+## 2026-10-09 · v0.5.7
+
+- 保存定位时可自动补写省／州、市、区／县及国家信息，并可为已有定位的照片补齐缺失地区字段；提供独立开关及城市字段缺失计数。
+- 保存按钮支持全部或当前页元数据，默认全部；确认窗口说明两页范围，支持取消、切换本页和不再提示。
+- 五个默认重命名方案与用户方案统一编辑、删除及管理；增加设备、定位字段卡片，前后缀并排，载入方案时折叠卡片。
+- 方案卡片采用 A2 浅暗渐变与独立“示例：”行；修改规则后自动更新文件名示例，默认文字提示改为“请自定义文字”。
+- 常用字段默认只显示 FNumber，不再默认列入 ApertureValue。
+
+Version 0.5.7 adds region metadata completion, configurable save scope, editable naming schemes and dedicated device/location cards, refreshed light/dark scheme previews and automatic example updates.
+
+## 2026-10-09 · v0.5.6（本地发布包）
+
+- 重命名方案卡片增加浅色／暗色配色，修复暗色模板白底与操作切换后的输入焦点残留。
+- 源码基线 b3b9a0c 已推送；该版本标签及安装包仅在本地，未创建 GitHub Release。
+
+The 0.5.6 source baseline improves rename card themes and input focus. Its tag and distribution package remain local; no GitHub Release was published.
+
 ## 2026-10-09 · v0.5.5
 
 - 优化旧轨迹缓存恢复和 KML 读取，减少启动窗口等待；执行记录改为打开时加载。

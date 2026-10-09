@@ -8,7 +8,7 @@ enum MetadataFieldFilter {
         "IPTC:DateCreated", "IPTC:TimeCreated",
         "XMP-xmp:CreateDate", "XMP-xmp:ModifyDate", "XMP-exif:DateTimeOriginal", "XMP-exif:DateTimeDigitized",
         "IFD0:Make", "IFD0:Model",
-        "ExifIFD:ISO", "ExifIFD:FNumber", "ExifIFD:ApertureValue", "ExifIFD:ShutterSpeedValue",
+        "ExifIFD:ISO", "ExifIFD:FNumber", "ExifIFD:ShutterSpeedValue",
         "ExifIFD:FocalLength", "ExifIFD:ExposureCompensation",
         "EXIF:GPSLatitude", "EXIF:GPSLatitudeRef", "EXIF:GPSLongitude", "EXIF:GPSLongitudeRef",
         "EXIF:GPSDateStamp", "EXIF:GPSTimeStamp"

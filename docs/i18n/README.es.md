@@ -32,6 +32,8 @@ PhotoTrail es gratuito. La descarga automática de actualizaciones está desacti
 
 Los recorridos sin hora por punto son solo de consulta. No se admite CSV de recorridos; los generados con fotos se exportan como GPX. KMZ lee doc.kml en la raíz o el único KML del archivo, sin cargar enlaces externos ni adjuntos.
 
+Al guardar una ubicación también se pueden escribir provincia/estado, ciudad, distrito y el país/código que devuelve el servicio. Puedes desactivar el complemento automático o completar campos regionales ausentes en fotos locales/XMP con GPS desde el mapa. Fotos de Apple sigue admitiendo solo cambios de ubicación y fecha mediante la interfaz del sistema.
+
 ### 2. Consulta y edición de metadatos
 
 Los campos comunes y completos comparten lista y controles de edición. Las fechas identifican su origen EXIF, IPTC, XMP o del sistema de archivos.
@@ -46,14 +48,14 @@ Los campos comunes y completos comparten lista y controles de edición. Las fech
 ### 3. Renombrado por lotes
 
 - **Ordena las reglas:** arrastra el asa de tres líneas para mover la tarjeta y usa el botón derecho en su espacio vacío para duplicar o eliminar. Texto, fechas y secuencias comparten términos como Reemplazar o Añadir al principio.
-- **Gestiona preajustes:** el panel izquierdo muestra el actual. Cambia entre opciones comunes o personales, busca, actualiza, guarda una copia, renombra, elimina e intercambia JSON. Al iniciar se recupera el último preajuste sin sobrescribirlo con reglas sin guardar.
+- **Gestiona esquemas:** los cinco esquemas predeterminados y los personales se pueden editar, eliminar, guardar e intercambiar mediante JSON en una sola lista. Dispositivo y ciudad tienen tarjetas propias. Al editar reglas, el ejemplo se actualiza con el primer resultado de la vista previa y se guarda con el esquema. Las tarjetas guardadas se abren contraídas; las reglas sin guardar no sobrescriben el esquema.
 - **Revisa nombres y conflictos:** la tabla muestra nombres originales y finales, archivos relacionados y conflictos, con una columna intermedia opcional. Los sufijos numéricos admiten 2–5 dígitos y separadores. La ejecución muestra progreso central y Detener y restaurar.
 
 Las tres pestañas comparten fotos y selección, también las importadas desde Renombrar. El alcance predeterminado son todas las fotos, con opción de usar las seleccionadas. Se mantienen las asociaciones JPG/RAW/XMP. Quitar una foto sincroniza las pestañas, puede deshacerse y no borra el archivo. Las fotos sin ruta local no se renombrarán directamente. Guarda primero los cambios de información o ubicación, revisa la vista previa y confirma. El historial restaura nombres solo si identidad y contenido coinciden.
 
 ### Guardar los cambios
 
-**Guardar todos los metadatos** (⌘S) escribe todos los cambios pendientes de información y ubicación de la ventana actual, sin limitarse a la pestaña, selección o filtro activos. Consultar y previsualizar no escribe archivos; puedes deshacer antes de guardar. Las escrituras locales respetan los ajustes de copia de seguridad y verifican los resultados mediante una nueva lectura, sin recomprimir los píxeles. Los pares JPG + RAW pueden compartir cambios de ubicación, pero los campos nuevos no se copian automáticamente a RAW. La fototeca usa la interfaz del sistema y tiene otro alcance de edición.
+Por defecto, **Guardar todos los metadatos** (⌘S) guarda los cambios pendientes de ambas pestañas, sin limitarse a la selección o filtros. El aviso permite confirmar, cancelar, cambiar a la pestaña actual o no volver a mostrarlo. En los ajustes de fotos y guardado puedes guardar solo la pestaña actual y conservar los cambios de la otra. Consultar y previsualizar no escribe archivos. Las escrituras locales respetan las copias de seguridad y verifican los resultados mediante una nueva lectura, sin recomprimir píxeles. JPG + RAW pueden compartir la ubicación; los campos nuevos no se copian automáticamente a RAW. Fotos usa la interfaz del sistema con un alcance distinto.
 
 ## Muchas fotos y caché
 

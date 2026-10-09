@@ -249,15 +249,6 @@ struct ContentView: View {
                 PhotoPickerView()
                     .disabled(store.saveInProgress)
                     .accessibilityIdentifier(testIDs.photoPickerViewID)
-                if !renameSelected {
-                    InspectorButtonView(presented: $inspectorPresented)
-                        // Keep the shared save action stationary when changing pages.
-                        .opacity(alternateLayout ? 1 : 0)
-                        .disabled(!alternateLayout)
-                        .allowsHitTesting(alternateLayout)
-                        .accessibilityHidden(!alternateLayout)
-                        .accessibilityIdentifier(testIDs.inspectorButtonViewID)
-                }
                 }.buttonStyle(WorkspaceToolbarButtonStyle())
             }
         }

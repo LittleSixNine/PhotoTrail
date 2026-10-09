@@ -32,6 +32,8 @@ PhotoTrail is free to use. Downloading updates automatically is a separate optio
 
 Untimed routes are view-only. Track CSV is not supported; tracks generated from photos export as GPX. KMZ reads root doc.kml or the archive’s only KML, without loading external links or attachments.
 
+Location saves can also write state/province, city, district and the country/code returned by the lookup service. Disable automatic completion in settings or fill missing region fields for already geotagged local photos/XMP from the map tab. Apple Photos still supports only location and date updates through the system interface.
+
 ### 2. Metadata viewing and editing
 
 Common and complete fields use the same list and editing controls. Dates identify EXIF, IPTC, XMP or filesystem sources.
@@ -46,14 +48,14 @@ Common and complete fields use the same list and editing controls. Dates identif
 ### 3. Batch renaming
 
 - **Arrange rules in order:** drag the three-line handle to move the whole card; right-click blank card space to duplicate or delete. Text, dates and sequences use consistent Replace, Add at beginning and Add at end wording.
-- **Manage presets:** the left panel shows the current preset. Switch and manage common or personal presets, search, update, save a copy, rename, delete and exchange JSON files. Restart restores the last preset without overwriting it with unsaved rule edits.
+- **Manage schemes:** five defaults and personal schemes share an editable, deletable list with saving and JSON exchange. Device and city fields have dedicated cards. Editing rules updates the example from the first preview result; it is saved with the scheme. Saved rule cards load collapsed, and unsaved rules do not overwrite a scheme.
 - **Review names and conflicts:** the table shows original/final names, related files and conflicts, with an optional intermediate-result column. Numeric conflict suffixes offer 2–5 digits and separator formats. Execution shows central progress and Stop and Restore.
 
 All three tabs share photos and selection, including imports from Rename. The default scope is all imported photos; selected photos are also supported. JPG/RAW/XMP associations remain intact. Removing a photo updates all tabs, supports undo and does not delete the disk file. Photos without local paths cannot be renamed directly. Save pending metadata/location changes first, then review and confirm renaming. Renaming runs separately; execution records restore names only when identity and content match.
 
 ### Saving changes
 
-**Save All Metadata** (⌘S) writes every pending photo-information and location change in the current window, regardless of the active tab, selection or filter. Browsing and previews do not write files. Changes can be undone before saving; local writes follow backup settings and verify results by reading them back and do not recompress image pixels. JPG + RAW pairs can share location writes, but new metadata fields are not automatically copied to RAW. Apple Photos uses the system interface and has a different editing scope.
+By default, **Save All Metadata** (⌘S) saves pending changes from both tabs, regardless of selection or filters. Its prompt offers confirmation, cancellation, switching to the current tab and hiding future prompts. Choose **Save Current Tab Metadata** in Photos and Saving settings to preserve pending changes from the other tab. Browsing and previews do not write files; local saves follow backup settings, verify results by reading them back and do not recompress pixels. JPG + RAW pairs can share location writes; new fields are not automatically copied to RAW. Apple Photos uses the system interface with a different editing scope.
 
 ## Large photo sets and caching
 

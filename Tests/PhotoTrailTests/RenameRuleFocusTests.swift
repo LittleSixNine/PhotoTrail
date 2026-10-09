@@ -79,7 +79,7 @@ struct RenameRuleFocusTests {
                                        rules: [RenameRule(action: 40), RenameRule(action: 68, text: ".<CameraModel>")])
         let store = Store(initialState: PhotoTrailState(), reduce: PhotoTrailReducer())
         let host = NSHostingView(rootView: RenameWorkspaceView(workspace: workspace)
-            .environment(store).defaultAppStorage(defaults).preferredColorScheme(scheme))
+            .environment(LocationWorkspace()).environment(store).defaultAppStorage(defaults).preferredColorScheme(scheme))
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1000, height: 1000),
                               styleMask: [.titled], backing: .buffered, defer: false)
         window.contentView = host

@@ -120,23 +120,31 @@ struct AMapWebView: NSViewRepresentable {
             }
             parent.workspace.lookupAMapRegion = { [weak self] point in
                 guard let self, !disposed, ready, let browserView else { throw URLError(.notConnectedToInternet) }
-                let name: String = try await withCheckedThrowingContinuation { continuation in
+                let place: Place = try await withCheckedThrowingContinuation { continuation in
                     browserView.callAsyncJavaScript("return await window.photoTrail.region(point);",
                         arguments: ["point": ["latitude": point.latitude, "longitude": point.longitude]],
                         in: nil, in: .page) { result in
                         switch result {
                         case .success(let value):
-                            guard let name = value as? String, !name.isEmpty else {
+                            guard let fields = value as? [String: String],
+                                  ["state", "city", "sublocation"].contains(where: { !(fields[$0] ?? "").isEmpty }) else {
                                 continuation.resume(throwing: URLError(.badServerResponse))
                                 return
                             }
-                            continuation.resume(returning: name)
+                            func field(_ key: String) -> String? {
+                                guard let text = fields[key], !text.isEmpty else { return nil }
+                                return text
+                            }
+                            continuation.resume(returning: Place(name: "", city: field("city"), state: field("state"),
+                                country: field("country"), countryCode: field("countryCode"),
+                                coordinate: Coordinate(latitude: point.latitude, longitude: point.longitude),
+                                sublocation: field("sublocation")))
                         case .failure(let error): continuation.resume(throwing: error)
                         }
                     }
                 }
                 guard !disposed else { throw CancellationError() }
-                return name
+                return place
             }
             parent.workspace.setSatellite = { [weak self] enabled in
                 guard let self, !disposed, ready else { return }

@@ -75,7 +75,8 @@ struct AMapTrackTests {
         <script>window.photoTrail = {
           start: async () => true, updateSnapshot: async () => {},
           setTrackStyle: () => {}, renderTracks: () => {},
-          region: async point => point.latitude === 31.23 ? '上海市' : ''
+          region: async point => point.latitude === 31.23
+            ? { state: '上海市', city: '上海市', sublocation: '浦东新区', country: '中国', countryCode: 'CN' } : {}
         };</script>
         """, baseURL: nil)
         for _ in 0..<100 {
@@ -85,7 +86,9 @@ struct AMapTrackTests {
         try #require(workspace.ready)
         let lookup = try #require(workspace.lookupAMapRegion)
         let region = try await lookup(MapCoordinate(latitude: 31.23, longitude: 121.48))
-        #expect(region == "上海市")
+        #expect(region.regionName == "上海市 · 浦东新区")
+        #expect(region.state == "上海市" && region.city == "上海市")
+        #expect(region.sublocation == "浦东新区")
         await #expect(throws: (any Error).self) {
             try await lookup(MapCoordinate(latitude: 0, longitude: 0))
         }

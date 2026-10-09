@@ -10,6 +10,34 @@ import UDF
 
 @MainActor
 struct SaveHelperTests {
+    @Test func regionSaveUsesCachePreservesDateOnlyEditsAndClearsStaleAddress() async throws {
+        var original = Metadata(source: .xmp(URL(fileURLWithPath: "/tmp/region-save.xmp")))
+        original.location = Coords(latitude: 30, longitude: 120)
+        original.city = "旧市"
+        original.sublocation = "旧区"
+        var image = ImageData(metadata: original, name: "region-save.jpg")
+        let workspace = LocationWorkspace()
+        image.metadata.dateTimeCreated = "2026:10:09 12:00:00"
+        var result = await SaveHelper.resolveAddresses([image.id: image.metadata], images: [image], workspace: workspace)
+        #expect(result[image.id] == image.metadata)
+
+        image.metadata.location = Coords(latitude: 45.7, longitude: 126.7)
+        result = await SaveHelper.resolveAddresses([image.id: image.metadata], images: [image], workspace: workspace)
+        #expect(result[image.id]?.location == image.metadata.location)
+        #expect(result[image.id]?.city == nil && result[image.id]?.sublocation == nil)
+
+        let provider = UserDefaults.standard.string(forKey: "PhotoTrailMapProvider") ?? "amap"
+        workspace.regionCache["\(L10n.language.rawValue):\(provider):45.7:126.7"] = Place(
+            name: "", city: "哈尔滨市", state: "黑龙江省", country: "中国", countryCode: "CN",
+            coordinate: Coordinate(latitude: 45.7, longitude: 126.7), sublocation: "香坊区")
+        result = await SaveHelper.resolveAddresses([image.id: image.metadata], images: [image], workspace: workspace)
+        let saved = try #require(result[image.id])
+        #expect(saved.city == "哈尔滨市" && saved.state == "黑龙江省")
+        #expect(saved.sublocation == "香坊区" && saved.countryCode == "CN")
+        #expect(saved.location == image.metadata.location)
+        #expect(image.metadata.sublocation == "旧区")
+    }
+
     @Test func batchedSavePublishesSuccessFailureAndSidecarWithoutLosingDrafts() {
         var first = ImageData(metadata: Metadata(source: .xmp(URL(fileURLWithPath: "/tmp/batch-success.jpg"))),
                               name: "success.jpg")
@@ -354,5 +382,73 @@ struct SaveHelperTests {
         #expect(store.saveTotal > 0)
         #expect(store.saveCompleted == store.saveTotal)
         #expect(!store.locationSavedPhotoIDs.isEmpty)
+    }
+}
+
+extension SaveHelperTests {
+    @Test func manualRegionFillWorksWithAutomaticWritingOffAndPreservesExistingValues() async throws {
+        let previous = UserDefaults.standard.object(forKey: SettingsPreferences.writeRegionKey)
+        defer {
+            if let previous { UserDefaults.standard.set(previous, forKey: SettingsPreferences.writeRegionKey) }
+            else { UserDefaults.standard.removeObject(forKey: SettingsPreferences.writeRegionKey) }
+        }
+        UserDefaults.standard.set(false, forKey: SettingsPreferences.writeRegionKey)
+        var metadata = Metadata(source: .xmp(URL(fileURLWithPath: "/tmp/manual-region.xmp")))
+        metadata.location = Coords(latitude: 31.2, longitude: 121.5)
+        metadata.city = "手动城市"
+        let image = ImageData(metadata: metadata, name: "manual-region.jpg")
+        var state = PhotoTrailState()
+        state.imageData = [image]; state.selection = [image.id]
+        let store = Store(initialState: state, reduce: PhotoTrailReducer(), undoEnabled: true)
+        let workspace = LocationWorkspace()
+        let provider = UserDefaults.standard.string(forKey: "PhotoTrailMapProvider") ?? "amap"
+        workspace.regionCache["\(L10n.language.rawValue):\(provider):31.2:121.5"] = Place(
+            name: "", city: "上海市", state: "上海市", country: "中国", countryCode: "CN",
+            coordinate: Coordinate(latitude: 31.2, longitude: 121.5), sublocation: "浦东新区")
+        await LocationHelper.fillRegions(store, workspace: workspace)
+        #expect(store[image.id].metadata.city == "手动城市")
+        #expect(store[image.id].metadata.sublocation == "浦东新区")
+        #expect(store.unsavedChanges)
+        #expect(store[image.id].metadata.location == image.metadata.location)
+        var moved = image
+        moved.metadata.location = Coords(latitude: 32, longitude: 122)
+        let resolved = await SaveHelper.resolveAddresses([moved.id: moved.metadata], images: [moved], workspace: workspace)
+        #expect(resolved[moved.id] == moved.metadata)
+    }
+
+}
+
+extension SaveHelperTests {
+    @Test func savingOnePageLeavesTheOtherPagePending() async throws {
+        let source = try #require(PhotoTrailState(forPreview: true).imageData.compactMap { image -> URL? in
+            guard case .image(let url) = image.metadata.source, url.pathExtension.lowercased() == "jpg" else { return nil }
+            return url
+        }.first)
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let urls = ["map.jpg", "metadata.jpg"].map { folder.appendingPathComponent($0) }
+        for url in urls { try FileManager.default.copyItem(at: source, to: url) }
+        var map = ImageData(metadata: Exiftool.helper.metadata(from: nil, primaryURL: urls[0]), name: "map.jpg")
+        let metadata = ImageData(metadata: Exiftool.helper.metadata(from: nil, primaryURL: urls[1]), name: "metadata.jpg")
+        map.metadata.location = Coords(latitude: 31.2, longitude: 121.5)
+        let snapshot = try MetadataInspectionSnapshot.read([.creator], from: urls[1])
+        let plan = try MetadataCreatorEditPlan.prepare([(image: metadata, snapshot: snapshot)], action: .set(["Page author"]))
+        var state = PhotoTrailState()
+        state.imageData = [map, metadata]
+        state.backupURL = folder.appendingPathComponent("backup")
+        try FileManager.default.createDirectory(at: state.backupURL!, withIntermediateDirectories: true)
+        let store = Store(initialState: state, reduce: PhotoTrailReducer())
+        store.send(.creatorDraftApplied(plan.items))
+        #expect(SaveTargets(images: store.imageData, scope: .metadata).creator == [1])
+        #expect(SaveTargets(images: store.imageData, scope: .map).files == [0])
+        await store.send(.savePageRequest(.metadata)) { _ = await SaveHelper.save(store).result }
+        #expect(store[map.id].hasPendingChanges && store.unsavedChanges)
+        #expect(store[metadata.id].creatorDraft == nil)
+        #expect(try Exiftool.helper.metadataTags([.creator], from: urls[1])[.creator] == .list(["Page author"]))
+        await store.send(.savePageRequest(.map)) { _ = await SaveHelper.save(store).result }
+        #expect(!store.unsavedChanges)
+        let saved = try #require(Exiftool.helper.metadata(from: nil, primaryURL: urls[0]).location)
+        #expect(abs(saved.latitude - 31.2) < 0.00000001)
     }
 }

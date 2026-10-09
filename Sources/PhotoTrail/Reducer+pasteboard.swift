@@ -16,11 +16,13 @@ extension PhotoTrailReducer {
         for id in state.selection
             where state[id].metadata.location != nil {
             update(&state, id: id, location: nil)
+            state[id].metadata.sublocation = nil
             state[id].metadata.city = nil
             state[id].metadata.state = nil
             state[id].metadata.country = nil
             state[id].metadata.countryCode = nil
             if let pairedID = state[id].pairedID, state[pairedID].updatable {
+                state[pairedID].metadata.sublocation = nil
                 state[pairedID].metadata.city = nil
                 state[pairedID].metadata.state = nil
                 state[pairedID].metadata.country = nil
