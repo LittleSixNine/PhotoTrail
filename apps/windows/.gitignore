@@ -1,0 +1,7 @@
+**/bin/
+**/obj/
+**/.vs/
+*.user
+
+development-tool.json
+tools/exiftool/

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tiles.openfreemap.org; connect-src 'self' https://tiles.openfreemap.org; worker-src 'self' blob:;">
+<link rel="stylesheet" href="vendor/maplibre-gl.css"><style>
+html,body,#map{height:100%;margin:0}#message{position:absolute;top:12px;left:12px;background:white;padding:8px 12px;border-radius:6px;font:14px system-ui;max-width:70%;z-index:1}
+</style></head><body><div id="map"></div><div id="message">正在加载地图；选点只作预览。</div>
+<script type="module">
+import * as maplibregl from './vendor/maplibre-gl.mjs';
+'use strict';
+maplibregl.setWorkerUrl(new URL('./vendor/maplibre-gl-worker.mjs',import.meta.url).href);
+const message = document.getElementById('message');
+const map = new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/liberty',center:[135.7681,35.0116],zoom:11});
+map.addControl(new maplibregl.NavigationControl());
+map.on('load',()=>{message.textContent='点击地图预览坐标，照片不会自动保存。';window.chrome.webview.postMessage({type:'ready'});});
+map.on('error',()=>{message.textContent='地图加载失败，请检查网络；照片读取仍可使用。';});
+let marker;
+map.on('click', event=>{
+ const longitude=event.lngLat.lng, latitude=event.lngLat.lat;
+ if (!Number.isFinite(longitude)||!Number.isFinite(latitude)||longitude < -180||longitude > 180||latitude < -90||latitude > 90) return;
+ if (!marker) marker=new maplibregl.Marker().setLngLat([longitude,latitude]).addTo(map);
+ else marker.setLngLat([longitude,latitude]);
+ window.chrome.webview.postMessage({type:'point',longitude,latitude});
+});
+</script></body></html>
