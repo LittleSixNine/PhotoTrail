@@ -94,7 +94,7 @@ final class LocationWorkspace {
         let place: Place
         if provider == "amap", let lookupAMapRegion, ready {
             place = try await lookupAMapRegion(point)
-        } else {
+        } else if #available(macOS 26, *) {
             guard let request = MKReverseGeocodingRequest(location:
                 CLLocation(latitude: point.latitude, longitude: point.longitude)) else {
                 throw URLError(.badURL)
@@ -103,6 +103,12 @@ final class LocationWorkspace {
             guard let item = try await request.mapItems.first else { throw URLError(.badServerResponse) }
             var address = Place(from: item)
             address.coordinate = Coordinate(latitude: point.latitude, longitude: point.longitude)
+            place = address
+        } else {
+            guard let address = try await ReverseLocationFinder.legacyPlace(
+                at: CLLocation(latitude: point.latitude, longitude: point.longitude), locale: L10n.locale) else {
+                throw URLError(.badServerResponse)
+            }
             place = address
         }
         if regionCache.count >= 256 { regionCache.removeAll() }

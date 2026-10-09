@@ -4,7 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "GpxTrackLog",
-    platforms: [.macOS(.v26)],
+    platforms: [.macOS(.v14)],
     products: [
         .library(name: "GpxTrackLog", targets: ["GpxTrackLog"])
     ],

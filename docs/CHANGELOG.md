@@ -4,6 +4,12 @@
 
 Release milestones and source development history are recorded below.
 
+## 2026-10-09 · macOS 14 兼容候选（未发布）
+
+- 应用和本地包部署目标降为 macOS 14；旧系统使用原生材质与 CLGeocoder，macOS 26 保留玻璃效果及新 MapKit 接口。
+- 照片 ID 使用兼容旧系统的原生锁，开发预览显式标注可用版本；保存、坐标、缓存及重命名行为保持。
+- Debug、双架构 Release 及相关自动检查通过；macOS 14／15／26 和原生 Intel 运行验收待补，已发布 0.5.7 的系统要求不变。
+
 ## 2026-10-09 · v0.5.7
 
 - 保存定位时可自动补写省／州、市、区／县及国家信息，并可为已有定位的照片补齐缺失地区字段；提供独立开关及城市字段缺失计数。

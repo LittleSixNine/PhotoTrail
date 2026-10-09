@@ -31,6 +31,12 @@ Application tests use `PHOTOTRAIL_OFFLINE_TESTS=1` to avoid private favorites, c
 
 State management uses the existing external UDF package. No translation service or additional localization dependency is required at runtime.
 
+## macOS 14 compatibility builds
+
+The app and all eight local packages target macOS 14, using the newer SDK and the existing Swift 6.2 language mode. Resolved UDF revision `2b129e07e41957dda462838323cb1b0e09b2265c` requires Swift tools 6.3 and targets macOS 14. The build toolchain must also satisfy that dependency. Reuse its resolution with `-disableAutomaticPackageResolution -skipPackageUpdates` instead of updating main.
+
+Check the minimum OS of the actual Debug and Release binaries. For universal builds, explicitly use `ARCHS='arm64 x86_64' ONLY_ACTIVE_ARCH=NO`. Compilation does not establish runtime support on older systems or native Intel hardware. Xcode previews using custom traits require macOS 15; the app itself still targets 14. This compatibility candidate is unreleased. Runtime validation on 14/15/26 remains pending; the current host is macOS 27 arm64.
+
 ## Localization
 
 Supported locales are `zh-Hans`, `en`, `zh-Hant`, `ja`, `ko`, `es`, and `pt-BR`. `Localization.swift` negotiates the system preference, persists an explicit app choice and reads bundled strings. English is the unsupported-language fallback. Portuguese variants use the Brazilian Portuguese translation.

@@ -945,7 +945,7 @@ struct WorkspacePageSwitch: View {
 
     var body: some View {
         if usesGlass {
-            track.glassEffect(.clear.interactive(), in: Capsule())
+            track.mapControlBackground(in: Capsule())
         } else {
             track.background(.quaternary.opacity(0.5), in: Capsule())
         }

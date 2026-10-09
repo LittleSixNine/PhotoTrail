@@ -56,7 +56,7 @@ struct SearchView: View {
                             .contentShape(Capsule())
                         }
                         .buttonStyle(.plain)
-                        .glassEffect(.regular.interactive(), in: Capsule())
+                        .mapControlBackground(in: Capsule(), regular: true)
                         .accessibilityLabel(L10n.text("最近搜索：%1$@", term))
                     }
                 }
@@ -91,7 +91,7 @@ struct SearchView: View {
             }
             .frame(width: expanded ? expandedWidth : 44, height: 44, alignment: .leading)
             .clipShape(Capsule())
-            .glassEffect((expanded ? Glass.regular : Glass.clear).interactive(), in: Capsule())
+            .mapControlBackground(in: Capsule(), regular: expanded)
             .animation(reduceMotion ? nil : .smooth(duration: 0.28), value: expanded)
         }
         .buttonStyle(.bordered)

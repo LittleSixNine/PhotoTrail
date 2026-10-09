@@ -5,7 +5,7 @@ import PackageDescription
 let package = Package(
     name: "RunLogView",
     defaultLocalization: "en",
-    platforms: [.macOS(.v26)],
+    platforms: [.macOS(.v14)],
     products: [
         .library(name: "RunLogView", targets: ["RunLogView"])
     ],

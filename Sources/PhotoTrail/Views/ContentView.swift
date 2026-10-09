@@ -307,6 +307,7 @@ extension ContentView {
     static let splitVAlternateKey = "SplitVAlternatePercent"
 }
 
+@available(macOS 15, *)
 #Preview(traits: .store) {
     ContentView()
         .environment(LocationWorkspace())

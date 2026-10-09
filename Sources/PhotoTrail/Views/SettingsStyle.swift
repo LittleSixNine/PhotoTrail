@@ -2,6 +2,7 @@
 
 import SwiftUI
 
+@available(macOS 15, *)
 struct SettingsFormStyle: FormStyle {
     func makeBody(configuration: Configuration) -> some View {
         Grid {

@@ -18,6 +18,8 @@ PhotoTrail は macOS 向けの写真情報整理アプリです。旅の軌跡�
 
 [最新の正式版をダウンロード](https://github.com/LittleSixNine/PhotoTrail/releases/latest) · [リリース履歴](https://github.com/LittleSixNine/PhotoTrail/releases)
 
+開発中の互換候補は macOS 14／15 をデプロイ対象とし、macOS 26 のガラス効果と新しい API を維持しています。旧 OS での実行検証は未完了で、正式対応としては未公開です。以下のシステム要件は公開済みの 0.5.7 に適用されます。
+
 **macOS 26以降**。Apple siliconとIntelに対応します。現在の配布版はad-hoc署名で、Developer ID署名とAppleの公証は未完了のため、初回起動時にmacOSがブロックする場合があります。
 
 PhotoTrailは無料です。更新の自動ダウンロードは既定でオフ。インストールは手動です。DMGを開き、PhotoTrailを終了してから「アプリケーション」にドラッグしてください。

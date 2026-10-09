@@ -30,10 +30,12 @@ struct AMapWebView: NSViewRepresentable {
         configuration.userContentController.add(context.coordinator, name: "photoTrail")
         let view = WKWebView(frame: .zero, configuration: configuration)
         view.underPageBackgroundColor = .windowBackgroundColor
-        // WebKit skips equal inset values. Establish an explicit value before zeroing
-        // to disable its automatic titlebar inset, including before window attachment.
-        view.obscuredContentInsets = NSEdgeInsets(top: 1, left: 0, bottom: 0, right: 0)
-        view.obscuredContentInsets = .init()
+        if #available(macOS 26, *) {
+            // WebKit skips equal inset values. Establish an explicit value before zeroing
+            // to disable its automatic titlebar inset, including before window attachment.
+            view.obscuredContentInsets = NSEdgeInsets(top: 1, left: 0, bottom: 0, right: 0)
+            view.obscuredContentInsets = .init()
+        }
         view.navigationDelegate = context.coordinator
         context.coordinator.browserView = view
         context.coordinator.connect()

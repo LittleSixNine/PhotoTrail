@@ -4,7 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "Exiftool",
-    platforms: [.macOS(.v26)],
+    platforms: [.macOS(.v14)],
     products: [
         .library(name: "Exiftool", targets: ["Exiftool"])
     ],

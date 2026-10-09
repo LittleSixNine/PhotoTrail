@@ -19,19 +19,28 @@ struct Place: Identifiable, Codable {
     }
 
     init(from item: MKMapItem) {
-        name = item.name ?? "unknown"
-        let address = item.placemark
+        let coordinate: CLLocationCoordinate2D
+        if #available(macOS 26, *) {
+            coordinate = item.location.coordinate
+        } else {
+            coordinate = item.placemark.coordinate
+        }
+        self.init(from: item.placemark, name: item.name, coordinate: Coordinate(coordinate))
+    }
+
+    init(from address: CLPlacemark, name: String?, coordinate: Coordinate) {
+        self.name = name ?? "unknown"
         sublocation = address.subLocality
         if let city = address.locality {
             self.city = city
-            if city != name {
-                name += ", \(city)"
+            if city != self.name {
+                self.name += ", \(city)"
             }
         }
         if let state = address.administrativeArea {
             self.state = state
-            if state != name {
-                name += ", \(state)"
+            if state != self.name {
+                self.name += ", \(state)"
             }
         }
         if let country = address.country {
@@ -40,8 +49,8 @@ struct Place: Identifiable, Codable {
                 self.name += ", \(country)"
             }
         }
-        self.countryCode = address.countryCode
-        self.coordinate = .init(item.location.coordinate)
+        self.countryCode = address.isoCountryCode
+        self.coordinate = coordinate
     }
 
     init(name: String, city: String?, state: String?, country: String?,

@@ -40,18 +40,28 @@ actor ReverseLocationFinder {
 
     nonisolated func requestTask(_ location: CLLocation) -> Task<Place?, Error> {
         return Task {
-            if let request = MKReverseGeocodingRequest(location: location) {
-                let mapItems = try await request.mapItems
-                // MKPlacemarks have been deprecated but I've not yet found
-                // something to replace them
-                if let item = mapItems.first {
-                    var place = Place(from: item)
-                    place.coordinate = Coordinate(location.coordinate)
-                    return place
+            if #available(macOS 26, *) {
+                if let request = MKReverseGeocodingRequest(location: location) {
+                    let mapItems = try await request.mapItems
+                    // MKPlacemarks have been deprecated but I've not yet found
+                    // something to replace them
+                    if let item = mapItems.first {
+                        var place = Place(from: item)
+                        place.coordinate = Coordinate(location.coordinate)
+                        return place
+                    }
                 }
+            } else {
+                return try await Self.legacyPlace(at: location)
             }
             return nil
         }
+    }
+
+    nonisolated static func legacyPlace(at location: CLLocation, locale: Locale? = nil) async throws -> Place? {
+        let placemarks = try await CLGeocoder().reverseGeocodeLocation(location, preferredLocale: locale)
+        guard let address = placemarks.first else { return nil }
+        return Place(from: address, name: address.name, coordinate: Coordinate(location.coordinate))
     }
 
     @MainActor

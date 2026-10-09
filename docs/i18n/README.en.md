@@ -18,6 +18,8 @@ PhotoTrail brings together **track matching, metadata editing and batch renaming
 
 [Download the latest release](https://github.com/LittleSixNine/PhotoTrail/releases/latest) · [Release history](https://github.com/LittleSixNine/PhotoTrail/releases)
 
+The development compatibility candidate targets macOS 14/15 while retaining glass effects and newer APIs on macOS 26. Runtime validation on older systems is pending; this support has not been released. The requirements below still apply to released version 0.5.7.
+
 Requires **macOS 26 or later**. Packages support Apple silicon and Intel Macs. Current distribution uses an ad-hoc signature and has not completed Developer ID signing or Apple notarization, so macOS may block the first launch.
 
 PhotoTrail is free to use. Downloading updates automatically is a separate option and is off by default. Installation is manual: open the downloaded DMG, quit PhotoTrail, then drag the app to Applications.

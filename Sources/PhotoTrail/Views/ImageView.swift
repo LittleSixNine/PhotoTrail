@@ -109,11 +109,13 @@ struct PhotoSelectionPreview: View {
     }
 }
 
+@available(macOS 15, *)
 #Preview(traits: .store) {
     ImageView()
         .frame(width: 400, height: 300)
 }
 
+@available(macOS 15, *)
 #Preview("image", traits: .select(11)    ) {
     ImageView()
         .frame(width: 400, height: 300)

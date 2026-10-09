@@ -20,6 +20,7 @@ struct ImageInspectorView: View {
     }
 }
 
+@available(macOS 15, *)
 #Preview(traits: .select(11)) {
     Text("some view")
         .inspector(isPresented: .constant(true)) {

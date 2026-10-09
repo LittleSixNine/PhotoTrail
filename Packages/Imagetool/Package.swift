@@ -4,7 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "Imagetool",
-    platforms: [.macOS(.v26)],
+    platforms: [.macOS(.v14)],
     products: [
         .library(name: "Imagetool", targets: ["Imagetool"])
     ],

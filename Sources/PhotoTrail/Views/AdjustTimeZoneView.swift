@@ -77,6 +77,7 @@ struct AdjustTimezoneView: View {
     }
 }
 
+@available(macOS 15, *)
 #Preview(traits: .store) {
     AdjustTimezoneView()
         .frame(height: 570)

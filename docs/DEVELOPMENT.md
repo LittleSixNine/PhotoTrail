@@ -22,6 +22,12 @@ xcodebuild -project PhotoTrail.xcodeproj -scheme PhotoTrail \
 
 `project.yml` 是 Xcode 项目的配置源。生成的 `PhotoTrail.xcodeproj` 和 `Build/Generated/` 不纳入版本控制；修改配置后重新运行 XcodeGen。
 
+## macOS 14 兼容构建
+
+主项目与八个本地包部署目标统一为 macOS 14；继续使用新 SDK，不降低 Swift 语言模式。当前 UDF revision `2b129e07e41957dda462838323cb1b0e09b2265c` 声明 macOS 14、Swift 工具链 6.3，构建工具链须同时满足它；项目语言设置仍为 Swift 6.2。复用解析结果，验证时使用 `-disableAutomaticPackageResolution -skipPackageUpdates`，不顺手更新 main。
+
+Debug／Release 都须检查真实二进制的最低系统版本；双架构构建显式设置 `ARCHS='arm64 x86_64' ONLY_ACTIVE_ARCH=NO`。编译通过不等于旧系统或 Intel 实机通过。Xcode 中使用自定义 traits 的开发预览需 macOS 15，不影响应用在 14 的运行入口。兼容候选尚未发布；14／15／26 运行验证待补，当前本机是 macOS 27 arm64。
+
 ## 目录与职责
 
 | 路径 | 内容 |

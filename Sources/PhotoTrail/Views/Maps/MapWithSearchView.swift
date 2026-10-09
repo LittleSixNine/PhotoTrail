@@ -158,6 +158,7 @@ public struct MapWithSearchView: View {
     }
 }
 
+@available(macOS 15, *)
 #Preview(traits: .store) {
     MapWithSearchView()
 }

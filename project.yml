@@ -4,7 +4,7 @@ options:
   developmentLanguage: en
   knownRegions: [en, zh-Hans, zh-Hant, ja, ko, es, pt-BR]
   deploymentTarget:
-    macOS: "26.0"
+    macOS: "14.0"
   groupOrdering:
     - order: [PhotoTrail, PhotoTrailTests, PhotoTrailUITests, Packages, Products]
   fileTypes:

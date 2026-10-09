@@ -15,7 +15,7 @@ struct MapNavigationControls: View {
                 }.frame(width: 40, height: 40)
                     .contentShape(Circle())
             }.disabled(locating)
-                .glassEffect(.clear.interactive(), in: Circle())
+                .mapControlBackground(in: Circle())
                 .help(L10n.text("回到本机位置"))
                 .accessibilityLabel(L10n.text("本机定位"))
             HStack(alignment: .bottom, spacing: 10) {
@@ -26,7 +26,7 @@ struct MapNavigationControls: View {
                         Text(L10n.text("北")).font(.system(size: 12, weight: .medium))
                     }.frame(width: 40, height: 40)
                         .contentShape(Circle())
-                }.glassEffect(.clear.interactive(), in: Circle())
+                }.mapControlBackground(in: Circle())
                     .help(L10n.text("回到正北"))
                     .accessibilityLabel(L10n.text("指南针，回到正北"))
                 VStack(spacing: 0) {
@@ -39,8 +39,20 @@ struct MapNavigationControls: View {
                         Image(systemName: "minus").frame(width: 40, height: 38)
                             .contentShape(Rectangle())
                     }.help(L10n.text("缩小地图"))
-                }.frame(width: 40).glassEffect(.clear.interactive(), in: Capsule())
+                }.frame(width: 40).mapControlBackground(in: Capsule())
             }
         }.buttonStyle(.plain)
+    }
+}
+
+
+extension View {
+    @ViewBuilder
+    func mapControlBackground(in shape: some Shape, regular: Bool = false) -> some View {
+        if #available(macOS 26, *) {
+            glassEffect((regular ? Glass.regular : Glass.clear).interactive(), in: shape)
+        } else {
+            background(.regularMaterial, in: shape)
+        }
     }
 }

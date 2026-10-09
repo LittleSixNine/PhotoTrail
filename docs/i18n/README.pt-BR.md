@@ -18,6 +18,8 @@ O PhotoTrail reúne **correspondência com trajetos, edição de metadados e ren
 
 [Baixar a versão estável mais recente](https://github.com/LittleSixNine/PhotoTrail/releases/latest) · [Histórico de versões](https://github.com/LittleSixNine/PhotoTrail/releases)
 
+A versão candidata em desenvolvimento tem macOS 14/15 como alvo e mantém os efeitos de vidro e as novas APIs no macOS 26. A validação em sistemas anteriores está pendente; essa compatibilidade ainda não foi lançada. Os requisitos abaixo continuam válidos para a versão publicada 0.5.7.
+
 Requer **macOS 26 ou posterior**. Compatível com Apple silicon e Intel. A distribuição atual usa assinatura ad-hoc e ainda não tem assinatura Developer ID nem notarização da Apple; por isso, o macOS pode bloquear a primeira abertura.
 
 O PhotoTrail é gratuito. O download automático de atualizações fica desativado por padrão. A instalação é manual: abra o DMG, saia do PhotoTrail e arraste o app para Aplicativos.

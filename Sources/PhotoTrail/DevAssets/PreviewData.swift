@@ -104,6 +104,7 @@ struct SelectTrait: PreviewModifier {
     }
 }
 
+@available(macOS 15, *)
 extension PreviewTrait where T == Preview.ViewTraits {
     static var store: Self = .modifier(StoreTrait())
     static func select(_ select: Int ...) -> Self {
