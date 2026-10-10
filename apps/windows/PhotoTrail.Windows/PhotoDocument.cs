@@ -6,9 +6,11 @@ using System.Text.Json;
 
 namespace PhotoTrail.Windows;
 
+public sealed record PhotoReadResult(string FilePath, PhotoDocument? Document, string? Error);
+
 public sealed class PhotoDocument
 {
-    public static readonly IReadOnlyList<string> EditableTags = Array.AsReadOnly(new[] { "XMP-dc:Creator", "XMP-dc:Title", "XMP-dc:Description", "XMP-dc:Subject", "XMP-exif:DateTimeOriginal", "XMP-exif:GPSLatitude", "XMP-exif:GPSLongitude", "XMP-exif:GPSAltitude", "XMP-exif:GPSAltitudeRef", "XMP-exif:GPSMapDatum", "XMP-exif:GPSProcessingMethod", "XMP-exif:GPSDateTime" });
+    public static readonly IReadOnlyList<string> EditableTags = Array.AsReadOnly(new[] { "XMP-dc:Creator", "XMP-dc:Title", "XMP-dc:Description", "XMP-dc:Subject", "XMP-exif:DateTimeOriginal", "XMP-exif:GPSLatitude", "XMP-exif:GPSLongitude", "XMP-exif:GPSAltitude", "XMP-exif:GPSAltitudeRef", "XMP-exif:GPSMapDatum", "XMP-exif:GPSProcessingMethod", "XMP-exif:GPSDateTime", "XMP-photoshop:Country", "XMP-photoshop:State", "XMP-photoshop:City", "XMP-iptcCore:Location", "XMP-iptcCore:CountryCode", "XMP-dc:Rights", "XMP-xmp:Rating", "XMP-xmp:Label", "XMP-tiff:Make", "XMP-tiff:Model", "XMP-aux:Lens", "XMP-aux:LensSerialNumber", "XMP-exif:DateTimeDigitized", "XMP-xmp:CreateDate", "XMP-xmp:ModifyDate", "XMP-exif:ExposureTime", "XMP-exif:FNumber", "XMP-exif:ISO", "XMP-exif:FocalLength", "XMP-exif:ExposureCompensation", "XMP-exif:ExposureProgram", "XMP-exif:WhiteBalance" });
     public string FilePath { get; }
     public string? SidecarPath { get; }
     public JsonElement Embedded { get; }
@@ -33,13 +35,67 @@ public sealed class PhotoDocument
         var hash = await HashAsync(file, cancellation);
         var sidecarHash = sidecar is null ? null : await HashAsync(sidecar, cancellation);
         var metadata = await client.ReadAsync(file, cancellation);
-        if ((!metadata.TryGetProperty("File:FileType", out var fileType) || fileType.ToString() != "XMP") &&
-            (!metadata.TryGetProperty("File:MIMEType", out var mime) || !mime.ToString().StartsWith("image/", StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidDataException("文件内容不是图片或XMP，未导入。");
         JsonElement? external = sidecar is null ? null : await client.ReadAsync(sidecar, cancellation);
-        if (hash != await HashAsync(file, cancellation) || (sidecar is not null && sidecarHash != await HashAsync(sidecar, cancellation)))
-            throw new IOException("读取期间文件已改变，请重新导入。");
+        return await VerifiedAsync(file, sidecar, metadata, external, hash, sidecarHash, cancellation);
+    }
+
+    private static async Task<PhotoDocument> VerifiedAsync(string file, string? sidecar, JsonElement metadata, JsonElement? external, string hash, string? sidecarHash, CancellationToken cancellation)
+    {
+        if (metadata.ValueKind != JsonValueKind.Object || metadata.TryGetProperty("ExifTool:Error", out _) || metadata.TryGetProperty("Error", out _) ||
+            ((!metadata.TryGetProperty("File:FileType", out var fileType) || fileType.ToString() != "XMP") &&
+             (!metadata.TryGetProperty("File:MIMEType", out var mime) || !mime.ToString().StartsWith("image/", StringComparison.OrdinalIgnoreCase))))
+            throw new InvalidDataException("文件内容不是图片或XMP，未导入。");
+        if (metadata.TryGetProperty("ExifTool:Warning", out var warning) && warning.ToString().Contains("JPEG format error", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("JPEG结构损坏，未导入。");
+        if (external is { } sidecarMetadata && (sidecarMetadata.ValueKind != JsonValueKind.Object || sidecarMetadata.TryGetProperty("ExifTool:Error", out _) || sidecarMetadata.TryGetProperty("Error", out _) || !sidecarMetadata.TryGetProperty("File:FileType", out var sidecarType) || sidecarType.ToString() != "XMP"))
+            throw new InvalidDataException("旁车元数据读取失败。");
+        var candidate = Path.ChangeExtension(file, ".xmp");
+        var paired = !file.Equals(candidate, StringComparison.OrdinalIgnoreCase) && File.Exists(candidate);
+        if (paired != (sidecar is not null) || hash != await HashAsync(file, cancellation) || (sidecar is not null && sidecarHash != await HashAsync(sidecar, cancellation)))
+            throw new IOException("读取期间文件或旁车关系已改变，请重新导入。");
         return new(file, sidecar, metadata, external, hash, sidecarHash);
+    }
+
+    public static async Task<IReadOnlyList<PhotoReadResult>> LoadBatchAsync(ExifToolClient client, IReadOnlyList<string> files, CancellationToken cancellation = default)
+    {
+        if (files.Count is < 1 or > 32 || files.Select(Path.GetFullPath).Distinct(StringComparer.OrdinalIgnoreCase).Count() != files.Count) throw new ArgumentException("批次需包含1至32个不同文件。");
+        var prepared = new List<(string File, string? Sidecar, string Hash, string? SidecarHash)>();
+        var results = new Dictionary<string,PhotoReadResult>(StringComparer.OrdinalIgnoreCase);
+        foreach (var path in files)
+        {
+            cancellation.ThrowIfCancellationRequested(); var file = Path.GetFullPath(path);
+            try
+            {
+                var candidate = Path.ChangeExtension(file, ".xmp");
+                var sidecar = !file.Equals(candidate, StringComparison.OrdinalIgnoreCase) && File.Exists(candidate) ? candidate : null;
+                prepared.Add((file, sidecar, await HashAsync(file, cancellation), sidecar is null ? null : await HashAsync(sidecar, cancellation)));
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException) { results[file] = new(file, null, error.Message); }
+        }
+        IReadOnlyDictionary<string,JsonElement>? metadata = null;
+        if (prepared.Count > 0)
+        {
+            var sources = prepared.SelectMany(item => item.Sidecar is null ? new[] { item.File } : new[] { item.File, item.Sidecar }).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            try { metadata = await client.ReadManyAsync(sources, cancellation); }
+            catch (OperationCanceledException) { throw; }
+            // A bad input can make ExifTool fail the whole command; isolate it without dropping valid neighbours.
+            catch (Exception error) when (error is IOException or InvalidDataException or JsonException or ArgumentException or TimeoutException) { }
+        }
+        foreach (var item in prepared)
+        {
+            cancellation.ThrowIfCancellationRequested();
+            try
+            {
+                var embedded = metadata is null ? await client.ReadAsync(item.File, cancellation) : metadata[item.File];
+                JsonElement? external = item.Sidecar is null ? null : metadata is null ? await client.ReadAsync(item.Sidecar, cancellation) : metadata[item.Sidecar];
+                var photo = await VerifiedAsync(item.File, item.Sidecar, embedded, external, item.Hash, item.SidecarHash, cancellation);
+                results[item.File] = new(item.File, photo, null);
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception error) when (error is IOException or InvalidDataException or JsonException or ArgumentException or TimeoutException or UnauthorizedAccessException) { results[item.File] = new(item.File, null, error.Message); }
+        }
+        return files.Select(path => results[Path.GetFullPath(path)]).ToArray();
     }
 
     public string Value(string tag)
@@ -56,12 +112,14 @@ public sealed class PhotoDocument
         foreach (var (tag, value) in changes)
         {
             var original = (Sidecar ?? Embedded).TryGetProperty(tag, out var field) ? Text(field) : "";
-            if (value == original) draft.Remove(tag); else draft[tag] = value;
+            var normalized = value.Length > 0 && NumericRange(tag) is not null ? CheckedNumber(tag,value).ToString(CultureInfo.InvariantCulture) : value;
+            if (normalized == original) draft.Remove(tag); else draft[tag] = normalized;
         }
     }
 
     public static Dictionary<string, string> PositionChanges(MapPoint point, double? altitude, string method)
     {
+        if (!double.IsFinite(point.Latitude) || !double.IsFinite(point.Longitude) || point.Latitude is < -90 or > 90 || point.Longitude is < -180 or > 180) throw new ArgumentException("GPS坐标超出WGS-84范围。");
         var changes = new Dictionary<string, string>
         {
             ["XMP-exif:GPSLatitude"] = point.Latitude.ToString("0.########", CultureInfo.InvariantCulture),
@@ -95,11 +153,47 @@ public sealed class PhotoDocument
             double.TryParse(longitude, NumberStyles.Float, CultureInfo.InvariantCulture, out var lon) && double.IsFinite(lat) && double.IsFinite(lon) && lat is >= -90 and <= 90 && lon is >= -180 and <= 180 ? new(lon, lat) : null;
     }
 
+    public static string WriteTag(string tag) => tag is "XMP-dc:Title" or "XMP-dc:Description" or "XMP-dc:Rights" ? tag+"-x-default" : tag;
+    public static string BaseTag(string tag) => tag is "XMP-dc:Title-x-default" or "XMP-dc:Description-x-default" or "XMP-dc:Rights-x-default" ? tag[..^10] : tag;
+
+    public static (double Minimum, double Maximum, bool Integer)? NumericRange(string tag) => tag switch
+    {
+        "XMP-exif:ExposureTime" => (0.000001,86400,false), "XMP-exif:FNumber" => (0.1,128,false),
+        "XMP-exif:ISO" => (1,1000000,true), "XMP-exif:FocalLength" => (0.1,10000,false),
+        "XMP-exif:ExposureCompensation" => (-100,100,false), "XMP-exif:ExposureProgram" => (0,8,true),
+        "XMP-exif:WhiteBalance" => (0,1,true), _ => null
+    };
+    public static double CheckedNumber(string tag,string text)
+    {
+        var range = NumericRange(tag) ?? throw new ArgumentException("字段不是可编辑曝光参数。");
+        var parts = text.Split('/');
+        if (parts.Length is < 1 or > 2 || !double.TryParse(parts[0],NumberStyles.Float,CultureInfo.InvariantCulture,out var number) || !double.IsFinite(number))
+            throw new ArgumentException("曝光参数使用有限数值或分数。");
+        if (parts.Length == 2)
+        {
+            if (!double.TryParse(parts[1],NumberStyles.Float,CultureInfo.InvariantCulture,out var denominator) || !double.IsFinite(denominator) || denominator == 0)
+                throw new ArgumentException("曝光参数分母必须是非零有限数值。");
+            number /= denominator;
+        }
+        if (!double.IsFinite(number) || number < range.Minimum || number > range.Maximum || range.Integer && Math.Truncate(number) != number)
+            throw new ArgumentException("曝光参数超出字段范围或须为整数："+tag);
+        return number;
+    }
+
     public static void ValidateChanges(IReadOnlyDictionary<string, string> changes)
     {
         foreach (var (tag, value) in changes)
         {
             if (!EditableTags.Contains(tag) || value.Length > 8192 || value.Contains('\0')) throw new ArgumentException("字段或值不在允许范围。");
+            _ = new UTF8Encoding(false,true).GetByteCount(value);
+            if (value.Length > 0 && NumericRange(tag) is not null) _ = CheckedNumber(tag,value);
+            if (tag == "XMP-xmp:Rating" && value is not ("" or "-1" or "0" or "1" or "2" or "3" or "4" or "5")) throw new ArgumentException("评分使用0至5的整数，-1表示拒绝；留空清除。");
+            if (tag == "XMP-xmp:Label" && (value.Length > 256 || value.Any(char.IsControl))) throw new ArgumentException("标签最多256字且不可含控制字符。");
+            if (tag is "XMP-photoshop:Country" or "XMP-photoshop:State" or "XMP-photoshop:City" or "XMP-iptcCore:Location" or "XMP-iptcCore:CountryCode")
+            {
+                if (value.Length > 256 || value.Any(char.IsControl)) throw new ArgumentException("地区字段最多256字且不可含控制字符。");
+                if (tag == "XMP-iptcCore:CountryCode" && value.Length > 0 && (value.Length != 3 || value.Any(c => c is < 'A' or > 'Z'))) throw new ArgumentException("国家代码使用三个大写英文字母，例如CHN。");
+            }
             if (value.Length > 0 && tag is "XMP-exif:GPSLatitude" or "XMP-exif:GPSLongitude" or "XMP-exif:GPSAltitude")
             {
                 if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) || !double.IsFinite(number) ||
@@ -111,14 +205,21 @@ public sealed class PhotoDocument
             if (tag == "XMP-exif:GPSProcessingMethod" && value is not ("" or "GPS" or "MANUAL")) throw new ArgumentException("定位来源无效。");
             if (tag == "XMP-exif:GPSDateTime" && value.Length > 0) throw new ArgumentException("当前仅清除旧XMP定位时间，不从照片时间猜测GPS测量时间。");
             if (tag is "XMP-dc:Creator" or "XMP-dc:Subject" && value.Split('\n').Length > 256) throw new ArgumentException("作者或关键词最多支持256项。");
-            if (tag == "XMP-exif:DateTimeOriginal" && value.Length != 0 &&
-                !DateTimeOffset.TryParseExact(value, ["yyyy:MM:dd HH:mm:ss", "yyyy:MM:dd HH:mm:sszzz"], CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
-                throw new ArgumentException("拍摄时间请使用 yyyy:MM:dd HH:mm:ss，可附带 +09:00 等时区。");
+            if (value.Length != 0 && tag is "XMP-exif:DateTimeOriginal" or "XMP-exif:DateTimeDigitized" or "XMP-xmp:CreateDate" or "XMP-xmp:ModifyDate") _ = MetadataDate.Parse(value);
         }
     }
 
     public static string Text(JsonElement value) => value.ValueKind == JsonValueKind.Array
         ? string.Join("\n", value.EnumerateArray().Select(v => v.ToString())) : value.ToString();
+
+    public async Task EnsureUnchangedAsync(CancellationToken cancellation = default)
+    {
+        var candidate = Path.ChangeExtension(FilePath,".xmp");
+        if (SourceHash != await HashAsync(FilePath,cancellation) ||
+            (SidecarPath is not null && SidecarHash != await HashAsync(SidecarPath,cancellation)) ||
+            (SidecarPath is null && !FilePath.Equals(candidate,StringComparison.OrdinalIgnoreCase) && File.Exists(candidate)))
+            throw new IOException("原文件、旁车内容或旁车关系已改变，请重新导入。");
+    }
 
     public static async Task<string> HashAsync(string path, CancellationToken cancellation = default)
     {
@@ -138,9 +239,7 @@ public static class MetadataCopy
         var output = Path.Combine(Path.GetFullPath(folder), Path.GetFileName(photo.FilePath));
         var sidecarOutput = photo.SidecarPath is null ? null : Path.ChangeExtension(output, ".xmp");
         if (File.Exists(output) || (sidecarOutput is not null && File.Exists(sidecarOutput))) throw new IOException("目标文件已存在，不会覆盖。");
-        if (photo.SourceHash != await PhotoDocument.HashAsync(photo.FilePath, cancellation) ||
-            (photo.SidecarPath is not null && photo.SidecarHash != await PhotoDocument.HashAsync(photo.SidecarPath, cancellation)))
-            throw new IOException("原文件或旁车已被其他程序修改，请重新导入。");
+        await photo.EnsureUnchangedAsync(cancellation);
         var temporary = Path.Combine(folder, ".phototrail-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(temporary);
         var stagedImage = Path.Combine(temporary, Path.GetFileName(photo.FilePath));
@@ -152,11 +251,14 @@ public static class MetadataCopy
         {
             await CopyNewAsync(photo.FilePath, stagedImage, cancellation);
             if (stagedSidecar is not null) await CopyNewAsync(photo.SidecarPath!, stagedSidecar, cancellation);
+            if (photo.SourceHash != await PhotoDocument.HashAsync(stagedImage,cancellation) ||
+                (stagedSidecar is not null && photo.SidecarHash != await PhotoDocument.HashAsync(stagedSidecar,cancellation)))
+                throw new IOException("暂存副本与导入基线不一致，未写入元数据。");
             var writable = stagedSidecar ?? stagedImage;
             var arguments = new List<string> { "-charset", "filename=UTF8", "-n", "-overwrite_original" };
             foreach (var (tag, value) in changes)
             {
-                var writeTag = tag + (tag is "XMP-dc:Title" or "XMP-dc:Description" ? "-x-default" : "");
+                var writeTag = PhotoDocument.WriteTag(tag);
                 var values = tag is "XMP-dc:Creator" or "XMP-dc:Subject"
                     ? value.Split('\n').Where(s => s.Length > 0).Select(s => s.TrimEnd('\r')).ToArray() : [value];
                 if (values.Length == 0 || value.Length == 0) arguments.Add("-" + writeTag + "=");
@@ -182,6 +284,12 @@ public static class MetadataCopy
                         !double.TryParse(expected, NumberStyles.Float, CultureInfo.InvariantCulture, out var target) || !double.IsFinite(read) || Math.Abs(read - target) > 0.00000001)
                         throw new InvalidDataException("GPS保存回读不一致：" + tag);
                 }
+                else if (PhotoDocument.NumericRange(tag) is not null && expected.Length > 0)
+                {
+                    var target = PhotoDocument.CheckedNumber(tag,expected);
+                    if (!double.TryParse(actual,NumberStyles.Float,CultureInfo.InvariantCulture,out var read) || !double.IsFinite(read) || Math.Abs(read-target) > Math.Max(1e-12,Math.Abs(target)*1e-9))
+                        throw new InvalidDataException("曝光参数保存回读不一致："+tag);
+                }
                 else if (actual != expected.Replace("\r\n", "\n")) throw new InvalidDataException("保存后字段回读不一致：" + tag);
             }
             var before = photo.Sidecar ?? photo.Embedded;
@@ -203,9 +311,7 @@ public static class MetadataCopy
                 if (await JpegPixelsAsync(photo.FilePath, cancellation) != await JpegPixelsAsync(stagedImage, cancellation))
                     throw new InvalidDataException("JPEG像素载荷发生变化。");
             }
-            if (photo.SourceHash != await PhotoDocument.HashAsync(photo.FilePath, cancellation) ||
-                (photo.SidecarPath is not null && photo.SidecarHash != await PhotoDocument.HashAsync(photo.SidecarPath, cancellation)))
-                throw new IOException("保存期间原文件改变，结果未交付。");
+            await photo.EnsureUnchangedAsync(cancellation);
             verifiedImageHash = await PhotoDocument.HashAsync(stagedImage, cancellation);
             cancellation.ThrowIfCancellationRequested();
             File.Move(stagedImage, output); movedImage = true;

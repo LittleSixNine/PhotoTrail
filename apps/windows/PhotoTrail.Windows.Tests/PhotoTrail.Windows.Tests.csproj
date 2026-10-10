@@ -1,6 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
- <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+ <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0-windows</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
  <ItemGroup>
+  <Compile Include="../PhotoTrail.Windows/ThemePreference.cs" Link="ThemePreference.cs" />
+  <Compile Include="../PhotoTrail.Windows/PhotoPreview.cs" Link="PhotoPreview.cs" />
+  <Compile Include="../PhotoTrail.Windows/TrackHistory.cs" Link="TrackHistory.cs" />
+  <Compile Include="../PhotoTrail.Windows/MetadataXmp.cs" Link="MetadataXmp.cs" />
+  <Compile Include="../PhotoTrail.Windows/MetadataClipboard.cs" Link="MetadataClipboard.cs" />
+  <Compile Include="../PhotoTrail.Windows/MetadataPreset.cs" Link="MetadataPreset.cs" />
+  <Compile Include="../PhotoTrail.Windows/MetadataDate.cs" Link="MetadataDate.cs" />
+  <Compile Include="../PhotoTrail.Windows/MetadataCsv.cs" Link="MetadataCsv.cs" />
+  <Compile Include="../PhotoTrail.Windows/WindowsRename.cs" Link="WindowsRename.cs" />
+  <Compile Include="../PhotoTrail.Windows/RenameExecutor.cs" Link="RenameExecutor.cs" />
+  <Compile Include="../PhotoTrail.Windows/RenamePlan.cs" Link="RenamePlan.cs" />
+  <Compile Include="../PhotoTrail.Windows/MapPlace.cs" Link="MapPlace.cs" />
+  <FrameworkReference Include="Microsoft.WindowsDesktop.App" />
+  <Compile Include="../PhotoTrail.Windows/GoogleKeyStore.cs" Link="GoogleKeyStore.cs" />
   <Compile Include="../PhotoTrail.Windows/ExifToolClient.cs" Link="ExifToolClient.cs" />
   <Compile Include="../PhotoTrail.Windows/MapMessage.cs" Link="MapMessage.cs" />
   <Compile Include="../PhotoTrail.Windows/PhotoDocument.cs" Link="PhotoDocument.cs" />

@@ -22,7 +22,7 @@ static class GpsChecks
         var manual=await MetadataCopy.SaveAsync(client,reopened,second);var cleared=await client.ReadAsync(manual);
         Check(!cleared.TryGetProperty("XMP-exif:GPSAltitude",out _) && !cleared.TryGetProperty("XMP-exif:GPSAltitudeRef",out _),"manual position clears stale XMP altitude when unknown");
         Check(cleared.GetProperty("XMP-exif:GPSLatitude").GetDouble()==0 && cleared.GetProperty("XMP-exif:GPSLongitude").GetDouble()==0,"zero coordinates are valid positions");
-        foreach(var point in new[]{new MapPoint(181,0),new MapPoint(0,91),new MapPoint(double.NaN,0)})
+        foreach(var point in new[]{new MapPoint(181,0),new MapPoint(0,91),new MapPoint(double.NaN,0),new MapPoint(180.000000001,0),new MapPoint(0,90.000000001)})
         {
             try {PhotoDocument.PositionChanges(point,null,"MANUAL");throw new Exception("Invalid GPS accepted");}
             catch(ArgumentException){Console.WriteLine("PASS invalid GPS draft rejected before mutation");}

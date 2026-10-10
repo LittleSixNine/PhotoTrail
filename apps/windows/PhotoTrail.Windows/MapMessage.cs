@@ -7,10 +7,12 @@ public record MapPoint(double Longitude, double Latitude);
 public static class MapMessage
 {
     public const string Page = "https://phototrail.local/map.html";
+    public const string GooglePage = "https://phototrail.local/google.html";
+    private static bool IsLocalPage(string source) => source == Page || source == GooglePage;
     public static bool TryPhoto(string source, string json, out int id, out int revision)
     {
         id = revision = -1;
-        if (source != Page || json.Length > 4096) return false;
+        if (!IsLocalPage(source) || json.Length > 4096) return false;
         try
         {
             using var document = JsonDocument.Parse(json);
@@ -22,15 +24,18 @@ public static class MapMessage
         catch (Exception error) when (error is JsonException or InvalidOperationException) { return false; }
     }
 
-    public static bool IsReady(string source, string json)
+    public static bool IsGoogleBootstrap(string source, string json) => source == GooglePage && IsType(source, json, "google-bootstrap");
+    public static bool IsReady(string source, string json) => IsType(source, json, "ready");
+    public static bool IsError(string source, string json) => IsType(source, json, "map-error");
+    private static bool IsType(string source, string json, string expected)
     {
-        if (source != Page || json.Length > 4096) return false;
+        if (!IsLocalPage(source) || json.Length > 4096) return false;
         try
         {
             using var document = JsonDocument.Parse(json);
             return document.RootElement.ValueKind == JsonValueKind.Object &&
                 document.RootElement.TryGetProperty("type", out var type) &&
-                type.ValueKind == JsonValueKind.String && type.GetString() == "ready";
+                type.ValueKind == JsonValueKind.String && type.GetString() == expected;
         }
         catch (JsonException) { return false; }
     }
@@ -38,7 +43,7 @@ public static class MapMessage
     public static bool TryPoint(string source, string json, out MapPoint? point)
     {
         point = null;
-        if (source != Page || json.Length > 4096) return false;
+        if (!IsLocalPage(source) || json.Length > 4096) return false;
         try
         {
             using var document = JsonDocument.Parse(json);

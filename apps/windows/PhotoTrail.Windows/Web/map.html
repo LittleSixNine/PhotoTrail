@@ -19,8 +19,23 @@ map.on('load',()=>{
  map.addLayer({id:'photo-points',type:'circle',source:'photos',paint:{'circle-color':['case',['get','selected'],'#d95914','#217b43'],'circle-radius':7,'circle-stroke-color':'white','circle-stroke-width':2}});
  message.textContent='点击地图预览坐标，照片不会自动保存。';window.chrome.webview.postMessage({type:'ready'});
 });
-map.on('error',()=>{message.textContent='地图加载失败，请检查网络；照片读取仍可使用。';});
+map.on('error',()=>{message.textContent='地图加载失败，请检查网络后点击“重载地图”；照片读取仍可使用。';window.chrome.webview.postMessage({type:'map-error'});});
 let marker;
+function previewPoint(longitude,latitude) {
+ if (!Number.isFinite(longitude)||!Number.isFinite(latitude)||longitude < -180||longitude > 180||latitude < -90||latitude > 90) return;
+ if (!marker) marker=createMarker('#dd651c',[longitude,latitude]);
+ else marker.setLngLat([longitude,latitude]);
+ message.textContent='位置预览；可拖动标记，加入GPS草稿后另存副本。';
+ window.chrome.webview.postMessage({type:'point',longitude,latitude});
+}
+function createMarker(color,coordinates) {
+ const preview=new maplibregl.Marker({color,draggable:true}).setLngLat(coordinates).addTo(map);
+ preview.on('dragend',()=>{
+  const point=preview.getLngLat().wrap();
+  previewPoint(point.lng,point.lat);
+ });
+ return preview;
+}
 window.chrome.webview.addEventListener('message',event=>{
  const data=event.data;
  if(data.type==='tracks' && map.getSource('trails')) {
@@ -39,7 +54,7 @@ window.chrome.webview.addEventListener('message',event=>{
  } else if(data.type==='match-preview') {
   if(marker){marker.remove();marker=null;}
   if(data.point && Number.isFinite(data.point.Longitude) && Number.isFinite(data.point.Latitude))
-   marker=new maplibregl.Marker({color:'#dd651c'}).setLngLat([data.point.Longitude,data.point.Latitude]).addTo(map);
+   marker=createMarker('#dd651c',[data.point.Longitude,data.point.Latitude]);
  }
 });
 map.on('click','photo-points',event=>{
@@ -48,10 +63,7 @@ map.on('click','photo-points',event=>{
 });
 map.on('click', event=>{
  if(map.getLayer('photo-points') && map.queryRenderedFeatures(event.point,{layers:['photo-points']}).length)return;
- const longitude=event.lngLat.lng, latitude=event.lngLat.lat;
- if (!Number.isFinite(longitude)||!Number.isFinite(latitude)||longitude < -180||longitude > 180||latitude < -90||latitude > 90) return;
- if (!marker) marker=new maplibregl.Marker().setLngLat([longitude,latitude]).addTo(map);
- else marker.setLngLat([longitude,latitude]);
- window.chrome.webview.postMessage({type:'point',longitude,latitude});
+ const point=event.lngLat.wrap();
+ previewPoint(point.lng,point.lat);
 });
 </script></body></html>
