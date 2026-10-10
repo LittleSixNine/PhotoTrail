@@ -56,7 +56,9 @@ struct MetadataWorkflowTests {
                     == .set(.text("2025:02:17 13:24:35.123456+08:00")))
             #expect(try decrease.change(for: tag, from: .text(original))
                     == .set(.text("2022:12:13 07:16:25.123456+08:00")))
-            #expect(throws: MetadataDateError.self) { try increase.change(for: tag, from: nil) }
+            #expect(try increase.change(for: tag, from: nil) == nil)
+            #expect(throws: MetadataFieldEditError.self) { try increase.change(for: tag, from: .list([original])) }
+            #expect(throws: MetadataDateError.self) { try increase.change(for: tag, from: .text("invalid")) }
         }
         #expect(try MetadataDate("2024:12:31 23:59:59").offsetting(seconds: 1).text == "2025:01:01 00:00:00")
         #expect(try MetadataDate(original).offsetting().text == original)

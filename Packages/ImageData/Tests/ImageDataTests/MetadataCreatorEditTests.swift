@@ -57,6 +57,35 @@ struct MetadataCreatorEditTests {
         }
     }
 
+    @Test func dateOffsetSkipsMissingTimesWithoutBlockingBatch() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let readings = try (0..<3).map { index in
+            let url = folder.appendingPathComponent("photo-\(index).jpg")
+            try Data("image".utf8).write(to: url)
+            let image = ImageData(metadata: Metadata(source: .image(url)), name: url.lastPathComponent)
+            let snapshot = try MetadataInspectionSnapshot.read([.captureDate], from: url) { _, _ in
+                index == 1 ? [:] : [.captureDate: .text("2026:08:22 15:03:34.123+08:00")]
+            }
+            return (image: image, snapshot: snapshot)
+        }
+        let action = MetadataFieldEditAction.offsetDate(years: 0, months: 0, days: 0,
+                                                        hours: 0, minutes: 4, seconds: 15)
+        let plan = try MetadataCreatorEditPlan.prepare(readings, tag: .captureDate, action: action)
+        #expect(plan.items.map(\.id) == readings.map { $0.image.id })
+        #expect(plan.items.filter { $0.change != nil }.count == 2)
+        #expect(plan.items[0].change == .set(.text("2026:08:22 15:07:49.123+08:00")))
+        #expect(plan.items[1].originalValue == nil && plan.items[1].changes.isEmpty)
+        #expect(plan.items[2].change == plan.items[0].change)
+        let allMissing = try MetadataCreatorEditPlan.prepare([readings[1]], tag: .captureDate, action: action)
+        #expect(allMissing.items.allSatisfy { $0.change == nil && $0.changes.isEmpty })
+        try Data("source changed".utf8).write(to: readings[1].snapshot.url)
+        #expect(throws: MetadataCreatorPlanError.self) {
+            try MetadataCreatorEditPlan.prepare(readings, tag: .captureDate, action: action)
+        }
+    }
+
     @Test func creatorPlanFreezesSelectionAndRejectsChangedOrSharedTargets() throws {
         let folder = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

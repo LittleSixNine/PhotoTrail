@@ -109,7 +109,8 @@ public enum MetadataFieldEditAction: Equatable, Codable, Sendable {
             let action: MetadataCreatorEditAction = if case .replaceAuthors = self { .set(names) } else { .fillMissing(names) }
             return try action.change(from: creator)
         case (_, .offsetDate(let years, let months, let days, let hours, let minutes, let seconds)) where tag.isDate:
-            guard case .text(let text) = current else { throw MetadataDateError.missingDate }
+            guard let current else { return nil }
+            guard case .text(let text) = current else { throw MetadataFieldEditError.invalidValue }
             let final = try tag.checkedText(MetadataDate(text).offsetting(
                 years: years, months: months, days: days, hours: hours, minutes: minutes, seconds: seconds).text)
             return current == .text(final) ? nil : .set(.text(final))

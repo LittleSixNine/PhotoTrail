@@ -231,7 +231,10 @@ struct MetadataCreatorEditorView: View {
     }
 
     private func display(_ item: MetadataCreatorEditPlan.Item) -> String {
-        switch item.change {
+        if mode == .offset, item.originalValue == nil, item.change == nil {
+            return L10n.text("缺失时间，已跳过")
+        }
+        return switch item.change {
         case nil: display(item.originalValue)
         case .remove: L10n.text("未填写")
         case .set(let value): display(value)
