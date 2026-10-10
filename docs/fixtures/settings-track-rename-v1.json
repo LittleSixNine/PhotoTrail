@@ -1,0 +1,13 @@
+{
+  "contract": "phototrail-settings-track-rename-v1",
+  "defaults": {"metadataTextSize": 0, "metadataSpacing": 0, "showTagNames": true, "recordSearches": true, "photoSort": [{"field": "name", "descending": false}]},
+  "trackAdjustment": {"coordinateSystem": "WGS84", "method": "great-circle-destination-per-point", "radiusMeters": 6371008.8, "bearing": "atan2(east,north)", "distance": "hypot(east,north)", "maximumDistanceMeters": 100000, "latitudeExclusiveLimitDegrees": 85, "maximumTimeOffsetSeconds": 315576000, "coordinateToleranceDegrees": 1e-10, "timestampToleranceSeconds": 0.000001},
+  "cases": [
+    {"id": "north-100m", "input": {"latitude": 0, "longitude": 0, "east": 0, "north": 100}, "expected": {"latitude": 0.000899320363724538, "longitude": 0}},
+    {"id": "time-fraction", "input": {"recorded": true, "epoch": 1700000000.125, "seconds": -3600.5}, "expected": {"recorded": true, "epoch": 1699996399.625}},
+    {"id": "untimed-stays-untimed", "input": {"recorded": false, "epoch": 0, "seconds": 3600}, "expected": {"recorded": false, "epoch": 0}},
+    {"id": "filtered-drag", "full": ["A", "hidden", "B", "C", "D"], "visible": ["A", "B", "C", "D"], "moving": ["C", "D"], "before": "A", "expected": ["C", "hidden", "D", "A", "B"]},
+    {"id": "paired-date-descending", "input": [{"name": "a.jpg", "createdEpoch": 10}, {"name": "a.xmp", "createdEpoch": 100}, {"name": "missing.jpg"}, {"name": "b.jpg", "createdEpoch": 20}], "leaderExtensions": ["jpg", "arw"], "expected": ["b.jpg", "a.jpg", "a.xmp", "missing.jpg"]},
+    {"id": "natural-filename", "input": ["file10.jpg", "file2.jpg", "file1.jpg"], "expected": ["file1.jpg", "file2.jpg", "file10.jpg"]}
+  ]
+}

@@ -49,7 +49,7 @@ struct PhotoTrailState {
         }
         return nil
     }
-    var sortOrder = [KeyPathComparator(\ImageData.name)]
+    var sortOrder = SettingsPreferences.photoSort()
     var unsavedChanges = false
 
     // Search exists for items in the Image Table and locations

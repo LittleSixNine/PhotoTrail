@@ -530,28 +530,71 @@ extension RenameEngine {
         return rule.filterAny ? conditions.contains(true) : conditions.allSatisfy { $0 }
     }
 
+    static func groupID(_ input: RenameInput, settings: RenameSettings) -> String {
+        let extensions = (settings.sourceExtensions + "," + settings.targetExtensions).split(separator: ",")
+            .map { key($0.trimmingCharacters(in: .whitespaces)) }
+        return settings.pair && extensions.contains(key(input.url.pathExtension))
+            ? input.directory.path + "/" + key(split(input.name).stem) : input.url.path
+    }
+
+    static func leader(_ inputs: [RenameInput], settings: RenameSettings) -> RenameInput {
+        let extensions = settings.sourceExtensions.split(separator: ",").map { key($0.trimmingCharacters(in: .whitespaces)) }
+        return inputs.min {
+            (extensions.firstIndex(of: key($0.url.pathExtension)) ?? Int.max) <
+            (extensions.firstIndex(of: key($1.url.pathExtension)) ?? Int.max)
+        }!
+    }
+
     static func ordered(_ inputs: [RenameInput], settings: RenameSettings) -> [RenameInput] {
-        guard settings.sort != .input else { return settings.descending ? inputs.reversed() : inputs }
-        return inputs.enumerated().sorted { left, right in
-            let comparison: ComparisonResult
-            switch settings.sort {
-            case .name: comparison = left.element.name.compare(right.element.name)
-            case .natural: comparison = left.element.name.localizedStandardCompare(right.element.name)
-            case .created, .modified, .shooting:
-                func date(_ item: RenameInput) -> Date? {
-                    switch settings.sort {
-                    case .created: item.created
-                    case .modified: item.modified
-                    default: shooting(item, settings: settings)?.date
-                    }
-                }
-                let lhs = date(left.element) ?? .distantFuture, rhs = date(right.element) ?? .distantFuture
-                comparison = lhs == rhs ? .orderedSame : lhs < rhs ? .orderedAscending : .orderedDescending
-            case .input: comparison = .orderedSame
+        let grouped = Dictionary(grouping: inputs) { groupID($0, settings: settings) }
+        var seen = Set<String>()
+        let groups = inputs.map { groupID($0, settings: settings) }.filter { seen.insert($0).inserted }
+        if settings.sort == .input || settings.sort == .manual {
+            return (settings.descending && settings.sort != .manual ? Array(groups.reversed()) : groups).flatMap { grouped[$0]! }
+        }
+        return groups.enumerated().sorted { left, right in
+            let lhs = leader(grouped[left.element]!, settings: settings)
+            let rhs = leader(grouped[right.element]!, settings: settings)
+            let a = sortValue(lhs, settings: settings).flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
+            let b = sortValue(rhs, settings: settings).flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
+            if a == nil || b == nil {
+                if a == nil && b == nil { return left.offset < right.offset }
+                return a != nil
             }
+            let comparison: ComparisonResult
+            if [.created, .modified, .shooting, .size, .rating, .metadata].contains(settings.sort),
+               Double(a!)?.isFinite == true || Double(b!)?.isFinite == true {
+                if let first = Double(a!), let second = Double(b!), first.isFinite, second.isFinite {
+                    comparison = first == second ? .orderedSame : first < second ? .orderedAscending : .orderedDescending
+                } else { comparison = Double(a!)?.isFinite == true ? .orderedAscending : .orderedDescending }
+            } else if settings.sort == .natural {
+                comparison = a!.localizedStandardCompare(b!)
+            } else { comparison = a!.compare(b!) }
             if comparison == .orderedSame { return left.offset < right.offset }
             return settings.descending ? comparison == .orderedDescending : comparison == .orderedAscending
-        }.map(\.element)
+        }.flatMap { grouped[$0.element]! }
+    }
+
+    static func sortValue(_ input: RenameInput, settings: RenameSettings) -> String? {
+        switch settings.sort {
+        case .input, .manual: return nil
+        case .name, .natural: return input.name
+        case .fileExtension: return input.url.pathExtension.lowercased()
+        case .folder: return input.directory.path
+        case .size: return input.tags["FileSizeInBytes"]
+        case .created: return input.created.map { String($0.timeIntervalSince1970) }
+        case .modified: return input.modified.map { String($0.timeIntervalSince1970) }
+        case .shooting: return shooting(input, settings: settings).map { String($0.date.timeIntervalSince1970) }
+        case .make: return tag("CameraMake", input: input)
+        case .model: return tag("CameraModel", input: input)
+        case .city: return tag("IPTCCity", input: input)
+        case .rating: return tag("XMP-xmp:Rating", input: input)
+        case .metadata:
+            guard let field = settings.metadataSortTag else { return nil }
+            let value = tag(field, input: input)
+            if let value, let date = parseDate(value) { return String(date.date.timeIntervalSince1970) }
+            return value
+        }
     }
 
     // Final allocation keeps all members of a photo group on the same stem.

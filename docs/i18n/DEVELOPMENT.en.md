@@ -79,3 +79,7 @@ Metadata-list thumbnails use 80 points times the display scale. The location fil
 All tabs import through `ContentView` and `OpenHelper.importFiles`; `PhotoTrailState` owns photos and selection. Rename has no independent file URL list. Removal uses `.removeImages` and undo; rename/restore mappings update shared objects through `.filesRenamed`. Imports are rejected while saving or renaming.
 
 `PhotoTrailRenameLastPreset.v1` stores the last preset’s saved rules and settings, preferring its current saved entry on restart. Scope is not persisted with presets and defaults to all photos. `RenamePresetTests` uses isolated UserDefaults domains for restart, update, rename, deletion and unsaved-rule boundaries. `OpenHelperTests` covers shared imports, deduplication, removal and undo; `RenameTests` verifies shared-path updates. Clipboard and metadata-queue tests cover multi-field paste and refresh behavior. Logic tests do not establish complete real-photo, NAS or GUI acceptance.
+
+## Cross-platform behavior checks
+
+Stable requirement IDs, defaults, geographic algorithm and nonprivate synthetic cases for settings, track adjustments and rename order are maintained in the shared contract. Reuse app, GPX package, map and localization checks when changing these paths. Windows records implementation and machine validation per ID independently; Mac success is not Windows acceptance. [Contract](../FEATURE-CONTRACT-v1.md)。

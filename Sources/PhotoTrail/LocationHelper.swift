@@ -115,10 +115,13 @@ enum LocationHelper {
                                               reason: L10n.text("拍摄时间缺失或格式错误。")))
             }
         }
+        let frozenTracks = store.gpxTracks
+        let matchingTracks = tracks ?? frozenTracks
         let task = Task {
             let updatedLocations = await Self.locations(for: locations,
                                                         extendedTime: extendedTime,
-                                                        tracks: tracks ?? store.gpxTracks)
+                                                        tracks: matchingTracks)
+            guard store.gpxTracks == frozenTracks else { return }
             store.send(.locationFromTrack(updatedLocations),
                        undoable: false)
         }

@@ -136,6 +136,7 @@ struct PhotoTrailReducer: Reducer, Sendable {
             discardChanges(&newState)
 
         case .restoreTracks(let tracks):
+            newState.trackMatches = []
             for track in tracks {
                 newState.gpxTracks.removeAll { $0.sourceURL == track.sourceURL }
                 newState.gpxTracks.append(track)

@@ -287,7 +287,9 @@ extension Gpx: XMLParserDelegate {
                         of: "\\.\\d+",
                         with: "",
                         options: .regularExpression)
-                let convertedTime = Gpx.pointTimeFormat.date(from: trimmedTime)
+                let fractional = timestamp.range(of: "\\.\\d+", options: .regularExpression)
+                    .flatMap { Double("0" + timestamp[$0]) } ?? 0
+                let convertedTime = Gpx.pointTimeFormat.date(from: trimmedTime)?.addingTimeInterval(fractional)
 
                 // find the latest point and update its timeFromEpoch
                 let trackIx = tracks.count - 1

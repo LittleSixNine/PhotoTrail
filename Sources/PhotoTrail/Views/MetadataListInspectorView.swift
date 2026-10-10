@@ -147,6 +147,12 @@ struct MetadataListInspectorView: View {
     @AppStorage(MetadataFieldFilter.commonFieldsKey) private var commonFieldsData = Data()
     @State private var commonFieldTags = MetadataFieldFilter.commonTags(from: UserDefaults.standard.data(forKey: MetadataFieldFilter.commonFieldsKey) ?? Data())
 
+    @AppStorage(SettingsPreferences.metadataTextSizeKey) private var textSize = 0
+    @AppStorage(SettingsPreferences.metadataSpacingKey) private var rowSpacing = 0
+    @AppStorage(SettingsPreferences.metadataTagNamesKey) private var showsTagNames = true
+    private var fontDelta: CGFloat { CGFloat(max(-1, min(1, textSize))) * 2 }
+    private var rowPadding: CGFloat { rowSpacing < 0 ? 2 : rowSpacing > 0 ? 10 : 6 }
+
     @State private var workflowEditor: MetadataCreatorEditorSelection?
     @State private var selectedWorkflowPreset: MetadataPreset?
     @AppStorage("PhotoTrail.MetadataPresets") private var presetData = Data()
@@ -695,9 +701,10 @@ private extension MetadataListInspectorView {
         let pending = selected.contains { $0.creatorDraft?.changes[tag] != nil }
         return HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(label).font(.system(size: 13, weight: .medium))
+                Text(label).font(.system(size: 13 + fontDelta, weight: .medium))
                     .foregroundStyle(pending ? Color.orange : Color.primary)
-                Text(tag.rawValue).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(2)
+                Text(showsTagNames ? tag.rawValue : String(tag.rawValue.split(separator: ":").first ?? ""))
+                    .font(.system(size: 10 + fontDelta)).foregroundStyle(.secondary).lineLimit(2)
             }.frame(minWidth: 140, idealWidth: 190, maxWidth: 240, alignment: .leading)
             VStack(alignment: .leading, spacing: 3) {
                 metadataValue(value, isDate: tag.isDate,
@@ -723,13 +730,14 @@ private extension MetadataListInspectorView {
                     .frame(width: 24).accessibilityLabel(L10n.text("只读")).help(L10n.text("只读"))
             }
         }
-        .frame(minHeight: 40)
-        .padding(.horizontal, 10).padding(.vertical, 6)
+        .frame(minHeight: rowSpacing < 0 ? 30 : rowSpacing > 0 ? 48 : 40)
+        .padding(.horizontal, 10).padding(.vertical, rowPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .listRowSeparator(.visible)
         .listRowSeparatorTint(Color(nsColor: .separatorColor))
         .contentShape(Rectangle())
         .tag(tag.rawValue)
+        .help(tag.rawValue)
         .onTapGesture(count: 2) {
             if canEdit, let readings { creatorEditor = MetadataCreatorEditorSelection(readings: readings, tag: tag) }
         }
@@ -861,7 +869,7 @@ private extension MetadataListInspectorView {
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.primary)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .padding(.horizontal, 10).padding(.vertical, rowPadding)
                         .background(Color(nsColor: .separatorColor).opacity(0.12))
                         .id(section.name).selectionDisabled()
                 }
@@ -913,16 +921,17 @@ private extension MetadataListInspectorView {
         let visibleText = available ? text : (advancedFailed ? L10n.text("未能读取") : L10n.text("正在读取元数据…"))
         return HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(MetadataFieldFilter.displayName(tag)).font(.system(size: 13, weight: .medium))
-                Text(tag).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(2)
+                Text(MetadataFieldFilter.displayName(tag)).font(.system(size: 13 + fontDelta, weight: .medium))
+                Text(showsTagNames ? tag : String(tag.split(separator: ":").first ?? ""))
+                    .font(.system(size: 10 + fontDelta)).foregroundStyle(.secondary).lineLimit(2)
             }.frame(minWidth: 140, idealWidth: 190, maxWidth: 240, alignment: .leading)
             metadataValue(visibleText, isDate: isDate, color: summary == .absent ? .secondary : .primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Image(systemName: "lock").font(.system(size: 11)).foregroundStyle(.secondary)
                 .frame(width: 24).accessibilityLabel(L10n.text("只读"))
         }
-        .frame(minHeight: 40)
-        .padding(.horizontal, 10).padding(.vertical, 6)
+        .frame(minHeight: rowSpacing < 0 ? 30 : rowSpacing > 0 ? 48 : 40)
+        .padding(.horizontal, 10).padding(.vertical, rowPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .listRowSeparator(.visible)
         .listRowSeparatorTint(Color(nsColor: .separatorColor))
@@ -931,7 +940,7 @@ private extension MetadataListInspectorView {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(MetadataFieldFilter.displayName(tag) + " · " + tag)
         .accessibilityValue(visibleText)
-        .help(L10n.text("此字段为结构或计算信息，尚未接入可靠写回；GPS 请在地图定位中编辑。"))
+        .help(tag + " · " + L10n.text("此字段为结构或计算信息，尚未接入可靠写回；GPS 请在地图定位中编辑。"))
         .contextMenu {
             if selectedFields.contains("display:" + tag), !batchTargets(selectedFields).isEmpty {
                 batchActions(selectedFields)
@@ -1056,14 +1065,14 @@ private extension MetadataListInspectorView {
         if isDate, let newline = value.firstIndex(of: "\n") {
             VStack(alignment: .leading, spacing: 3) {
                 Text(String(value[..<newline]))
-                    .font(.system(size: 15, design: .monospaced)).monospacedDigit()
+                    .font(.system(size: 15 + fontDelta, design: .monospaced)).monospacedDigit()
                     .foregroundStyle(color).lineLimit(1)
                 Text(String(value[value.index(after: newline)...]))
-                    .font(.system(size: 11, design: .monospaced)).monospacedDigit()
+                    .font(.system(size: 11 + fontDelta, design: .monospaced)).monospacedDigit()
                     .foregroundStyle(.secondary).lineLimit(1)
             }.help(value)
         } else {
-            Text(value).font(.system(size: 13, design: isDate ? .monospaced : .default)).monospacedDigit()
+            Text(value).font(.system(size: 13 + fontDelta, design: isDate ? .monospaced : .default)).monospacedDigit()
                 .lineLimit(2).help(value).foregroundStyle(color)
         }
     }

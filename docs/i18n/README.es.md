@@ -14,6 +14,10 @@ PhotoTrail reúne **la asociación de fotos con recorridos, la edición de metad
 | Información de las fotos | Consulta y edición de metadatos | Fechas, autoría, palabras clave y datos del equipo |
 | Nombres de archivos | Renombrado por lotes | Fecha y secuencia, sustitución de texto y archivos asociados |
 
+## Novedades en 0.5.9
+
+Los ajustes incluyen tamaño de texto, espaciado y nombres completos de metadatos, además del historial de búsquedas; se recuerda el orden de las fotos. El menú de rutas permite previsualizar y aplicar desplazamientos de tiempo o este/norte, conservando originales y exportando GPX aparte. El renombrado añade orden de procesamiento, filtros y arrastre de grupos; la vista de resultados no cambia la numeración.
+
 ## Descarga y requisitos
 
 [Descargar la última versión estable](https://github.com/LittleSixNine/PhotoTrail/releases/latest) · [Historial de versiones](https://github.com/LittleSixNine/PhotoTrail/releases)

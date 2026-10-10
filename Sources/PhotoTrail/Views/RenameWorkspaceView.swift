@@ -13,6 +13,9 @@ struct RenameWorkspaceView: View {
     @AppStorage("PhotoTrailRenameTableColumns.v1") private var tableColumns = TableColumnCustomization<RenamePreview>()
     @State private var ruleFrames: [UUID: CGRect] = [:]
     @State private var confirm = false
+    @State private var showFileFilter = false
+    @State private var resultFilter = "all"
+    @State private var viewingSort = "processing"
     @State private var showHistory = false
     @State private var showPresetSave = false
     @State private var showPresetManager = false
@@ -75,6 +78,8 @@ struct RenameWorkspaceView: View {
         .onChange(of: workspace.onlySelected) { refresh() }
         .onChange(of: workspace.authorizedDirectories) { refresh() }
         .onChange(of: workspace.counterRevision) { refresh() }
+        .onChange(of: workspace.fileFilter) { refresh() }
+        .onChange(of: workspace.orderRevision) { refresh() }
         .onChange(of: store.selection) {
             workspace.selectedRows = sharedSelectedRows
             if workspace.onlySelected { refresh() }
@@ -347,6 +352,138 @@ private extension RenameWorkspaceView {
             ?? L10n.text("步骤结果")
     }
 
+    private var visibleRows: [RenamePreview] {
+        var rows = workspace.rows.filter { row in
+            switch resultFilter {
+            case "changes": return row.changes
+            case "unchanged": return !row.changes
+            case "conflict": return row.issues.contains(.conflict)
+            case "error": return row.issues.contains(.invalidName) || row.issues.contains(.metadataFailure)
+            case "skipped": return row.issues.contains(.excluded) || row.issues.contains(.missingDate) || row.issues.contains(.missingTag)
+            default: return true
+            }
+        }
+        if viewingSort == "final" { rows.sort { $0.target.lastPathComponent.localizedStandardCompare($1.target.lastPathComponent) == .orderedAscending } }
+        if viewingSort == "status" { rows.sort { ($0.issues.first?.rawValue ?? "") < ($1.issues.first?.rawValue ?? "") } }
+        return rows
+    }
+
+    private var fileControls: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Picker(L10n.text("处理顺序"), selection: $workspace.settings.sort) {
+                    ForEach(RenameSettings.Sort.allCases, id: \.self) { Text(RenameLabels.sort($0)).tag($0) }
+                }.frame(maxWidth: 260)
+                Toggle(L10n.text("降序"), isOn: $workspace.settings.descending).disabled(workspace.settings.sort == .manual)
+                Button(L10n.text("筛选处理文件…")) { showFileFilter = true }
+                    .popover(isPresented: $showFileFilter) { fileFilterPanel }
+                Spacer()
+                Button(L10n.text("撤销文件排序")) { workspace.undoFileOrder() }
+                    .disabled(!workspace.canUndoFileOrder)
+            }
+            if workspace.settings.sort == .metadata {
+                HStack {
+                    TextField(L10n.text("元数据排序标签"), text: Binding(get: { workspace.settings.metadataSortTag ?? "" },
+                                                                         set: { workspace.settings.metadataSortTag = $0 }))
+                    Menu(L10n.text("选择字段")) {
+                        ForEach(workspace.availableTags, id: \.self) { tag in
+                            Button(tag) { workspace.settings.metadataSortTag = tag }
+                        }
+                    }
+                }
+            }
+            HStack {
+                Picker(L10n.text("查看筛选"), selection: $resultFilter) {
+                    Text(L10n.text("全部")).tag("all")
+                    Text(L10n.text("将重命名")).tag("changes")
+                    Text(L10n.text("名称不变")).tag("unchanged")
+                    Text(L10n.text("冲突")).tag("conflict")
+                    Text(L10n.text("错误")).tag("error")
+                    Text(L10n.text("跳过")).tag("skipped")
+                }
+                Picker(L10n.text("查看排序"), selection: $viewingSort) {
+                    Text(L10n.text("处理顺序")).tag("processing")
+                    Text(L10n.text("新文件名")).tag("final")
+                    Text(L10n.text("状态")).tag("status")
+                }
+                Text(L10n.text("查看排序和筛选不改变编号；拖动文件名可调整处理顺序。"))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Text(L10n.text("本次处理 %1$@ 组／%2$@ 个文件，当前显示 %3$@ 个文件", Set(workspace.rows.map(\.group)).count, workspace.rows.count, visibleRows.count))
+                .font(.caption).foregroundStyle(.secondary)
+        }.padding(12).disabled(workspace.executing || store.saveInProgress)
+    }
+
+    private var fileFilterPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(L10n.text("筛选本次处理文件")).font(.headline)
+            Form {
+                TextField(L10n.text("文件名或路径"), text: $workspace.fileFilter.query)
+                TextField(L10n.text("文件扩展名"), text: $workspace.fileFilter.fileExtension)
+                TextField(L10n.text("文件夹"), text: $workspace.fileFilter.folder)
+                TextField(L10n.text("相机厂商或型号"), text: $workspace.fileFilter.camera)
+                Toggle(L10n.text("限制起始时间"), isOn: Binding(get: { workspace.fileFilter.dateFrom != nil }, set: { workspace.fileFilter.dateFrom = $0 ? .now : nil }))
+                if workspace.fileFilter.dateFrom != nil {
+                    DatePicker(L10n.text("起始时间"), selection: Binding(get: { workspace.fileFilter.dateFrom ?? .now }, set: { workspace.fileFilter.dateFrom = $0 }))
+                }
+                Toggle(L10n.text("限制结束时间"), isOn: Binding(get: { workspace.fileFilter.dateTo != nil }, set: { workspace.fileFilter.dateTo = $0 ? .now : nil }))
+                if workspace.fileFilter.dateTo != nil {
+                    DatePicker(L10n.text("结束时间"), selection: Binding(get: { workspace.fileFilter.dateTo ?? .now }, set: { workspace.fileFilter.dateTo = $0 }))
+                }
+                Picker(L10n.text("定位"), selection: $workspace.fileFilter.gps) {
+                    Text(L10n.text("全部")).tag(0); Text(L10n.text("有定位")).tag(1); Text(L10n.text("无定位")).tag(2)
+                }
+                TextField(L10n.text("元数据标签"), text: $workspace.fileFilter.tag)
+                Picker(L10n.text("字段值"), selection: $workspace.fileFilter.presence) {
+                    Text(L10n.text("不限")).tag(0); Text(L10n.text("有值")).tag(1); Text(L10n.text("未填写")).tag(2)
+                }
+            }.formStyle(.grouped)
+            Text(L10n.text("筛选决定本次处理范围，编号按筛选后顺序重新计算；关联文件整组保留。"))
+                .font(.caption).foregroundStyle(.secondary)
+            HStack {
+                Button(L10n.text("重置筛选")) { workspace.fileFilter = RenameFileFilter() }
+                Spacer()
+                Button(L10n.text("完成")) { showFileFilter = false }
+            }
+        }.padding(16).frame(width: 460)
+    }
+
+    private func originalCell(_ row: RenamePreview) -> some View {
+        Text(row.source.lastPathComponent).help(row.source.path)
+            .frame(maxWidth: .infinity, minHeight: 22, alignment: .leading)
+            .contextMenu {
+                Button(L10n.text("上移文件组")) { moveGroup(row, down: false) }
+                Button(L10n.text("下移文件组")) { moveGroup(row, down: true) }
+            }
+    }
+
+    private func dropFiles(_ items: [String], at index: Int) {
+        guard viewingSort == "processing", resultFilter == "all", !store.saveInProgress else { return }
+        let rows = visibleRows
+        guard (0...rows.count).contains(index) else { return }
+        let groups = Set(items.flatMap { item -> [String] in
+            guard let data = item.data(using: .utf8) else { return [] }
+            return (try? JSONDecoder().decode([String].self, from: data)) ?? []
+        })
+        workspace.moveFiles(groups, before: index < rows.count ? rows[index].group : "")
+    }
+
+    private func dragPayload(_ row: RenamePreview) -> String {
+        guard viewingSort == "processing", resultFilter == "all", !workspace.busy, !workspace.executing, !store.saveInProgress else { return "" }
+        let groups = workspace.selectedRows.contains(row.source)
+            ? Set(workspace.rows.filter { workspace.selectedRows.contains($0.source) }.map(\.group)) : [row.group]
+        return String(data: (try? JSONEncoder().encode(Array(groups))) ?? Data(), encoding: .utf8) ?? ""
+    }
+
+    private func moveGroup(_ row: RenamePreview, down: Bool) {
+        guard viewingSort == "processing", resultFilter == "all", !store.saveInProgress else { return }
+        var seen = Set<String>()
+        let groups = workspace.rows.map(\.group).filter { seen.insert($0).inserted }
+        guard let index = groups.firstIndex(of: row.group) else { return }
+        if down, index + 1 < groups.count { workspace.moveFiles([groups[index + 1]], before: row.group) }
+        else if !down, index > 0 { workspace.moveFiles([row.group], before: groups[index - 1]) }
+    }
+
     private var preview: some View {
         VStack(spacing: 0) {
             HStack(spacing: 16) {
@@ -368,7 +505,9 @@ private extension RenameWorkspaceView {
                     .disabled(workspace.executing)
             }.padding(16)
             Divider()
-            Table(workspace.rows, selection: $workspace.selectedRows, columnCustomization: $tableColumns) {
+            fileControls
+            Divider()
+            Table(of: RenamePreview.self, selection: $workspace.selectedRows, columnCustomization: $tableColumns) {
                 TableColumn(L10n.text("预览")) { row in
                     if let image = store.imageData.first(where: { $0.metadataCreatorImageURL == row.source }) {
                         PhotoThumbnail(image: image, maxDimension: 100).frame(width: 38, height: 32)
@@ -377,7 +516,7 @@ private extension RenameWorkspaceView {
                     }
                 }.width(46)
                     .customizationID("preview").disabledCustomizationBehavior(.all)
-                TableColumn(L10n.text("原文件名")) { row in Text(row.source.lastPathComponent).help(row.source.path) }
+                TableColumn(L10n.text("原文件名")) { row in originalCell(row) }
                     .width(min: 140, ideal: 170)
                     .customizationID("original").disabledCustomizationBehavior([.reorder, .visibility])
                 TableColumn(selectedStepTitle) { row in
@@ -401,6 +540,10 @@ private extension RenameWorkspaceView {
                     }
                 }.width(120)
                     .customizationID("status").disabledCustomizationBehavior(.all)
+            } rows: {
+                ForEach(visibleRows) { row in
+                    TableRow(row).draggable(dragPayload(row))
+                }.dropDestination(for: String.self) { index, items in dropFiles(items, at: index) }
             }
             .background(IndependentTableColumns(fitToViewport: true))
             .accessibilityIdentifier("renamePreviewTable")
@@ -929,6 +1072,15 @@ enum RenameLabels {
         case .shooting: L10n.text("拍摄时间")
         case .created: L10n.text("文件创建时间")
         case .modified: L10n.text("文件修改时间")
+        case .fileExtension: L10n.text("文件扩展名")
+        case .folder: L10n.text("文件夹")
+        case .size: L10n.text("文件大小")
+        case .make: L10n.text("相机厂商")
+        case .model: L10n.text("相机型号")
+        case .city: L10n.text("城市")
+        case .rating: L10n.text("评分")
+        case .metadata: L10n.text("元数据字段")
+        case .manual: L10n.text("手动顺序")
         }
     }
     static func occurrence(_ value: RenameRule.Occurrence) -> String {

@@ -14,6 +14,10 @@ PhotoTrail brings together **track matching, metadata editing and batch renaming
 | Complete photo information | Metadata viewing and editing | Correct dates; add credits, keywords and device details |
 | Organize file names | Batch renaming | Capture date and sequence; text replacement; paired sidecars |
 
+## New in 0.5.9
+
+Settings add metadata text size, spacing and full tag names, plus recent-search controls; photo list sorting is remembered. Track menus preview and apply time or east/north offsets, preserving source files and exporting adjusted GPX separately. Renaming adds processing sort, filters and file-group dragging; result display does not change numbering.
+
 ## Download and requirements
 
 [Download the latest release](https://github.com/LittleSixNine/PhotoTrail/releases/latest) · [Release history](https://github.com/LittleSixNine/PhotoTrail/releases)

@@ -111,6 +111,18 @@ struct ContentView: View {
         .environment(metadataQueue)
     }
 
+    private func synchronizeTracks() {
+        let logs = store.gpxTracks
+        let effective = locationWorkspace.tracks.synchronize(logs, amap: mapProvider == "amap")
+        guard effective != logs else { return }
+        locationWorkspace.listMatchResults = []
+        for log in logs where !effective.contains(where: { $0.sourceURL == log.sourceURL }) {
+            store.send(.removeTrack(log.sourceURL), undoable: false)
+        }
+        let changed = effective.filter { !logs.contains($0) }
+        if !changed.isEmpty { store.send(.restoreTracks(changed), undoable: false) }
+    }
+
     var body: some View {
         workspaceContent
         .onAppear {
@@ -143,7 +155,7 @@ struct ContentView: View {
             if ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] != "1" {
                 await locationWorkspace.tracks.restore()
             }
-            locationWorkspace.tracks.synchronize(store.gpxTracks, amap: mapProvider == "amap")
+            synchronizeTracks()
             if setupCompleted {
                 await locationWorkspace.load()
                 SoftwareUpdate.shared.presentDownloadedUpdateIfNeeded()
@@ -154,11 +166,11 @@ struct ContentView: View {
             if !store.trackMatches.isEmpty { locationWorkspace.listMatchResults = store.trackMatches }
         }
         .onChange(of: store.gpxTracks) {
-            locationWorkspace.tracks.synchronize(store.gpxTracks, amap: mapProvider == "amap")
+            synchronizeTracks()
         }
         .onChange(of: store.gpxImportRevision) {
             let library = locationWorkspace.tracks
-            library.synchronize(store.gpxTracks, amap: mapProvider == "amap")
+            synchronizeTracks()
             for record in library.activeRecords where store.gpxGoodFileNames.contains(record.id) {
                 library.setVisible(record.id, true, amap: mapProvider == "amap")
             }

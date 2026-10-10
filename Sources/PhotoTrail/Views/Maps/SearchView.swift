@@ -10,7 +10,8 @@ struct SearchView: View {
     var mapFocus: FocusState<MapWithSearchView.MapFocus?>.Binding
     @Binding var searchInfo: MapWithSearchView.SearchInfo
     @Binding var expanded: Bool
-    @AppStorage("PhotoTrailRecentMapSearches") private var recentSearchesData = Data()
+    @AppStorage(SettingsPreferences.recordSearchesKey) private var recordSearches = true
+    @AppStorage(SettingsPreferences.recentSearchesKey) private var recentSearchesData = Data()
     @State private var query = ""
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var expandedWidth: CGFloat = 360
@@ -36,7 +37,7 @@ struct SearchView: View {
                     .padding(12)
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
             }
-            if expanded && query.isEmpty && !recentSearches.isEmpty {
+            if recordSearches && expanded && query.isEmpty && !recentSearches.isEmpty {
                 HStack(spacing: 6) {
                     ForEach(recentSearches, id: \.self) { term in
                         Button {
@@ -220,6 +221,7 @@ struct SearchView: View {
     }
 
     private func rememberSearch(_ text: String) {
+        guard recordSearches else { return }
         recentSearchesData = (try? JSONEncoder().encode(Self.updatedRecentSearches(text, in: recentSearches))) ?? Data()
     }
 

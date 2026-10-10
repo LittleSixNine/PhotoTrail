@@ -450,6 +450,24 @@ extension RenameTests {
 }
 
 struct RenamePresetTests {
+    @Test @MainActor func citySchemeNameMigratesWithoutChangingRules() throws {
+        let domain = "PhotoTrail.CitySchemeNameTests." + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: domain))
+        defer { defaults.removePersistentDomain(forName: domain) }
+        let workspace = RenameWorkspace(defaults: defaults)
+        var legacy = try #require(workspace.presets.first)
+        #expect(legacy.name == L10n.text("城市＋拍摄时间"))
+        legacy.name = "市＋拍摄时间"
+        defaults.set(try JSONEncoder().encode([legacy]), forKey: "PhotoTrailRenamePresets.v1")
+        defaults.set(try JSONEncoder().encode(legacy), forKey: "PhotoTrailRenameLastPreset.v1")
+        let reopened = RenameWorkspace(defaults: defaults)
+        #expect(reopened.currentPresetName == L10n.text("城市＋拍摄时间"))
+        #expect(reopened.currentPresetID == legacy.id)
+        #expect(reopened.rules == legacy.rules)
+        #expect(reopened.settings == legacy.settings)
+        #expect(reopened.presetExample == legacy.example)
+    }
+
     @Test @MainActor func defaultPrefixPlaceholderMigratesOnlyUntouchedSchemes() throws {
         let domain = "PhotoTrail.PrefixPlaceholderTests." + UUID().uuidString
         let defaults = try #require(UserDefaults(suiteName: domain))

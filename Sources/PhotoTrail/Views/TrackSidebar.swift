@@ -1,5 +1,6 @@
 import Coords
 import GpxTrackLog
+import ImageData
 import SwiftUI
 import UDF
 import UniformTypeIdentifiers
@@ -16,6 +17,8 @@ struct TrackSidebar: View {
     @State private var importing = false
     @State private var importNotice: String?
     @State private var matching = false
+    @State private var adjustment: TrackRecord?
+    @State private var originalToRestore: TrackRecord?
     @State private var exportDocument: PhotoGPXDocument?
     @State private var exportFilename = ""
     @State private var exporting = false
@@ -99,6 +102,27 @@ struct TrackSidebar: View {
                       : L10n.text("轨迹使用原始坐标，无需转换；缓存仅存本机。"))
                 .font(.callout).padding(16).frame(width: 280)
         }
+        .sheet(item: $adjustment) { record in
+            TrackAdjustmentView(record: record) { adjusted in
+                guard !store.saveInProgress, !matching else { throw MetadataInspectionError.sourceChanged }
+                try library.applyAdjustment(record.id, expected: record.log, adjusted: adjusted, amap: amap)
+                workspace.listMatchResults = []
+                store.send(.restoreTracks([adjusted]), undoable: false)
+            }
+        }
+        .alert(L10n.text("恢复原轨迹？"), isPresented: Binding(get: { originalToRestore != nil }, set: { if !$0 { originalToRestore = nil } })) {
+            Button(L10n.text("取消"), role: .cancel) { originalToRestore = nil }
+            Button(L10n.text("恢复原轨迹")) {
+                guard let record = originalToRestore else { return }
+                do {
+                    if let log = try library.restoreOriginal(record.id, amap: amap) {
+                        workspace.listMatchResults = []
+                        store.send(.restoreTracks([log]), undoable: false)
+                    }
+                } catch { importNotice = L10n.text("轨迹恢复失败：%1$@", error.localizedDescription) }
+                originalToRestore = nil
+            }
+        } message: { Text(L10n.text("重新读取原文件并放弃当前调整，已有照片定位不自动改变。")) }
         .fileImporter(isPresented: $importing,
                       allowedContentTypes: UTType.photoTrailTracks,
                       allowsMultipleSelection: true) { result in
@@ -149,7 +173,7 @@ private extension TrackSidebar {
                         }
                         .disabled(library.activeIDs.contains(record.id) || library.readingSources[record.id] != nil || store.saveInProgress)
                         .accessibilityLabel(L10n.text("加入历史轨迹 %1$@", record.name))
-                    }
+                    }.contextMenu { trackActions(record) }
                 }
             }.padding(.top, 8)
         } label: {
@@ -288,9 +312,24 @@ private extension TrackSidebar {
 
     @ViewBuilder
     private func trackActions(_ record: TrackRecord) -> some View {
+        Button(L10n.text("调整轨迹…")) { adjustment = record }
+            .disabled(store.saveInProgress || matching || library.readingSources[record.id] != nil || record.sourceUnavailable)
+        if record.originalLog != nil {
+            Button(L10n.text("撤销轨迹调整")) {
+                do {
+                    if let log = try library.undoAdjustment(record.id, amap: amap) {
+                        workspace.listMatchResults = []
+                        store.send(.restoreTracks([log]), undoable: false)
+                    }
+                } catch { importNotice = L10n.text("轨迹恢复失败：%1$@", error.localizedDescription) }
+            }.disabled(!library.canUndoAdjustment(record.id) || store.saveInProgress || matching)
+            Button(L10n.text("恢复原轨迹")) { originalToRestore = record }
+                .disabled(store.saveInProgress || matching)
+            Button(L10n.text("导出调整后的 GPX…")) { exportAdjusted(record) }
+        }
         Button(L10n.text("重新读取并刷新这条轨迹")) { refresh(record.id) }
             .disabled(library.requests[record.id] != nil || library.readingSources[record.id] != nil || store.saveInProgress)
-        if record.generatedFromPhotos {
+        if record.generatedFromPhotos && record.originalLog == nil {
             Button(L10n.text("导出 GPX…"), systemImage: "square.and.arrow.up") {
                 do {
                     exportDocument = PhotoGPXDocument(data: try Data(contentsOf: record.log.sourceURL))
@@ -313,6 +352,23 @@ private extension TrackSidebar {
     func summary(_ record: TrackRecord) -> String {
         let state = amap ? (record.converted == nil ? L10n.text("待转换") : record.cacheIsCurrent ? L10n.text("已缓存") : L10n.text("待更新 · 使用旧缓存")) : L10n.text("原始轨迹")
         return L10n.text("%1$@ 点 · %2$@", record.points.count, state)
+    }
+
+    private func exportAdjusted(_ record: TrackRecord) {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [PhotoGPXDocument.contentType]
+        panel.nameFieldStringValue = record.log.sourceURL.deletingPathExtension().lastPathComponent + "-adjusted.gpx"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        do {
+            guard url.standardizedFileURL != record.log.sourceURL.standardizedFileURL else { throw CocoaError(.fileWriteFileExists) }
+            let data = try record.log.gpxData()
+            try data.write(to: url, options: .withoutOverwriting)
+            let readback = try GpxTrackLog(contentsOf: url)
+            guard readback.tracks == record.log.tracks else { throw CocoaError(.fileReadCorruptFile) }
+            importNotice = L10n.text("调整后的 GPX 已导出并回读验证。")
+        } catch { importNotice = L10n.text("导出失败：%1$@", error.localizedDescription) }
     }
 
     private func refresh(_ id: String) {
@@ -365,18 +421,22 @@ private extension TrackSidebar {
 
 struct TrackThumbnail: View {
     let segments: [[MapCoordinate]]
+    var framingSegments: [[MapCoordinate]]? = nil
 
     // A local, aspect-preserving projection. Never request map tiles or join segment breaks.
-    static func normalized(_ segments: [[MapCoordinate]]) -> [[CGPoint]] {
-        let points = segments.flatMap { $0 }.filter(\.isValid)
+    static func normalized(_ segments: [[MapCoordinate]], framing: [[MapCoordinate]]? = nil) -> [[CGPoint]] {
+        let points = (framing ?? segments).flatMap { $0 }.filter(\.isValid)
         guard let first = points.first else { return [] }
         let meanLatitude = points.map(\.latitude).reduce(0, +) / Double(points.count)
         let scale = max(0.01, cos(meanLatitude * .pi / 180))
-        let projected = segments.map { segment in segment.filter(\.isValid).map { point in
+        func project(_ segments: [[MapCoordinate]]) -> [[CGPoint]] {
+            segments.map { segment in segment.filter(\.isValid).map { point in
             let longitude = (point.longitude - first.longitude + 540).truncatingRemainder(dividingBy: 360) - 180
             return CGPoint(x: longitude * scale, y: -point.latitude)
-        } }
-        let all = projected.flatMap { $0 }
+            } }
+        }
+        let projected = project(segments)
+        let all = project(framing ?? segments).flatMap { $0 }
         guard let minX = all.map(\.x).min(), let maxX = all.map(\.x).max(),
               let minY = all.map(\.y).min(), let maxY = all.map(\.y).max() else { return [] }
         let extent = max(maxX - minX, maxY - minY, 0.000001)
@@ -385,7 +445,7 @@ struct TrackThumbnail: View {
     }
 
     var body: some View {
-        let paths = Self.normalized(segments)
+        let paths = Self.normalized(segments, framing: framingSegments)
         Canvas { context, size in
             let inset: CGFloat = 4
             let edge = min(size.width, size.height) - inset * 2

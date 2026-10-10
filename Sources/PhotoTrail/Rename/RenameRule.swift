@@ -73,7 +73,7 @@ struct RenameFilterCondition: Codable, Equatable, Identifiable, Sendable {
 
 struct RenameSettings: Codable, Equatable, Sendable {
     enum Conflict: String, Codable, CaseIterable { case stop, numbers, letters }
-    enum Sort: String, Codable, CaseIterable { case input, name, natural, shooting, created, modified }
+    enum Sort: String, Codable, CaseIterable { case input, name, natural, shooting, created, modified, fileExtension, folder, size, make, model, city, rating, metadata, manual }
     enum SuffixFormat: String, Codable, CaseIterable {
         case plain, underscore, dash, parentheses
         func format(_ value: String) -> String {
@@ -85,6 +85,7 @@ struct RenameSettings: Codable, Equatable, Sendable {
             }
         }
     }
+    var metadataSortTag: String? = nil
     var numberSuffixFormat: SuffixFormat?
     var letterSuffixFormat: SuffixFormat?
     var conflictDigits: Int?

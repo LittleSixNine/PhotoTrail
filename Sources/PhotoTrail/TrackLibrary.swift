@@ -11,6 +11,7 @@ enum TrackOrigin: String, Codable, Sendable {
 
 struct TrackRecord: Codable, Identifiable, Equatable, Sendable {
     var log: GpxTrackLog
+    var originalLog: GpxTrackLog? = nil
     var bookmark: Data?
     var converted: [[MapCoordinate]]?
     var convertedAt: Date?
@@ -84,6 +85,7 @@ final class TrackLibrary {
     @ObservationIgnored private var restoreTask: Task<[TrackRecord], Error>?
     @ObservationIgnored private var needsPersist = false
     @ObservationIgnored private let legacyURL: URL?
+    @ObservationIgnored private var adjustmentUndo: [String: GpxTrackLog] = [:]
     @ObservationIgnored private var photoGeneratedURLs: Set<String> = []
 
     private struct Archive: Codable, Sendable {
@@ -142,7 +144,12 @@ final class TrackLibrary {
         }
         return try archive.records.map { saved in
             var record = saved
-            guard record.log.sourceURL.isFileURL,
+            guard record.originalLog.map({ base in
+                base.sourceURL == record.log.sourceURL && base.tracks.flatMap(\.segments).flatMap(\.points).allSatisfy {
+                    $0.lat.isFinite && $0.lon.isFinite && abs($0.lat) <= 90 && abs($0.lon) <= 180
+                        && (!$0.hasRecordedTime || $0.timeFromEpoch.isFinite)
+                }
+            }) ?? true, record.log.sourceURL.isFileURL,
                   record.points.allSatisfy({ $0.lat.isFinite && $0.lon.isFinite && abs($0.lat) <= 90 && abs($0.lon) <= 180 }) else {
                 throw CocoaError(.fileReadCorruptFile)
             }
@@ -154,12 +161,24 @@ final class TrackLibrary {
         }
     }
 
-    func synchronize(_ logs: [GpxTrackLog], amap: Bool = false) {
-        guard !logs.isEmpty || !storeIDs.isEmpty else { return }
+    @discardableResult
+    func synchronize(_ logs: [GpxTrackLog], amap: Bool = false) -> [GpxTrackLog] {
+        guard !logs.isEmpty || !storeIDs.isEmpty else { return logs }
         let ids = Set(logs.map { $0.sourceURL.path })
         for id in storeIDs.subtracting(ids) { remove(id) }
-        for log in logs {
+        for incoming in logs {
+            var log = incoming
             let id = log.sourceURL.path
+            if let index = records.firstIndex(where: { $0.id == id }),
+               let original = records[index].originalLog, incoming != records[index].log {
+                guard incoming.tracks == original.tracks else {
+                    records[index].sourceUnavailable = true
+                    cancel(id)
+                    states[id] = .failed(L10n.text("原轨迹已变化，保留调整；请恢复原轨迹后重新调整。"))
+                    continue
+                }
+                log = records[index].log
+            }
             var changed = false
             if let index = records.firstIndex(where: { $0.id == id }) {
                 if records[index].log != log || records[index].sourceUnavailable {
@@ -189,6 +208,10 @@ final class TrackLibrary {
         storeIDs = ids
         revision += 1
         persist()
+        return logs.compactMap { input in
+            guard let record = record(input.sourceURL.path), !record.sourceUnavailable else { return nil }
+            return record.log
+        }
     }
 
     // Missing sources remain preview-only and never enter photo matching.
@@ -292,7 +315,11 @@ final class TrackLibrary {
         defer { if scoped { source.stopAccessingSecurityScopedResource() } }
         var record = original
         let version = MetadataInspectionFileVersion.read(source)
-        record.log = try GpxTrackLog(contentsOf: source)
+        let sourceLog = try GpxTrackLog(contentsOf: source)
+        if let originalLog = original.originalLog {
+            guard sourceLog.tracks == originalLog.tracks else { throw MetadataInspectionError.sourceChanged }
+            record.log = GpxTrackLog(sourceURL: source, tracks: original.log.tracks)
+        } else { record.log = sourceLog }
         guard version == MetadataInspectionFileVersion.read(source) else { throw MetadataInspectionError.sourceChanged }
         record.bookmark = try? source.bookmarkData(options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess])
         record.sourceUnavailable = false
@@ -426,6 +453,59 @@ private extension TrackLibrary {
             attributes: [.posixPermissions: 0o700])
         try JSONEncoder().encode(Archive(records: records)).write(to: url, options: .atomic)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+    }
+
+}
+
+extension TrackLibrary {
+    func applyAdjustment(_ id: String, expected: GpxTrackLog, adjusted: GpxTrackLog, amap: Bool) throws {
+        guard loaded, !unreadable, readingSources[id] == nil,
+              let index = records.firstIndex(where: { $0.id == id }), records[index].log == expected,
+              adjusted.sourceURL == expected.sourceURL else { throw MetadataInspectionError.sourceChanged }
+        let current = records[index]
+        let source = try Self.readSource(current, preserveCache: true)
+        guard source.log == expected else { throw MetadataInspectionError.sourceChanged }
+        var updated = records
+        updated[index].originalLog = current.originalLog ?? expected
+        updated[index].log = adjusted
+        if current.fingerprint != updated[index].fingerprint {
+            updated[index].converted = nil; updated[index].convertedAt = nil; updated[index].convertedSource = nil
+        }
+        try writeArchive(updated)
+        adjustmentUndo[id] = expected
+        records = updated
+        if selected == id, current.fingerprint != records[index].fingerprint { fitRevision += 1 }
+        cancel(id)
+        if amap && visible.contains(id) && !records[index].cacheIsCurrent { start(id) }
+        revision += 1
+    }
+
+    func undoAdjustment(_ id: String, amap: Bool) throws -> GpxTrackLog? {
+        guard let previous = adjustmentUndo[id], let current = record(id) else { return nil }
+        try applyAdjustment(id, expected: current.log, adjusted: previous, amap: amap)
+        adjustmentUndo.removeValue(forKey: id)
+        return previous
+    }
+
+    func canUndoAdjustment(_ id: String) -> Bool { adjustmentUndo[id] != nil }
+
+    func restoreOriginal(_ id: String, amap: Bool) throws -> GpxTrackLog? {
+        guard let index = records.firstIndex(where: { $0.id == id }), records[index].originalLog != nil,
+              loaded, !unreadable else { return nil }
+        var source = records[index]
+        source.originalLog = nil
+        let restored = try Self.readSource(source, preserveCache: false)
+        var updated = records
+        updated[index] = restored
+        updated[index].converted = nil; updated[index].convertedAt = nil; updated[index].convertedSource = nil
+        try writeArchive(updated)
+        if selected == id, records[index].fingerprint != restored.fingerprint { fitRevision += 1 }
+        records = updated
+        adjustmentUndo.removeValue(forKey: id)
+        cancel(id)
+        if amap && visible.contains(id) { start(id) }
+        revision += 1
+        return restored.log
     }
 
 }

@@ -127,3 +127,7 @@ PhotoTrail 基于 GeoTag v6.0.2 派生，仍使用其部分应用基础设施与
 三页导入统一为 `ContentView` 的导入入口和 `OpenHelper.importFiles`，照片集合／选择在 `PhotoTrailState`；重命名不再保存独立文件 URL 列表。移除复用 `.removeImages` 与撤销，改名／恢复仍通过 `.filesRenamed` 回写共享对象。导入层在保存或改名执行期间拒绝新任务。
 
 `RenameWorkspace` 通过 `PhotoTrailRenameLastPreset.v1` 记录上次方案的已保存规则与设置，恢复时优先读取对应个人预设；处理范围不随预设持久化，启动默认全部照片。`RenamePresetTests` 使用独立 UserDefaults 域，验证重启、更新、改名、删除及不保存规则草稿；`OpenHelperTests` 验证共享导入、去重、移除与撤销，`RenameTests` 验证共享照片改名后的路径回写。`MetadataClipboardTests` 和 `MetadataLoadingQueueTests` 分别覆盖多字段复制及保存刷新边界。逻辑测试不等于完整真实照片、NAS 或 GUI 验收。
+
+## 跨平台行为验收
+
+新增设置、轨迹调整与重命名顺序的稳定需求 ID、默认值、距离算法与非私人合成样本集中在共同契约中。修改相关逻辑时复用应用测试、GPX 包测试及地图／本地化检查；Windows 按 ID 独立记录实现和实机验证，不能把 Mac 通过当成 Windows 验收。 [共同契约](FEATURE-CONTRACT-v1.md)。

@@ -14,6 +14,13 @@ final class RenameWorkspace {
         didSet { if settings != oldValue { needsExampleUpdate = true } }
     }
     @ObservationIgnored private var needsExampleUpdate = false
+    var fileFilter = RenameFileFilter()
+    var orderRevision = 0
+    var groupOrder: [String] = []
+    private var manualOrder: [String] = []
+    private var orderUndo: [String]?
+    var availableTags: [String] { Array(Set(inputs.flatMap { $0.tags.keys })).filter { !$0.hasPrefix("PhotoTrail:") }.sorted() }
+
     var onlySelected = false
     private var scopeInitialized = false
     var authorizedDirectories = Set<URL>()
@@ -201,6 +208,10 @@ final class RenameWorkspace {
         previewCalculating = false
         previewRemainingSeconds = nil
         previewEstimate.reset()
+        let importedGroups = Set(images.compactMap(\.metadataCreatorImageURL).map {
+            RenameEngine.groupID(RenameInput(url: $0), settings: settings)
+        })
+        manualOrder = manualOrder.filter { importedGroups.contains($0) }
         let selected = images.filter { !onlySelected || selection.contains($0.id) }
         let urls = selected.compactMap(\.metadataCreatorImageURL)
         let sourceRules = self.rules, previousExample = presetExample
@@ -212,13 +223,14 @@ final class RenameWorkspace {
         }
         let frozenRules = rules
         let settings = self.settings, cached = cache
+        let filter = fileFilter, manual = manualOrder
         let directories = authorizedDirectories
         worker = Task {
             do {
                 try await Task.sleep(for: .milliseconds(180))
                 let reader = Task.detached(priority: .userInitiated) {
                     try Self.prepare(urls: urls, rules: frozenRules, settings: settings, cache: cached,
-                                     counters: counterValues, directories: directories, progress: { completed, total, calculating in
+                                     counters: counterValues, directories: directories, filter: filter, manual: manual, progress: { completed, total, calculating in
                                          Task { @MainActor in
                                              guard token == self.revision, self.busy else { return }
                                              self.previewCompleted = completed
@@ -236,6 +248,10 @@ final class RenameWorkspace {
                 self.rows = result.plan.rows
                 self.plan = result.plan
                 self.cache = result.cache
+                self.groupOrder = result.groupOrder
+                if settings.sort == .manual {
+                    self.manualOrder += result.groupOrder.filter { !self.manualOrder.contains($0) }
+                }
                 if updateExample, self.rules == sourceRules, self.settings == settings {
                     self.updateExample(previous: previousExample)
                 }
@@ -309,6 +325,7 @@ final class RenameWorkspace {
                             UserDefaults.standard.set(value, forKey: "PhotoTrailRenameCounter.\(index)")
                         }
                     }
+                    remapOrder(result.mappings)
                     store.send(.filesRenamed(result.mappings), undoable: false)
                     if result.needsRecovery {
                         let urls = Set(result.journal.entries.flatMap { [$0.original, $0.temporary, $0.target] })
@@ -334,47 +351,7 @@ final class RenameWorkspace {
     @ObservationIgnored private var cancelOperation: (() -> Void)?
     func cancel() { guard executing, !restoring, !stopping else { return }; stopping = true; cancelOperation?() }
 
-    func restore(_ journal: RenameJournal, store: Store<PhotoTrailState, PhotoTrailEvent>) {
-        guard !executing, !store.saveInProgress, !store.imageData.contains(where: \.hasPendingChanges) else { return }
-        guard !Self.operationActive else { notice = L10n.text("另一个窗口正在操作文件，请稍后重试。"); return }
-        executing = true
-        restoring = true
-        stopping = false
-        progress = .init(phase: .restoring, completed: 0, total: journal.entries.count)
-        Self.operationActive = true
-        store.send(.renameStarted, undoable: false)
-        Task {
-            let before = await Task.detached { RenameExecutor.currentMappings(journal) }.value
-            let outcome = await Task.detached { () -> (RenameJournal, String?) in
-                var journal = journal
-                do {
-                    try RenameExecutor.restore(&journal, progress: { value in
-                        Task { @MainActor in
-                            guard self.executing else { return }
-                            self.progress = value
-                        }
-                    })
-                    return (journal, nil)
-                }
-                catch { return (journal, error.localizedDescription) }
-            }.value
-            let after = await Task.detached { RenameExecutor.currentMappings(outcome.0) }.value
-            var mappings: [URL: URL] = [:]
-            for entry in journal.entries {
-                let from = before[entry.original] ?? entry.original
-                let to = after[entry.original] ?? entry.original
-                if from != to { mappings[from] = to }
-            }
-            store.send(.filesRenamed(mappings), undoable: false)
-            let urls = Set(journal.entries.flatMap { [$0.original, $0.temporary, $0.target] })
-            store.send(.renameRecoveryChanged(urls, outcome.1 != nil), undoable: false)
-            if !mappings.isEmpty { store.discardAllUndo() }
-            store.send(.renameFinished, undoable: false)
-            notice = outcome.1.map { L10n.text("恢复未完成：%1$@。原文件未被覆盖。", $0) } ?? L10n.text("已恢复原文件名。")
-            executing = false; restoring = false; Self.operationActive = false; plan = nil; cache = [:]
-            await loadHistory()
-        }
-    }
+
 }
 
 private extension RenameWorkspace {
@@ -391,7 +368,7 @@ private extension RenameWorkspace {
             presets = saved
         }
         if !defaults.bool(forKey: "PhotoTrailRenameDefaultSchemes.v1") {
-            let names = ["市＋拍摄时间", "数字编号＋原名", "拍摄时间＋设备型号", "拍摄时间＋原名", "自定义前缀＋编号"]
+            let names = ["城市＋拍摄时间", "数字编号＋原名", "拍摄时间＋设备型号", "拍摄时间＋原名", "自定义前缀＋编号"]
             let rules = [
                 [RenameRule(action: 106, suffix: "_"), RenameRule(action: 42)],
                 [RenameRule(action: 47, padding: 4, suffix: "_")],
@@ -429,6 +406,10 @@ private extension RenameWorkspace {
             persistPresets()
             defaults.set(true, forKey: "PhotoTrailRenameFriendlyRules.v1")
         }
+        for index in presets.indices where ["市＋拍摄时间", "市＋拍攝時間"].contains(presets[index].name) {
+            presets[index].name = L10n.text("城市＋拍摄时间")
+            persistPresets()
+        }
         migrateDefaultPrefixExample()
         if let data = defaults.data(forKey: "PhotoTrailRenameLastPreset.v1"),
            let saved = try? JSONDecoder().decode(RenamePreset.self, from: data), saved.version == 1 {
@@ -441,95 +422,6 @@ private extension RenameWorkspace {
         }
     }
 
-    private struct Prepared: Sendable {
-        let plan: RenamePlan
-        let cache: [URL: (RenameFileIdentity, RenameInput)]
-    }
-
-    nonisolated private static func prepare(urls: [URL], rules: [RenameRule], settings: RenameSettings,
-                                           cache: [URL: (RenameFileIdentity, RenameInput)], counters: [Int: Int], directories: Set<URL>,
-                                           progress: @escaping @Sendable (Int, Int, Bool) -> Void) throws -> Prepared {
-        let urls = try RenameExecutor.pairedSources(urls, settings: settings, directories: directories)
-        progress(0, urls.count, false)
-        var lastReport = ProcessInfo.processInfo.systemUptime
-        let referenceDate = Date()
-        var inputs: [RenameInput] = []
-        var versions: [URL: RenameFileIdentity] = [:]
-        var updated: [URL: (RenameFileIdentity, RenameInput)] = [:]
-        let needsTags = rules.contains { rule in
-            rule.enabled && ((40...45).contains(rule.action) || (66...83).contains(rule.action)
-                || rule.action == 98 || (100...111).contains(rule.action))
-        } || settings.sort == .shooting
-        for (index, url) in urls.enumerated() {
-            try Task.checkCancellation()
-            let before = try RenameFileIdentity.read(url)
-            let input = try Self.readInput(url: url, version: before, cached: cache[url], needsTags: needsTags)
-            guard try RenameFileIdentity.read(url) == before else { throw RenameError.stalePlan }
-            var prepared = input
-            prepared.referenceDate = referenceDate
-            inputs.append(prepared); versions[url] = before; updated[url] = (before, input)
-            let now = ProcessInfo.processInfo.systemUptime
-            if now - lastReport >= 0.15 || index + 1 == urls.count {
-                progress(index + 1, urls.count, false)
-                lastReport = now
-            }
-        }
-        try Task.checkCancellation()
-        progress(urls.count, urls.count, true)
-        let occupied = try RenameExecutor.occupied(Set(urls.map { $0.deletingLastPathComponent() }).intersection(directories))
-        let rows = try RenameEngine.preview(inputs: inputs, rules: rules, settings: settings, occupied: occupied)
-        var plan = RenamePlan(rows: rows, versions: versions)
-        let usingCounters = rules.filter { $0.enabled && $0.counter > 0 }
-        guard Set(usingCounters.map(\.counter)).count == usingCounters.count else { throw RenameError.invalidPreset }
-        for rule in usingCounters {
-            guard (1...10).contains(rule.counter), (46...51).contains(rule.action) else { throw RenameError.invalidRule(rule.action) }
-            plan.counterValues[rule.counter] = counters[rule.counter]
-            plan.counterAdvances[rule.counter] = try RenameEngine.nextCounter(rule, rows: rows)
-        }
-        return Prepared(plan: plan, cache: updated)
-    }
-
-    nonisolated private static func readInput(url: URL, version: RenameFileIdentity,
-                                             cached: (RenameFileIdentity, RenameInput)?, needsTags: Bool) throws -> RenameInput {
-        let input: RenameInput
-        if let saved = cached, saved.0 == version, !needsTags || saved.1.tagsRead {
-            input = saved.1
-        } else {
-            let values = try url.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
-            var tags: [String: String] = [:]
-            var failed = false
-            if needsTags {
-                do {
-                    let key = MetadataInspectorReadCache.Key(url: url, imageURL: url, kind: .additional)
-                    let versions = [MetadataInspectionFileVersion.read(url)]
-                    if case .display(let cached) = MetadataInspectorReadCache.shared.value(for: key, versions: versions) {
-                        tags = cached
-                    } else { tags = try Exiftool.helper.inspectionTags(from: url) }
-                }
-                catch { failed = true }
-            }
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.sortedKeys]
-            let seed = try encoder.encode(version)
-            tags["PhotoTrail:RenameUUID"] = SHA256.hash(data: seed).map { String(format: "%02x", $0) }.joined()
-            if let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size]) as? NSNumber {
-                tags["FileSizeInBytes"] = size.stringValue
-                tags["FileSize"] = ByteCountFormatter.string(fromByteCount: size.int64Value, countStyle: .file)
-            }
-            if needsTags, let item = NSMetadataItem(url: url),
-               let values = item.values(forAttributes: item.attributes) {
-                for (attribute, value) in values where attribute.hasPrefix("kMDItem") {
-                    let field = attribute == "kMDItemTitle" ? "ItemTitle" : String(attribute.dropFirst(7))
-                    if let texts = value as? [String] { tags["Spotlight" + field] = texts.joined(separator: ", ") }
-                    else if let date = value as? Date { tags["Spotlight" + field] = ISO8601DateFormatter().string(from: date) }
-                    else { tags["Spotlight" + field] = String(describing: value) }
-                }
-            }
-            input = RenameInput(url: url, tags: tags, created: values.creationDate,
-                                modified: values.contentModificationDate, metadataFailure: failed, tagsRead: needsTags)
-        }
-        return input
-    }
 
 }
 
@@ -567,6 +459,16 @@ enum RenameCopy {
 }
 
 extension RenameWorkspace {
+    private func remapOrder(_ mappings: [URL: URL]) {
+        let renamed = Dictionary(mappings.map {
+            (RenameEngine.groupID(RenameInput(url: $0.key), settings: settings),
+             RenameEngine.groupID(RenameInput(url: $0.value), settings: settings))
+        }, uniquingKeysWith: { first, _ in first })
+        manualOrder = manualOrder.map { renamed[$0] ?? $0 }
+        groupOrder = groupOrder.map { renamed[$0] ?? $0 }
+        orderUndo = nil
+    }
+
     private func persistCurrentPreset() {
         let preset = RenamePreset(id: currentPresetID ?? UUID(), name: currentPresetName, rules: presetRules, settings: presetSettings, example: savedExample)
         if let data = try? JSONEncoder().encode(preset) { defaults.set(data, forKey: "PhotoTrailRenameLastPreset.v1") }
@@ -617,4 +519,184 @@ extension RenameWorkspace {
         }
     }
 
+}
+
+extension RenameWorkspace {
+    func moveFiles(_ groups: Set<String>, before target: String) {
+        guard !busy, !executing else { return }
+        var seen = Set<String>()
+        let visible = rows.map(\.group).filter { seen.insert($0).inserted }
+        let full = settings.sort == .manual ? manualOrder + groupOrder.filter { !manualOrder.contains($0) } : groupOrder
+        let next = RenameFileOrder.moving(groups, before: target, visible: visible, full: full)
+        guard next != full else { return }
+        orderUndo = full
+        manualOrder = next
+        settings.sort = .manual
+        settings.descending = false
+        orderRevision += 1
+    }
+
+    func undoFileOrder() {
+        guard !busy, !executing, let previous = orderUndo else { return }
+        manualOrder = previous
+        orderUndo = nil
+        settings.sort = .manual
+        settings.descending = false
+        orderRevision += 1
+    }
+    var canUndoFileOrder: Bool { orderUndo != nil }
+
+}
+
+extension RenameWorkspace {
+    private struct Prepared: Sendable {
+        let plan: RenamePlan
+        let cache: [URL: (RenameFileIdentity, RenameInput)]
+        let groupOrder: [String]
+    }
+
+    // swiftlint:disable:next function_parameter_count
+    nonisolated private static func prepare(urls: [URL], rules: [RenameRule], settings: RenameSettings,
+                                           cache: [URL: (RenameFileIdentity, RenameInput)], counters: [Int: Int], directories: Set<URL>,
+                                           filter: RenameFileFilter, manual: [String],
+                                           progress: @escaping @Sendable (Int, Int, Bool) -> Void) throws -> Prepared {
+        let urls = try RenameExecutor.pairedSources(urls, settings: settings, directories: directories)
+        progress(0, urls.count, false)
+        var lastReport = ProcessInfo.processInfo.systemUptime
+        let referenceDate = Date()
+        var inputs: [RenameInput] = []
+        var versions: [URL: RenameFileIdentity] = [:]
+        var updated: [URL: (RenameFileIdentity, RenameInput)] = [:]
+        let needsTags = rules.contains { rule in
+            rule.enabled && ((40...45).contains(rule.action) || (66...83).contains(rule.action)
+                || rule.action == 98 || (100...111).contains(rule.action))
+        } || [.shooting, .make, .model, .city, .rating, .metadata].contains(settings.sort) || filter.needsTags
+        for (index, url) in urls.enumerated() {
+            try Task.checkCancellation()
+            let before = try RenameFileIdentity.read(url)
+            let input = try Self.readInput(url: url, version: before, cached: cache[url], needsTags: needsTags)
+            guard try RenameFileIdentity.read(url) == before else { throw RenameError.stalePlan }
+            var prepared = input
+            prepared.referenceDate = referenceDate
+            inputs.append(prepared); versions[url] = before; updated[url] = (before, input)
+            let now = ProcessInfo.processInfo.systemUptime
+            if now - lastReport >= 0.15 || index + 1 == urls.count {
+                progress(index + 1, urls.count, false)
+                lastReport = now
+            }
+        }
+        try Task.checkCancellation()
+        progress(urls.count, urls.count, true)
+        let occupied = try RenameExecutor.occupied(Set(urls.map { $0.deletingLastPathComponent() }).intersection(directories))
+        let grouped = Dictionary(grouping: inputs) { RenameEngine.groupID($0, settings: settings) }
+        var seen = Set<String>()
+        let automatic = RenameEngine.ordered(inputs, settings: settings).map { RenameEngine.groupID($0, settings: settings) }
+            .filter { seen.insert($0).inserted }
+        let groupOrder = settings.sort == .manual ? manual.filter { grouped[$0] != nil } + automatic.filter { !manual.contains($0) } : automatic
+        let included = groupOrder.filter { group in
+            grouped[group]!.contains { filter.matches($0, settings: settings) }
+        }
+        let processingInputs = included.flatMap { grouped[$0]! }
+        var processingSettings = settings
+        processingSettings.sort = .input
+        processingSettings.descending = false
+        let rows = try RenameEngine.preview(inputs: processingInputs, rules: rules, settings: processingSettings, occupied: occupied)
+        var plan = RenamePlan(rows: rows, versions: versions)
+        let usingCounters = rules.filter { $0.enabled && $0.counter > 0 }
+        guard Set(usingCounters.map(\.counter)).count == usingCounters.count else { throw RenameError.invalidPreset }
+        for rule in usingCounters {
+            guard (1...10).contains(rule.counter), (46...51).contains(rule.action) else { throw RenameError.invalidRule(rule.action) }
+            plan.counterValues[rule.counter] = counters[rule.counter]
+            plan.counterAdvances[rule.counter] = try RenameEngine.nextCounter(rule, rows: rows)
+        }
+        return Prepared(plan: plan, cache: updated, groupOrder: groupOrder)
+    }
+
+    nonisolated private static func readInput(url: URL, version: RenameFileIdentity,
+                                             cached: (RenameFileIdentity, RenameInput)?, needsTags: Bool) throws -> RenameInput {
+        let input: RenameInput
+        if let saved = cached, saved.0 == version, !needsTags || saved.1.tagsRead {
+            input = saved.1
+        } else {
+            let values = try url.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
+            var tags: [String: String] = [:]
+            var failed = false
+            if needsTags {
+                do {
+                    let key = MetadataInspectorReadCache.Key(url: url, imageURL: url, kind: .additional)
+                    let versions = [MetadataInspectionFileVersion.read(url)]
+                    if case .display(let cached) = MetadataInspectorReadCache.shared.value(for: key, versions: versions) {
+                        tags = cached
+                    } else { tags = try Exiftool.helper.inspectionTags(from: url) }
+                }
+                catch { failed = true }
+            }
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys]
+            let seed = try encoder.encode(version)
+            tags["PhotoTrail:RenameUUID"] = SHA256.hash(data: seed).map { String(format: "%02x", $0) }.joined()
+            if let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size]) as? NSNumber {
+                tags["FileSizeInBytes"] = size.stringValue
+                tags["FileSize"] = ByteCountFormatter.string(fromByteCount: size.int64Value, countStyle: .file)
+            }
+            if needsTags, let item = NSMetadataItem(url: url),
+               let values = item.values(forAttributes: item.attributes) {
+                for (attribute, value) in values where attribute.hasPrefix("kMDItem") {
+                    let field = attribute == "kMDItemTitle" ? "ItemTitle" : String(attribute.dropFirst(7))
+                    if let texts = value as? [String] { tags["Spotlight" + field] = texts.joined(separator: ", ") }
+                    else if let date = value as? Date { tags["Spotlight" + field] = ISO8601DateFormatter().string(from: date) }
+                    else { tags["Spotlight" + field] = String(describing: value) }
+                }
+            }
+            input = RenameInput(url: url, tags: tags, created: values.creationDate,
+                                modified: values.contentModificationDate, metadataFailure: failed, tagsRead: needsTags)
+        }
+        return input
+    }
+
+}
+
+extension RenameWorkspace {
+    func restore(_ journal: RenameJournal, store: Store<PhotoTrailState, PhotoTrailEvent>) {
+        guard !executing, !store.saveInProgress, !store.imageData.contains(where: \.hasPendingChanges) else { return }
+        guard !Self.operationActive else { notice = L10n.text("另一个窗口正在操作文件，请稍后重试。"); return }
+        executing = true
+        restoring = true
+        stopping = false
+        progress = .init(phase: .restoring, completed: 0, total: journal.entries.count)
+        Self.operationActive = true
+        store.send(.renameStarted, undoable: false)
+        Task {
+            let before = await Task.detached { RenameExecutor.currentMappings(journal) }.value
+            let outcome = await Task.detached { () -> (RenameJournal, String?) in
+                var journal = journal
+                do {
+                    try RenameExecutor.restore(&journal, progress: { value in
+                        Task { @MainActor in
+                            guard self.executing else { return }
+                            self.progress = value
+                        }
+                    })
+                    return (journal, nil)
+                }
+                catch { return (journal, error.localizedDescription) }
+            }.value
+            let after = await Task.detached { RenameExecutor.currentMappings(outcome.0) }.value
+            var mappings: [URL: URL] = [:]
+            for entry in journal.entries {
+                let from = before[entry.original] ?? entry.original
+                let to = after[entry.original] ?? entry.original
+                if from != to { mappings[from] = to }
+            }
+            remapOrder(mappings)
+            store.send(.filesRenamed(mappings), undoable: false)
+            let urls = Set(journal.entries.flatMap { [$0.original, $0.temporary, $0.target] })
+            store.send(.renameRecoveryChanged(urls, outcome.1 != nil), undoable: false)
+            if !mappings.isEmpty { store.discardAllUndo() }
+            store.send(.renameFinished, undoable: false)
+            notice = outcome.1.map { L10n.text("恢复未完成：%1$@。原文件未被覆盖。", $0) } ?? L10n.text("已恢复原文件名。")
+            executing = false; restoring = false; Self.operationActive = false; plan = nil; cache = [:]
+            await loadHistory()
+        }
+    }
 }

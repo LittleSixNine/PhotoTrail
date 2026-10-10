@@ -45,6 +45,14 @@ struct ImageTableView: View {
                     Button(L10n.text("导入顺序")) { sortOrder = [KeyPathComparator(\ImageData.id)] }
                     Button(L10n.text("拍摄时间")) { sortOrder = [KeyPathComparator(\ImageData.metadata.timestamp)] }
                     Button(L10n.text("文件名")) { sortOrder = [KeyPathComparator(\ImageData.name)] }
+                    Divider()
+                    Button(L10n.text("反转排序方向")) {
+                        sortOrder = sortOrder.map { comparator in
+                            var value = comparator
+                            value.order = value.order == .forward ? .reverse : .forward
+                            return value
+                        }
+                    }
                 } label: { Label(L10n.text("排序"), systemImage: "arrow.up.arrow.down") }
                     .fixedSize()
                 Picker(L10n.text("筛选照片"), selection: $filter) {
@@ -80,7 +88,10 @@ struct ImageTableView: View {
         .onChange(of: store.selection) { selection = store.selection }
         .onChange(of: filter) { retainVisibleSelection() }
         .onChange(of: store.searchText) { retainVisibleSelection() }
-        .onChange(of: sortOrder) { store.send(.sortOrderChanged(sortOrder), undoable: false) }
+        .onChange(of: sortOrder) {
+            SettingsPreferences.savePhotoSort(sortOrder)
+            store.send(.sortOrderChanged(sortOrder), undoable: false)
+        }
         .onChange(of: searchFocused) { store.send(.textfieldFocusChanged(searchFocused), undoable: false) }
         .onChange(of: store.searchActive) { searchFocused = store.searchActive }
         .onAppear { selection = store.selection; sortOrder = store.sortOrder }

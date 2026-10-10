@@ -40,6 +40,12 @@ struct SettingsView: View {
     @AppStorage(SettingsPreferences.writeRegionKey) private var writeRegion = true
     @AppStorage(SettingsPreferences.backupReminderKey) private var reminderDays = 7
 
+    @AppStorage(SettingsPreferences.metadataTextSizeKey) private var metadataTextSize = 0
+    @AppStorage(SettingsPreferences.metadataSpacingKey) private var metadataSpacing = 0
+    @AppStorage(SettingsPreferences.metadataTagNamesKey) private var metadataTagNames = true
+    @AppStorage(SettingsPreferences.recordSearchesKey) private var recordSearches = true
+    @AppStorage(SettingsPreferences.recentSearchesKey) private var recentSearches = Data()
+
     @State private var backupURL: URL?
     @State private var showAMapSettings = false
     @State private var credentials: AMapCredentials?
@@ -177,6 +183,13 @@ struct SettingsView: View {
                 Toggle(L10n.text("允许拖动选中照片的标记修改位置"), isOn: $allowDragPin)
                 Text(L10n.text("开启后拖动标记，松手即更新待保存的位置；关闭可避免误触。"))
                     .font(.footnote).foregroundStyle(.secondary)
+            }
+            Section(L10n.text("最近搜索")) {
+                Toggle(L10n.text("记录最近搜索"), isOn: $recordSearches)
+                Text(L10n.text("关闭后隐藏并停止记录；已有记录保留，重新开启后可见。"))
+                    .font(.footnote).foregroundStyle(.secondary)
+                Button(L10n.text("清除最近搜索记录")) { recentSearches = Data() }
+                    .disabled(recentSearches.isEmpty)
             }
             Section(L10n.text("地区名称")) {
                 Picker(L10n.text("查询方式"), selection: $automaticRegion) {
@@ -386,7 +399,10 @@ extension SettingsView {
             SettingsPreferences.recursiveImportKey, SettingsPreferences.automaticRegionKey,
             SettingsPreferences.backupReminderKey, SettingsPreferences.startupWorkspaceKey,
             SettingsPreferences.writeRegionKey, SettingsPreferences.saveCurrentPageKey, SettingsPreferences.skipSaveScopePromptKey,
-            SettingsPreferences.lastWorkspaceKey, MetadataFieldFilter.commonFieldsKey
+            SettingsPreferences.lastWorkspaceKey, MetadataFieldFilter.commonFieldsKey,
+            SettingsPreferences.metadataTextSizeKey, SettingsPreferences.metadataSpacingKey,
+            SettingsPreferences.metadataTagNamesKey, SettingsPreferences.recordSearchesKey,
+            SettingsPreferences.photoSortKey
         ]
         keys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
     }
@@ -416,6 +432,21 @@ private extension SettingsView {
     var metadata: some View {
         let selected = MetadataFieldFilter.commonTags(from: commonFieldsData)
         return settingsPage {
+            Section(L10n.text("元数据显示")) {
+                Picker(L10n.text("文字大小"), selection: $metadataTextSize) {
+                    Text(L10n.text("小")).tag(-1)
+                    Text(L10n.text("标准")).tag(0)
+                    Text(L10n.text("大")).tag(1)
+                }
+                Picker(L10n.text("行间距"), selection: $metadataSpacing) {
+                    Text(L10n.text("紧凑")).tag(-1)
+                    Text(L10n.text("标准")).tag(0)
+                    Text(L10n.text("宽松")).tag(1)
+                }
+                Toggle(L10n.text("显示完整标签名称"), isOn: $metadataTagNames)
+                Text(L10n.text("即时生效；隐藏标签名称后仍可悬停查看、搜索和复制，字段来源与编辑权限保持。"))
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
             Section(L10n.text("常用字段")) {
                 Text(L10n.text("选择元数据面板中常用的字段，搜索仍包含全部字段。"))
                     .font(.footnote).foregroundStyle(.secondary)

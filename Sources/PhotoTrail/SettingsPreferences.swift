@@ -2,6 +2,46 @@ import Foundation
 import ImageData
 
 enum SettingsPreferences {
+    static let metadataTextSizeKey = "PhotoTrailMetadataTextSize"
+    static let metadataSpacingKey = "PhotoTrailMetadataSpacing"
+    static let metadataTagNamesKey = "PhotoTrailMetadataTagNames"
+    static let recordSearchesKey = "PhotoTrailRecordSearches"
+    static let recentSearchesKey = "PhotoTrailRecentMapSearches"
+    static let photoSortKey = "PhotoTrailPhotoSort.v1"
+
+    struct PhotoSort: Codable, Equatable {
+        var field: String
+        var descending: Bool
+    }
+
+    static func photoSort(defaults: UserDefaults = .standard) -> [KeyPathComparator<ImageData>] {
+        let saved = defaults.data(forKey: photoSortKey).flatMap { try? JSONDecoder().decode([PhotoSort].self, from: $0) } ?? []
+        let sorts = saved.compactMap { item -> KeyPathComparator<ImageData>? in
+            let order: SortOrder = item.descending ? .reverse : .forward
+            switch item.field {
+            case "name": return KeyPathComparator(\ImageData.name, order: order)
+            case "captured": return KeyPathComparator(\ImageData.metadata.timestamp, order: order)
+            case "import": return KeyPathComparator(\ImageData.id, order: order)
+            default: return nil
+            }
+        }
+        return sorts.isEmpty ? [KeyPathComparator(\ImageData.name)] : sorts
+    }
+
+    static func savePhotoSort(_ sorts: [KeyPathComparator<ImageData>], defaults: UserDefaults = .standard) {
+        let saved = sorts.compactMap { sort -> PhotoSort? in
+            let field: String
+            switch sort.keyPath {
+            case \ImageData.name: field = "name"
+            case \ImageData.metadata.timestamp: field = "captured"
+            case \ImageData.id: field = "import"
+            default: return nil
+            }
+            return PhotoSort(field: field, descending: sort.order == .reverse)
+        }
+        if let data = try? JSONEncoder().encode(saved) { defaults.set(data, forKey: photoSortKey) }
+    }
+
     static let showAllPhotoLocationsKey = "PhotoTrailShowAllPhotoLocations"
     static let mapStartupViewKey = "PhotoTrailMapStartupView"
     static let showSaveSummaryKey = "PhotoTrailShowSaveSummary"
