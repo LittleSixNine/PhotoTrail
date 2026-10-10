@@ -21,3 +21,7 @@ Equipment XMP fields reuse --common-fields-checks (55 checks): JPEG and DNG side
 --common-fields-checks now runs 82 assertions including additional XMP dates, strict date validation, exact fractions/offsets, JPEG and DNG sidecar round-trips. Existing CSV/preset/clipboard/date checks pass. Native save/read-back/undo was verified; this increment is not yet packaged.
 
 --common-fields-checks now has 212 assertions including exposure ranges, fractions, finite-number/integer checks, normalization and JPEG/DNG sidecar read-back. XMP import accepts numeric JSON only for approved numeric tags. CSV47/preset30/clipboard47/XMP23 regression checks and native seven-field copy/read-back/undo passed locally.
+
+## Pinned Swift host for the date page
+
+Run DateHost/Build.ps1 before building WPF. See [host instructions](../../DateHost/README.md) for existing tool prerequisites, raw Git-object export and SHA verification. Production does not depend on a private experiment or moving HEAD. Local checks passed: 168 isolated assertions, 92 legacy C# date assertions, 67 production draft/copy assertions and 99 real WPF control interactions. These counts are not feature counts. UiChecks runs the actual MainWindow against synthetic XMP and restores its own temporary host fixture. Clean deployment, licensing and distribution remain pending.

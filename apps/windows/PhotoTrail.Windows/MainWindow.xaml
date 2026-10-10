@@ -139,7 +139,7 @@
           <TextBlock Text="日期模板（$1等捕获组；不匹配/非法日期逐项跳过，不猜测当前时间或时区）" TextWrapping="Wrap"/>
           <TextBox x:Name="DateFilenameTemplate" Text="$1:$2:$3 $4:$5:$6" MaxLength="512" AutomationProperties.Name="文件名日期模板" TextChanged="DatePlanChanged" Margin="0,4"/>
           </StackPanel>
-          <WrapPanel Margin="0,8"><Button Content="预览日期" Click="PreviewDates" Padding="10,5"/><Button x:Name="DatePlanApplyButton" Content="将日期预览加入草稿" Click="ApplyDates" IsEnabled="False" Padding="10,5" Margin="8,0"/></WrapPanel>
+          <WrapPanel Margin="0,8"><Button Content="预览日期" Click="PreviewDates" Padding="10,5"/><Button x:Name="DatePlanApplyButton" Content="将日期预览加入草稿" Click="ApplyDates" IsEnabled="False" Padding="10,5" Margin="8,0"/><Button Content="取消日期预览" Click="CancelRead" Padding="10,5"/></WrapPanel>
           <TextBlock Text="缺失/非法日期不会猜测；闰日或31日调整落入非法日期会拒绝。无时区保持无时区，小数秒和固定偏移原样保留；不处理时区夏令时切换。" TextWrapping="Wrap" Margin="0,0,0,8"/>
          <TextBlock x:Name="DatePlanPreview" Text="尚未预览。" TextWrapping="Wrap"/>
         </StackPanel></ScrollViewer>

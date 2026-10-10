@@ -8,6 +8,9 @@
   <Compile Include="../PhotoTrail.Windows/MetadataClipboard.cs" Link="MetadataClipboard.cs" />
   <Compile Include="../PhotoTrail.Windows/MetadataPreset.cs" Link="MetadataPreset.cs" />
   <Compile Include="../PhotoTrail.Windows/MetadataDate.cs" Link="MetadataDate.cs" />
+  <Compile Include="../PhotoTrail.Windows/DateAdapter.cs" Link="DateAdapter.cs" />
+  <Compile Include="../PhotoTrail.Windows/DatePagePreview.cs" Link="DatePagePreview.cs" />
+  <Content Include="../DateHost/bin/*" Link="DateHost/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   <Compile Include="../PhotoTrail.Windows/MetadataCsv.cs" Link="MetadataCsv.cs" />
   <Compile Include="../PhotoTrail.Windows/WindowsRename.cs" Link="WindowsRename.cs" />
   <Compile Include="../PhotoTrail.Windows/RenameExecutor.cs" Link="RenameExecutor.cs" />

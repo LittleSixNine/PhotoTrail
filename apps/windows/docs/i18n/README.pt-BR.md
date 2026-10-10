@@ -1,3 +1,5 @@
+> Os cinco modos da página de datas usam o arquivo Swift fixado para prévias assíncronas e rascunhos validados, aguardando aceitação. Compile primeiro o host conforme [as instruções](../../DateHost/README.md). Outras entradas de data mantêm C#; implantação limpa e distribuição ainda não foram verificadas.
+
 # PhotoTrail Windows
 
 ### Desenvolvimento para Windows

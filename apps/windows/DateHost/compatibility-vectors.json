@@ -1,0 +1,378 @@
+[
+  {
+    "actual" : "2025:01:15 10:20:30.123456+08:00",
+    "basis" : "candidate component round-trip, fraction\/offset preservation",
+    "expected" : "2025:01:15 10:20:30.123456+08:00",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "matches" : true,
+    "operation" : "replace",
+    "parameters" : {
+      "component" : "year",
+      "value" : "2025"
+    }
+  },
+  {
+    "actual" : "error:invalidDate",
+    "basis" : "candidate requires exact component round-trip and four-digit output",
+    "expected" : "error:invalidDate",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "matches" : true,
+    "operation" : "replace",
+    "parameters" : {
+      "component" : "year",
+      "value" : "0"
+    }
+  },
+  {
+    "actual" : "error:invalidDate",
+    "basis" : "candidate requires exact component round-trip and four-digit output",
+    "expected" : "error:invalidDate",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "matches" : true,
+    "operation" : "replace",
+    "parameters" : {
+      "component" : "year",
+      "value" : "10000"
+    }
+  },
+  {
+    "actual" : "2024:02:15 10:20:30.123456+08:00",
+    "basis" : "candidate component round-trip, fraction\/offset preservation",
+    "expected" : "2024:02:15 10:20:30.123456+08:00",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "matches" : true,
+    "operation" : "replace",
+    "parameters" : {
+      "component" : "month",
+      "value" : "2"
+    }
+  },
+  {
+    "actual" : "error:invalidDate",
+    "basis" : "candidate requires exact component round-trip and four-digit output",
+    "expected" : "error:invalidDate",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "matches" : true,
+    "operation" : "replace",
+    "parameters" : {
+      "component" : "month",
+      "value" : "0"
+    }
+  },
+  {
+    "actual" : "error:invalidDate",
+    "basis" : "candidate requires exact component round-trip and four-digit output",
+    "expected" : "error:invalidDate",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "matches" : true,
+    "operation" : "replace",
+    "parameters" : {
+      "component" : "month",
+      "value" : "13"
+    }
+  },
+  {
+    "actual" : "2024:01:29 10:20:30.123456+08:00",
+    "basis" : "candidate component round-trip, fraction\/offset preservation",
+    "expected" : "2024:01:29 10:20:30.123456+08:00",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "matches" : true,
+    "operation" : "replace",
+    "parameters" : {
+      "component" : "day",
+      "value" : "29"
+    }
+  },
+  {
+    "actual" : "error:invalidDate",
+    "basis" : "candidate requires exact component round-trip and four-digit output",
+    "expected" : "error:invalidDate",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "matches" : true,
+    "operation" : "replace",
+    "parameters" : {
+      "component" : "day",
+      "value" : "0"
+    }
+  },
+  {
+    "actual" : "error:invalidDate",
+    "basis" : "candidate requires exact component round-trip and four-digit output",
+    "expected" : "error:invalidDate",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "matches" : true,
+    "operation" : "replace",
+    "parameters" : {
+      "component" : "day",
+      "value" : "32"
+    }
+  },
+  {
+    "actual" : "2024:01:15 23:20:30.123456+08:00",
+    "basis" : "candidate component round-trip, fraction\/offset preservation",
+    "expected" : "2024:01:15 23:20:30.123456+08:00",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "matches" : true,
+    "operation" : "replace",
+    "parameters" : {
+      "component" : "hour",
+      "value" : "23"
+    }
+  },
+  {
+    "actual" : "error:invalidDate",
+    "basis" : "candidate requires exact component round-trip and four-digit output",
+    "expected" : "error:invalidDate",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "matches" : true,
+    "operation" : "replace",
+    "parameters" : {
+      "component" : "hour",
+      "value" : "-1"
+    }
+  },
+  {
+    "actual" : "error:invalidDate",
+    "basis" : "candidate requires exact component round-trip and four-digit output",
+    "expected" : "error:invalidDate",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "matches" : true,
+    "operation" : "replace",
+    "parameters" : {
+      "component" : "hour",
+      "value" : "24"
+    }
+  },
+  {
+    "actual" : "2024:01:15 10:59:30.123456+08:00",
+    "basis" : "candidate component round-trip, fraction\/offset preservation",
+    "expected" : "2024:01:15 10:59:30.123456+08:00",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "matches" : true,
+    "operation" : "replace",
+    "parameters" : {
+      "component" : "minute",
+      "value" : "59"
+    }
+  },
+  {
+    "actual" : "error:invalidDate",
+    "basis" : "candidate requires exact component round-trip and four-digit output",
+    "expected" : "error:invalidDate",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "matches" : true,
+    "operation" : "replace",
+    "parameters" : {
+      "component" : "minute",
+      "value" : "-1"
+    }
+  },
+  {
+    "actual" : "error:invalidDate",
+    "basis" : "candidate requires exact component round-trip and four-digit output",
+    "expected" : "error:invalidDate",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "matches" : true,
+    "operation" : "replace",
+    "parameters" : {
+      "component" : "minute",
+      "value" : "60"
+    }
+  },
+  {
+    "actual" : "2024:01:15 10:20:59.123456+08:00",
+    "basis" : "candidate component round-trip, fraction\/offset preservation",
+    "expected" : "2024:01:15 10:20:59.123456+08:00",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "matches" : true,
+    "operation" : "replace",
+    "parameters" : {
+      "component" : "second",
+      "value" : "59"
+    }
+  },
+  {
+    "actual" : "error:invalidDate",
+    "basis" : "candidate requires exact component round-trip and four-digit output",
+    "expected" : "error:invalidDate",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "matches" : true,
+    "operation" : "replace",
+    "parameters" : {
+      "component" : "second",
+      "value" : "-1"
+    }
+  },
+  {
+    "actual" : "error:invalidDate",
+    "basis" : "candidate requires exact component round-trip and four-digit output",
+    "expected" : "error:invalidDate",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "matches" : true,
+    "operation" : "replace",
+    "parameters" : {
+      "component" : "second",
+      "value" : "60"
+    }
+  },
+  {
+    "actual" : "error:invalidDate",
+    "basis" : "existing Mac leap-day assertion",
+    "expected" : "error:invalidDate",
+    "input" : "2024:02:29 12:00:00",
+    "matches" : true,
+    "operation" : "replace",
+    "parameters" : {
+      "component" : "year",
+      "value" : "2023"
+    }
+  },
+  {
+    "actual" : "2024:11:03 01:30:00-04:00",
+    "basis" : "platform observation: ambiguous autumn time, no new business rule",
+    "input" : "2024:11:02 01:30:00-04:00",
+    "operation" : "calendarDays",
+    "parameters" : {
+      "days" : "1",
+      "zone" : "America\/New_York"
+    }
+  },
+  {
+    "actual" : "2024:11:03 01:30:00-04:00",
+    "basis" : "platform observation: ambiguous autumn time, no new business rule",
+    "input" : "2024:11:03 01:30:00-04:00",
+    "operation" : "calendarDays",
+    "parameters" : {
+      "days" : "0",
+      "zone" : "America\/New_York"
+    }
+  },
+  {
+    "actual" : "2024:11:03 01:30:00-05:00",
+    "basis" : "platform observation: ambiguous autumn time, no new business rule",
+    "input" : "2024:11:03 01:30:00-05:00",
+    "operation" : "calendarDays",
+    "parameters" : {
+      "days" : "0",
+      "zone" : "America\/New_York"
+    }
+  },
+  {
+    "actual" : "1582:10:04 12:00:00",
+    "basis" : "platform observation: Foundation Gregorian cutover",
+    "input" : "1582:10:04 12:00:00",
+    "operation" : "parse",
+    "parameters" : {
+
+    }
+  },
+  {
+    "actual" : "error:invalidDate",
+    "basis" : "platform observation: Foundation Gregorian cutover",
+    "input" : "1582:10:05 12:00:00",
+    "operation" : "parse",
+    "parameters" : {
+
+    }
+  },
+  {
+    "actual" : "error:invalidDate",
+    "basis" : "platform observation: Foundation Gregorian cutover",
+    "input" : "1582:10:10 12:00:00",
+    "operation" : "parse",
+    "parameters" : {
+
+    }
+  },
+  {
+    "actual" : "error:invalidDate",
+    "basis" : "platform observation: Foundation Gregorian cutover",
+    "input" : "1582:10:14 12:00:00",
+    "operation" : "parse",
+    "parameters" : {
+
+    }
+  },
+  {
+    "actual" : "1582:10:15 12:00:00",
+    "basis" : "platform observation: Foundation Gregorian cutover",
+    "input" : "1582:10:15 12:00:00",
+    "operation" : "parse",
+    "parameters" : {
+
+    }
+  },
+  {
+    "actual" : "1582:10:16 12:00:00",
+    "basis" : "platform observation: Foundation Gregorian cutover",
+    "input" : "1582:10:16 12:00:00",
+    "operation" : "parse",
+    "parameters" : {
+
+    }
+  },
+  {
+    "actual" : "1582:10:15 12:00:00",
+    "basis" : "platform observation: cutover arithmetic",
+    "input" : "1582:10:04 12:00:00",
+    "operation" : "shift",
+    "parameters" : {
+      "seconds" : "86400"
+    }
+  },
+  {
+    "actual" : "1582:10:04 12:00:00",
+    "basis" : "platform observation: cutover arithmetic",
+    "input" : "1582:10:15 12:00:00",
+    "operation" : "shift",
+    "parameters" : {
+      "seconds" : "-86400"
+    }
+  },
+  {
+    "actual" : "2297:10:30 10:20:30.123456+08:00",
+    "basis" : "platform observation: large bounded calendar day amount",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "operation" : "calendarDays",
+    "parameters" : {
+      "days" : "100000"
+    }
+  },
+  {
+    "actual" : "1750:04:01 10:20:30.123456+08:00",
+    "basis" : "platform observation: large bounded calendar day amount",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "operation" : "calendarDays",
+    "parameters" : {
+      "days" : "-100000"
+    }
+  },
+  {
+    "actual" : "error:invalidDate",
+    "basis" : "platform observation: large bounded calendar day amount",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "operation" : "calendarDays",
+    "parameters" : {
+      "days" : "3660000"
+    }
+  },
+  {
+    "actual" : "error:invalidDate",
+    "basis" : "platform observation: large bounded calendar day amount",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "operation" : "calendarDays",
+    "parameters" : {
+      "days" : "-3660000"
+    }
+  },
+  {
+    "actual" : "error:invalidDate",
+    "basis" : "overflow reachability observation: earlier date range rejection may precede multiplication overflow",
+    "input" : "2024:01:15 10:20:30.123456+08:00",
+    "operation" : "sequence",
+    "parameters" : {
+      "count" : "3",
+      "stepSeconds" : "9223372036854775807"
+    }
+  }
+]

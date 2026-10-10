@@ -19,7 +19,10 @@ public sealed class PhotoDocument
     public string? SidecarHash { get; }
     private readonly Dictionary<string, string> draft = [];
     public IReadOnlyDictionary<string, string> Draft => draft;
-    public void ClearDraft() => draft.Clear();
+    internal long DraftRevision { get; private set; }
+    internal event Action? DraftChanged;
+    private void ChangedDraft() { DraftRevision++; DraftChanged?.Invoke(); }
+    public void ClearDraft() { draft.Clear(); ChangedDraft(); }
     public string FileType => Embedded.TryGetProperty("File:FileType", out var type) ? type.ToString() : "";
     public bool CanEdit => FileType is "JPEG" or "XMP" || (SidecarPath is not null &&
         FileType is "DNG" or "TIFF" or "HEIC" or "PNG" or "ARW" or "NEF" or "RAF" or "CR2" or "CR3" or "RW2" or "ORF" or "PEF");
@@ -115,6 +118,23 @@ public sealed class PhotoDocument
             var normalized = value.Length > 0 && NumericRange(tag) is not null ? CheckedNumber(tag,value).ToString(CultureInfo.InvariantCulture) : value;
             if (normalized == original) draft.Remove(tag); else draft[tag] = normalized;
         }
+        ChangedDraft();
+    }
+
+    internal static void ValidateDatePageShape(string tag,string value)
+    {
+        if(tag!=DatePagePreview.Field || !EditableTags.Contains(tag) || value.Length is < 19 or > 128 || value.Any(char.IsControl))
+            throw new ArgumentException("日期字段或文字不在允许范围。");
+        _=new UTF8Encoding(false,true).GetByteCount(value);
+    }
+    internal void ApplyDatePage(DatePagePreview preview)
+    {
+        // The capability checks this exact document, source value and draft revision; no general bypass flag.
+        var value=preview.ValueFor(this);
+        ValidateDatePageShape(DatePagePreview.Field,value);
+        var original=(Sidecar??Embedded).TryGetProperty(DatePagePreview.Field,out var field)?Text(field):"";
+        if(value==original)draft.Remove(DatePagePreview.Field);else draft[DatePagePreview.Field]=value;
+        ChangedDraft();
     }
 
     public static Dictionary<string, string> PositionChanges(MapPoint point, double? altitude, string method)

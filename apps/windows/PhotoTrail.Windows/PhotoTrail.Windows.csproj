@@ -9,5 +9,6 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
     <Content Include="Web\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../DateHost/bin/*" Link="DateHost/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -72,6 +72,13 @@ public sealed record MetadataDate(DateTime WallTime, string Fraction, string Off
     }
     public static string?[] FromFilenames(IReadOnlyList<string> names, string pattern, string template)
     {
+        return ExtractFilenames(names,pattern,template).Select(value=> {
+            if(value is null)return null;
+            try{return Parse(value).Text;}catch(ArgumentException){return null;}
+        }).ToArray();
+    }
+    internal static string?[] ExtractFilenames(IReadOnlyList<string> names, string pattern, string template)
+    {
         if (names.Count is < 1 or > 3000 || names.Any(name => name.Length is < 1 or > 255 || name.Any(char.IsControl)) ||
             pattern.Length is < 1 or > 1024 || template.Length is < 1 or > 512 || pattern.Any(char.IsControl) || template.Any(char.IsControl))
             throw new ArgumentException("文件名解析数量/文字超出上限或含控制字符。");
@@ -83,8 +90,7 @@ public sealed record MetadataDate(DateTime WallTime, string Fraction, string Off
             var match = expression.Match(name);
             if (!match.Success) return null;
             var value = match.Result(template);
-            try { return Parse(value).Text; }
-            catch (ArgumentException) { return null; }
+            return value;
         }).ToArray();
     }
     public static string[] Sequence(string start, long stepSeconds, int count)

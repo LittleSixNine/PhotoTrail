@@ -1,3 +1,5 @@
+> Los cinco modos de la página de fechas usan el archivo Swift fijado para vistas previas asíncronas y borradores validados, pendientes de aceptación. Compile primero el host siguiendo [estas instrucciones](../../DateHost/README.md). Las otras entradas de fecha siguen en C#; el despliegue limpio y la distribución están pendientes.
+
 # PhotoTrail Windows
 
 ### Estado de Windows

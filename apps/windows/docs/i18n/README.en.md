@@ -1,3 +1,5 @@
+> The five date-page modes now use the pinned Swift file for asynchronous previews and qualified drafts, pending user acceptance. Build the host first using [these instructions](../../DateHost/README.md). Other date entry points retain C#; clean deployment and distribution remain unverified.
+
 # PhotoTrail Windows
 
 ### Windows development status

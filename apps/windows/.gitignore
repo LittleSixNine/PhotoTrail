@@ -5,3 +5,7 @@
 
 development-tool.json
 tools/exiftool/
+DateHost/.cache/
+DateHost/caller-bin/
+DateHost/evidence/
+DateHost/check-results.json

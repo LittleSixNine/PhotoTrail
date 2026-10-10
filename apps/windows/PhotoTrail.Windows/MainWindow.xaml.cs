@@ -34,7 +34,10 @@ public partial class MainWindow : Window
     private int photoPreviewRevision;
 
     private readonly string[] extensions = [".jpg", ".jpeg", ".png", ".heic", ".dng", ".tif", ".tiff", ".xmp", ".arw", ".nef", ".raf", ".cr2", ".cr3", ".rw2", ".orf", ".pef"];
-    public MainWindow() { InitializeComponent(); DatePlanChanged(this,new RoutedEventArgs()); Photos.ItemsSource = photos; TrackList.ItemsSource = tracks; ClipboardField.ItemsSource = Fields.Select(field => new { field.Tag, Name = field.Apply.Content }).ToArray(); ClipboardField.SelectedIndex = 0; }
+    public MainWindow() { InitializeComponent(); DatePlanChanged(this,new RoutedEventArgs()); Photos.ItemsSource = photos; TrackList.ItemsSource = tracks; ClipboardField.ItemsSource = Fields.Select(field => new { field.Tag, Name = field.Apply.Content }).ToArray(); ClipboardField.SelectedIndex = 0;
+        AddHandler(System.Windows.Controls.Primitives.ToggleButton.CheckedEvent,new RoutedEventHandler((s,e)=>{if(!fillingEditor)InvalidateDates();}));
+        AddHandler(System.Windows.Controls.Primitives.ToggleButton.UncheckedEvent,new RoutedEventHandler((s,e)=>{if(!fillingEditor)InvalidateDates();}));
+    }
     private (string Tag, CheckBox Apply, TextBox Value)[] Fields =>
     [ ("XMP-dc:Creator", AuthorApply, AuthorValue), ("XMP-dc:Title", TitleApply, TitleValue),
       ("XMP-dc:Description", DescriptionApply, DescriptionValue), ("XMP-dc:Subject", KeywordsApply, KeywordsValue),
@@ -577,7 +580,7 @@ public partial class MainWindow : Window
             foreach (var row in previousSelection) Photos.SelectedItems.Add(row);
             fillingEditor = false; return;
         }
-        previousSelection = Selected; RenameRulesChanged(this, new RoutedEventArgs());
+        InvalidateDates();previousSelection = Selected; RenameRulesChanged(this, new RoutedEventArgs());
         RefreshSelection();
         RefreshMatchPhoto();
         _ = PostPhotosAsync();
@@ -607,7 +610,7 @@ public partial class MainWindow : Window
         finally { fillingEditor = false; }
         if (!Selected.SequenceEqual(selected))
         {
-            previousSelection = Selected; RefreshMatchPhoto(); RenameRulesChanged(this, new RoutedEventArgs());
+            InvalidateDates();previousSelection = Selected; RefreshMatchPhoto(); RenameRulesChanged(this, new RoutedEventArgs());
         }
     }
     private bool changingPhotoView;
@@ -714,6 +717,7 @@ public partial class MainWindow : Window
     private void EditorChanged(object sender, TextChangedEventArgs e)
     {
         if (fillingEditor || !IsLoaded) return;
+        InvalidateDates();
         foreach (var (_, apply, value) in Fields) if (ReferenceEquals(value, sender)) apply.IsChecked = true;
     }
     private bool DiscardEditor()
@@ -877,11 +881,19 @@ public partial class MainWindow : Window
 
     private PhotoRow[] dateSelection = [];
     private string[] datesBefore = [];
-    private string?[] datesAfter = [];
+    private DatePagePreview? datePreview;
+    private CancellationTokenSource? dateRequest;
+    private int dateRevision;
+    private int datePending;
+    private readonly HashSet<PhotoDocument> dateObserved = [];
+    private void InvalidateDates()
+    {
+        dateRevision++; dateRequest?.Cancel(); datePreview=null;
+        if(DatePlanApplyButton is not null)DatePlanApplyButton.IsEnabled=false;
+    }
     private void DatePlanChanged(object sender, RoutedEventArgs e)
     {
-        datesAfter = [];
-        if (DatePlanApplyButton is not null) DatePlanApplyButton.IsEnabled = false;
+        InvalidateDates();
         if (DateFilenameOptions is null) return;
         DateShiftOptions.Visibility = DateMode.SelectedIndex == 0 ? Visibility.Visible : Visibility.Collapsed;
         DateReplaceOptions.Visibility = DateMode.SelectedIndex == 2 ? Visibility.Visible : Visibility.Collapsed;
@@ -890,51 +902,76 @@ public partial class MainWindow : Window
         DateDistributionOptions.Visibility = DateMode.SelectedIndex == 3 ? Visibility.Visible : Visibility.Collapsed;
         DateFilenameOptions.Visibility = DateMode.SelectedIndex == 4 ? Visibility.Visible : Visibility.Collapsed;
     }
-    private void PreviewDates(object sender, RoutedEventArgs e)
+    private async void PreviewDates(object sender, RoutedEventArgs e)
     {
         if (busy || renameRecoveryRequired) return;
-        datesAfter = []; DatePlanApplyButton.IsEnabled = false;
+        InvalidateDates();
+        var request=new CancellationTokenSource(); dateRequest=request; var revision=dateRevision;datePending++;
         try
         {
             if (Fields.Any(field => field.Apply.IsChecked == true)) throw new InvalidOperationException("请先将输入加入草稿。");
             dateSelection = Selected;
             if (dateSelection.Length is < 1 or > 3000 || dateSelection.Any(row => !row.Document.CanEdit)) throw new InvalidOperationException("请选择1至3000个可编辑文件。");
             datesBefore = dateSelection.Select(row => row.Document.Value("XMP-exif:DateTimeOriginal")).ToArray();
+            foreach(var document in dateObserved)document.DraftChanged-=InvalidateDates;
+            dateObserved.Clear();
+            foreach(var row in dateSelection)if(dateObserved.Add(row.Document))row.Document.DraftChanged+=InvalidateDates;
             int Number(TextBox input) => int.TryParse(input.Text, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out var number) ? number : throw new ArgumentException("调整量须为整数。");
             long Seconds(TextBox input) => long.TryParse(input.Text, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out var number) ? number : throw new ArgumentException("秒数须为整数。");
             int? Component(TextBox input) => input.Text.Length == 0 ? null : Number(input);
-            var proposed = DateMode.SelectedIndex switch
+            Dictionary<string,long> Replacements()
             {
-                4 => MetadataDate.FromFilenames(dateSelection.Select(row => row.Name).ToArray(), DateFilenamePattern.Text, DateFilenameTemplate.Text),
-                1 => MetadataDate.Sequence(DateStart.Text, Seconds(DateStep), dateSelection.Length),
-                3 => MetadataDate.Distribute(DateStart.Text, DateEnd.Text, dateSelection.Length),
-                2 => datesBefore.Select(value => MetadataDate.Parse(value).Replace(Component(DateReplaceYear), Component(DateReplaceMonth), Component(DateReplaceDay),
-                    Component(DateReplaceHour), Component(DateReplaceMinute), Component(DateReplaceSecond)).Text).ToArray(),
-                _ => datesBefore.Select(value => MetadataDate.Parse(value).Shift(Number(DateYears), Number(DateMonths), Number(DateDays), Number(DateHours), Number(DateMinutes), Seconds(DateSeconds)).Text).ToArray()
+                var changes=new Dictionary<string,long>();
+                foreach(var (name,input) in new[]{("year",DateReplaceYear),("month",DateReplaceMonth),("day",DateReplaceDay),("hour",DateReplaceHour),("minute",DateReplaceMinute),("second",DateReplaceSecond)})
+                    if(Component(input) is { } value)changes[name]=value;
+                return changes;
+            }
+            var options=DateMode.SelectedIndex switch {
+                0=>new DatePageOptions(0,Number(DateYears),Number(DateMonths),Number(DateDays),Number(DateHours),Number(DateMinutes),Seconds(DateSeconds)),
+                1=>new DatePageOptions(1,Seconds:Seconds(DateStep),Start:DateStart.Text),
+                2=>new DatePageOptions(2,Components:Replacements()),
+                3=>new DatePageOptions(3,Start:DateStart.Text,End:DateEnd.Text),
+                _=>new DatePageOptions(4,Pattern:DateFilenamePattern.Text,Template:DateFilenameTemplate.Text)
             };
-            foreach (var value in proposed.OfType<string>()) PhotoDocument.ValidateChanges(new Dictionary<string, string> { ["XMP-exif:DateTimeOriginal"] = value });
+            var selection=dateSelection.ToArray();var before=datesBefore.ToArray();
+            Status.Text="正在计算日期预览；可更改选择或参数使本次结果失效，或取消。";
+            var preview=await DatePagePreview.CreateAsync(selection.Select(row=>row.Document).ToArray(),options,revision,()=>dateRevision,request.Token);
+            if(revision!=dateRevision || !Selected.SequenceEqual(selection))return;
+            var proposed=preview.Values;
+            dateSelection=selection;datesBefore=before;
             DatePlanPreview.Text = string.Join("\n", dateSelection.Select((row, index) => row.Name + "：" + (datesBefore[index].Length == 0 ? "（缺失）" : datesBefore[index]) + " → " + (proposed[index] ?? "（跳过：文件名不匹配或日期无效）")));
             if (DatePlanPreview.Text.Length > 65536) DatePlanPreview.Text = DatePlanPreview.Text[..65536] + "\n显示已截短，应用包含全部预览文件。";
-            datesAfter = proposed; DatePlanApplyButton.IsEnabled = proposed.Any(value => value is not null);
-            Status.Text = $"日期预览完成：可应用{proposed.Count(value => value is not null)}，跳过{proposed.Count(value => value is null)}；尚未加入草稿。";
+            datePreview=preview;DatePlanApplyButton.IsEnabled=proposed.Any(value=>value is not null);
+            Status.Text=$"日期预览完成：可应用{proposed.Count(value=>value is not null)}，跳过{proposed.Count(value=>value is null)}；总/计算{preview.Measurements.Sum(m=>m.TotalMs):F0}/{preview.Measurements.Sum(m=>m.ComputeMs):F0}ms；尚未加入草稿。";
         }
-        catch (Exception error) { Status.Text = DatePlanPreview.Text = "日期预览失败：" + error.Message; }
+        catch (Exception error) { if(revision==dateRevision)Status.Text=DatePlanPreview.Text="日期预览未完成："+DateFailureText(error); }
+        finally { if(ReferenceEquals(dateRequest,request))dateRequest=null;request.Dispose();datePending--; }
     }
-    private void ApplyDates(object sender, RoutedEventArgs e)
+    private static string DateFailureText(Exception error)=>error is OperationCanceledException ? "已取消，草稿未改变。" : error is DateFailure failure ? failure.Code switch {
+        "canceled"=>"已取消，草稿未改变。", "timeout"=>"日期计算超时，草稿未改变。",
+        "startFailed" or "dependencyMissing"=>"日期宿主或运行库不可用，请按Windows构建说明检查；未回退旧算法。",
+        "staleRevision"=>"状态已改变，请重新预览。", _=>"日期协议或进程失败："+failure.Code
+    }:error.Message;
+    private async void ApplyDates(object sender, RoutedEventArgs e)
     {
-        if (busy || renameRecoveryRequired || datesAfter.Length == 0) return;
+        if (busy || renameRecoveryRequired || datePreview is not { } preview || dateRequest is not null) return;
+        var revision=dateRevision;var request=new CancellationTokenSource();dateRequest=request;DatePlanApplyButton.IsEnabled=false;datePending++;
         try
         {
             if (Fields.Any(field => field.Apply.IsChecked == true) || !Selected.SequenceEqual(dateSelection) ||
                 !dateSelection.Select(row => row.Document.Value("XMP-exif:DateTimeOriginal")).SequenceEqual(datesBefore) || dateSelection.Any(row => !row.Document.CanEdit))
                 throw new InvalidOperationException("选择、日期或输入已改变，请重新预览。");
-            for (var index = 0; index < dateSelection.Length; index++)
-                if (datesAfter[index] is { } value) dateSelection[index].Document.SetDraft(new Dictionary<string,string> { ["XMP-exif:DateTimeOriginal"] = value });
-            var count = datesAfter.Count(value => value is not null); datesAfter = []; DatePlanApplyButton.IsEnabled = false;
+            preview.ValidateAll();
+            foreach(var row in dateSelection)await row.Document.EnsureUnchangedAsync(request.Token);
+            request.Token.ThrowIfCancellationRequested();
+            if(revision!=dateRevision || !Selected.SequenceEqual(dateSelection) || Fields.Any(field=>field.Apply.IsChecked==true))throw new InvalidOperationException("状态已改变，请重新预览。");
+            var count=preview.Values.Count(value=>value is not null);
+            preview.Apply();InvalidateDates();
             RefreshPhotoRows(); RefreshSelection(); RefreshMatchTime(); ClearMatchMarker(); _ = PostPhotosAsync();
             Status.Text = $"已为{count}个文件加入日期草稿；尚未写入文件。";
         }
-        catch (Exception error) { datesAfter = []; DatePlanApplyButton.IsEnabled = false; Status.Text = "日期未应用：" + error.Message; }
+        catch (Exception error) { if(revision==dateRevision){InvalidateDates();Status.Text="日期未应用："+DateFailureText(error);} }
+        finally { if(ReferenceEquals(dateRequest,request))dateRequest=null;request.Dispose();datePending--; }
     }
 
     private CsvImport? csvImport;
@@ -1084,6 +1121,7 @@ public partial class MainWindow : Window
     }
     private void BeginOperation()
     {
+        InvalidateDates();
         busy = true; operation?.Dispose(); operation = new();
         PhotoSearch.IsEnabled = PhotoFilter.IsEnabled = PhotoSort.IsEnabled = false;
         ReadButton.IsEnabled = FolderButton.IsEnabled = OutputButton.IsEnabled = OutputFolder.IsEnabled = Photos.IsEnabled = false;
@@ -1098,9 +1136,10 @@ public partial class MainWindow : Window
         TrackReadButton.IsEnabled = TrackList.IsEnabled = TrackRemoveButton.IsEnabled = MatchButton.IsEnabled = true; MapRetryButton.IsEnabled = !mapInitializing;
         RefreshSelection();
     }
-    private void CancelRead(object sender, RoutedEventArgs e) { dependencyCheck?.Cancel(); operation?.Cancel(); if (busy) Status.Text = "正在取消任务…"; }
+    private void CancelRead(object sender, RoutedEventArgs e) { InvalidateDates();dependencyCheck?.Cancel(); operation?.Cancel(); Status.Text=busy?"正在取消任务…":"日期预览已取消或失效，草稿未改变。"; }
     private void WindowClosing(object? sender, CancelEventArgs e)
     {
+        if(datePending>0){InvalidateDates();e.Cancel=true;Status.Text="正在取消日期任务；结束后可关闭。";return;}
         if (checkingEnvironment) { dependencyCheck?.Cancel(); e.Cancel = true; DependencyStatus.Text = "正在取消环境检查；结束后可关闭。"; return; }
         if (busy) { operation?.Cancel(); e.Cancel = true; Status.Text = "正在取消任务；结束后可关闭。"; return; }
         if (photos.Any(p => p.Document.Draft.Count > 0) || Fields.Any(f => f.Apply.IsChecked == true))

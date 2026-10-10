@@ -1,3 +1,5 @@
+> 日期页五模式已接入固定Swift文件的异步预览与受限草稿链，待用户验收。先按[构建说明](../DateHost/README.md)编译宿主；其他日期入口仍用C#，未正式分发。
+
 # PhotoTrail Windows
 
 ### Windows 开发状态
