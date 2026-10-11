@@ -33,3 +33,8 @@ Implemented and targeted checks passed; user acceptance is pending. Live Google 
 Use the native group list to move one or several groups before a target or to the blank end, or enter an explicit visible position. Filtered moves fill only visible slots; hidden groups stay in place. Alt+Up/Down moves and Ctrl+Z undoes the last move. Order is session-only, appends new groups and preserves identity across rename, partial execution and recovery. Result display sorting/filtering changes neither numbering nor execution scope; moving is restricted to idle processing order with all results visible. Processing changes invalidate the frozen plan. Existing no-overwrite, draft, source hash, cancellation and journal recovery protection remains; newly appearing companions reject execution.
 
 Old Windows version-1 schemes remain readable; optional sort, descending and metadataSortTag are added without filters or manual IDs. There is no default city scheme library to migrate. Photo list sorting remains independent. Implemented and targeted checks passed, including real single/multiple/filtered/end mouse drops and keyboard moves; user acceptance pending. Other DPI, all formats, large workloads and clean deployment remain unverified; prior limitations remain.
+
+
+## 2026-10-11
+
+Date component replacement and six-component offset skip confirmed missing dates per photo. Unchanged values and zero offsets do not enable Apply because of existing drafts. Invalid parameters, types and changed sources across the entire selection reject the batch. Implemented and verified; awaiting user acceptance.

@@ -15,20 +15,24 @@ internal sealed class DatePagePreview
     readonly long[] drafts;
     readonly string[] before;
     readonly string?[] after;
+    readonly bool strictDate;
     bool consumed;
     internal IReadOnlyList<string?> Values => Array.AsReadOnly(after);
+    internal int MissingCount { get; }
+    internal int UnchangedCount { get; }
     internal IReadOnlyList<Measurement> Measurements { get; }
-    DatePagePreview(PhotoDocument[] documents, long[] drafts, string[] before, string?[] after, IReadOnlyList<Measurement> measurements)
-    { this.documents=documents; this.drafts=drafts; this.before=before; this.after=after; Measurements=measurements; }
+    DatePagePreview(PhotoDocument[] documents, long[] drafts, string[] before, string?[] after, IReadOnlyList<Measurement> measurements, int missing, int unchanged, bool strictDate)
+    { this.documents=documents; this.drafts=drafts; this.before=before; this.after=after; Measurements=measurements; MissingCount=missing; UnchangedCount=unchanged; this.strictDate=strictDate; }
+    internal string SkippedText(int index) => before[index].Length==0 ? "缺失时间，已跳过" : "无变化，保留原草稿";
 
     internal static async Task<DatePagePreview> CreateAsync(IReadOnlyList<PhotoDocument> selection, DatePageOptions options,
         int revision, Func<int> currentRevision, CancellationToken token)
     {
         var docs=selection.ToArray();
-        if(docs.Length is < 1 or > 3000 || docs.Distinct().Count()!=docs.Length || docs.Any(d=>!d.CanEdit))
+        if(docs.Length is < 1 or > 3000 || docs.Distinct().Count()!=docs.Length || docs.Select(d=>d.SidecarPath??d.FilePath).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=docs.Length || docs.Any(d=>!d.CanEdit))
             throw new InvalidOperationException("请选择1至3000个不同的可编辑文件。");
         var drafts=docs.Select(d=>d.DraftRevision).ToArray();
-        var before=docs.Select(d=>options.Mode==0?OffsetValue(d):d.Value(Field)).ToArray();
+        var before=docs.Select(d=>options.Mode is 0 or 2?OffsetValue(d):d.Value(Field)).ToArray();
         var adapter=new DateAdapter(Path.Combine(AppContext.BaseDirectory,"DateHost","DateHost.exe"),Source);
         var jobs=new List<DateJob>();
         string?[]? extracted=null;
@@ -38,6 +42,16 @@ internal sealed class DatePagePreview
             options.Days is < -3660000 or > 3660000 || options.Hours is < -87840000 or > 87840000 ||
             options.Minutes is < -int.MaxValue or > int.MaxValue || options.Seconds is < -316224000000 or > 316224000000))
             throw new ArgumentException("时间调整超出支持范围。");
+        if(options.Mode==2) {
+            if(options.Components is null || options.Components.Count==0)throw new ArgumentException("请填写至少一个日期组件。");
+            foreach(var (name,value) in options.Components) {
+                var (minimum,maximum)=name switch {
+                    "year"=>(1,9999),"month"=>(1,12),"day"=>(1,31),
+                    "hour"=>(0,23),"minute" or "second"=>(0,59),_=>throw new ArgumentException("日期组件无效。")
+                };
+                if(value<minimum || value>maximum)throw new ArgumentException("日期组件超出支持范围。");
+            }
+        }
         if(options.Mode is 1 or 3) jobs.Add(new(new("global",options.Mode==1?"sequence":"distribute",options.Start,
             Seconds:options.Seconds,Count:docs.Length,End:options.End)));
         else for(int i=0;i<docs.Length;i++) {
@@ -58,14 +72,19 @@ internal sealed class DatePagePreview
             for(int i=0;i<values.Length;i++)values[i]=result[0].Values![i];
         } else foreach(var item in result) {
             if(item.Error is { } error) {
-                if(options.Mode==0 && before[int.Parse(item.Id,System.Globalization.CultureInfo.InvariantCulture)].Length==0 && error.Scope=="business" && error.Code=="missingDate")continue;
+                if(options.Mode is 0 or 2 && before[int.Parse(item.Id,System.Globalization.CultureInfo.InvariantCulture)].Length==0 && error.Scope=="business" && error.Code=="missingDate")continue;
                 if(options.Mode==4 && error.Scope=="business" && error.Code=="invalidDate")continue;
                 throw new InvalidOperationException("日期计算失败："+error.Code);
             }
             values[int.Parse(item.Id,System.Globalization.CultureInfo.InvariantCulture)]=item.Values![0];
         }
-        var preview=new DatePagePreview(docs,drafts,before,values,adapter.Measurements.ToArray());
-        if(options.Mode==0) {
+        int missing=0,unchanged=0;
+        if(options.Mode is 0 or 2)for(int i=0;i<docs.Length;i++) {
+            if(before[i].Length==0)missing++;
+            else if(values[i]==before[i]) { values[i]=null; unchanged++; }
+        }
+        var preview=new DatePagePreview(docs,drafts,before,values,adapter.Measurements.ToArray(),missing,unchanged,options.Mode is 0 or 2);
+        if(options.Mode is 0 or 2) {
             foreach(var doc in docs)await doc.EnsureUnchangedAsync(token);
             token.ThrowIfCancellationRequested();
             if(revision!=currentRevision())throw new DateFailure("staleRevision");
@@ -80,7 +99,7 @@ internal sealed class DatePagePreview
         return value.GetString()!;
     }
     void Current(int i) {
-        if(consumed || !documents[i].CanEdit || documents[i].DraftRevision!=drafts[i] || documents[i].Value(Field)!=before[i])
+        if(consumed || !documents[i].CanEdit || documents[i].DraftRevision!=drafts[i] || (strictDate?OffsetValue(documents[i]):documents[i].Value(Field))!=before[i])
             throw new InvalidOperationException("照片或草稿状态已改变，请重新预览。");
     }
     internal void ValidateAll() {

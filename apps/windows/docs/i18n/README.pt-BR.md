@@ -27,3 +27,8 @@ Foram adicionados tamanho e espaçamento independentes dos metadados, nomes comp
 2026-10-11
 
 Foram adicionados ordenação do processamento por nome, data, extensão, pasta, tamanho, câmera, cidade, avaliação, metadados e ordem manual, filtros de entrada e arraste de grupos. JPG/RAW/XMP ficam juntos; valores ausentes vão ao fim nas duas direções e empates são estáveis. Ordena e filtra antes de numerar continuamente. Múltiplos grupos preservam a ordem interna e posições ocultas; há posição explícita, Alt+acima/abaixo e Ctrl+Z. A visualização não muda o escopo de execução; alterações de processamento invalidam o plano congelado. Esquemas antigos continuam legíveis, com sort, descending e metadataSortTag opcionais, sem filtros ou IDs manuais. As proteções de execução, cancelamento e recuperação são mantidas. Verificação direcionada, arrastes reais e teclado concluídos; aceitação do usuário pendente. Limites e pendências anteriores permanecem.
+
+
+## 2026-10-11
+
+A substituição de componentes e o ajuste de seis componentes ignoram datas ausentes confirmadas por foto. Valores iguais e ajustes zero não habilitam Aplicar por rascunhos anteriores. Parâmetros ou tipos inválidos e mudanças na origem de toda a seleção rejeitam o lote. Implementado e verificado; aguardando aceitação do usuário.

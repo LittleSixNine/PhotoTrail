@@ -103,3 +103,10 @@ DateHost/UiChecks的定向参数为“合成目录 --settings-checks”及“同
 DateHost/UiChecks参数“独立样本目录 --rename-order-checks”运行生产WPF组、筛选、编号、冻结、执行／回读／恢复和设置／日期草稿回归。样本为a/b/c/d.jpg及各自XMP，另有a.dng副本；a/c/d旁车有标题，b旁车无标题，RAW设备与JPEG不同。新增非法b.nef仅检查内容类型拒绝；e.xmp在嵌套目录用于追加检查。仅使用可丢弃样本。取消和并发目标冲突由真实RenameExecutor进度触发，实际输出送入生产上下文重读及恢复入口，单独记录，不能称为鼠标执行中取消。鼠标拖放、放下回调及实际顺序和Alt／Ctrl快捷键另由Computer Use核对，模型断言不替代。
 
 设PHOTOTRAIL_RENAME_HISTORY隔离执行记录，同时隔离既有PHOTOTRAIL_SETTINGS_FILE、PHOTOTRAIL_SEARCH_HISTORY_FILE、PHOTOTRAIL_THEME_FILE与WEBVIEW2_USER_DATA_FOLDER；ExifTool仍用现有原生完整目录。复用固定DateHost，不编译共享Swift。原始日志、照片、执行记录、缓存及二进制留本机，不纳入公开源码。NU1900资料读取告警、其他DPI／性能与干净部署继续单独记录。
+
+
+## 批量缺值定向检查（2026-10-11）
+
+`dotnet run --project PhotoTrail.Windows.Tests -- --batch-missing-checks`复用Mode0检查并覆盖Mode2参数、类型、净变化、草稿、来源、重复目标、序列和均分位置。PHOTOTRAIL_TEST_OUTPUT下mac-fixtures/a.xmp、missing.xmp、c.xmp按确切Mac返还包读取；哈希／对应预期在私有交接，不上传私人素材。输出每次新建，拒绝覆盖副本。
+
+`DateHost/UiChecks`参数“独立三XMP目录 --batch-missing-checks”操作生产WPF预览、应用及保存入口，检查全选择保护、参数／选择／草稿变化、内存类型变化、取消与新请求、设置持久化和重命名冻结身份。另由Computer Use鼠标操作混合／全部缺失／同值按钮提示；不能把检查计数当作计算阶段取消证明。复用固定DateHost和完整ExifTool，隔离已有偏好／缓存／重命名记录变量。没有重跑全部历史检查、计算阶段时机或干净部署。
