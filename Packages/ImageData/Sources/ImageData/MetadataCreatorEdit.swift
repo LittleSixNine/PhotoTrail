@@ -200,6 +200,11 @@ public struct MetadataCreatorEditPlan: Sendable {
         }
     }
 
+    static func validate(_ readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)],
+                         tag: MetadataTag) throws {
+        _ = try prepare(readings, tag: tag) { _ in nil }
+    }
+
     private static func prepare(
         _ readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)],
         tag: MetadataTag,

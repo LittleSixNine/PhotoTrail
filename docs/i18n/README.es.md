@@ -43,7 +43,7 @@ Al guardar una ubicación también se pueden escribir provincia/estado, ciudad, 
 Los campos comunes y completos comparten lista y controles de edición. Las fechas identifican su origen EXIF, IPTC, XMP o del sistema de archivos.
 
 - **Consulta y edita campos:** busca nombres, etiquetas o valores y recorre grupos. Usa editores adecuados para texto, fechas y dispositivos. [Catálogo](../DEVICE_CATALOG.md).
-- **Preajustes por lotes:** organiza asignaciones, copias y ajustes de fechas; comprueba la vista previa antes de añadir cambios pendientes. Crea, guarda, carga, elimina e intercambia preajustes JSON; copia un campo a varios destinos.
+- **Preajustes por lotes:** organiza asignaciones, copias y ajustes de fechas; comprueba la vista previa antes de añadir cambios pendientes. Crea, guarda, carga, elimina e intercambia preajustes JSON; copia un campo a varios destinos. Los ajustes de fecha omiten los valores ausentes e indican el motivo; no se pueden aplicar si no hay cambios nuevos.
 - **Copia y pega campos:** ⌘C/⌘V o Ctrl+C/Ctrl+V pegan el valor original en varios campos editables. Los valores modificados aparecen en naranja; hay que guardar para escribir los archivos.
 - **Fechas e intercambio:** aumenta o reduce años, meses, días, horas, minutos y segundos por separado. Cambia una parte de la fecha, usa intervalos fijos o distribuye fechas uniformemente; conserva el intercambio controlado CSV/XMP y la comparación por foto.
 

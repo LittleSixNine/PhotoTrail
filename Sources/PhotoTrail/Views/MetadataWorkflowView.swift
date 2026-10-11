@@ -31,6 +31,7 @@ struct MetadataWorkflowView: View {
     }
     private var incompleteCards: Bool { cards.contains { $0.operations.isEmpty } }
     @State private var preview: MetadataWorkflowPreview?
+    @State private var previewSelection: Set<ImageData.ID> = []
     @State private var presetName = ""
     @State private var selectedPreset = ""
     @State private var notice = ""
@@ -288,16 +289,18 @@ private extension MetadataWorkflowView {
     private func makePreview() {
         perform {
             preview = try MetadataWorkflowPreview.prepare(readings, operations: activeOperations)
+            previewSelection = store.selection
             if !isBatch { workflowTab = "preview" }
         }
     }
     private func apply() {
-        guard let preview, !store.saveInProgress else { return }
+        guard let preview, !preview.items.isEmpty, !store.saveInProgress else { return }
         perform {
-            guard readings.allSatisfy({ store[$0.image.id].creatorDraft == $0.image.creatorDraft
+            guard store.selection == previewSelection,
+                  readings.allSatisfy({ store[$0.image.id].creatorDraft == $0.image.creatorDraft
                 && store.creatorSaveResults[$0.image.id] != .resultUnknown
                 && store[$0.image.id].metadata == $0.image.metadata }),
-                  preview.items.allSatisfy({ MetadataInspectionFileVersion.read($0.target) == $0.version }) else {
+                  readings.allSatisfy({ MetadataInspectionFileVersion.read($0.snapshot.url) == $0.snapshot.version }) else {
                 throw MetadataCreatorPlanError.sourceChanged
             }
             store.send(.creatorDraftApplied(preview.items), description: L10n.text("编辑元数据…"))
@@ -337,6 +340,7 @@ private extension MetadataWorkflowView {
             // The original selection is also validated as a whole to reject shared physical targets.
             _ = try MetadataCreatorEditPlan.prepare(readings, action: .fillMissing(["validation"]))
             preview = MetadataWorkflowPreview(items: items, steps: steps, skipped: imported.warnings)
+            previewSelection = store.selection
             notice = imported.warnings.joined(separator: "\n")
         }
     }
@@ -606,6 +610,14 @@ private extension MetadataWorkflowView {
 }
 
 private extension MetadataWorkflowView {
+    func skipDescription(_ entry: String, preview: MetadataWorkflowPreview) -> String {
+        switch preview.skipReasons[entry] {
+        case .missingValue: L10n.text("跳过（来源字段缺失）：%1$@", entry)
+        case .filenameMismatch: L10n.text("跳过（文件名日期未匹配）：%1$@", entry)
+        case nil: entry
+        }
+    }
+
     var workflowPreview: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(L10n.text("修改预览")).font(.headline)
@@ -625,7 +637,10 @@ private extension MetadataWorkflowView {
                             }
                             Divider()
                         }
-                        ForEach(Array(Set(preview.skipped)).sorted(), id: \.self) { Text($0).font(.caption).foregroundStyle(.orange) }
+                        Text(L10n.text("跳过操作数量：%1$@", preview.skipped.count)).font(.caption)
+                        ForEach(Array(Set(preview.skipped)).sorted(), id: \.self) { entry in
+                            Text(skipDescription(entry, preview: preview)).font(.caption).foregroundStyle(.orange)
+                        }
                     }.textSelection(.enabled)
                 } else {
                     Label(L10n.text("点击“预览”检查每张照片的修改结果。"), systemImage: "eye")

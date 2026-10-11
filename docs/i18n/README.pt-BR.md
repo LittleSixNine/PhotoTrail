@@ -43,7 +43,7 @@ Ao salvar uma localização, também é possível gravar estado/província, cida
 Os campos comuns e completos usam a mesma lista e os mesmos controles. Datas indicam a origem EXIF, IPTC, XMP ou do sistema de arquivos.
 
 - **Consulte e edite campos:** pesquise nomes, tags ou valores e navegue por grupos. Texto, datas e dispositivos usam editores adequados. [Catálogo](../DEVICE_CATALOG.md).
-- **Predefinições em lote:** organize atribuições, cópias e ajustes de datas; confira a prévia antes de adicionar alterações pendentes. Crie, salve, carregue, exclua e troque arquivos JSON; copie um campo para vários destinos.
+- **Predefinições em lote:** organize atribuições, cópias e ajustes de datas; confira a prévia antes de adicionar alterações pendentes. Crie, salve, carregue, exclua e troque arquivos JSON; copie um campo para vários destinos. Os ajustes de data ignoram valores ausentes e mostram o motivo; sem novas alterações, não é possível aplicar.
 - **Copie e cole campos:** ⌘C/⌘V ou Ctrl+C/Ctrl+V colam o valor original em vários campos editáveis. Valores alterados aparecem em laranja; ainda é preciso salvar para gravar os arquivos.
 - **Datas e troca de dados:** aumente ou diminua anos, meses, dias, horas, minutos e segundos separadamente. Altere uma parte da data, use intervalos fixos ou distribua datas igualmente; mantenha a troca controlada CSV/XMP e a comparação por foto.
 

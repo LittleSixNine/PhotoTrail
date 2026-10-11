@@ -32,9 +32,12 @@ public struct MetadataWorkflowPreview: Sendable {
     public let items: [MetadataCreatorEditPlan.Item]
     public let steps: [MetadataCreatorEditPlan.Item]
     public let skipped: [String]
+    public enum SkipReason: Sendable { case missingValue, filenameMismatch }
+    public let skipReasons: [String: SkipReason]
 
-    public init(items: [MetadataCreatorEditPlan.Item], steps: [MetadataCreatorEditPlan.Item], skipped: [String]) {
-        self.items = items; self.steps = steps; self.skipped = skipped
+    public init(items: [MetadataCreatorEditPlan.Item], steps: [MetadataCreatorEditPlan.Item], skipped: [String],
+                skipReasons: [String: SkipReason] = [:]) {
+        self.items = items; self.steps = steps; self.skipped = skipped; self.skipReasons = skipReasons
     }
 
     public static func prepare(
@@ -50,7 +53,10 @@ public struct MetadataWorkflowPreview: Sendable {
         var working = readings
         var steps: [MetadataCreatorEditPlan.Item] = []
         var skipped: [String] = []
+        var skipReasons: [String: SkipReason] = [:]
         for operation in operations {
+            try MetadataCreatorEditPlan.validate(working, tag: operation.tag)
+            try validateDateParameters(operation)
             let sequence: [String]?
             switch operation.action {
             case .sequence(let start, let step):
@@ -78,14 +84,16 @@ public struct MetadataWorkflowPreview: Sendable {
                     let name = reading.image.name
                     guard let match = expression.firstMatch(in: name, range: NSRange(name.startIndex..., in: name)),
                           let parsed = try? MetadataDate(expression.replacementString(for: match, in: name, offset: 0, template: template)) else {
-                        skipped.append("\(name) · \(operation.tag.rawValue)")
+                        let entry = "\(name) · \(operation.tag.rawValue)"
+                        skipped.append(entry); skipReasons[entry] = .filenameMismatch
                         continue
                     }
                     action = .setText(parsed.text)
                 case .copy(let source):
                     guard reading.snapshot.requestedTags.contains(source) else { throw MetadataCreatorPlanError.invalidValue }
                     guard let original = value(source) else {
-                        skipped.append("\(reading.image.name) · \(source.rawValue)")
+                        let entry = "\(reading.image.name) · \(source.rawValue)"
+                        skipped.append(entry); skipReasons[entry] = .missingValue
                         continue
                     }
                     switch (operation.tag, original) {
@@ -95,9 +103,12 @@ public struct MetadataWorkflowPreview: Sendable {
                     default: throw MetadataFieldEditError.invalidAction
                     }
                 case .shiftDate(let seconds), .calendarDays(let seconds, _), .dateComponent(_, let seconds):
-                    guard operation.tag.isDate, case .text(let text) = value(operation.tag) else {
-                        throw MetadataDateError.missingDate
+                    guard let current = value(operation.tag) else {
+                        let entry = "\(reading.image.name) · \(operation.tag.rawValue)"
+                        skipped.append(entry); skipReasons[entry] = .missingValue
+                        continue
                     }
+                    guard case .text(let text) = current else { throw MetadataFieldEditError.invalidValue }
                     let date = try MetadataDate(text)
                     switch action {
                     case .shiftDate: action = .setText(try date.shifting(seconds: seconds).text)
@@ -109,6 +120,13 @@ public struct MetadataWorkflowPreview: Sendable {
                         action = .setText(try date.replacing(component, with: value).text)
                     default: break
                     }
+                case .offsetDate:
+                    guard operation.tag.isDate else { throw MetadataFieldEditError.invalidAction }
+                    if value(operation.tag) == nil {
+                        let entry = "\(reading.image.name) · \(operation.tag.rawValue)"
+                        skipped.append(entry); skipReasons[entry] = .missingValue
+                        continue
+                    }
                 default: break
                 }
                 let item = try MetadataCreatorEditPlan.prepare([reading], tag: operation.tag, action: action).items[0]
@@ -116,6 +134,40 @@ public struct MetadataWorkflowPreview: Sendable {
                 steps.append(item)
             }
         }
-        return Self(items: working.compactMap { $0.image.creatorDraft }, steps: steps, skipped: skipped)
+        let items = zip(readings, working).compactMap { original, final -> MetadataCreatorEditPlan.Item? in
+            guard let draft = final.image.creatorDraft else { return nil }
+            func value(_ tag: MetadataTag, changes: [MetadataTag: MetadataTagChange]) -> MetadataTagValue? {
+                switch changes[tag] {
+                case .set(let value): return value
+                case .remove: return nil
+                case nil: return original.snapshot.values[tag]
+                }
+            }
+            let before = original.image.creatorDraft?.changes ?? [:]
+            let tags = Set(before.keys).union(draft.changes.keys)
+            return tags.contains { value($0, changes: before) != value($0, changes: draft.changes) } ? draft : nil
+        }
+        return Self(items: items, steps: steps, skipped: skipped, skipReasons: skipReasons)
     }
+
+    private static func validateDateParameters(_ operation: MetadataOperation) throws {
+        switch operation.action {
+        case .shiftDate(let seconds):
+            guard operation.tag.isDate else { throw MetadataFieldEditError.invalidAction }
+            guard (-315537897599...315537897599).contains(seconds) else { throw MetadataDateError.invalidDate }
+        case .calendarDays(let days, let zone):
+            guard operation.tag.isDate else { throw MetadataFieldEditError.invalidAction }
+            guard (-3652058...3652058).contains(days) else {
+                throw MetadataDateError.invalidDate
+            }
+            if let zone, TimeZone(identifier: zone) == nil { throw MetadataDateError.invalidDate }
+        case .dateComponent(let name, let value):
+            guard operation.tag.isDate else { throw MetadataFieldEditError.invalidAction }
+            let ranges = ["year": 1...9999, "month": 1...12, "day": 1...31,
+                          "hour": 0...23, "minute": 0...59, "second": 0...59]
+            guard ranges[name]?.contains(value) == true else { throw MetadataDateError.invalidDate }
+        default: break
+        }
+    }
+
 }

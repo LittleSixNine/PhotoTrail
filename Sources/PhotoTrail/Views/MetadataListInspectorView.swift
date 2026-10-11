@@ -1040,7 +1040,7 @@ private extension MetadataListInspectorView {
         do {
             let operations = try MetadataFieldClipboard.operations(text: text, targets: batchTargets(identifiers))
             let plan = try MetadataWorkflowPreview.prepare(readings, operations: operations)
-            guard plan.items.allSatisfy({ MetadataInspectionFileVersion.read($0.target) == $0.version }) else {
+            guard readings.allSatisfy({ MetadataInspectionFileVersion.read($0.snapshot.url) == $0.snapshot.version }) else {
                 throw MetadataCreatorPlanError.sourceChanged
             }
             store.send(.creatorDraftApplied(plan.items), description: L10n.text("粘贴到所选字段"))

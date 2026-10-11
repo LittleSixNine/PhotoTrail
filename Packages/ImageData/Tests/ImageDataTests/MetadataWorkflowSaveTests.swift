@@ -179,11 +179,12 @@ struct MetadataWorkflowSaveTests {
             #expect(roundTrip.items.isEmpty)
         }
         #expect(throws: MetadataCreatorPlanError.self) { try MetadataWorkflowPreview.prepare(readings, operations: operations) }
-        #expect(throws: MetadataDateError.self) {
-            let fresh = try MetadataInspectionSnapshot.read(tags, from: plan.items[0].target)
-            try MetadataWorkflowPreview.prepare([(readings[0].image, fresh)], operations: [MetadataOperation(tag: .dateModified, action: .shiftDate(seconds: 1)),
-                                                                                           MetadataOperation(tag: .dateModified, action: .remove),
-                                                                                           MetadataOperation(tag: .dateModified, action: .shiftDate(seconds: 1))])
-        }
+        let fresh = try MetadataInspectionSnapshot.read(tags, from: plan.items[0].target)
+        let cleared = try MetadataWorkflowPreview.prepare([(readings[0].image, fresh)], operations: [
+            MetadataOperation(tag: .dateModified, action: .shiftDate(seconds: 1)),
+            MetadataOperation(tag: .dateModified, action: .remove),
+            MetadataOperation(tag: .dateModified, action: .shiftDate(seconds: 1))])
+        #expect(cleared.items.first?.changes[.dateModified] == .remove)
+        #expect(cleared.skipped.count == 1)
     }
 }
