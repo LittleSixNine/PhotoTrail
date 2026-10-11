@@ -176,7 +176,7 @@ public partial class MainWindow : Window
     private RenamePlan? frozenRenamePlan;
     private int renameRevision;
     private bool renameRecoveryRequired;
-    private string RenameJournalDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PhotoTrail", "Windows", "RenameHistory");
+    private string RenameJournalDirectory => Environment.GetEnvironmentVariable("PHOTOTRAIL_RENAME_HISTORY") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PhotoTrail", "Windows", "RenameHistory");
     private void LoadLatestRenameJournal()
     {
         if (!Directory.Exists(RenameJournalDirectory)) return;
@@ -193,7 +193,7 @@ public partial class MainWindow : Window
     }
     private PhotoRow[] RenameSelection() {
         var selected=Selected;
-        if(RenameSort?.IsChecked==true)return selected.OrderBy(row=>row.Name,StringComparer.OrdinalIgnoreCase).ThenBy(row=>row.Document.FilePath,StringComparer.Ordinal).ToArray();
+
         var targets=selected.ToHashSet();return photos.Where(targets.Contains).ToArray();
     }
     private void UpdateRenameButtons()
@@ -202,7 +202,7 @@ public partial class MainWindow : Window
         if (FreezeRenameButton is not null) FreezeRenameButton.IsEnabled = !busy && !renameRecoveryRequired && Selected.Length > 0;
         if (RestoreRenameButton is not null) RestoreRenameButton.IsEnabled = !busy;
         if (RenameRules is not null) RenameRules.IsEnabled = !busy;
-        if (RenameSort is not null) RenameSort.IsEnabled = !busy;
+        if(RenameProcessingControls is not null)RenameProcessingControls.IsEnabled=!busy; if(RenameGroups is not null)RenameGroups.IsEnabled=!busy; if(RenameUndoOrder is not null)RenameUndoOrder.IsEnabled=CanMoveRenameGroups&&renameOrderUndo is not null;
         if (RenamePresetSaveButton is not null) RenamePresetSaveButton.IsEnabled = !busy && !renameRecoveryRequired;
         if (RenamePresetLoadButton is not null) RenamePresetLoadButton.IsEnabled = !busy && !renameRecoveryRequired;
         if (RenameJournalPath is not null) RenameJournalPath.IsEnabled = !busy;
@@ -216,7 +216,7 @@ public partial class MainWindow : Window
     }
     private async Task<int> RefreshRenamedPhotos(RenameResult result)
     {
-        var mappings = result.Files.ToDictionary(file => file.Source, file => file.Current, StringComparer.OrdinalIgnoreCase);
+        RemapRenameIdentities(result); var mappings = result.Files.ToDictionary(file => file.Source, file => file.Current, StringComparer.OrdinalIgnoreCase);
         var failures = 0; var selected = Selected.ToHashSet(); var affected = photos.Where(row => mappings.ContainsKey(row.Document.FilePath)).ToArray();
         fillingEditor = true;
         try
@@ -247,7 +247,7 @@ public partial class MainWindow : Window
                 (completed,total) => Dispatcher.BeginInvoke(() => { if (busy && !operation!.IsCancellationRequested) RenameStatus.Text = $"更名／核验：{completed}/{total}；取消后按记录恢复。"; })));
             renameRecoveryRequired = !result.Complete && result.Files.Any(file=>file.Current!=file.Source);
             var reloadFailures = await RefreshRenamedPhotos(result);
-            RenamePreview.ItemsSource = result.Files;
+            RenamePreview.ItemsSource = result.Files; RenameViewChanged(this,new RoutedEventArgs());
             if (result.Journal.Length > 0) RenameJournalPath.Text = result.Journal;
             RenameStatus.Text = result.Complete ? "更名及内容核验完成；执行记录已保存，可按记录恢复。" : "更名部分完成：" + result.Error + " 实际名称与记录已保留；恢复前不可编辑元数据。";
             if (reloadFailures > 0) RenameStatus.Text += $" {reloadFailures}个上下文未能重读，磁盘文件保留，实际路径见记录。";
@@ -268,7 +268,7 @@ public partial class MainWindow : Window
             {
                 var result = await Task.Run(() => RenameExecutor.RestoreAsync(path, RenameJournalDirectory, operation!.Token));
                 renameRecoveryRequired = !result.Complete && result.Files.Any(file=>file.Current!=file.Source);
-                var reloadFailures = await RefreshRenamedPhotos(result); RenamePreview.ItemsSource = result.Files;
+                var reloadFailures = await RefreshRenamedPhotos(result); RenamePreview.ItemsSource = result.Files; RenameViewChanged(this,new RoutedEventArgs());
                 if (result.Journal.Length > 0) RenameJournalPath.Text = result.Journal;
                 RenameStatus.Text = result.Complete ? "按执行记录恢复完成；内容核验通过，恢复动作也有新记录。" : "恢复部分完成：" + result.Error + " 实际名称见当前记录。";
                 if (reloadFailures > 0) RenameStatus.Text += $" {reloadFailures}个上下文未能重读，磁盘文件保留，实际路径见记录。";
@@ -284,7 +284,7 @@ public partial class MainWindow : Window
         if (busy || renameRecoveryRequired) return;
         try
         {
-            var text = RenameRulesPreset.Encode(RenameRules.Text, RenameSort.IsChecked == true);
+            var text = RenameRulesPreset.Encode(RenameRules.Text, ReadRenameOrder().Sort=="name",ReadRenameOrder());
             var dialog = new SaveFileDialog { Title = "保存Windows重命名规则（不覆盖）", Filter = "JSON规则|*.json", DefaultExt = ".json", FileName = "PhotoTrail-rename.json", OverwritePrompt = false };
             if (dialog.ShowDialog(this) != true) return;
             MetadataCsv.WriteNew(dialog.FileName, text); RenameStatus.Text = "规则已保存；未重命名文件。";
@@ -302,7 +302,7 @@ public partial class MainWindow : Window
             if (file.Length > RenameRulesPreset.MaximumBytes) throw new InvalidDataException("规则文件超过64KiB上限。");
             using var reader = new StreamReader(file, new System.Text.UTF8Encoding(false, true), detectEncodingFromByteOrderMarks: true);
             var preset = RenameRulesPreset.Decode(reader.ReadToEnd());
-            RenameRules.Text = preset.Rules; RenameSort.IsChecked = preset.SortByName;
+            fillingRenameControls=true; try{RenameRules.Text=preset.Rules; var saved=preset.Order??new RenameOrderSettings(preset.SortByName?"name":"input");RenameProcessingSort.SelectedIndex=Array.IndexOf(RenameOrderSettings.Sorts,saved.Sort);RenameDescending.IsChecked=saved.Descending;RenameMetadataTag.Text=saved.MetadataSortTag??"";}finally{fillingRenameControls=false;}
             RenameRulesChanged(this, new RoutedEventArgs());
             RenameStatus.Text = "规则已载入，冻结计划失效；请重新检查冲突，尚未重命名文件。";
         }
@@ -310,12 +310,12 @@ public partial class MainWindow : Window
     }
     private void RenameRulesChanged(object sender, RoutedEventArgs e)
     {
-        if (RenameRules is null || RenamePreview is null || RenameStatus is null) return;
+        if (RenameRules is null || RenamePreview is null || RenameStatus is null || RenameProcessingSort is null || RenameViewOrder is null || RenameViewFilter is null || fillingRenameControls) return;
         renameRevision++; frozenRenamePlan = null; UpdateRenameButtons();
         try
         {
             var rules = ReadRenameRules();
-            RenamePreview.ItemsSource = RenameSelection().Select((row,index) => new RenameFile(row.Document.FilePath, Path.Combine(Path.GetDirectoryName(row.Document.FilePath)!, RenamePlan.Apply(row.Name,rules,index)), "")).ToArray();
+            var roots=RenameSelection().Select(r=>RenameGroup.Key(r.Document.FilePath)).ToHashSet(StringComparer.OrdinalIgnoreCase); renameGroups=renameGroups.Where(g=>g.Members.Any(m=>roots.Contains(RenameGroup.Key(m.Path)))).ToArray();RenderRenameGroups();
             RenameStatus.Text = "名称预览已更新；请检查冲突并冻结计划后执行。";
         }
         catch (Exception error) { RenamePreview.ItemsSource = null; RenameStatus.Text = "未生成预览：" + error.Message; }
@@ -332,17 +332,17 @@ public partial class MainWindow : Window
             var revision = ++renameRevision; BeginOperation();
             try
             {
-                var plan = await Task.Run(() => RenamePlan.BuildAsync(paths,rules,false,operation!.Token),operation!.Token);
+                await ReadRenameGroupsAsync(operation!.Token); var included=IncludedRenameGroups();if(included.Length==0)throw new ArgumentException("筛选后无参与组。");if(included.Any(g=>g.Members.Any(m=>m.MetadataFailed)))throw new IOException("参与组元数据读取失败，不能当成缺失冻结。");var targets=included.SelectMany((g,i)=>g.Members.Select(m=>(Source:m.Path,Name:Path.GetFileNameWithoutExtension(RenamePlan.Apply(g.Leader.Name,rules,i))+Path.GetExtension(m.Path)))).ToArray(); var plan=await RenamePlan.BuildTargetsAsync(targets,operation!.Token,includeSidecars:false); foreach(var member in included.SelectMany(g=>g.Members))if(plan.Files.Single(f=>f.Source.Equals(member.Path,StringComparison.OrdinalIgnoreCase)).Hash!=member.Hash)throw new IOException("预览元数据读取后源内容改变。");
                 if (revision != renameRevision) return;
                 if (RenameHasDraft(plan.Files.Select(file=>file.Source))) throw new InvalidOperationException("计划中的照片或旁车有草稿，未冻结。");
                 var versions = plan.Files.ToDictionary(file=>file.Source,file=>file.Hash,StringComparer.OrdinalIgnoreCase);
-                foreach (var row in selected)
+                foreach (var row in selected.Where(row=>versions.ContainsKey(row.Document.FilePath)))
                 {
                     if (!Path.GetExtension(row.Document.FilePath).Equals(".xmp",StringComparison.OrdinalIgnoreCase) && (row.Document.SidecarPath is not null) != File.Exists(Path.ChangeExtension(row.Document.FilePath,".xmp"))) throw new IOException("同名旁车关系已改变，请重新导入。");
                     if (versions[row.Document.FilePath] != row.Document.SourceHash) throw new IOException("照片已在外部改变，请重新导入。");
                     if (row.Document.SidecarPath is { } sidecar && versions[sidecar] != row.Document.SidecarHash) throw new IOException("旁车已在外部改变，请重新导入。");
                 }
-                frozenRenamePlan = plan; RenamePreview.ItemsSource = plan.Files;
+                RenameGroups.ItemsSource=included; frozenRenamePlan = plan; RenamePreview.ItemsSource = plan.Files; RenameViewChanged(this,new RoutedEventArgs());
                 RenameStatus.Text = $"已冻结{plan.Files.Count}个物理文件（包含旁车），冲突检查与SHA256读取通过；尚未更名。";
             }
             finally { EndOperation(); }

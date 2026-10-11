@@ -12,7 +12,7 @@ public record RenameFile(string Source, string Target, string Hash)
     public string NewName => Path.GetFileName(Target);
     public string Status => Source == Target ? "无需更名" : "预览；尚未执行";
 }
-public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files)
+public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool ExplicitGroups=false)
 {
     public static IReadOnlyList<RenameRule> ParseRules(string text)
     {
@@ -71,10 +71,10 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files)
         var targets = inputs.Select((path, index) => (path, Apply(Path.GetFileName(path), frozenRules, index))).ToArray();
         return BuildTargetsAsync(targets, cancellation);
     }
-    public static async Task<RenamePlan> BuildTargetsAsync(IEnumerable<(string Source, string Name)> targets, CancellationToken cancellation = default)
+    public static async Task<RenamePlan> BuildTargetsAsync(IEnumerable<(string Source, string Name)> targets, CancellationToken cancellation = default, bool includeSidecars = true)
     {
         var inputs = targets.ToArray();
-        if (inputs.Length is < 1 or > 3000) throw new ArgumentException("一次预览须为1至3000个主文件。");
+        if (inputs.Length < 1 || inputs.Length > (includeSidecars?3000:6000)) throw new ArgumentException("一次预览最多3000个主文件或6000个已配对物理文件。");
         var pairs = new List<(string Source, string Target)>();
         foreach (var (source, name) in inputs)
         {
@@ -87,7 +87,7 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files)
             var target = Path.Combine(Path.GetDirectoryName(full)!, name);
             pairs.Add((full, target));
             var sidecar = Path.ChangeExtension(full, ".xmp");
-            if (!full.Equals(sidecar, StringComparison.OrdinalIgnoreCase) && File.Exists(sidecar))
+            if (includeSidecars && !full.Equals(sidecar, StringComparison.OrdinalIgnoreCase) && File.Exists(sidecar))
             {
                 if ((File.GetAttributes(sidecar) & FileAttributes.ReparsePoint) != 0) throw new IOException("旁车为链接，未安排重命名。");
                 var sidecarTarget = Path.ChangeExtension(target, ".xmp");
@@ -109,18 +109,18 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files)
             if (Directory.Exists(target) || (File.Exists(target) && !sources.Contains(target))) throw new IOException("目标已存在且不在本次源文件中，拒绝覆盖。");
             files.Add(new(source, target, await PhotoDocument.HashAsync(source, cancellation)));
         }
-        return new(Array.AsReadOnly(files.ToArray()));
+        return new(Array.AsReadOnly(files.ToArray()),!includeSidecars);
     }
 }
 
-public sealed record RenameRulesPreset(string Rules, bool SortByName)
+public sealed record RenameRulesPreset(string Rules, bool SortByName, RenameOrderSettings? Order = null)
 {
     public const int MaximumBytes = 64 * 1024;
-    public static string Encode(string rules, bool sortByName)
+    public static string Encode(string rules, bool sortByName, RenameOrderSettings? order = null)
     {
         var parsed = RenamePlan.ParseRules(rules);
         _ = RenamePlan.Apply("sample.jpg", parsed, 0);
-        var text = System.Text.Json.JsonSerializer.Serialize(new { version = 1, rules, sortByName });
+        order?.Validate(); var data = new Dictionary<string,object?> { ["version"]=1,["rules"]=rules,["sortByName"]=sortByName }; if(order is not null){data["sort"]=order.Sort;data["descending"]=order.Descending;if(order.MetadataSortTag is not null)data["metadataSortTag"]=order.MetadataSortTag;} var text = System.Text.Json.JsonSerializer.Serialize(data);
         if (Encoding.UTF8.GetByteCount(text) > MaximumBytes) throw new ArgumentException("规则文件超过64KiB上限。");
         return text;
     }
@@ -130,13 +130,13 @@ public sealed record RenameRulesPreset(string Rules, bool SortByName)
         try
         {
             using var json = System.Text.Json.JsonDocument.Parse(text.TrimStart('\ufeff')); var root = json.RootElement;
-            string[] keys = ["version", "rules", "sortByName"];
-            if (root.ValueKind != System.Text.Json.JsonValueKind.Object || root.EnumerateObject().Count() != 3 || root.EnumerateObject().Any(p => !keys.Contains(p.Name)) || root.EnumerateObject().Select(p => p.Name).Distinct().Count() != 3) throw new ArgumentException("Windows规则文件结构无效。");
+            string[] keys = ["version", "rules", "sortByName", "sort", "descending", "metadataSortTag"];
+            if (root.ValueKind != System.Text.Json.JsonValueKind.Object || root.EnumerateObject().Count() is < 3 or > 6 || root.EnumerateObject().Any(p => !keys.Contains(p.Name)) || root.EnumerateObject().Select(p => p.Name).Distinct().Count() != root.EnumerateObject().Count()) throw new ArgumentException("Windows规则文件结构无效。");
             if (!root.GetProperty("version").TryGetInt32(out var version) || version != 1 || root.GetProperty("rules").ValueKind != System.Text.Json.JsonValueKind.String || root.GetProperty("sortByName").ValueKind is not (System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False)) throw new ArgumentException("规则版本或值类型无效。");
-            var preset = new RenameRulesPreset(root.GetProperty("rules").GetString()!, root.GetProperty("sortByName").GetBoolean());
+            var byName=root.GetProperty("sortByName").GetBoolean(); var sort=root.TryGetProperty("sort",out var sv)?sv.GetString():byName?"name":"input"; bool descending=false;if(root.TryGetProperty("descending",out var dv)){if(dv.ValueKind is not(System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False))throw new ArgumentException("排序方向类型无效。");descending=dv.GetBoolean();} var tag=root.TryGetProperty("metadataSortTag",out var tv)?tv.GetString():null;var order=new RenameOrderSettings(sort!,descending,tag);order.Validate();var preset = new RenameRulesPreset(root.GetProperty("rules").GetString()!,byName,order);
             _ = Encode(preset.Rules, preset.SortByName);
             return preset;
         }
-        catch (Exception error) when (error is System.Text.Json.JsonException or InvalidOperationException) { throw new ArgumentException("规则JSON无效。"); }
+        catch (Exception error) when (error is System.Text.Json.JsonException or InvalidOperationException or KeyNotFoundException) { throw new ArgumentException("规则JSON无效。"); }
     }
 }

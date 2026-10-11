@@ -25,6 +25,7 @@ public static class RenameExecutor
         {
             if(!sources.Add(file.Source)||!targets.Add(file.Target)||Path.GetDirectoryName(file.Source)!=Path.GetDirectoryName(file.Target)||!RenamePlan.ValidName(Path.GetFileName(file.Target)))throw new ArgumentException("冻结计划边界无效。");
         }
+        if(plan.ExplicitGroups){var keys=plan.Files.Select(f=>RenameGroup.Key(f.Source)).ToHashSet(StringComparer.OrdinalIgnoreCase);foreach(var folder in plan.Files.Select(f=>Path.GetDirectoryName(f.Source)!).Distinct(StringComparer.OrdinalIgnoreCase))foreach(var path in Directory.EnumerateFiles(folder))if(keys.Contains(RenameGroup.Key(path))&&!sources.Contains(path))throw new IOException("冻结后配对组新增成员，未执行。");}
         foreach(var file in plan.Files)
         {
             if(Path.GetExtension(file.Source).Equals(".xmp",StringComparison.OrdinalIgnoreCase)||Path.GetExtension(file.Source).Equals(".tmp",StringComparison.OrdinalIgnoreCase))continue;

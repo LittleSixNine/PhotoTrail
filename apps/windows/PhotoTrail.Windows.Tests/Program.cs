@@ -40,6 +40,7 @@ if (args.FirstOrDefault() == "--csv-checks") { CsvChecks.Run(); return; }
 if (args.FirstOrDefault() == "--rename-bulk-checks") { await RenameBulkChecks.RunAsync(); return; }
 if (args.FirstOrDefault() == "--rename-execution-checks") { await RenameExecutionChecks.RunAsync(); return; }
 if (args.FirstOrDefault() == "--rename-preset-checks") { RenamePresetChecks.Run(); return; }
+if (args.FirstOrDefault() == "--rename-order-checks") { RenameOrderChecks.Run(); return; }
 if (args.FirstOrDefault() == "--rename-checks") { await RenameChecks.RunAsync(); return; }
 if (args.FirstOrDefault() == "--google-checks") { GoogleChecks.Run(); return; }
 if (args.FirstOrDefault() == "--key-checks") { KeyChecks.Run(); return; }

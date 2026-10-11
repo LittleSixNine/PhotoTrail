@@ -95,3 +95,11 @@ Computer Use鼠标操作另记；若截图往返后才取消，明确不计计�
 DateHost/UiChecks的定向参数为“合成目录 --settings-checks”及“同目录 --settings-restore-checks”；仅使用合成XMP、PNG与副本，验证生产WPF控件、排序选择／冻结计划、日期草稿、副本回读和源保护。设置独立PHOTOTRAIL_SETTINGS_FILE、PHOTOTRAIL_SEARCH_HISTORY_FILE、PHOTOTRAIL_THEME_FILE及WEBVIEW2_USER_DATA_FOLDER，避免写入日常偏好。检查工程的Google页面替身仅位于自身输出并恢复，不改变候选页面。模型与控件检查、Computer Use操作及用户验收分别记录。
 
 本机偏好位于LocalApplicationData/PhotoTrail/Windows的settings-v1.json与map-searches-v1.json；有界读取、原子替换，不含密钥。损坏设置回退默认，损坏历史保留并提示。多个独立应用实例同时保存设置时最后写入者优先；本批不提供跨实例合并。
+
+## 重命名顺序与筛选定向检查
+
+在apps/windows运行 `dotnet run --project PhotoTrail.Windows.Tests -- --rename-order-checks`；可设PHOTOTRAIL_RENAME_CONTRACT_FIXTURE为已核对的固定settings-track-rename-v1.json，复用三项重命名共同合成案例。`--rename-preset-checks`及`--rename-execution-checks`复用旧方案与执行／日志／取消／冲突／恢复边界。
+
+DateHost/UiChecks参数“独立样本目录 --rename-order-checks”运行生产WPF组、筛选、编号、冻结、执行／回读／恢复和设置／日期草稿回归。样本为a/b/c/d.jpg及各自XMP，另有a.dng副本；a/c/d旁车有标题，b旁车无标题，RAW设备与JPEG不同。新增非法b.nef仅检查内容类型拒绝；e.xmp在嵌套目录用于追加检查。仅使用可丢弃样本。取消和并发目标冲突由真实RenameExecutor进度触发，实际输出送入生产上下文重读及恢复入口，单独记录，不能称为鼠标执行中取消。鼠标拖放、放下回调及实际顺序和Alt／Ctrl快捷键另由Computer Use核对，模型断言不替代。
+
+设PHOTOTRAIL_RENAME_HISTORY隔离执行记录，同时隔离既有PHOTOTRAIL_SETTINGS_FILE、PHOTOTRAIL_SEARCH_HISTORY_FILE、PHOTOTRAIL_THEME_FILE与WEBVIEW2_USER_DATA_FOLDER；ExifTool仍用现有原生完整目录。复用固定DateHost，不编译共享Swift。原始日志、照片、执行记录、缓存及二进制留本机，不纳入公开源码。NU1900资料读取告警、其他DPI／性能与干净部署继续单独记录。

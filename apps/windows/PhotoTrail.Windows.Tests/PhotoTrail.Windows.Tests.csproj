@@ -15,6 +15,7 @@
   <Compile Include="../PhotoTrail.Windows/MetadataCsv.cs" Link="MetadataCsv.cs" />
   <Compile Include="../PhotoTrail.Windows/WindowsRename.cs" Link="WindowsRename.cs" />
   <Compile Include="../PhotoTrail.Windows/RenameExecutor.cs" Link="RenameExecutor.cs" />
+  <Compile Include="../PhotoTrail.Windows/RenameOrder.cs" Link="RenameOrder.cs" />
   <Compile Include="../PhotoTrail.Windows/RenamePlan.cs" Link="RenamePlan.cs" />
   <Compile Include="../PhotoTrail.Windows/MapPlace.cs" Link="MapPlace.cs" />
   <FrameworkReference Include="Microsoft.WindowsDesktop.App" />
