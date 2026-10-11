@@ -4,7 +4,7 @@
 
 Release milestones and source development history are recorded below.
 
-## 2026-10-11 · 批量日期缺失值处理（开发节点）
+## 2026-10-11 · v0.5.10
 
 - 六组件偏移在缺失跳过前校验全部参数范围，超范围操作即使全体缺失或含有效赋值也拒绝整批预览。
 

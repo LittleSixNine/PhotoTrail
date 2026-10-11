@@ -14,6 +14,10 @@ O PhotoTrail reúne **correspondência com trajetos, edição de metadados e ren
 | Informações das fotos | Consulta e edição de metadados | Datas, autoria, palavras-chave e equipamento |
 | Nomes dos arquivos | Renomeação em lote | Data e sequência, substituição de texto e arquivos associados |
 
+## Novidades no 0.5.10
+
+Os ajustes de data em lote ignoram valores ausentes com uma explicação e continuam nas outras fotos e operações. Sem novas alterações, não é possível aplicar; ajustes fora do intervalo ou arquivos de origem modificados bloqueiam o lote.
+
 ## Novidades no 0.5.9
 
 Os ajustes incluem tamanho do texto, espaçamento e nomes completos de metadados, além do histórico de pesquisas; a ordem das fotos é lembrada. O menu de trilhas permite prévia e ajustes de horário ou leste/norte, preservando originais e exportando GPX separadamente. A renomeação adiciona ordem de processamento, filtros e arraste de grupos; a exibição dos resultados não muda a numeração.
