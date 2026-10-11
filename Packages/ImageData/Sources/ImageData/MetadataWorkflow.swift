@@ -152,6 +152,14 @@ public struct MetadataWorkflowPreview: Sendable {
 
     private static func validateDateParameters(_ operation: MetadataOperation) throws {
         switch operation.action {
+        case .offsetDate(let years, let months, let days, let hours, let minutes, let seconds):
+            guard operation.tag.isDate else { throw MetadataFieldEditError.invalidAction }
+            // Match the six parameter bounds in the unchanged shared date core.
+            let offsets = [(years, 9999), (months, 120000), (days, 3660000),
+                           (hours, 87840000), (minutes, 5270400000), (seconds, 316224000000)]
+            guard offsets.allSatisfy({ (-$0.1...$0.1).contains($0.0) }) else {
+                throw MetadataDateError.invalidDate
+            }
         case .shiftDate(let seconds):
             guard operation.tag.isDate else { throw MetadataFieldEditError.invalidAction }
             guard (-315537897599...315537897599).contains(seconds) else { throw MetadataDateError.invalidDate }

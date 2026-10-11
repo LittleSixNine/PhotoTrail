@@ -16,7 +16,7 @@ struct MetadataWorkflowMissingValueTests {
         return try values.enumerated().map { index, value in
             let url = folder.appendingPathComponent("sample-\(index).jpg")
             try Data("synthetic input \(index)".utf8).write(to: url)
-            let snapshot = try MetadataInspectionSnapshot.read([.captureDate, .titleDefault], from: url) { _, _ in
+            let snapshot = try MetadataInspectionSnapshot.read([.captureDate, .titleDefault, .rightsDefault], from: url) { _, _ in
                 value.map { [.captureDate: $0] } ?? [:]
             }
             return (ImageData(metadata: Metadata(source: .image(url)), name: url.lastPathComponent), snapshot)
@@ -114,6 +114,44 @@ struct MetadataWorkflowMissingValueTests {
             MetadataOperation(tag: .captureDate, action: .shiftDate(seconds: 0))]).items.isEmpty)
         #expect(try MetadataWorkflowPreview.prepare(input, operations: [adjust,
             MetadataOperation(tag: .captureDate, action: .shiftDate(seconds: -1))]).items.isEmpty)
+    }
+
+    @Test(arguments: [0, 1, 2, 3, 4, 5])
+    func missingDatesStillValidateEveryOffsetUnit(unit: Int) throws {
+        let limits = [9999, 120000, 3660000, 87840000, 5270400000, 316224000000]
+        let folder = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        var input = try readings(folder, values: [nil, nil, nil])
+        let old = try MetadataCreatorEditPlan.prepare(input, tag: .titleDefault, action: .setText("old"))
+        for index in input.indices { input[index].image.applyMetadataDraft(old.items[index]) }
+        let originalDrafts = input.map { $0.image.creatorDraft }
+        func operation(_ amount: Int) -> MetadataOperation {
+            var offsets = [Int](repeating: 0, count: 6)
+            offsets[unit] = amount
+            return MetadataOperation(tag: .captureDate, action: .offsetDate(
+                years: offsets[0], months: offsets[1], days: offsets[2],
+                hours: offsets[3], minutes: offsets[4], seconds: offsets[5]))
+        }
+        for amount in [-limits[unit] - 1, limits[unit] + 1, Int.min, Int.max] {
+            let invalid = operation(amount)
+            #expect(throws: MetadataDateError.invalidDate) {
+                try MetadataWorkflowPreview.prepare(input, operations: [invalid])
+            }
+            for tag in [MetadataTag.titleDefault, .rightsDefault] {
+                let valid = MetadataOperation(tag: tag, action: .setText("new"))
+                for operations in [[invalid, valid], [valid, invalid]] {
+                    #expect(throws: MetadataDateError.invalidDate) {
+                        try MetadataWorkflowPreview.prepare(input, operations: operations)
+                    }
+                    #expect(input.map { $0.image.creatorDraft } == originalDrafts)
+                }
+            }
+        }
+        for amount in [-limits[unit], 0, limits[unit]] {
+            let preview = try MetadataWorkflowPreview.prepare(input, operations: [operation(amount)])
+            #expect(preview.items.isEmpty && preview.skipped.count == input.count)
+            #expect(input.map { $0.image.creatorDraft } == originalDrafts)
+        }
     }
 
     @Test func missingDoesNotBypassValidationOrMutateInputs() throws {
