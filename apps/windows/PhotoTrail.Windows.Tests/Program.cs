@@ -29,6 +29,7 @@ if (args.FirstOrDefault()?.StartsWith("--fake-") == true)
 }
 static void Check(bool value, string message) { if (!value) throw new Exception(message); Console.WriteLine("PASS " + message); }
 if (args.FirstOrDefault() == "--theme-checks") { ThemeChecks.Run(); return; }
+if (args.FirstOrDefault() == "--settings-checks") { SettingsChecks.Run(); return; }
 if (args.FirstOrDefault() == "--preview-checks") { await PreviewChecks.RunAsync(); return; }
 if (args.FirstOrDefault() == "--history-remember") { try { foreach (var path in args.Skip(2)) TrackHistory.RememberAndSave(args[1],path); } catch (Exception error) { Console.Error.WriteLine(error); Environment.ExitCode = 1; } return; }
 if (args.FirstOrDefault() == "--history-checks") { try { TrackHistoryChecks.Run(); } catch (Exception error) { Console.Error.WriteLine(error); Environment.ExitCode = 1; } return; }

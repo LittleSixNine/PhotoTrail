@@ -51,13 +51,19 @@ window.chrome.webview.addEventListener('message',event=>{
  }else if(data.type==='photos'){
   updateLayer(photos,data.geojson);if(data.focus){map.setCenter({lng:data.focus.Longitude,lat:data.focus.Latitude});map.setZoom(14);}
  }else if(data.type==='match-preview')showPreview(data.point);
- else if(data.type==='geocode'&&Number.isSafeInteger(data.id)&&data.id>=0&&data.point){
+ else if(data.type==='geocode'&&Number.isSafeInteger(data.id)&&data.id>=0&&(data.point||data.query)){
+  const query=typeof data.query==='string'?data.query:null;
+  if(data.query!==undefined&&(!query||!query.trim()))return;
+  if(query&&(query.length>256||/[\x00-\x1f\x7f]/.test(query)))return;
   const point=data.point;
-  if(!Number.isFinite(point.Longitude)||!Number.isFinite(point.Latitude)||Math.abs(point.Longitude)>180||Math.abs(point.Latitude)>90)return;
-  try { new google.maps.Geocoder().geocode({location:{lng:point.Longitude,lat:point.Latitude}},(results,status)=>{
+  if(!query&&(!point||!Number.isFinite(point.Longitude)||!Number.isFinite(point.Latitude)||Math.abs(point.Longitude)>180||Math.abs(point.Latitude)>90))return;
+  try { new google.maps.Geocoder().geocode(query?{address:query}:{location:{lng:point.Longitude,lat:point.Latitude}},(results,status)=>{
    const fields=status==='OK'&&results?.length?regions(results[0].address_components??[]):{};
-   post({type:'place',id:data.id,point,status:['OK','ZERO_RESULTS','OVER_QUERY_LIMIT','REQUEST_DENIED','INVALID_REQUEST','UNKNOWN_ERROR','ERROR'].includes(status)?status:'ERROR',fields});
-  }); } catch { post({type:'place',id:data.id,point,status:'ERROR',fields:{}}); }
+   const location=query&&status==='OK'&&results?.length?results[0].geometry?.location:null;
+   if(query&&status==='OK'&&!location){post({type:'place',id:data.id,query,point:{Longitude:0,Latitude:0},status:'ERROR',fields:{}});return;}
+   const resultPoint=query?(location?{Longitude:location.lng(),Latitude:location.lat()}:{Longitude:0,Latitude:0}):point;
+   post({type:'place',id:data.id,point:resultPoint,...(query?{query}:{}),status:['OK','ZERO_RESULTS','OVER_QUERY_LIMIT','REQUEST_DENIED','INVALID_REQUEST','UNKNOWN_ERROR','ERROR'].includes(status)?status:'ERROR',fields});
+  }); } catch { post({type:'place',id:data.id,point:point||{Longitude:0,Latitude:0},...(query?{query}:{}),status:'ERROR',fields:{}}); }
  }
 });
 post({type:'google-bootstrap'});

@@ -17,3 +17,8 @@ Fabricante, modelo, lente e número de série da lente podem ser editados em XMP
 As datas XMP de digitalização, criação e modificação são independentes; o ajuste em lote altera apenas a data de captura.
 
 Sete parâmetros de exposição XMP aceitam números ou frações validados; os campos EXIF originais são preservados. São 27 campos manuais.
+
+
+2026-10-11
+
+Foram adicionados tamanho e espaçamento independentes dos metadados, nomes completos das etiquetas, ordenação persistente das fotos e histórico de pesquisa do mapa com até 3 entradas. Padrões: tamanho e espaçamento normais, nomes completos ativados, nome de arquivo crescente e histórico ativado. A forma abreviada mantém a família de origem; dicas, acessibilidade, pesquisa e cópia usam o nome completo. Comparadores de nome, data de captura e ordem de importação são salvos em ordem crescente ou decrescente, preservando seleção e ordem do processamento de renomeação. Desativar oculta e interrompe novas entradas sem excluir; reativar restaura a exibição. Limpar exclui apenas o histórico; restaurar padrões mantém histórico e chaves. A busca usa a via Google existente com autorização explícita. Implementado e verificado de forma direcionada, aguardando aceitação do usuário. Consulta real on-line não verificada.

@@ -87,3 +87,11 @@ dotnet run --project PhotoTrail.Windows.Tests -- --offset-skip-checks
 定向入口：[ComputeCancelChecks](../DateHost/ComputeCancelChecks/README.md)。独立检查工程仅增加真实stderr计算标记、stdout任务状态与进程收尾观测；生产源码、固定Swift候选、宿主和协议不变。合法3000条独立六组件偏移使用真实首项计算完成标记，不能用全局序列的事后标记代替。适配器立即取消和实际WPF按钮Click事件取消分别验证；后者由标记触发，是真实控件事件，不是鼠标或用户亲自操作。新预览在旧请求收尾前启动，验证无部分草稿、失效按钮、旧结果不覆盖新结果、草稿/源保护和进程退出。
 
 Computer Use鼠标操作另记；若截图往返后才取消，明确不计计算阶段通过。不重跑全部历史检查，不打包新候选或扩展干净部署。原始证据仅本机，用户接受状态由独立Windows交接记录维护。
+
+## 设置偏好定向检查
+
+在apps/windows运行 `dotnet run --project PhotoTrail.Windows.Tests -- --settings-checks` 与 `node PhotoTrail.Windows.Tests/google-page-checks.cjs`。前者覆盖默认、独立设置、损坏／未知比较器回退和历史边界；后者使用本地SDK替身检查生产Google页面消息，不调用真实服务。
+
+DateHost/UiChecks的定向参数为“合成目录 --settings-checks”及“同目录 --settings-restore-checks”；仅使用合成XMP、PNG与副本，验证生产WPF控件、排序选择／冻结计划、日期草稿、副本回读和源保护。设置独立PHOTOTRAIL_SETTINGS_FILE、PHOTOTRAIL_SEARCH_HISTORY_FILE、PHOTOTRAIL_THEME_FILE及WEBVIEW2_USER_DATA_FOLDER，避免写入日常偏好。检查工程的Google页面替身仅位于自身输出并恢复，不改变候选页面。模型与控件检查、Computer Use操作及用户验收分别记录。
+
+本机偏好位于LocalApplicationData/PhotoTrail/Windows的settings-v1.json与map-searches-v1.json；有界读取、原子替换，不含密钥。损坏设置回退默认，损坏历史保留并提示。多个独立应用实例同时保存设置时最后写入者优先；本批不提供跨实例合并。

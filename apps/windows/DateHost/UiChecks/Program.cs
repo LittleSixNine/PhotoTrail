@@ -8,7 +8,7 @@ using System.Windows.Threading;
 using PhotoTrail.Windows;
 
 // Real production window/controls/events on its Dispatcher, synthetic XMP only; no UI logic substitutes.
-static class Program
+static partial class Program
 {
  static readonly List<object> evidence=[];
  static MainWindow window=null!;
@@ -131,7 +131,7 @@ static class Program
   folder=Path.GetFullPath(args[0]);Directory.CreateDirectory(folder);
   var app=new Application{ShutdownMode=ShutdownMode.OnExplicitShutdown};
   window=new MainWindow{Title="PhotoTrail 日期页 · 独立自动交互验证"};
-  window.Loaded+=async(_,_)=>{try{await Task.Delay(300);if(args.Contains("--offset-skip-checks"))await RunOffset();else await Run();app.Shutdown(0);}catch(Exception error){File.WriteAllText(Path.Combine(folder,"ui-failure.txt"),error.ToString());Console.Error.WriteLine(error);app.Shutdown(1);}};
+  window.Loaded+=async(_,_)=>{try{await Task.Delay(300);if(args.Contains("--settings-checks"))await RunSettings(false);else if(args.Contains("--settings-restore-checks"))await RunSettings(true);else if(args.Contains("--offset-skip-checks"))await RunOffset();else await Run();app.Shutdown(0);}catch(Exception error){File.WriteAllText(Path.Combine(folder,"ui-failure.txt"),error.ToString());Console.Error.WriteLine(error);app.Shutdown(1);}};
   app.Run(window);
  }
 }

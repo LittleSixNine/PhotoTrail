@@ -1,7 +1,7 @@
 using System.Text.Json;
 namespace PhotoTrail.Windows;
 
-public record MapPlace(int Id, MapPoint Point, string Status, IReadOnlyDictionary<string,string> Fields)
+public record MapPlace(int Id, MapPoint Point, string Status, IReadOnlyDictionary<string,string> Fields,string? Query=null)
 {
     public static bool TryRead(string source, string json, out MapPlace? place)
     {
@@ -27,7 +27,8 @@ public record MapPlace(int Id, MapPoint Point, string Status, IReadOnlyDictionar
                 fields.Add(property.Name,value);
             }
             if(status!="OK"&&fields.Count>0)return false;
-            place=new(id,new(lon,lat),status,fields);return true;
+            string? query=null;if(data.TryGetProperty("query",out var queryValue)){query=queryValue.GetString();if(query is null||query.Length is <1 or >256||query.Any(char.IsControl))return false;}
+            place=new(id,new(lon,lat),status,fields,query);return true;
         }
         catch(Exception error) when(error is JsonException or InvalidOperationException or KeyNotFoundException or FormatException or OverflowException){return false;}
     }
@@ -40,5 +41,6 @@ public record MapPlace(int Id, MapPoint Point, string Status, IReadOnlyDictionar
             return values.Length > 0 ? string.Join(" · ", values) : "未返回可确认的地区字段；未改照片。";
         }
     }
-    public bool Matches(int id,MapPoint? point)=>Id==id&&Point==point;
+    public bool Matches(int id,MapPoint? point)=>Query is null&&Id==id&&Point==point;
+    public bool MatchesQuery(int id,string query)=>Id==id&&Query==query;
 }

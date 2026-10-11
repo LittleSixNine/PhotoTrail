@@ -34,7 +34,7 @@ public partial class MainWindow : Window
     private int photoPreviewRevision;
 
     private readonly string[] extensions = [".jpg", ".jpeg", ".png", ".heic", ".dng", ".tif", ".tiff", ".xmp", ".arw", ".nef", ".raf", ".cr2", ".cr3", ".rw2", ".orf", ".pef"];
-    public MainWindow() { InitializeComponent(); DatePlanChanged(this,new RoutedEventArgs()); Photos.ItemsSource = photos; TrackList.ItemsSource = tracks; ClipboardField.ItemsSource = Fields.Select(field => new { field.Tag, Name = field.Apply.Content }).ToArray(); ClipboardField.SelectedIndex = 0;
+    public MainWindow() { InitializeComponent(); metadataBaseFont=FontSize; foreach(var field in Fields)fieldLabels[field.Tag]=field.Apply.Content.ToString()!.Replace(field.Tag,"").Trim(' ','·'); DatePlanChanged(this,new RoutedEventArgs()); Photos.ItemsSource = photos; TrackList.ItemsSource = tracks; ClipboardField.ItemsSource = Fields.Select(field => new { field.Tag, Name = fieldLabels[field.Tag]+" · "+field.Tag }).ToArray(); ClipboardField.SelectedIndex = 0;
         AddHandler(System.Windows.Controls.Primitives.ToggleButton.CheckedEvent,new RoutedEventHandler((s,e)=>{if(!fillingEditor)InvalidateDates();}));
         AddHandler(System.Windows.Controls.Primitives.ToggleButton.UncheckedEvent,new RoutedEventHandler((s,e)=>{if(!fillingEditor)InvalidateDates();}));
     }
@@ -87,6 +87,7 @@ public partial class MainWindow : Window
         try { ThemeChoice.SelectedIndex = ThemePreference.Read(themePreferencePath); ThemeStatus.Text = "已读取本机外观偏好；不改变Windows设置。"; }
         catch (Exception) { ThemeStatus.Text = "本机外观偏好不可读取，暂跟随系统；已有配置未覆盖。"; }
         finally { restoringTheme = false; }
+        LoadSettings();
         RefreshGoogleKeyStatus();
         LoadLatestRenameJournal();
         LoadTrackHistory();
@@ -159,14 +160,14 @@ public partial class MainWindow : Window
     }
     private void ClearPlacePreview()
     {
-        placeRequest++; placePending = false;
+        placeRequest++; placePending = false;placeQuery="";
         PlacePreview.Text = "地区查询只预览；Google Maps结果不自动写入照片。";
     }
     private async void LookupPlace(object sender, RoutedEventArgs e)
     {
         if (busy || !mapReady || currentMapPage != MapMessage.GooglePage || currentPreview is null)
         { PlacePreview.Text = "请先明确选择Google地图并预览一个位置。"; return; }
-        var id = ++placeRequest; placePending = true;
+        var id = ++placeRequest; placePending = true;placeQuery="";
         PlacePreview.Text = "正在向Google Maps查询预览位置…";
         MapView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "geocode", id, point = currentPreview }));
         await Task.Delay(TimeSpan.FromSeconds(20));
@@ -190,7 +191,11 @@ public partial class MainWindow : Window
         }
         catch (Exception) { renameRecoveryRequired = true; RenameStatus.Text = "最近执行记录不可读取，请核对该记录及实际名称；元数据编辑暂不可用。"; }
     }
-    private PhotoRow[] RenameSelection() => RenameSort?.IsChecked == true ? Selected.OrderBy(row=>row.Name,StringComparer.OrdinalIgnoreCase).ThenBy(row=>row.Document.FilePath,StringComparer.Ordinal).ToArray() : Selected;
+    private PhotoRow[] RenameSelection() {
+        var selected=Selected;
+        if(RenameSort?.IsChecked==true)return selected.OrderBy(row=>row.Name,StringComparer.OrdinalIgnoreCase).ThenBy(row=>row.Document.FilePath,StringComparer.Ordinal).ToArray();
+        var targets=selected.ToHashSet();return photos.Where(targets.Contains).ToArray();
+    }
     private void UpdateRenameButtons()
     {
         if (ExecuteRenameButton is not null) ExecuteRenameButton.IsEnabled = !busy && !renameRecoveryRequired && frozenRenamePlan is not null;
@@ -222,7 +227,7 @@ public partial class MainWindow : Window
                 try
                 {
                     var document = await PhotoDocument.LoadAsync(Tool(), mappings[row.Document.FilePath]);
-                    var replacement = new PhotoRow(document); photos.Insert(index, replacement);
+                    var replacement = new PhotoRow(document){Imported=row.Imported}; photos.Insert(index, replacement);
                     if (wasSelected) Photos.SelectedItems.Add(replacement);
                 }
                 catch (Exception) { failures++; }
@@ -627,19 +632,8 @@ public partial class MainWindow : Window
             Status.Text = "请先结束任务或将输入加入草稿，再筛选/排序。"; return;
         }
         photoSearch = PhotoSearch.Text; photoFilter = PhotoFilter.SelectedIndex; photoSort = PhotoSort.SelectedIndex;
-        var view = System.Windows.Data.CollectionViewSource.GetDefaultView(photos);
-        using (view.DeferRefresh())
-        {
-            view.Filter = item => item is PhotoRow row && row.Name.Contains(photoSearch, StringComparison.OrdinalIgnoreCase) &&
-                (photoFilter switch
-                {
-                    1 => row.Document.Draft.Count > 0, 2 => row.Document.Draft.Count == 0,
-                    3 => row.Document.Position() is not null, 4 => row.Document.Position() is null,
-                    _ => true
-                });
-            view.SortDescriptions.Clear();
-            if (photoSort != 0) view.SortDescriptions.Add(new SortDescription(nameof(PhotoRow.Name), photoSort == 1 ? ListSortDirection.Ascending : ListSortDirection.Descending));
-        }
+        if(!restoringSettings && !settings.PhotoSort[0].Equals(sortOptions[photoSort])){settings=settings with{Sorts=[sortOptions[photoSort]]};SaveSettings();}
+        ApplyPhotoView();
         RefreshSelection(); Status.Text = "列表已更新；隐藏照片与草稿仍保留在会话中。";
     }
     private void RefreshPhotoCount() => PhotoCount.Text = $"显示{Photos.Items.Count}／总计{photos.Count}；草稿{photos.Count(row => row.Document.Draft.Count > 0)}";
@@ -671,6 +665,7 @@ public partial class MainWindow : Window
             if (photo.Sidecar is { } sidecar) metadata.AddRange(sidecar.EnumerateObject().Where(p => p.Name != "SourceFile").Select(p => new MetadataRow("旁车 / " + p.Name, PhotoDocument.Text(p.Value))));
         }
         MetadataGrid.ItemsSource = metadata;
+        MetadataFilterChanged(this,new TextChangedEventArgs(TextBox.TextChangedEvent,UndoAction.None));
         fillingEditor = false;
         _ = RefreshPhotoPreviewAsync();
     }
@@ -1226,10 +1221,11 @@ public partial class MainWindow : Window
                         catch (Exception) { if (!busy) Status.Text = "Google密钥不可读取；请重新保存或切回默认地图。"; }
                         return;
                     }
-                    if (MapPlace.TryRead(args.Source, args.WebMessageAsJson, out var place) && place!.Matches(placeRequest, currentPreview) && placePending)
+                    if (MapPlace.TryRead(args.Source, args.WebMessageAsJson, out var place) && (placeQuery.Length==0?place!.Matches(placeRequest, currentPreview):place!.MatchesQuery(placeRequest,placeQuery)) && placePending)
                     {
                         placePending = false;
                         PlacePreview.Text = place.Status == "OK" ? "Google Maps · 地区预览：" + place.Summary : "Google Maps查询未得到地区：" + place.Status + "。未改照片。";
+                        if(place.Query is not null&&place.Status=="OK"){currentPreview=place.Point;previewAltitude=null;previewMethod="MANUAL";clipboardGpsPreview=false;UpdateGpsButton();PostPreview();}
                         return;
                     }
                     if (MapMessage.IsError(args.Source, args.WebMessageAsJson))
@@ -1263,11 +1259,16 @@ public partial class MainWindow : Window
         catch (Exception error) { if (!busy) Status.Text = "地图暂不可用：" + error.Message; mapStarted = false; }
         finally { mapInitializing = false; MapRetryButton.IsEnabled = !busy; }
     }
-    private record MetadataRow(string Tag, string Value);
+    private record MetadataRow(string Tag, string Value){public string FamilyTag=>SettingsPreference.TagLabel(Tag,false);}
     private record TrackRow(string Path, TrackData Data) { public string Name => System.IO.Path.GetFileName(Path); }
     private record PhotoRow(PhotoDocument Document)
     {
+        public long Imported {get;init;}=Interlocked.Increment(ref nextPhotoOrder);
+        public (long Ticks,int Nanoseconds)? Captured {
+            get{try{var date=MetadataDate.Parse(Document.Value(DatePagePreview.Field));return((date with{Fraction=""}).Instant()?.UtcTicks??date.WallTime.Ticks,date.Fraction.Length==0?0:int.Parse(date.Fraction[1..].PadRight(9,'0'),System.Globalization.CultureInfo.InvariantCulture));}catch(ArgumentException){return null;}}
+        }
         public string Name => Path.GetFileName(Document.FilePath);
         public string Summary => $"{Document.FileType} · {(Document.SidecarPath is null ? "内嵌" : "XMP旁车")} · {(Document.Draft.Count > 0 ? $"{Document.Draft.Count}项草稿" : "原始值")}";
     }
+    private static long nextPhotoOrder;
 }

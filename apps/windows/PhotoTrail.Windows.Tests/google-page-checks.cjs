@@ -18,4 +18,11 @@ callbacks[0].callback([{address_components:components}],'OK');assert.equal(messa
 callbacks[0].callback([{address_components:[...components,{types:['locality'],long_name:'別の市'}]}],'OK');assert.equal(messages.at(-1).fields.city,'');
 callbacks[0].callback([],'ZERO_RESULTS');assert.equal(messages.at(-1).status,'ZERO_RESULTS');assert.equal(Object.keys(messages.at(-1).fields).length,0);
 context.window.gm_authFailure();assert.equal(messages.at(-1).type,'map-error');assert.equal(Object.keys(messages.at(-1)).length,1);
-console.log('17 Google page assertions passed with SDK substitutes; zero network requests.');
+receive({data:{type:'geocode',id:3,query:'Kyoto'}});assert.equal(callbacks.at(-1).request.address,'Kyoto');
+callbacks.at(-1).callback([{address_components:components,geometry:{location:{lng:()=>135.77,lat:()=>35.01}}}],'OK');
+assert.equal(messages.at(-1).query,'Kyoto');assert.equal(messages.at(-1).id,3);assert.equal(messages.at(-1).point.Longitude,135.77);assert.equal(messages.at(-1).fields.city,'京都市');
+callbacks.at(-1).callback([],'ZERO_RESULTS');assert.equal(messages.at(-1).query,'Kyoto');assert.equal(messages.at(-1).status,'ZERO_RESULTS');assert.equal(Object.keys(messages.at(-1).fields).length,0);
+callbacks.at(-1).callback([{address_components:components}],'OK');assert.equal(messages.at(-1).status,'ERROR');assert.equal(Object.keys(messages.at(-1).fields).length,0);
+receive({data:{type:'geocode',id:4,query:42}});
+const calls=callbacks.length;receive({data:{type:'geocode',id:4,query:'bad\nquery'}});assert.equal(callbacks.length,calls);
+console.log('Google page checks passed with SDK substitutes: existing point lookup plus bound address success/empty/invalid input; zero network requests.');

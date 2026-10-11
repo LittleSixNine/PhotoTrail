@@ -17,3 +17,8 @@ Fabricante, modelo, objetivo y número de serie del objetivo se editan en XMP. L
 Las fechas XMP de digitalización, creación y modificación se editan por separado; las fechas por lotes solo ajustan la fecha de captura.
 
 Se añaden siete parámetros de exposición XMP con números o fracciones validados; los valores EXIF originales se conservan. Hay 27 campos manuales.
+
+
+2026-10-11
+
+Se añadieron tamaño y espaciado independientes de metadatos, nombres completos de etiquetas, orden persistente de fotos e historial de búsqueda de mapas de hasta 3 entradas. Valores predeterminados: tamaño y espaciado normales, nombres completos activados, nombre de archivo ascendente e historial activado. El nombre abreviado conserva la familia de origen; ayudas, accesibilidad, búsqueda y copia mantienen el nombre completo. Se guardan comparadores de nombre, fecha de captura y orden de importación, ascendentes o descendentes, sin cambiar selección ni orden de renombrado. Desactivar oculta y detiene nuevas entradas sin borrarlas; reactivar las muestra. Borrar afecta solo al historial; restablecer conserva historial y claves. La búsqueda usa la vía Google existente con autorización explícita. Implementado y verificado de forma dirigida; aceptación del usuario pendiente. La consulta real en línea no está verificada.

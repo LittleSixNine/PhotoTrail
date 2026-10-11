@@ -24,7 +24,8 @@
       <StackPanel DockPanel.Dock="Top" Margin="0,0,0,6">
        <TextBlock Text="文件名搜索"/><TextBox x:Name="PhotoSearch" ToolTip="搜索文件名 · F3" AutomationProperties.AcceleratorKey="F3" MaxLength="256" AutomationProperties.Name="文件名搜索" TextChanged="PhotoViewChanged" Margin="0,4"/>
        <ComboBox x:Name="PhotoFilter" SelectedIndex="0" AutomationProperties.Name="照片筛选" SelectionChanged="PhotoViewChanged" Margin="0,0,0,4"><ComboBoxItem Content="全部照片"/><ComboBoxItem Content="有草稿"/><ComboBoxItem Content="无草稿"/><ComboBoxItem Content="有定位"/><ComboBoxItem Content="无定位"/></ComboBox>
-       <ComboBox x:Name="PhotoSort" SelectedIndex="0" AutomationProperties.Name="照片排序" SelectionChanged="PhotoViewChanged"><ComboBoxItem Content="导入顺序"/><ComboBoxItem Content="文件名升序"/><ComboBoxItem Content="文件名降序"/></ComboBox>
+       <ComboBox x:Name="PhotoSort" SelectedIndex="0" AutomationProperties.Name="照片排序" SelectionChanged="PhotoViewChanged"><ComboBoxItem Content="文件名升序"/><ComboBoxItem Content="文件名降序"/><ComboBoxItem Content="拍摄时间升序"/><ComboBoxItem Content="拍摄时间降序"/><ComboBoxItem Content="导入顺序"/><ComboBoxItem Content="导入顺序倒序"/></ComboBox>
+       <TextBlock x:Name="PhotoSortStatus" TextWrapping="Wrap" FontSize="11" Margin="0,4"/>
        <TextBlock x:Name="PhotoCount" Text="显示0／总计0；草稿0" TextWrapping="Wrap" Margin="0,4,0,0"/>
       </StackPanel>
       <ListBox x:Name="Photos" SelectionMode="Extended" SelectionChanged="PhotoSelected" HorizontalContentAlignment="Stretch">
@@ -158,7 +159,7 @@
        <TabItem x:Name="PhotoPreviewTab" Header="照片预览">
         <DockPanel Margin="8"><TextBlock x:Name="PhotoPreviewStatus" DockPanel.Dock="Bottom" Text="请选择一张JPEG/PNG/DNG照片。DNG使用内嵌JPEG预览，不改照片。" TextWrapping="Wrap" Margin="0,8,0,0"/><Image x:Name="PhotoPreviewImage" Stretch="Uniform" AutomationProperties.Name="所选照片预览"/></DockPanel>
        </TabItem>
-       <TabItem Header="原始字段"><DataGrid x:Name="MetadataGrid" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False"><DataGrid.Columns><DataGridTextColumn Header="来源 / 字段" Binding="{Binding Tag}" Width="260"/><DataGridTextColumn Header="值" Binding="{Binding Value}" Width="*"/></DataGrid.Columns></DataGrid></TabItem>
+       <TabItem Header="原始字段"><DockPanel><DockPanel DockPanel.Dock="Top" Margin="4"><Button Content="复制完整标签名称" Click="CopyMetadataTag" DockPanel.Dock="Right" Padding="8,4"/><TextBox x:Name="MetadataSearch" AutomationProperties.Name="搜索原始字段（含完整标签）" ToolTip="搜索完整技术名称及值，不受标签显示设置影响。" TextChanged="MetadataFilterChanged"/></DockPanel><DataGrid x:Name="MetadataGrid" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" CopyingRowClipboardContent="CopyMetadataRow"><DataGrid.RowStyle><Style TargetType="DataGridRow"><Setter Property="ToolTip" Value="{Binding Tag}"/><Setter Property="AutomationProperties.Name" Value="{Binding Tag}"/></Style></DataGrid.RowStyle><DataGrid.Columns><DataGridTextColumn Header="来源 / 字段" Binding="{Binding Tag}" Width="260"/><DataGridTextColumn Header="值" Binding="{Binding Value}" Width="*"/></DataGrid.Columns></DataGrid></DockPanel></TabItem>
       </TabControl>
       <StackPanel Grid.Row="2" Margin="0,10,0,0">
        <TextBlock Text="输出文件夹（须已存在；同名文件不覆盖）"/>
@@ -170,6 +171,7 @@
    </TabItem>
    <TabItem Header="地图">
     <DockPanel>
+     <StackPanel DockPanel.Dock="Top" Margin="8,4"><DockPanel><Button Content="搜索地点（Google联网）" Click="SearchPlace" DockPanel.Dock="Right" Padding="10,5" Margin="8,0,0,0"/><TextBox x:Name="MapSearchQuery" AutomationProperties.Name="地图搜索地点" MaxLength="256" KeyDown="MapSearchKeyDown" TextChanged="MapSearchQueryChanged"/></DockPanel><ListBox x:Name="RecentMapSearches" AutomationProperties.Name="最近地图搜索" MaxHeight="90" Visibility="Collapsed" SelectionChanged="UseRecentMapSearch"/></StackPanel>
      <WrapPanel DockPanel.Dock="Top" Margin="8">
       <Button x:Name="TrackReadButton" Content="导入轨迹" Click="ReadTracks" Padding="12,6"/>
       <ComboBox x:Name="TrackList" Width="250" Margin="8,0" DisplayMemberPath="Name" SelectionChanged="TrackSelected" AutomationProperties.Name="当前轨迹"/>
@@ -197,6 +199,9 @@
    <TabItem Header="地图设置">
     <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="16" MaxWidth="700" HorizontalAlignment="Left">
      <TextBlock Text="运行环境" FontSize="20" FontWeight="SemiBold"/>
+     <CheckBox x:Name="RecordMapSearches" Content="记录最近搜索" IsChecked="True" Checked="MetadataSettingChanged" Unchecked="MetadataSettingChanged" Margin="0,10,0,6"/>
+     <Button x:Name="ClearSearchHistoryButton" Content="清除最近搜索记录" Click="ClearSearchHistory" HorizontalAlignment="Left" Padding="10,5"/>
+     <TextBlock x:Name="SearchHistoryStatus" Text="默认最多记录3条；关闭隐藏并停止新增，重新开启恢复。清除只删除历史内容。" TextWrapping="Wrap" Margin="0,6,0,12"/>
      <Button x:Name="EnvironmentCheckButton" Content="检查本机环境" Click="CheckDependencies" HorizontalAlignment="Left" Padding="12,6" Margin="0,8,0,8"/>
      <TextBlock x:Name="DependencyStatus" Text="可检查.NET、WebView2与ExifTool；只读取本机环境。" TextWrapping="Wrap" Margin="0,0,0,14"/>
      <TextBlock Text="Google Maps 自备密钥" FontSize="20" FontWeight="SemiBold"/>
@@ -239,10 +244,17 @@
     </DockPanel>
    </TabItem>
    <TabItem Header="应用设置">
-    <StackPanel Margin="16"><TextBlock Text="外观" FontSize="20" FontWeight="SemiBold"/><TextBlock Text="默认跟随Windows系统；更改后保存本机外观偏好，重启恢复。" TextWrapping="Wrap" Margin="0,8"/>
+    <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="16"><TextBlock Text="外观" FontSize="20" FontWeight="SemiBold"/><TextBlock Text="默认跟随Windows系统；更改后保存本机外观偏好，重启恢复。" TextWrapping="Wrap" Margin="0,8"/>
      <ComboBox x:Name="ThemeChoice" Width="220" HorizontalAlignment="Left" SelectedIndex="0" SelectionChanged="ThemeChanged" AutomationProperties.Name="应用外观"><ComboBoxItem Content="跟随系统"/><ComboBoxItem Content="浅色"/><ComboBoxItem Content="深色"/></ComboBox>
      <TextBlock x:Name="ThemeStatus" Text="默认跟随Windows系统外观；不改变系统设置。" TextWrapping="Wrap" Margin="0,8"/>
-    </StackPanel>
+     <TextBlock Text="元数据显示" FontSize="20" FontWeight="SemiBold" Margin="0,12,0,8"/>
+     <Label Content="文字大小" Target="{Binding ElementName=MetadataTextSize}"/><ComboBox x:Name="MetadataTextSize" Width="220" HorizontalAlignment="Left" SelectedIndex="1" AutomationProperties.Name="元数据文字大小" SelectionChanged="MetadataSettingChanged"><ComboBoxItem Content="小（-2 pt）"/><ComboBoxItem Content="标准"/><ComboBoxItem Content="大（+2 pt）"/></ComboBox>
+     <Label Content="行间距" Target="{Binding ElementName=MetadataSpacing}"/><ComboBox x:Name="MetadataSpacing" Width="220" HorizontalAlignment="Left" SelectedIndex="1" AutomationProperties.Name="元数据行间距" SelectionChanged="MetadataSettingChanged"><ComboBoxItem Content="紧凑"/><ComboBoxItem Content="标准"/><ComboBoxItem Content="宽松"/></ComboBox>
+     <CheckBox x:Name="FullTagNames" Content="显示完整标签名称" IsChecked="True" Checked="MetadataSettingChanged" Unchecked="MetadataSettingChanged" Margin="0,12,0,8"/>
+     <TextBlock Text="关闭后保留来源家族；完整名称继续用于提示、辅助技术、搜索与复制。" TextWrapping="Wrap"/>
+     <Button Content="恢复显示、排序与搜索开关默认值" Click="ResetSettings" HorizontalAlignment="Left" Padding="12,6" Margin="0,14,0,8"/>
+     <TextBlock x:Name="SettingsStatus" Text="文字大小和行间距独立；默认标准，即时生效并保存本机。" TextWrapping="Wrap"/>
+    </StackPanel></ScrollViewer>
    </TabItem>
   </TabControl>
  </DockPanel>
