@@ -771,7 +771,7 @@ public partial class MainWindow : Window
             if (Fields.Any(field => field.Apply.IsChecked == true)) throw new InvalidOperationException("请先处理未应用字段输入。");
             if (!Clipboard.ContainsText()) throw new InvalidOperationException("剪贴板没有可用文字。");
             var point = MetadataClipboard.ReadGps(Clipboard.GetText());
-            ClearPlacePreview(); clipboardGpsPreview = false; currentPreview = point; previewAltitude = null; previewMethod = "MANUAL";
+            InvalidateBatchTrack();ClearPlacePreview(); clipboardGpsPreview = false; currentPreview = point; previewAltitude = null; previewMethod = "MANUAL";
             clipboardGpsPreview = true; WorkspaceTabs.SelectedIndex = 1; UpdateGpsButton(); PostPreview(); _ = PostPhotosAsync();
             MatchResult.Text = $"剪贴板WGS-84坐标预览：{point.Latitude:F8}, {point.Longitude:F8}；目标{Selected.Length}张。核对后明确加入GPS草稿；海拔/测量时间未知，会清除旧XMP值。";
             Status.Text = "剪贴板GPS仅预览；尚未加入草稿或写入照片。";
@@ -1110,7 +1110,7 @@ public partial class MainWindow : Window
                     {
                         placePending = false;
                         PlacePreview.Text = place.Status == "OK" ? "Google Maps · 地区预览：" + place.Summary : "Google Maps查询未得到地区：" + place.Status + "。未改照片。";
-                        if(place.Query is not null&&place.Status=="OK"){currentPreview=place.Point;previewAltitude=null;previewMethod="MANUAL";clipboardGpsPreview=false;UpdateGpsButton();PostPreview();}
+                        if(place.Query is not null&&place.Status=="OK"){InvalidateBatchTrack();currentPreview=place.Point;previewAltitude=null;previewMethod="MANUAL";clipboardGpsPreview=false;UpdateGpsButton();PostPreview();}
                         return;
                     }
                     if (MapMessage.IsError(args.Source, args.WebMessageAsJson))
