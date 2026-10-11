@@ -465,9 +465,9 @@ public partial class MainWindow : Window
             if (TrackList.SelectedItem is not TrackRow row) throw new InvalidOperationException("请先导入并选择轨迹。");
             if (Selected.Length != 1) throw new InvalidOperationException("请在元数据页选择一张照片。");
             var snapshot=row.Snapshot;var revision=matchingRevision;var selection=Selected;var time=TrackReader.ParseTimestamp(MatchTimeValue.Text.Trim());
-            await EnsureTrackSource(row);
+            await TrackSnapshots.EnsureSourceAsync(snapshot);
             var result=await Task.Run(()=>snapshot.Data.Match(time));
-            await EnsureTrackSource(row);
+            await TrackSnapshots.EnsureSourceAsync(snapshot);
             if(revision!=trackMatchRevision||currentPreview is not null||!ReferenceEquals(row.Snapshot,snapshot)||!ReferenceEquals(TrackList.SelectedItem,row)||!Selected.SequenceEqual(selection)||TrackReader.ParseTimestamp(MatchTimeValue.Text.Trim())!=time)return;
             row.SourceUnavailable=false;
             MatchResult.Text = result.Point is { } point ? $"{Selected[0].Name}：{point.Latitude:F6}, {point.Longitude:F6}，{result.Method}。仅预览，未加入GPS草稿。" : result.Reason;
@@ -475,7 +475,7 @@ public partial class MainWindow : Window
             matchedTrackSource=result.Point is not null?snapshot:null;previewAltitude = result.Point?.Elevation; previewMethod = "GPS"; UpdateGpsButton();
             PostPreview();
         }
-        catch (Exception error) { if(matchingRevision==trackMatchRevision){ClearMatchMarker(); MatchResult.Text = "匹配未执行：" + error.Message;} }
+        catch (Exception error) { if(matchingRevision==trackMatchRevision&&currentPreview is null){ClearMatchMarker(); MatchResult.Text = "匹配未执行：" + error.Message;} }
         finally{trackMatchPending--;}
     }
     private void ClearMatchMarker()
@@ -489,11 +489,11 @@ public partial class MainWindow : Window
     private void UpdateGpsButton() => GpsDraftButton.IsEnabled = !busy && !renameRecoveryRequired && currentPreview is not null && Selected.Length > 0 && Selected.All(row => row.Document.CanEdit);
     private async void AddGpsDraft(object sender, RoutedEventArgs e)
     {
+        var selected = Selected;var point=currentPreview;var revision=trackMatchRevision;
         try
         {
             if (busy || renameRecoveryRequired || currentPreview is null || Selected.Length == 0 || Selected.Any(row => !row.Document.CanEdit)) throw new InvalidOperationException("请选择可编辑照片，并先预览定位。");
-            var selected = Selected;var point=currentPreview;var revision=trackMatchRevision;
-            if(previewMethod=="GPS"&&!clipboardGpsPreview&&matchedTrackSource is {} source){try{await TrackSnapshots.EnsureSourceAsync(source);}catch{ClearMatchMarker();throw;}}
+            if(previewMethod=="GPS"&&!clipboardGpsPreview&&matchedTrackSource is {} source)await TrackSnapshots.EnsureSourceAsync(source);
             if(revision!=trackMatchRevision||!ReferenceEquals(point,currentPreview)||!Selected.SequenceEqual(selected)||selected.Any(r=>!r.Document.CanEdit))throw new InvalidOperationException("定位或选择已改变，请重新预览。");
             var changes = PhotoDocument.PositionChanges(point, previewAltitude, previewMethod);
             foreach (var row in selected) row.Document.SetDraft(changes);
@@ -501,7 +501,7 @@ public partial class MainWindow : Window
             MatchResult.Text = $"已为{selected.Length}张照片加入WGS-84 GPS草稿。未知海拔／定位时间清除旧XMP值；请在元数据页保存副本。";
             Status.Text = "GPS已加入可撤销草稿，原文件未修改。";
         }
-        catch (Exception error) { Status.Text = "GPS草稿未应用：" + error.Message; }
+        catch (Exception error) { if(revision==trackMatchRevision&&ReferenceEquals(point,currentPreview)&&Selected.SequenceEqual(selected)){ClearMatchMarker();Status.Text = "GPS草稿未应用：" + error.Message;} }
     }
     private async Task PostPhotosAsync()
     {
