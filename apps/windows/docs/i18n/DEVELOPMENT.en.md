@@ -53,3 +53,7 @@ Run DateHost/UiChecks with "isolated fixture directory --track-adjustment-checks
 ## Windows batch Apply checks (2026-10-11)
 
 The production WPF checker now has `--batch-direct-checks`, `--batch-late-checks`, `--batch-cancel-checks`, `--batch-performance-checks` (optional `--offset`), `--field-performance-checks`, and `--track-late-failure-checks`. Use isolated synthetic inputs/preferences. The old offset/missing GUI aliases now exercise direct Apply; preview-only GUI checks were retired, while date kernel/adapter checks remain. Separate calculation, final all-source SHA/sidecar verification, UI commit and refresh; count ExifTool/DateHost requests. ApplicationIdle/25ms polling includes observation overhead, not native first-frame latency. Retain cancellation/child-process evidence, copy-save readback and source hashes; full logs/530 inputs stay local. No shared core, protocol or dependency changes.
+
+## Selected-photo track matching checks (2026-10-11)
+
+UiChecks: `--track-batch-checks`, `--track-batch-performance`, `--track-batch-cancel`. Use isolated settings and synthetic copies. Measure matching, both full-source checks, atomic draft commit, synchronous row refresh and separately observed end-to-end latency. Three 530-photo rounds use two 500-point loaded tracks; cancellation uses a real legal 100,000-point GPX after at least one photo completed, before the batch completes. Keep deterministic WPF continuation checks separate from native mouse evidence. No global cache, new matching algorithm, DateHost protocol change, or full historical suite.

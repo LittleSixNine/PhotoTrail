@@ -13,16 +13,17 @@ public sealed class TrackData(IReadOnlyList<IReadOnlyList<TrackPoint>> segments)
     public IReadOnlyList<IReadOnlyList<TrackPoint>> Segments { get; } =
         Array.AsReadOnly(segments.Select(segment => (IReadOnlyList<TrackPoint>)Array.AsReadOnly(segment.ToArray())).ToArray());
 
-    public TrackMatch Match(DateTimeOffset time, TimeSpan? maximumGap = null)
+    public TrackMatch Match(DateTimeOffset time, TimeSpan? maximumGap = null, CancellationToken cancellation = default)
     {
         var gap = maximumGap ?? TimeSpan.FromMinutes(120);
         if (gap <= TimeSpan.Zero) return new("unmatched", null, null, "匹配间隔无效。");
         var exact = new List<TrackPoint>(); var interpolated = new List<TrackPoint>(); var invalidOrder = false;
         foreach (var segment in Segments)
         {
-            foreach (var point in segment.Where(point => point.Time == time)) exact.Add(point);
+            foreach (var point in segment) { cancellation.ThrowIfCancellationRequested(); if (point.Time == time) exact.Add(point); }
             for (var index = 1; index < segment.Count; index++)
             {
+                cancellation.ThrowIfCancellationRequested();
                 var before = segment[index - 1]; var after = segment[index];
                 // Missing timestamps remain a break; never filter them out and bridge neighboring points.
                 if (before.Time is not { } start || after.Time is not { } end) continue;
@@ -43,7 +44,7 @@ public sealed class TrackData(IReadOnlyList<IReadOnlyList<TrackPoint>> segments)
         return new("matched", candidates[0], exact.Count > 0 ? "recorded" : "linear", "已匹配；尚未加入照片草稿。");
     }
 
-    private static double Distance(TrackPoint first, TrackPoint second)
+    internal static double Distance(TrackPoint first, TrackPoint second)
     {
         // ponytail: spherical distance for the 1m ambiguity threshold; use ellipsoidal geodesics if required.
         var radians = Math.PI / 180;

@@ -480,19 +480,19 @@ public partial class MainWindow : Window
     }
     private void ClearMatchMarker()
     {
-        trackMatchRevision++;matchedTrackSource=null;ClearPlacePreview(); clipboardGpsPreview = false; currentPreview = null; previewAltitude = null; previewMethod = "MANUAL"; UpdateGpsButton(); PostPreview();
+        InvalidateBatchTrack();trackMatchRevision++;matchedTrackSource=null;ClearPlacePreview(); clipboardGpsPreview = false; currentPreview = null; previewAltitude = null; previewMethod = "MANUAL"; UpdateGpsButton(); PostPreview();
     }
     private void PostPreview()
     {
-        if (mapReady) MapView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "match-preview", point = currentPreview }));
+        if (mapReady) MapView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "match-preview", point = currentPreview, focus = batchTrackViewing }));
     }
-    private void UpdateGpsButton() => GpsDraftButton.IsEnabled = !busy && !renameRecoveryRequired && currentPreview is not null && Selected.Length > 0 && Selected.All(row => row.Document.CanEdit);
+    private void UpdateGpsButton() => GpsDraftButton.IsEnabled = !batchTrackViewing && !busy && !renameRecoveryRequired && currentPreview is not null && Selected.Length > 0 && Selected.All(row => row.Document.CanEdit);
     private async void AddGpsDraft(object sender, RoutedEventArgs e)
     {
         var selected = Selected;var point=currentPreview;var revision=trackMatchRevision;
         try
         {
-            if (busy || renameRecoveryRequired || currentPreview is null || Selected.Length == 0 || Selected.Any(row => !row.Document.CanEdit)) throw new InvalidOperationException("请选择可编辑照片，并先预览定位。");
+            if (batchTrackViewing || busy || renameRecoveryRequired || currentPreview is null || Selected.Length == 0 || Selected.Any(row => !row.Document.CanEdit)) throw new InvalidOperationException("请选择可编辑照片，并先预览定位。");
             if(previewMethod=="GPS"&&!clipboardGpsPreview&&matchedTrackSource is {} source)await TrackSnapshots.EnsureSourceAsync(source);
             if(revision!=trackMatchRevision||!ReferenceEquals(point,currentPreview)||!Selected.SequenceEqual(selected)||selected.Any(r=>!r.Document.CanEdit))throw new InvalidOperationException("定位或选择已改变，请重新预览。");
             var changes = PhotoDocument.PositionChanges(point, previewAltitude, previewMethod);
@@ -616,7 +616,7 @@ public partial class MainWindow : Window
     }
     private void RefreshMatchPhoto()
     {
-        MatchPhotoInfo.Text = Selected.Length == 1 ? "匹配照片：" + Selected[0].Name + "；无时区时间须手动提供明确匹配时间。" : "请在元数据页选择一张照片进行匹配预览。";
+        MatchPhotoInfo.Text = Selected.Length == 1 ? "匹配照片：" + Selected[0].Name + "；无时区时间须手动提供明确匹配时间。" : "单张手动时间匹配须选择一张照片；上方批量入口逐张使用照片拍摄时间。";
         RefreshMatchTime();
         MatchResult.Text = "照片选择已切换；请重新预览匹配。尚未写入GPS。";
         ClearMatchMarker();
@@ -668,7 +668,7 @@ public partial class MainWindow : Window
         var selected = Selected;
         var editable = !renameRecoveryRequired && selected.Length > 0 && selected.All(p => p.Document.CanEdit);
         Editor.IsEnabled = !busy && editable;
-        UpdateGpsButton(); UpdateRenameButtons();
+        UpdateGpsButton(); UpdateRenameButtons();RefreshBatchTrackControls();
         DraftActions.IsEnabled = !busy && !renameRecoveryRequired;
         FieldApplyButton.IsEnabled=editable;ClearSelectedDraftButton.IsEnabled=editable;UndoLastApplyButton.IsEnabled=!busy&&!renameRecoveryRequired&&LastApplyCurrent();
         DatePlanApplyButton.IsEnabled=CsvApplyButton.IsEnabled=!busy&&editable;
@@ -991,7 +991,7 @@ public partial class MainWindow : Window
         catch (OperationCanceledException) { cancelled = true; }
         catch (Exception error) { failures.Add(error.Message); }
         finally { EndOperation(); }
-        Status.Text = $"{(cancelled ? "保存已取消" : "保存结束")}：副本成功 {saved}，失败 {failures.Count}。原文件未修改；草稿保留，可撤销。";
+        Status.Text = $"{(cancelled ? "保存已取消" : "保存结束")}：副本成功 {saved}，失败 {failures.Count}。原文件未修改；草稿保留，保存后最近一次应用撤销失效。";
         ShowFailures(failures);
     }
     private void ShowFailures(List<string> failures)
@@ -1001,7 +1001,7 @@ public partial class MainWindow : Window
     private void BeginOperation()
     {
         InvalidateDates();
-        busy = true;RefreshTrackControls(); operation?.Dispose(); operation = new();
+        InvalidateBatchTrack();busy = true;RefreshTrackControls(); operation?.Dispose(); operation = new();
         PhotoSearch.IsEnabled = PhotoFilter.IsEnabled = PhotoSort.IsEnabled = false;
         ReadButton.IsEnabled = FolderButton.IsEnabled = OutputButton.IsEnabled = OutputFolder.IsEnabled = Photos.IsEnabled = false;
         TrackReadButton.IsEnabled = TrackList.IsEnabled = TrackRemoveButton.IsEnabled = MatchButton.IsEnabled = MapRetryButton.IsEnabled = false;
@@ -1015,9 +1015,10 @@ public partial class MainWindow : Window
         TrackReadButton.IsEnabled = TrackList.IsEnabled = TrackRemoveButton.IsEnabled = MatchButton.IsEnabled = true; MapRetryButton.IsEnabled = !mapInitializing;
         RefreshSelection();RefreshTrackControls();
     }
-    private void CancelRead(object sender, RoutedEventArgs e) { InvalidateTrackAdjustment();InvalidateDates();dependencyCheck?.Cancel(); operation?.Cancel(); Status.Text=busy?"正在取消任务…":"应用已取消或失效，草稿未改变。"; }
+    private void CancelRead(object sender, RoutedEventArgs e) { batchTrackCancelTicks=System.Diagnostics.Stopwatch.GetTimestamp();InvalidateBatchTrack(); InvalidateTrackAdjustment();InvalidateDates();dependencyCheck?.Cancel(); operation?.Cancel(); Status.Text=busy?"正在取消任务…":"应用已取消或失效，草稿未改变。"; }
     private void WindowClosing(object? sender, CancelEventArgs e)
     {
+        if(batchTrackRequest is not null){batchTrackRequest.Cancel();e.Cancel=true;Status.Text="正在取消匹配任务；结束后可关闭。";return;}
         if(datePending>0){InvalidateDates();e.Cancel=true;Status.Text="正在取消日期任务；结束后可关闭。";return;}
         if (checkingEnvironment) { dependencyCheck?.Cancel(); e.Cancel = true; DependencyStatus.Text = "正在取消环境检查；结束后可关闭。"; return; }
         if (busy) { operation?.Cancel(); e.Cancel = true; Status.Text = "正在取消任务；结束后可关闭。"; return; }
@@ -1127,7 +1128,7 @@ public partial class MainWindow : Window
                         Photos.SelectedItems.Clear(); fillingEditor = false; Photos.SelectedItem = photos[id];
                     }
                     if (MapMessage.IsReady(args.Source, args.WebMessageAsJson)) Status.Text = currentMapPage == MapMessage.GooglePage ? "Google地图已加载；查询会产生Google请求。" : "默认地图已加载；点击地图只作坐标预览。";
-                    if (MapMessage.TryPoint(args.Source, args.WebMessageAsJson, out var point)) { ClearPlacePreview(); clipboardGpsPreview = false; currentPreview = point; previewAltitude = null; previewMethod = "MANUAL"; UpdateGpsButton(); MatchResult.Text = $"手动位置预览：{point!.Latitude:F6}, {point.Longitude:F6}。仅预览，未加入GPS草稿；海拔未知。"; Status.Text = "手动位置已更新；尚未写入照片。"; }
+                    if (MapMessage.TryPoint(args.Source, args.WebMessageAsJson, out var point)) { InvalidateBatchTrack(); ClearPlacePreview(); clipboardGpsPreview = false; currentPreview = point; previewAltitude = null; previewMethod = "MANUAL"; UpdateGpsButton(); MatchResult.Text = $"手动位置预览：{point!.Latitude:F6}, {point.Longitude:F6}。仅预览，未加入GPS草稿；海拔未知。"; Status.Text = "手动位置已更新；尚未写入照片。"; }
                 };
                 mapConfigured = true;
             }

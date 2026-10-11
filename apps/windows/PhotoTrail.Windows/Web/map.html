@@ -54,7 +54,7 @@ window.chrome.webview.addEventListener('message',event=>{
  } else if(data.type==='match-preview') {
   if(marker){marker.remove();marker=null;}
   if(data.point && Number.isFinite(data.point.Longitude) && Number.isFinite(data.point.Latitude))
-   marker=createMarker('#dd651c',[data.point.Longitude,data.point.Latitude]);
+   {marker=createMarker('#dd651c',[data.point.Longitude,data.point.Latitude]);if(data.focus)map.easeTo({center:[data.point.Longitude,data.point.Latitude],zoom:14,duration:0});}
  }
 });
 map.on('click','photo-points',event=>{

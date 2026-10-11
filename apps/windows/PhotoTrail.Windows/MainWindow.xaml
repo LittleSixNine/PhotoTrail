@@ -201,15 +201,31 @@
       <Button x:Name="RecentTrackReadButton" Content="重新读取所选历史" Click="ReadRecentTrack" Padding="10,5"/>
       <TextBlock x:Name="TrackHistoryStatus" Text="历史仅保存本机路径，不自动加载轨迹。" TextWrapping="Wrap" Margin="8,0" VerticalAlignment="Center"/>
      </WrapPanel>
-     <StackPanel DockPanel.Dock="Bottom" Margin="8">
+     <ScrollViewer DockPanel.Dock="Bottom" MaxHeight="280" VerticalScrollBarVisibility="Auto"><StackPanel Margin="8">
       <TextBlock x:Name="TrackInfo" Text="支持GPX／KML／KMZ；轨迹留在本机，仅显示和匹配预览。" TextWrapping="Wrap"/>
+      <Expander Header="所选照片批量轨迹匹配" IsExpanded="True" Margin="0,5">
+       <StackPanel>
+        <TextBlock x:Name="BatchTrackSources" TextWrapping="Wrap"/>
+        <Expander Header="更多匹配选项"><StackPanel>
+         <CheckBox x:Name="BatchOverwrite" Content="重新匹配并覆盖已有定位（成功才替换）" Checked="BatchTrackOptionsChanged" Unchecked="BatchTrackOptionsChanged"/>
+         <CheckBox x:Name="BatchCurrentOnly" Content="仅当前轨迹（处理多轨迹歧义）" Checked="BatchTrackOptionsChanged" Unchecked="BatchTrackOptionsChanged"/>
+        </StackPanel></Expander>
+        <WrapPanel><Button x:Name="BatchTrackCompute" Content="计算所选照片匹配结果" Click="ComputeBatchTrack" Padding="10,5"/>
+         <Button x:Name="BatchTrackApply" Content="应用匹配结果" Click="ApplyBatchTrack" IsEnabled="False" Padding="10,5" Margin="6,0"/>
+         <Button Content="撤销最近一次应用" Click="UndoLastApply" Padding="10,5"/>
+        </WrapPanel>
+        <CheckBox x:Name="BatchUnsuccessful" Content="只查看未成功结果（不改变应用范围）" Checked="BatchTrackFilterChanged" Unchecked="BatchTrackFilterChanged"/>
+        <ListBox x:Name="BatchTrackResults" Height="96" DisplayMemberPath="Summary" SelectionChanged="ViewBatchTrackResult" AutomationProperties.Name="逐照片轨迹匹配结果"/>
+        <TextBlock x:Name="BatchTrackStatus" Text="默认补齐缺失定位；计算和查看均不修改草稿。" TextWrapping="Wrap"/>
+       </StackPanel>
+      </Expander>
       <TextBlock x:Name="MatchPhotoInfo" Text="匹配照片沿用元数据页的选择；无时区时间须手动提供明确匹配时间。" TextWrapping="Wrap" Margin="0,6,0,4"/>
       <DockPanel><Button x:Name="MatchButton" DockPanel.Dock="Right" Content="预览时间匹配" Click="MatchTrack" Padding="10,5" Margin="8,0,0,0"/><TextBox x:Name="MatchTimeValue" AutomationProperties.Name="轨迹匹配时间" VerticalContentAlignment="Center"/></DockPanel>
       <TextBlock x:Name="MatchResult" Text="匹配时间格式：2026-10-04T00:00:30Z，必须包含时区。尚未写入GPS。" TextWrapping="Wrap" Margin="0,4,0,0"/>
       <Button Content="Google查询预览位置（联网）" Click="LookupPlace" HorizontalAlignment="Left" Padding="10,5" Margin="0,4,0,0"/>
       <TextBlock x:Name="PlacePreview" Text="地区查询只预览；Google Maps结果不自动写入照片。" TextWrapping="Wrap" Margin="0,4,0,0"/>
       <Button x:Name="GpsDraftButton" Content="将预览位置加入所选照片的 GPS 草稿" Click="AddGpsDraft" IsEnabled="False" HorizontalAlignment="Left" Padding="10,5" Margin="0,6,0,0"/>
-     </StackPanel>
+     </StackPanel></ScrollViewer>
      <wv:WebView2 x:Name="MapView" Loaded="MapLoaded" />
     </DockPanel>
    </TabItem>
@@ -256,7 +272,7 @@
       <TextBlock Text="导入文件" Margin="0,12,0,4"/>
       <DockPanel><Button Content="选择…" DockPanel.Dock="Right" Click="ChooseCsv" Padding="10,5" Margin="8,0,0,0"/><TextBox x:Name="CsvPath" AutomationProperties.Name="CSV导入文件" TextChanged="CsvChanged"/></DockPanel>
       <WrapPanel Margin="0,8"><Button x:Name="CsvApplyButton" Content="应用" Click="ApplyCsv" IsEnabled="False" Padding="10,6" Margin="8,0"/></WrapPanel>
-      <TextBlock Text="预览不会写入照片。应用后可在元数据页撤销，保存仍只创建副本且不覆盖已有文件。显示CSV有公式防护，不能回导；Google查询结果不导出。" TextWrapping="Wrap" Margin="0,0,0,8"/>
+      <TextBlock Text="应用只加入待保存草稿，可撤销；保存副本才写入文件，不覆盖已有文件。显示CSV有公式防护，不能回导；Google查询结果不导出。" TextWrapping="Wrap" Margin="0,0,0,8"/>
      </StackPanel>
      <ScrollViewer VerticalScrollBarVisibility="Auto"><TextBlock x:Name="CsvPreview" Text="设置参数后应用；只加入待保存草稿。" TextWrapping="Wrap"/></ScrollViewer>
     </DockPanel>

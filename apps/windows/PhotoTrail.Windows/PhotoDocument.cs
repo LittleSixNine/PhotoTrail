@@ -123,7 +123,9 @@ public sealed class PhotoDocument
         {
             var original = (Sidecar ?? Embedded).TryGetProperty(tag, out var field) ? Text(field) : "";
             var normalized = value.Length > 0 && NumericRange(tag) is not null ? CheckedNumber(tag,value).ToString(CultureInfo.InvariantCulture) : value;
-            if (normalized == original) draft.Remove(tag); else draft[tag] = normalized;
+            // An explicit XMP coordinate clear must override the embedded GPS fallback in this session.
+            var clearsEmbeddedGps=normalized.Length==0 && tag is ("XMP-exif:GPSLatitude" or "XMP-exif:GPSLongitude") && Embedded.TryGetProperty(tag.Replace("XMP-exif:","GPS:"),out _);
+            if (normalized == original && !clearsEmbeddedGps) draft.Remove(tag); else draft[tag] = normalized;
         }
         ChangedDraft();
     }

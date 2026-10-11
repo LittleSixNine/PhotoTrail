@@ -125,3 +125,11 @@ PHOTOTRAIL_TRACK_HISTORY隔离旧路径历史；快照位于同一路径加.adju
 `DateHost/UiChecks`构建后使用独立合成输入与隔离偏好：`--batch-direct-checks`（3个带日期／缺失／带日期XMP，文件名含日期捕获）、`--batch-late-checks`、`--batch-cancel-checks`（530张，旧日期草稿由检查器构造）、`--batch-performance-checks`（1/100/530，530三轮；可加`--offset`）、`--field-performance-checks`（普通字段及CSV）。`--offset-skip-checks`／`--batch-missing-checks`已改为一次应用的缺值检查；旧逐照片预览GUI检查退役，日期核心／适配边界检查仍保留。`--track-late-failure-checks`检查实际来源失败不清后来定位。
 
 性能以Stopwatch分计算、终态全源复核、UI提交／刷新，并记录ExifTool／DateHost请求数；Dispatcher ApplicationIdle与25ms轮询是观察成本，不能冒充鼠标点击到首帧。源码保留内部阶段计时及既有宿主诊断，不更改协议。比较基线仅加计时，完整日志及530输入留本机，公开不写私人路径／数据。核对1/100/530源SHA、显式小副本保存回读；不以断言数量代替实际宿主计算开始／子进程存活／请求收尾证据。
+
+## 2026-10-11 多照片轨迹匹配定向检查
+
+现有DateHost/UiChecks入口新增 `--track-batch-checks`（三张合成XMP及两条一致轨迹）、`--track-batch-performance`（530张独立JPEG副本、两条500点轨迹；1/100各一轮、530三轮）、`--track-batch-cancel`（530张、10万点合法真实GPX）。隔离既有PHOTOTRAIL偏好及WebView路径；ExifTool仅导入／保存需要，匹配阶段不调用ExifTool或DateHost。保留单后台请求内不可变轨迹快照，不跨请求缓存、不重写匹配算法。
+
+Stopwatch记录匹配、预览全来源复核、应用全来源复核、UI草稿提交与同步列表刷新；端到端计时包含25ms检查轮询及Dispatcher ApplicationIdle观察，不等于鼠标到首帧。取消检查记录真实worker开始／取消／结束与已完成数量，取消发生在一张已完成且整批未完成时；不是启动前取消、假轨迹或延时。迟到检查仅持有真实来源复核的UI续体，保留生产读锁，用另一有效轨迹建立新请求；与原生鼠标证据分开。
+
+复用既有轨迹调整检查和单张迟到失败检查，覆盖日期直接应用、最近一次撤销、设置与重命名冻结身份；不跑历史全套。原生操作验证计算→成功地图查看→未成功复核→应用→撤销，实际OpenFreeMap加载单列；Google在线条件不作通过。完整日志、规模输入和二进制留本机，上传仅审查后的摘要与纯合成小样。

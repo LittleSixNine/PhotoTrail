@@ -50,7 +50,7 @@ window.chrome.webview.addEventListener('message',event=>{
   if(points.length&&data.type!=='tracks-no-fit'){const bounds=new google.maps.LatLngBounds();for(const p of points)bounds.extend({lng:p[0],lat:p[1]});map.fitBounds(bounds,40);}
  }else if(data.type==='photos'){
   updateLayer(photos,data.geojson);if(data.focus){map.setCenter({lng:data.focus.Longitude,lat:data.focus.Latitude});map.setZoom(14);}
- }else if(data.type==='match-preview')showPreview(data.point);
+ }else if(data.type==='match-preview'){showPreview(data.point);if(data.focus&&data.point){map.setCenter({lng:data.point.Longitude,lat:data.point.Latitude});map.setZoom(14);}}
  else if(data.type==='geocode'&&Number.isSafeInteger(data.id)&&data.id>=0&&(data.point||data.query)){
   const query=typeof data.query==='string'?data.query:null;
   if(data.query!==undefined&&(!query||!query.trim()))return;

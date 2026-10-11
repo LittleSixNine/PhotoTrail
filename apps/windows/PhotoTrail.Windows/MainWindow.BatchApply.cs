@@ -83,10 +83,7 @@ public partial class MainWindow
             var drafts=frozen.Select(d=>new Dictionary<string,string>(d.Draft)).ToArray();var changed=Enumerable.Range(0,selection.Length).Where(i=>!SameDraft(before[i],drafts[i])).ToArray();
             int items=changed.Sum(i=>before[i].Keys.Concat(drafts[i].Keys).Distinct().Count(key=>before[i].GetValueOrDefault(key)!=drafts[i].GetValueOrDefault(key)));
             clock.Restart();
-            // All validation has completed: observers see the whole batch, never a half-mutated selection.
-            foreach(int i in changed)selection[i].Document.ReplaceDraft(drafts[i]);
-            foreach(int i in changed)selection[i].Document.NotifyDraftChanged();
-            if(changed.Length>0)lastApply=new(selection,before,selection.Select(r=>r.Document.DraftRevision).ToArray());
+            CommitBatchDrafts(selection,before,drafts,changed);
             batchTimings["commitMs"]=clock.Elapsed.TotalMilliseconds;
             clock.Restart();if(changed.Length>0){RefreshPhotoRows();RefreshMatchTime();ClearMatchMarker();_=PostPhotosAsync();}batchTimings["refreshMs"]=clock.Elapsed.TotalMilliseconds;
             string notice=$"{label}应用完成：修改{changed.Length}张，无变化{selection.Length-changed.Length}张；变化操作{items}项；缺失时间跳过{result.Missing}项，文件名不匹配{result.FilenameMismatch}项，文件名日期无效{result.FilenameInvalid}项；CSV身份跳过{result.CsvIdentity}行，忽略字段{result.CsvUnknown}列。原文件未修改；显式保存副本才写文件。";
@@ -98,6 +95,12 @@ public partial class MainWindow
             if(ReferenceEquals(operation,request))batchFinishedTicks=Stopwatch.GetTimestamp();datePending--;if(ReferenceEquals(dateRequest,request))dateRequest=null;
             if(ReferenceEquals(operation,request)){if(!completed&&request.IsCancellationRequested&&(Status.Text=="正在取消任务…"||Status.Text=="正在取消日期任务；结束后可关闭。"||Status.Text.StartsWith("正在计算与校验"+label,StringComparison.Ordinal)||Status.Text=="正在复核全部来源，包括无变化及跳过项…"))Status.Text="任务已取消或失效，整批草稿未应用。";var clock=Stopwatch.StartNew();preserveBatchEditor=!completed;try{EndOperation();}finally{preserveBatchEditor=false;}batchTimings["refreshMs"]=batchTimings.GetValueOrDefault("refreshMs")+clock.Elapsed.TotalMilliseconds;}
         }
+    }
+    void CommitBatchDrafts(PhotoRow[] selection,Dictionary<string,string>[] before,Dictionary<string,string>[] drafts,int[] changed) {
+        // All validation has completed: observers see the whole batch, never a half-mutated selection.
+        foreach(int i in changed)selection[i].Document.ReplaceDraft(drafts[i]);
+        foreach(int i in changed)selection[i].Document.NotifyDraftChanged();
+        if(changed.Length>0)lastApply=new(selection,before,selection.Select(r=>r.Document.DraftRevision).ToArray());
     }
     private void UndoLastApply(object sender,RoutedEventArgs e) {
         if(busy||renameRecoveryRequired)return;
