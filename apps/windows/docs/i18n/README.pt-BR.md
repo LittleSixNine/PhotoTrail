@@ -1,3 +1,5 @@
+> 2026-10-11: O ajuste de seis componentes na página de datas ignora e indica horários cuja ausência foi confirmada. Quando todos estão ausentes, não permite adicionar rascunhos de data. Valores inválidos, falhas de leitura e alterações na origem continuam sendo rejeitados. Implementado e verificado localmente; aguardando aceitação do usuário.
+
 > Os cinco modos da página de datas usam o arquivo Swift fixado para prévias assíncronas e rascunhos validados, aguardando aceitação. Compile primeiro o host conforme [as instruções](../../DateHost/README.md). Outras entradas de data mantêm C#; implantação limpa e distribuição ainda não foram verificadas.
 
 # PhotoTrail Windows

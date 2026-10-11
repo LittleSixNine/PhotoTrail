@@ -63,6 +63,7 @@ if (args.FirstOrDefault() == "--map-checks") return;
 var tool = Environment.GetEnvironmentVariable("PHOTOTRAIL_EXIFTOOL");
 var script = Environment.GetEnvironmentVariable("PHOTOTRAIL_EXIFTOOL_SCRIPT");
 var fixtures = Environment.GetEnvironmentVariable("PHOTOTRAIL_FIXTURES");
+if(args.FirstOrDefault()=="--offset-skip-checks") { await DatePageChecks.RunOffsetAsync(new ExifToolClient(tool??throw new Exception("Missing tool"),script),Environment.GetEnvironmentVariable("PHOTOTRAIL_TEST_OUTPUT")??throw new Exception("Missing output"));return; }
 if(args.FirstOrDefault()=="--date-page-checks") { await DatePageChecks.RunAsync(new ExifToolClient(tool??throw new Exception("Missing tool"),script),Environment.GetEnvironmentVariable("PHOTOTRAIL_TEST_OUTPUT")??throw new Exception("Missing output"));return; }
 if (string.IsNullOrEmpty(tool) || string.IsNullOrEmpty(fixtures)) throw new Exception("Set PHOTOTRAIL_EXIFTOOL and PHOTOTRAIL_FIXTURES for real tool validation.");
 var client = new ExifToolClient(tool, script);

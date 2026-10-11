@@ -939,7 +939,7 @@ public partial class MainWindow : Window
             if(revision!=dateRevision || !Selected.SequenceEqual(selection))return;
             var proposed=preview.Values;
             dateSelection=selection;datesBefore=before;
-            DatePlanPreview.Text = string.Join("\n", dateSelection.Select((row, index) => row.Name + "：" + (datesBefore[index].Length == 0 ? "（缺失）" : datesBefore[index]) + " → " + (proposed[index] ?? "（跳过：文件名不匹配或日期无效）")));
+            DatePlanPreview.Text = string.Join("\n", dateSelection.Select((row, index) => row.Name + "：" + (datesBefore[index].Length == 0 ? "（缺失）" : datesBefore[index]) + " → " + (proposed[index] ?? (options.Mode==0?"缺失时间，已跳过":"（跳过：文件名不匹配或日期无效）"))));
             if (DatePlanPreview.Text.Length > 65536) DatePlanPreview.Text = DatePlanPreview.Text[..65536] + "\n显示已截短，应用包含全部预览文件。";
             datePreview=preview;DatePlanApplyButton.IsEnabled=proposed.Any(value=>value is not null);
             Status.Text=$"日期预览完成：可应用{proposed.Count(value=>value is not null)}，跳过{proposed.Count(value=>value is null)}；总/计算{preview.Measurements.Sum(m=>m.TotalMs):F0}/{preview.Measurements.Sum(m=>m.ComputeMs):F0}ms；尚未加入草稿。";

@@ -1,3 +1,5 @@
+> 2026-10-11: The six-component date-page offset now skips confirmed missing timestamps, labels each skip, and disables adding date drafts when all timestamps are missing. Invalid values, read failures and source changes still reject the preview. Implemented and locally verified; pending user acceptance.
+
 > The five date-page modes now use the pinned Swift file for asynchronous previews and qualified drafts, pending user acceptance. Build the host first using [these instructions](../../DateHost/README.md). Other date entry points retain C#; clean deployment and distribution remain unverified.
 
 # PhotoTrail Windows

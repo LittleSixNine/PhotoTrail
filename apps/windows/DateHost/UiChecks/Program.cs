@@ -25,6 +25,37 @@ static class Program
   foreach(var child in LogicalTreeHelper.GetChildren(node).OfType<DependencyObject>())if(DatesTab(child)is{} found)return found;
   return null;
  }
+ static async Task RunOffset()
+ {
+  for(int i=0;i<1200&&(bool)Field("busy")!;i++)await Task.Delay(25);
+  var list=Control<ListBox>("Photos");Check(list.Items.Count==3,"offset-import-three");list.SelectAll();
+  var rows=list.SelectedItems.Cast<object>().ToArray();var docs=rows.Select(Doc).ToArray();var missing=docs.Single(d=>d.Value("XMP-exif:DateTimeOriginal").Length==0);
+  var dateTab=DatesTab(window)!;((TabControl)LogicalTreeHelper.GetParent(dateTab)).SelectedItem=dateTab;
+  Control<ComboBox>("DateMode").SelectedIndex=0;Control<TextBox>("DateMinutes").Text="4";Control<TextBox>("DateSeconds").Text="15";
+  missing.SetDraft(new Dictionary<string,string>{{"XMP-dc:Title","other draft"}});
+  Action("PreviewDates");await Idle();Check(Control<Button>("DatePlanApplyButton").IsEnabled,"mixed-apply-enabled");
+  Check(Control<TextBlock>("DatePlanPreview").Text.Contains("缺失时间，已跳过")&&Status.Contains("可应用2，跳过1"),"mixed-skip-text-and-count");
+  Check(docs.All(d=>!d.Draft.ContainsKey("XMP-exif:DateTimeOriginal")),"mixed-preview-no-draft");
+  Action("ApplyDates");await Idle();Check(docs.Count(d=>d.Draft.ContainsKey("XMP-exif:DateTimeOriginal"))==2&&missing.Draft.Count==1,"mixed-apply-keeps-other-draft");
+  string copies=Path.Combine(folder,"offset-ui-copies");Directory.CreateDirectory(copies);Control<TextBox>("OutputFolder").Text=copies;Action("SaveCopies");
+  for(int i=0;i<1200&&(bool)Field("busy")!;i++)await Task.Delay(25);Check(Status.Contains("副本成功 3，失败 0"),"mixed-save-copies");
+  var client=new ExifToolClient(Environment.GetEnvironmentVariable("PHOTOTRAIL_EXIFTOOL")!);
+  foreach(var doc in docs){var read=await PhotoDocument.LoadAsync(client,Path.Combine(copies,Path.GetFileName(doc.FilePath)));Check(read.Value("XMP-exif:DateTimeOriginal")==doc.Value("XMP-exif:DateTimeOriginal")&&read.Value("XMP-dc:Title")==doc.Value("XMP-dc:Title")&&await PhotoDocument.HashAsync(doc.FilePath)==doc.SourceHash,"offset-copy-read-and-source-"+Path.GetFileName(doc.FilePath));}Action("UndoDraft");
+  list.SelectedItems.Clear();list.SelectedItems.Add(rows.Single(r=>Doc(r)==missing));Action("PreviewDates");await Idle();
+  Check(!Control<Button>("DatePlanApplyButton").IsEnabled&&Control<TextBlock>("DatePlanPreview").Text.Contains("缺失时间，已跳过")&&Status.Contains("可应用0，跳过1"),"all-missing-text-and-disabled");Action("ApplyDates");await Idle();Check(missing.Draft.Count==0,"all-missing-no-date-draft");
+  list.SelectAll();Action("PreviewDates");Control<TextBox>("DateMinutes").Text="5";await Idle();Check(!Control<Button>("DatePlanApplyButton").IsEnabled,"offset-parameter-invalidates");
+  Action("PreviewDates");await Idle();list.SelectedItems.Remove(rows[0]);Check(!Control<Button>("DatePlanApplyButton").IsEnabled,"offset-selection-invalidates");list.SelectAll();
+  Action("PreviewDates");await Idle();missing.SetDraft(new Dictionary<string,string>{{"XMP-dc:Title","invalidate"}});Check(!Control<Button>("DatePlanApplyButton").IsEnabled,"missing-other-draft-invalidates");Action("UndoDraft");
+  Action("PreviewDates");Action("CancelRead");await Idle();Check(!Control<Button>("DatePlanApplyButton").IsEnabled&&docs.All(d=>d.Draft.Count==0),"offset-pending-cancel-no-drafts");
+  Action("PreviewDates");await Idle();Action("CancelRead");Check(!Control<Button>("DatePlanApplyButton").IsEnabled&&docs.All(d=>d.Draft.Count==0),"offset-complete-preview-cancel");
+  Action("PreviewDates");await Idle();var original=File.ReadAllBytes(missing.FilePath);File.AppendAllText(missing.FilePath," ");Action("ApplyDates");await Idle();
+  Check(docs.All(d=>d.Draft.Count==0)&&Status.Contains("未应用"),"missing-source-changed-after-preview-no-partial");
+  Action("PreviewDates");await Idle();Check(!Control<Button>("DatePlanApplyButton").IsEnabled&&Status.Contains("已改变"),"missing-source-changed-before-preview-rejected");File.WriteAllBytes(missing.FilePath,original);
+  var current=docs.First(d=>d!=missing);current.SetDraft(new Dictionary<string,string>{{"XMP-exif:DateTimeOriginal","2026:01:02 03:04:05.123Z"}});Action("PreviewDates");await Idle();
+  Check(Control<TextBlock>("DatePlanPreview").Text.Contains("2026:01:02 03:09:20.123Z"),"existing-date-draft-in-real-preview");Action("UndoDraft");
+  Control<TextBox>("DateSeconds").Text="invalid";Action("PreviewDates");await Idle();Check(!Control<Button>("DatePlanApplyButton").IsEnabled&&Status.Contains("整数"),"invalid-parameter-rejected");
+  File.WriteAllText(Path.Combine(folder,"offset-ui-results.json"),JsonSerializer.Serialize(new{passed=evidence.Count,evidence},new JsonSerializerOptions{WriteIndented=true}));Console.WriteLine("OFFSET_WPF_CHECKS="+evidence.Count);
+ }
  static async Task Run()
  {
   for(int i=0;i<1200&&(bool)Field("busy")!;i++)await Task.Delay(25);
@@ -100,7 +131,7 @@ static class Program
   folder=Path.GetFullPath(args[0]);Directory.CreateDirectory(folder);
   var app=new Application{ShutdownMode=ShutdownMode.OnExplicitShutdown};
   window=new MainWindow{Title="PhotoTrail 日期页 · 独立自动交互验证"};
-  window.Loaded+=async(_,_)=>{try{await Task.Delay(300);await Run();app.Shutdown(0);}catch(Exception error){File.WriteAllText(Path.Combine(folder,"ui-failure.txt"),error.ToString());Console.Error.WriteLine(error);app.Shutdown(1);}};
+  window.Loaded+=async(_,_)=>{try{await Task.Delay(300);if(args.Contains("--offset-skip-checks"))await RunOffset();else await Run();app.Shutdown(0);}catch(Exception error){File.WriteAllText(Path.Combine(folder,"ui-failure.txt"),error.ToString());Console.Error.WriteLine(error);app.Shutdown(1);}};
   app.Run(window);
  }
 }

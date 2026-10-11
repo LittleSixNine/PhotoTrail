@@ -28,7 +28,7 @@ internal sealed class DatePagePreview
         if(docs.Length is < 1 or > 3000 || docs.Distinct().Count()!=docs.Length || docs.Any(d=>!d.CanEdit))
             throw new InvalidOperationException("请选择1至3000个不同的可编辑文件。");
         var drafts=docs.Select(d=>d.DraftRevision).ToArray();
-        var before=docs.Select(d=>d.Value(Field)).ToArray();
+        var before=docs.Select(d=>options.Mode==0?OffsetValue(d):d.Value(Field)).ToArray();
         var adapter=new DateAdapter(Path.Combine(AppContext.BaseDirectory,"DateHost","DateHost.exe"),Source);
         var jobs=new List<DateJob>();
         string?[]? extracted=null;
@@ -58,13 +58,26 @@ internal sealed class DatePagePreview
             for(int i=0;i<values.Length;i++)values[i]=result[0].Values![i];
         } else foreach(var item in result) {
             if(item.Error is { } error) {
+                if(options.Mode==0 && before[int.Parse(item.Id,System.Globalization.CultureInfo.InvariantCulture)].Length==0 && error.Scope=="business" && error.Code=="missingDate")continue;
                 if(options.Mode==4 && error.Scope=="business" && error.Code=="invalidDate")continue;
                 throw new InvalidOperationException("日期计算失败："+error.Code);
             }
             values[int.Parse(item.Id,System.Globalization.CultureInfo.InvariantCulture)]=item.Values![0];
         }
         var preview=new DatePagePreview(docs,drafts,before,values,adapter.Measurements.ToArray());
+        if(options.Mode==0) {
+            foreach(var doc in docs)await doc.EnsureUnchangedAsync(token);
+            token.ThrowIfCancellationRequested();
+            if(revision!=currentRevision())throw new DateFailure("staleRevision");
+        }
         preview.ValidateAll();return preview;
+    }
+    static string OffsetValue(PhotoDocument document) {
+        if(document.Draft.TryGetValue(Field,out var pending))return pending;
+        if(!(document.Sidecar??document.Embedded).TryGetProperty(Field,out var value))return "";
+        if(value.ValueKind!=System.Text.Json.JsonValueKind.String || value.GetString()!.Length==0)
+            throw new ArgumentException("日期字段类型或日期值无效。");
+        return value.GetString()!;
     }
     void Current(int i) {
         if(consumed || !documents[i].CanEdit || documents[i].DraftRevision!=drafts[i] || documents[i].Value(Field)!=before[i])

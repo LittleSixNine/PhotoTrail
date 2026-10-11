@@ -71,3 +71,13 @@ GPS剪贴板检查：--clipboard-checks现47项；既有ExifTool/fixtures/output
 ## 日期页Swift宿主构建
 
 先运行DateHost/Build.ps1，再构建WPF；固定Git对象原字节导出/hash校验、既有工具前置和协议见[宿主说明](../DateHost/README.md)。生产不引用私有实验或移动HEAD。168条隔离检查、92条原C#日期回归、67条生产草稿/副本检查、99条真实WPF控件交互检查在本机通过；断言数量不是功能数量。UiChecks引用实际MainWindow，测试自身宿主缺失/损坏/超时并恢复；源码只限Windows。干净机器、许可和正式包仍待验。
+
+## 2026-10-11 · 缺失时间偏移定向检查
+
+配置既有PHOTOTRAIL_EXIFTOOL和独立PHOTOTRAIL_TEST_OUTPUT后运行：
+
+```powershell
+dotnet run --project PhotoTrail.Windows.Tests -- --offset-skip-checks
+```
+
+仅合成XMP与副本：混合/中间缺失、全部缺失、六组件顺序、草稿优先和清除、非法日期/类型、读取失败、来源变化、失效和取消，以及副本回读/原件哈希。WPF控件定向入口为DateHost/UiChecks，参数“合成目录 --offset-skip-checks”；目录初始仅三份sample-0/1/2.xmp，中间缺失，两侧分别带九位亚秒-00:00和一位亚秒+08:00。它验证生产控件、草稿及保存链，不执行其他历史模式或压力/宿主替换检查。Computer Use实际点击观察及用户验收分别记录；不以自动检查代替用户验收。

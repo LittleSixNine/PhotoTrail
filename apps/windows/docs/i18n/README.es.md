@@ -1,3 +1,5 @@
+> 2026-10-11: El ajuste de seis componentes en la página de fechas omite y marca las fechas confirmadas como ausentes. Si faltan todas, no permite añadir borradores de fecha. Los valores inválidos, errores de lectura y cambios del origen siguen rechazándose. Implementado y verificado localmente; pendiente de aceptación del usuario.
+
 > Los cinco modos de la página de fechas usan el archivo Swift fijado para vistas previas asíncronas y borradores validados, pendientes de aceptación. Compile primero el host siguiendo [estas instrucciones](../../DateHost/README.md). Las otras entradas de fecha siguen en C#; el despliegue limpio y la distribución están pendientes.
 
 # PhotoTrail Windows

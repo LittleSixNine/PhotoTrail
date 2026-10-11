@@ -25,3 +25,7 @@ Equipment XMP fields reuse --common-fields-checks (55 checks): JPEG and DNG side
 ## Pinned Swift host for the date page
 
 Run DateHost/Build.ps1 before building WPF. See [host instructions](../../DateHost/README.md) for existing tool prerequisites, raw Git-object export and SHA verification. Production does not depend on a private experiment or moving HEAD. Local checks passed: 168 isolated assertions, 92 legacy C# date assertions, 67 production draft/copy assertions and 99 real WPF control interactions. These counts are not feature counts. UiChecks runs the actual MainWindow against synthetic XMP and restores its own temporary host fixture. Clean deployment, licensing and distribution remain pending.
+
+## 2026-10-11 · Targeted missing-time offset checks
+
+With the existing PHOTOTRAIL_EXIFTOOL and a separate PHOTOTRAIL_TEST_OUTPUT configured, run `dotnet run --project PhotoTrail.Windows.Tests -- --offset-skip-checks`. The checks use synthetic XMP files and copies, covering mixed/all-missing selections, six-component order, existing/cleared drafts, invalid values and types, read failures, source changes, invalidation, cancellation and copy readback/source hashes. For production WPF controls, run DateHost/UiChecks with `synthetic-folder --offset-skip-checks`: start with three sample-0/1/2.xmp files, the middle timestamp absent, the other timestamps carrying nine fractional digits with -00:00 and one digit with +08:00. User acceptance and Computer Use observations are recorded separately; clean deployment and full historical checks are outside this task.

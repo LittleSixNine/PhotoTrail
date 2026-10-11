@@ -39,3 +39,7 @@ dotnet run --project PhotoTrail.Windows.Tests -- --date-page-checks
 UiChecks使用实际生产MainWindow、真实控件、Dispatcher与事件，不替换UI逻辑；仅合成XMP。PHOTOTRAIL_EXIFTOOL指已有完整工具，PHOTOTRAIL_DATE_CHECKER指本目录caller-bin，PHOTOTRAIL_THEME_FILE/WEBVIEW2_USER_DATA_FOLDER指独立测试位置。运行`dotnet run --project DateHost/UiChecks -- 合成目录`：目录初始只含四个20240229_123456-编号.xmp文件（来源日期2024:02:29 12:34:56，分别带.123456789Z、.1+00:00、.123-00:00、无后缀），无既有输出；自行生成副本/压力文件/结果，并关闭窗口。它临时替换自身输出目录宿主以测试缺失/损坏/超时，在finally恢复；不能指向用户正在运行的应用输出。
 
 真实WPF检查结果和完整日志留私有目录。1/100/3000压力选择使用真实选择控件及从已验证合成源复制文件构造的测试记录，未宣称3000逐文件UI导入或副本保存性能。干净部署、运行库许可和分发继续待验；不新增系统安装。
+
+## 2026-10-11 · 缺失时间偏移定向检查
+
+日期页六组件偏移的定向核心与WPF检查入口见[开发说明](../docs/DEVELOPMENT.md#2026-10-11--缺失时间偏移定向检查)。宿主和固定Swift候选未改；确认缺失的跳过由Windows日期页适配层处理。
