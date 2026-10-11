@@ -6,6 +6,8 @@
 
 Organiza ubicaciones, metadatos y nombres de fotos en macOS.
 
+Los campos de metadatos y los ajustes por lotes usan Aplicar para calcular en segundo plano y añadir cambios pendientes. Abrir el editor ya no genera una vista previa. Puedes cancelar el procesamiento y volver a la lista para editar, deshacer o guardar explícitamente.
+
 PhotoTrail reúne **la asociación de fotos con recorridos, la edición de metadatos y el renombrado por lotes**. Añade ubicaciones de un viaje, corrige fechas y datos y aplica un criterio común a los nombres. Puedes combinar estos flujos o usarlos por separado. Parte del procesamiento de fotos procede de [GeoTag](https://github.com/marchyman/GeoTag).
 
 | Qué quieres organizar | Función | Ejemplos |
@@ -16,7 +18,7 @@ PhotoTrail reúne **la asociación de fotos con recorridos, la edición de metad
 
 ## Novedades en 0.5.10
 
-Los ajustes de fecha en lote omiten valores ausentes con una explicación y continúan con las demás fotos y operaciones. Sin cambios nuevos no se puede aplicar; los ajustes fuera de rango o los archivos de origen modificados bloquean el lote.
+Los ajustes de fecha en lote omiten valores ausentes con una explicación y continúan con las demás fotos y operaciones. Sin cambios nuevos no se añaden borradores; los ajustes fuera de rango o los archivos de origen modificados bloquean el lote.
 
 ## Novedades en 0.5.9
 
@@ -47,7 +49,7 @@ Al guardar una ubicación también se pueden escribir provincia/estado, ciudad, 
 Los campos comunes y completos comparten lista y controles de edición. Las fechas identifican su origen EXIF, IPTC, XMP o del sistema de archivos.
 
 - **Consulta y edita campos:** busca nombres, etiquetas o valores y recorre grupos. Usa editores adecuados para texto, fechas y dispositivos. [Catálogo](../DEVICE_CATALOG.md).
-- **Preajustes por lotes:** organiza asignaciones, copias y ajustes de fechas; comprueba la vista previa antes de añadir cambios pendientes. Crea, guarda, carga, elimina e intercambia preajustes JSON; copia un campo a varios destinos. Los ajustes de fecha omiten los valores ausentes e indican el motivo; no se pueden aplicar si no hay cambios nuevos.
+- **Preajustes por lotes:** organiza asignaciones, copias y ajustes de fechas; aplica para añadir cambios pendientes. Crea, guarda, carga, elimina e intercambia preajustes JSON; copia un campo a varios destinos. Los ajustes de fecha omiten los valores ausentes e indican el motivo; no se añaden borradores si no hay cambios nuevos.
 - **Copia y pega campos:** ⌘C/⌘V o Ctrl+C/Ctrl+V pegan el valor original en varios campos editables. Los valores modificados aparecen en naranja; hay que guardar para escribir los archivos.
 - **Fechas e intercambio:** aumenta o reduce años, meses, días, horas, minutos y segundos por separado. Cambia una parte de la fecha, usa intervalos fijos o distribuye fechas uniformemente; conserva el intercambio controlado CSV/XMP y la comparación por foto.
 

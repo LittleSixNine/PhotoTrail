@@ -313,7 +313,7 @@ struct MetadataListInspectorView: View {
         let values = completeValues(for: images)
         return ScrollViewReader { proxy in
             VStack(spacing: 0) {
-                inspectorHeader
+                inspectorHeader(readings: editableCreatorReadings)
                 Divider()
                 if images.isEmpty {
                     Text(L10n.text("Please select an image"))
@@ -479,7 +479,7 @@ private extension MetadataListInspectorView {
         ((try? JSONDecoder().decode([MetadataPreset].self, from: presetData)) ?? []).filter { $0.version == 1 }
     }
 
-    var inspectorHeader: some View {
+    func inspectorHeader(readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)]?) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 12) {
                 Text(L10n.text("元数据")).font(.headline)
@@ -490,7 +490,7 @@ private extension MetadataListInspectorView {
                     }
                     ForEach(savedMetadataPresets, id: \.name) { preset in
                         Button(preset.name) {
-                            if let readings = editableCreatorReadings {
+                            if let readings {
                                 selectedWorkflowPreset = preset
                                 workflowEditor = MetadataCreatorEditorSelection(readings: readings, tag: .creator)
                             }
@@ -498,7 +498,7 @@ private extension MetadataListInspectorView {
                     }
                     Divider()
                     Button(L10n.text("编辑预设…")) {
-                        if let readings = editableCreatorReadings {
+                        if let readings {
                             selectedWorkflowPreset = nil
                             workflowEditor = MetadataCreatorEditorSelection(readings: readings, tag: .creator)
                         }
@@ -511,11 +511,11 @@ private extension MetadataListInspectorView {
                     }.foregroundStyle(.white)
                         .padding(.horizontal, 14).padding(.vertical, 10)
                         .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 9))
-                        .opacity(editableCreatorReadings == nil ? 0.45 : 1)
+                        .opacity(readings == nil ? 0.45 : 1)
                 }
                 .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-                .disabled(editableCreatorReadings == nil)
-                .help(editableCreatorReadings == nil ? editUnavailableReason : L10n.text("批量操作"))
+                .disabled(readings == nil)
+                .help(readings == nil ? editUnavailableReason : L10n.text("批量操作"))
                 .accessibilityIdentifier("metadataPresetButton")
             }
             if !selected.isEmpty {

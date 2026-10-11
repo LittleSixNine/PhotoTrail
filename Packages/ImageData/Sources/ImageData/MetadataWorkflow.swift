@@ -50,12 +50,14 @@ public struct MetadataWorkflowPreview: Sendable {
             guard case .file(let device, let inode, _, _, _, _, _) = reading.snapshot.version,
                   seen.insert("\(device):\(inode)").inserted else { throw MetadataCreatorPlanError.duplicateTarget }
         }
+        let validation = MetadataEditValidation()
         var working = readings
         var steps: [MetadataCreatorEditPlan.Item] = []
         var skipped: [String] = []
         var skipReasons: [String: SkipReason] = [:]
         for operation in operations {
-            try MetadataCreatorEditPlan.validate(working, tag: operation.tag)
+            try Task.checkCancellation()
+            try MetadataCreatorEditPlan.validate(working, tag: operation.tag, validation: validation)
             try validateDateParameters(operation)
             let sequence: [String]?
             switch operation.action {
@@ -68,6 +70,7 @@ public struct MetadataWorkflowPreview: Sendable {
             default: sequence = nil
             }
             for index in working.indices {
+                try Task.checkCancellation()
                 let reading = working[index]
                 var action = operation.action
                 func value(_ tag: MetadataTag) -> MetadataTagValue? {
@@ -129,7 +132,7 @@ public struct MetadataWorkflowPreview: Sendable {
                     }
                 default: break
                 }
-                let item = try MetadataCreatorEditPlan.prepare([reading], tag: operation.tag, action: action).items[0]
+                let item = try MetadataCreatorEditPlan.prepare([reading], tag: operation.tag, action: action, validation: validation).items[0]
                 working[index].image.applyMetadataDraft(item)
                 steps.append(item)
             }

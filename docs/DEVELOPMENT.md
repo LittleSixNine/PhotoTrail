@@ -131,3 +131,8 @@ PhotoTrail 基于 GeoTag v6.0.2 派生，仍使用其部分应用基础设施与
 ## 跨平台行为验收
 
 新增设置、轨迹调整与重命名顺序的稳定需求 ID、默认值、距离算法与非私人合成样本集中在共同契约中。修改相关逻辑时复用应用测试、GPX 包测试及地图／本地化检查；Windows 按 ID 独立记录实现和实机验证，不能把 Mac 通过当成 Windows 验收。 [共同契约](FEATURE-CONTRACT-v1.md)。
+
+
+## 直接应用定向检查
+
+`MetadataDirectApplyTests` 覆盖 530 张草稿提交／一次撤销、开始计算后的取消、选择／草稿／跳过来源变化与迟到请求隔离；`MetadataDirectApplyValidationTests` 覆盖请求内 IPTC 编码读取复用及版本变化。运行规模基准：`PHOTOTRAIL_DIRECT_APPLY_BENCH=1 swift test --package-path Packages/ImageData --filter MetadataDirectApplyPerformanceTests`；XMP 计算基准使用 `PHOTOTRAIL_DIRECT_XMP_BENCH=1`。基准使用合成临时输入与稳定快照，区分计算、来源复核及应用提交；不代表私人照片耗时或 UI 验收。

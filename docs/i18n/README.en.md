@@ -6,6 +6,8 @@
 
 Organize photo locations, metadata and file names on macOS.
 
+Metadata fields and batch presets use Apply to calculate in the background and add pending changes. Opening an editor no longer generates a preview. You can cancel processing, then return to the list to edit, undo, or explicitly save.
+
 PhotoTrail brings together **track matching, metadata editing and batch renaming**. Add locations from a trip, correct dates and photo details, then apply a consistent naming scheme. Use these workflows together or independently. Some photo-processing capabilities are derived from [GeoTag](https://github.com/marchyman/GeoTag).
 
 | Task | Workflow | Examples |
@@ -47,7 +49,7 @@ Location saves can also write state/province, city, district and the country/cod
 Common and complete fields use the same list and editing controls. Dates identify EXIF, IPTC, XMP or filesystem sources.
 
 - **Inspect and edit fields:** search names, tags or values and browse groups. Titles, descriptions, authors, rights, keywords, dates and devices use suitable editors. See the [device catalog](../DEVICE_CATALOG.md).
-- **Batch presets:** arrange assignments, copies and date adjustments; preview before adding pending changes. Create, save, load, delete, import or export JSON presets. Copy one source field to multiple destination fields. Date adjustments skip missing values per operation and explain why; Apply is disabled when there are no new changes.
+- **Batch presets:** arrange assignments, copies and date adjustments; apply to add pending changes. Create, save, load, delete, import or export JSON presets. Copy one source field to multiple destination fields. Date adjustments skip missing values per operation and explain why; No drafts are added when there are no new changes.
 - **Copy and paste fields:** use ⌘C/⌘V or Ctrl+C/Ctrl+V to copy one field’s raw value into multiple writable fields. Edited values appear in orange; saving is still required to write files.
 - **Dates and exchange:** choose increase or decrease separately for years, months, days, hours, minutes and seconds. Change a specific date component, set fixed intervals or distribute dates evenly; controlled CSV/XMP exchange and per-photo comparisons remain available.
 

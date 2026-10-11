@@ -150,6 +150,24 @@ public enum MetadataCreatorPlanError: Error {
     case invalidValue
 }
 
+// Encoding reads belong to one computation and one unchanged file version.
+final class MetadataEditValidation {
+    var iptcVersions: [URL: MetadataInspectionFileVersion] = [:]
+
+    func checkIPTC(_ target: URL, version: MetadataInspectionFileVersion,
+                   changes: [MetadataTag: MetadataTagChange]) throws {
+        guard changes.contains(where: { tag, change in
+            if case .set = change { return tag.rawValue.hasPrefix("IPTC:") }
+            return false
+        }), iptcVersions[target] != version else { return }
+        _ = try Exiftool.helper.needsIPTCUTF8Declaration(image: target, changes: changes)
+        guard MetadataInspectionFileVersion.read(target) == version else {
+            throw MetadataCreatorPlanError.sourceChanged
+        }
+        iptcVersions[target] = version
+    }
+}
+
 public struct MetadataCreatorEditPlan: Sendable {
     public struct Item: Equatable, Sendable {
         public let id: ImageData.ID
@@ -186,7 +204,14 @@ public struct MetadataCreatorEditPlan: Sendable {
         _ readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)],
         tag: MetadataTag, action: MetadataFieldEditAction
     ) throws -> Self {
-        return try prepare(readings, tag: tag) { value in
+        try prepare(readings, tag: tag, action: action, validation: nil)
+    }
+
+    static func prepare(
+        _ readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)],
+        tag: MetadataTag, action: MetadataFieldEditAction, validation: MetadataEditValidation?
+    ) throws -> Self {
+        return try prepare(readings, tag: tag, validation: validation) { value in
             switch (tag, value) {
             case (_, nil):
                 return try action.change(for: tag, from: value)
@@ -201,13 +226,14 @@ public struct MetadataCreatorEditPlan: Sendable {
     }
 
     static func validate(_ readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)],
-                         tag: MetadataTag) throws {
-        _ = try prepare(readings, tag: tag) { _ in nil }
+                         tag: MetadataTag, validation: MetadataEditValidation? = nil) throws {
+        _ = try prepare(readings, tag: tag, validation: validation) { _ in nil }
     }
 
     private static func prepare(
         _ readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)],
         tag: MetadataTag,
+        validation: MetadataEditValidation? = nil,
         change: (MetadataTagValue?) throws -> MetadataTagChange?
     ) throws -> Self {
         struct FileID: Hashable {
@@ -217,6 +243,7 @@ public struct MetadataCreatorEditPlan: Sendable {
         var seen = Set<FileID>()
         var items: [Item] = []
         for reading in readings {
+            try Task.checkCancellation()
             let imageURL: URL
             let sidecar: Bool
             switch reading.image.metadata.source {
@@ -259,7 +286,7 @@ public struct MetadataCreatorEditPlan: Sendable {
             let edit = try change(value)
             if let edit { changes[tag] = edit }
             if changes.keys.contains(where: { $0.rawValue.hasPrefix("IPTC:") }) {
-                _ = try Exiftool.helper.needsIPTCUTF8Declaration(image: target, changes: changes)
+                try (validation ?? MetadataEditValidation()).checkIPTC(target, version: reading.snapshot.version, changes: changes)
                 guard MetadataInspectionFileVersion.read(target) == reading.snapshot.version else {
                     throw MetadataCreatorPlanError.sourceChanged
                 }

@@ -13,7 +13,7 @@ struct PhotoTrailReducer: Reducer, Sendable {
         Logger(subsystem: Bundle.main.bundleIdentifier ?? "PhotoTrail",
                category: "reducer")
 
-    // swiftlint:disable:next function_body_length
+    // swiftlint:disable:next function_body_length cyclomatic_complexity
     func reduce(_ state: PhotoTrailState,
                 _ event: PhotoTrailEvent) -> PhotoTrailState {
         if state.saveInProgress || state.importProgress.isActive {
@@ -92,19 +92,23 @@ struct PhotoTrailReducer: Reducer, Sendable {
             newState.uniqueURLs = nil
 
         case .creatorDraftApplied(let items):
+            let indices = Dictionary(uniqueKeysWithValues: newState.imageData.enumerated().map { ($0.element.id, $0.offset) })
             let ids = Set(items.map(\.id))
             guard ids.count == items.count,
                   items.allSatisfy({ item in
-                      newState.imageData.contains {
-                          $0.id == item.id && $0.metadataInspectionURL == item.target && $0.updatable
-                              && newState.creatorSaveResults[item.id] != .resultUnknown
-                      }
+                      guard let index = indices[item.id] else { return false }
+                      let image = newState.imageData[index]
+                      return image.metadataInspectionURL == item.target && image.updatable
+                          && newState.creatorSaveResults[item.id] != .resultUnknown
                   }) else { return state }
+            var images = newState.imageData
             for item in items {
-                newState[item.id].applyMetadataDraft(item)
+                guard let index = indices[item.id] else { return state }
+                images[index].applyMetadataDraft(item)
                 newState.creatorSaveResults[item.id] = nil
             }
-            newState.unsavedChanges = newState.imageData.contains { $0.hasPendingChanges }
+            newState.imageData = images
+            newState.unsavedChanges = images.contains { $0.hasPendingChanges }
 
         case .creatorDraftRemoved(let id), .creatorSaved(let id):
             clearCreatorDraft(&newState, id: id, discard: event == .creatorDraftRemoved(id))

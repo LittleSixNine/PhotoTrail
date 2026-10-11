@@ -27,11 +27,11 @@ struct MetadataWorkflowView: View {
     @State private var deletingPreset: String?
     private var operations: [MetadataOperation] {
         get { cards.flatMap(\.operations) }
-        nonmutating set { cards = MetadataWorkflowCard.cards(from: newValue); preview = nil }
+        nonmutating set { cards = MetadataWorkflowCard.cards(from: newValue); importedPlan = nil }
     }
     private var incompleteCards: Bool { cards.contains { $0.operations.isEmpty } }
-    @State private var preview: MetadataWorkflowPreview?
-    @State private var previewSelection: Set<ImageData.ID> = []
+    @State private var importedPlan: MetadataWorkflowPreview?
+    @State private var application = MetadataDraftApplication()
     @State private var presetName = ""
     @State private var selectedPreset = ""
     @State private var notice = ""
@@ -51,11 +51,8 @@ struct MetadataWorkflowView: View {
                     Text(L10n.text("已选择 %1$@ 张照片", readings.count)).foregroundStyle(.secondary)
                 }
                 Spacer()
-                Text(L10n.text("编辑 → 预览 → 加入待保存")).font(.callout).foregroundStyle(.secondary)
+                Text(L10n.text("编辑 → 应用 → 保存照片")).font(.callout).foregroundStyle(.secondary)
             }
-            if quickPreset != nil {
-                workflowPreview
-            } else {
             HStack(alignment: .top, spacing: 18) {
                 VStack(alignment: .leading, spacing: 12) {
                     if isBatch {
@@ -64,7 +61,6 @@ struct MetadataWorkflowView: View {
                         Picker(L10n.text("批量预设…"), selection: $workflowTab) {
                             Text(L10n.text("编排操作")).tag("actions")
                             Text(L10n.text("比较与交换")).tag("exchange")
-                            Text(L10n.text("修改预览")).tag("preview")
                         }.pickerStyle(.segmented).padding([.top, .horizontal], 18)
                         ZStack(alignment: .topLeading) {
                             ScrollView { actionForm.padding(18) }
@@ -73,8 +69,6 @@ struct MetadataWorkflowView: View {
                                 .accessibilityHidden(workflowTab != "actions")
                             if workflowTab == "exchange" {
                                 exchangeForm.padding(18)
-                            } else if workflowTab == "preview" {
-                                workflowPreview
                             }
                         }
                     }
@@ -82,7 +76,7 @@ struct MetadataWorkflowView: View {
                     .background(.background, in: RoundedRectangle(cornerRadius: 10))
                     .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.quaternary))
                 if isBatch {
-                    workflowPreview.frame(width: 270)
+                    applicationInfo.frame(width: 270)
                 } else {
                     Button {
                         renamingPreset = nil; presetName = ""; namingPreset = true
@@ -99,19 +93,18 @@ struct MetadataWorkflowView: View {
                         .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
                         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.quaternary))
                 }
-            }.frame(maxHeight: .infinity)
-            }
+            }.frame(maxHeight: .infinity).disabled(application.busy || application.applied)
+            if !application.notice.isEmpty { Text(application.notice).font(.callout).textSelection(.enabled) }
             if !notice.isEmpty { Text(notice).font(.callout).foregroundStyle(.orange).textSelection(.enabled) }
             Divider()
             HStack(spacing: 12) {
-                if quickPreset == nil {
-                    Button(L10n.text("预览")) { makePreview() }.disabled(activeOperations.isEmpty || busy || incompleteCards)
-                }
+                if application.busy { ProgressView().controlSize(.small) }
                 Spacer()
-                Button(L10n.text("取消")) { dismiss() }.keyboardShortcut(.cancelAction)
-                Button(L10n.text("加入待保存修改")) { apply() }
+                Button(L10n.text(application.busy ? "取消" : "关闭")) { application.cancel(); dismiss() }.keyboardShortcut(.cancelAction)
+                Button(L10n.text("应用")) { apply() }.keyboardShortcut(.defaultAction)
+                    .accessibilityIdentifier("metadataApplyDraft")
                     .buttonStyle(.borderedProminent)
-                    .disabled(preview?.items.isEmpty != false || busy || store.saveInProgress)
+                    .disabled((importedPlan == nil && (activeOperations.isEmpty || incompleteCards)) || application.busy || application.applied || busy || store.saveInProgress)
             }.controlSize(.large)
         }.font(.system(size: 15)).controlSize(.large).textFieldStyle(.roundedBorder)
             .padding(24)
@@ -120,7 +113,6 @@ struct MetadataWorkflowView: View {
             .onAppear {
                 if let quickPreset {
                     operations = quickPreset.operations
-                    makePreview()
                 }
                 if isBatch {
                     mode = initialBatchMode; input = initialBatchInput
@@ -129,9 +121,11 @@ struct MetadataWorkflowView: View {
                     tag = .sidecarDate
                 }
             }
-            .onChange(of: mode) { if isBatch { preview = nil } }
-            .onChange(of: input) { if isBatch { preview = nil } }
-            .onChange(of: copySource) { if isBatch { preview = nil } }
+            .onDisappear { application.cancel() }
+            .onChange(of: store.state) { application.stateChanged(store.state) }
+            .onChange(of: mode) { if isBatch { importedPlan = nil } }
+            .onChange(of: input) { if isBatch { importedPlan = nil } }
+            .onChange(of: copySource) { if isBatch { importedPlan = nil } }
             .alert(renamingPreset == nil ? L10n.text("新建预设") : L10n.text("重命名"), isPresented: $namingPreset) {
                 TextField(L10n.text("预设名称"), text: $presetName)
                 Button(L10n.text("取消"), role: .cancel) {}
@@ -180,17 +174,17 @@ private extension MetadataWorkflowView {
                     get: { cards.first(where: { $0.id == card.id })?.operations ?? [] },
                     set: { value in
                         if let current = cards.firstIndex(where: { $0.id == card.id }) {
-                            cards[current].operations = value; selectedCard = card.id; preview = nil
+                            cards[current].operations = value; selectedCard = card.id; importedPlan = nil
                         }
                     }), readings: readings,
                     selected: Binding(get: { selectedCard == card.id }, set: { if $0 { selectedCard = card.id } }),
                     availableTags: availableTags, index: index,
-                    moveUp: index > 0 ? { cards.swapAt(index, index - 1); preview = nil } : nil,
-                    moveDown: index + 1 < cards.count ? { cards.swapAt(index, index + 1); preview = nil } : nil,
-                    remove: { cards.removeAll { $0.id == card.id }; preview = nil })
+                    moveUp: index > 0 ? { cards.swapAt(index, index - 1); importedPlan = nil } : nil,
+                    moveDown: index + 1 < cards.count ? { cards.swapAt(index, index + 1); importedPlan = nil } : nil,
+                    remove: { cards.removeAll { $0.id == card.id }; importedPlan = nil })
             }
             Button(L10n.text("新建操作"), systemImage: "plus") {
-                preview = nil
+                importedPlan = nil
                 cards.append(MetadataWorkflowCard(operations: [MetadataOperation(tag: tag,
                     action: .offsetDate(years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0))]))
                 selectedCard = cards.last?.id
@@ -242,7 +236,7 @@ private extension MetadataWorkflowView {
                             let preset = try MetadataPreset(name: name, operations: imported.operations)
                             try storePreset(preset)
                             selectedPreset = name; loadPreset(preset)
-                            notice = L10n.text("预设已导入，可编辑并预览。")
+                            notice = L10n.text("预设已导入，可编辑后应用。")
                         }
                     }
                     Button(L10n.text("导出预设 JSON")) {
@@ -264,15 +258,15 @@ private extension MetadataWorkflowView {
             HStack {
                 Button(L10n.text("导出可回写 CSV")) { exportCSV(displayOnly: false) }
                 Button(L10n.text("导出安全显示 CSV")) { exportCSV(displayOnly: true) }
-                Button(L10n.text("导入 CSV 并预览")) { importCSV() }
+                Button(L10n.text("导入 CSV")) { importCSV() }
             }
             Text(L10n.text("可回写 CSV：空单元格保持，@clear 清除；文字与列表使用 JSON 值。显示版不可导回。"))
                 .font(.caption)
             HStack {
                 Button(L10n.text("导出磁盘 XMP")) { exportXMP() }.disabled(readings.count != 1 || busy)
-                Button(L10n.text("导入 XMP 并预览")) { importXMP() }
+                Button(L10n.text("导入 XMP")) { importXMP() }
             }
-            Text(L10n.text("XMP 导入只合并已开放字段；缺失值保持，先预览冲突，不替换整个文件。"))
+            Text(L10n.text("XMP 导入只合并已开放字段；缺失值保持，不替换整个文件。"))
                 .font(.caption)
             ScrollView([.horizontal, .vertical]) {
                 Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
@@ -286,26 +280,9 @@ private extension MetadataWorkflowView {
         }.padding(.vertical, 8)
     }
 
-    private func makePreview() {
-        perform {
-            preview = try MetadataWorkflowPreview.prepare(readings, operations: activeOperations)
-            previewSelection = store.selection
-            if !isBatch { workflowTab = "preview" }
-        }
-    }
     private func apply() {
-        guard let preview, !preview.items.isEmpty, !store.saveInProgress else { return }
-        perform {
-            guard store.selection == previewSelection,
-                  readings.allSatisfy({ store[$0.image.id].creatorDraft == $0.image.creatorDraft
-                && store.creatorSaveResults[$0.image.id] != .resultUnknown
-                && store[$0.image.id].metadata == $0.image.metadata }),
-                  readings.allSatisfy({ MetadataInspectionFileVersion.read($0.snapshot.url) == $0.snapshot.version }) else {
-                throw MetadataCreatorPlanError.sourceChanged
-            }
-            store.send(.creatorDraftApplied(preview.items), description: L10n.text("编辑元数据…"))
-            dismiss()
-        }
+        notice = ""
+        application.apply(readings: readings, operations: activeOperations, imported: importedPlan, store: store)
     }
     private func records() throws -> [MetadataCSVRecord] {
         var common = readings[0].snapshot.url.deletingLastPathComponent()
@@ -339,8 +316,7 @@ private extension MetadataWorkflowView {
             }
             // The original selection is also validated as a whole to reject shared physical targets.
             _ = try MetadataCreatorEditPlan.prepare(readings, action: .fillMissing(["validation"]))
-            preview = MetadataWorkflowPreview(items: items, steps: steps, skipped: imported.warnings)
-            previewSelection = store.selection
+            importedPlan = MetadataWorkflowPreview(items: items, steps: steps, skipped: imported.warnings)
             notice = imported.warnings.joined(separator: "\n")
         }
     }
@@ -367,13 +343,12 @@ private extension MetadataWorkflowView {
                 }
                 return MetadataOperation(tag: tag, action: action)
             }
-            makePreview()
         }
     }
     private func perform(_ operation: () throws -> Void) {
         do { notice = ""; try operation() }
         catch {
-            preview = nil
+            importedPlan = nil
             if case Exiftool.ExiftoolError.unsupportedIPTCEncoding = error {
                 notice = L10n.text("现有 IPTC 未明确声明 UTF-8，已阻止写入以保留原编码。")
             } else { notice = L10n.text("操作失败：%1$@", String(describing: error)) }
@@ -402,11 +377,6 @@ private extension MetadataWorkflowView {
     }
 }
 
-private extension MetadataCreatorEditPlan.Item {
-    var changeValue: MetadataTagValue? {
-        switch change { case nil: originalValue; case .set(let value): value; case .remove: nil }
-    }
-}
 
 
 extension MetadataTag {
@@ -602,7 +572,7 @@ private extension MetadataWorkflowView {
                     }
                 }.disabled(presetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
-            Text(L10n.text("先预览全部目标，加入待保存修改后再保存照片。"))
+            Text(L10n.text("应用只加入待保存修改，回到列表后保存照片。"))
                 .font(.caption).foregroundStyle(.secondary)
         }.padding(.vertical, 8)
     }
@@ -610,53 +580,18 @@ private extension MetadataWorkflowView {
 }
 
 private extension MetadataWorkflowView {
-    func skipDescription(_ entry: String, preview: MetadataWorkflowPreview) -> String {
-        switch preview.skipReasons[entry] {
-        case .missingValue: L10n.text("跳过（来源字段缺失）：%1$@", entry)
-        case .filenameMismatch: L10n.text("跳过（文件名日期未匹配）：%1$@", entry)
-        case nil: entry
-        }
-    }
-
-    var workflowPreview: some View {
+    var applicationInfo: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(L10n.text("修改预览")).font(.headline)
-            ScrollView {
-                if let preview {
-                    LazyVStack(alignment: .leading, spacing: 14) {
-                        Text(L10n.text("预览：%1$@ 张将修改", preview.items.filter { !$0.changes.isEmpty }.count))
-                            .font(.callout.weight(.semibold)).foregroundStyle(Color.accentColor)
-                        ForEach(Array(preview.steps.enumerated()), id: \.offset) { _, item in
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(item.imageURL.lastPathComponent).font(.caption.weight(.medium))
-                                Text(item.tag.displayName).font(.callout.weight(.medium))
-                                Text(display(item.originalValue)).foregroundStyle(.secondary)
-                                Image(systemName: "arrow.down").font(.caption).foregroundStyle(.secondary)
-                                Text(display(item.changeValue)).foregroundStyle(Color.accentColor)
-                                Text(item.target.path).font(.caption2).foregroundStyle(.tertiary)
-                            }
-                            Divider()
-                        }
-                        Text(L10n.text("跳过操作数量：%1$@", preview.skipped.count)).font(.caption)
-                        ForEach(Array(Set(preview.skipped)).sorted(), id: \.self) { entry in
-                            Text(skipDescription(entry, preview: preview)).font(.caption).foregroundStyle(.orange)
-                        }
-                    }.textSelection(.enabled)
-                } else {
-                    Label(L10n.text("点击“预览”检查每张照片的修改结果。"), systemImage: "eye")
-                        .font(.callout).foregroundStyle(.secondary)
-                }
-            }.frame(maxWidth: .infinity, alignment: .leading)
-            Text(L10n.text("加入待保存后，回到列表保存照片。"))
+            Text(L10n.text("应用只加入待保存修改，回到列表后保存照片。"))
+            Text(L10n.text("每张照片使用自己的来源值（含待保存修改）；来源缺失时跳过。"))
                 .font(.caption).foregroundStyle(.secondary)
         }.padding(18).frame(maxHeight: .infinity, alignment: .top)
-            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.quaternary))
     }
+
 }
 
 private extension MetadataWorkflowView {
-    func resetOperations() { cards = []; preview = nil }
+    func resetOperations() { cards = []; importedPlan = nil }
 
     func storePreset(_ preset: MetadataPreset) throws {
         var entries = presets.filter { $0.name != preset.name }

@@ -50,7 +50,7 @@ struct MetadataCreatorEditorView: View {
     @State private var originalInput = ""
     @State private var currentSummary = ""
     @State private var originalList: [String]?
-    @State private var preview: MetadataCreatorEditPlan?
+    @State private var application = MetadataDraftApplication()
     @State private var error: String?
     @State private var dateOffsets = Array(repeating: "0", count: 6)
 
@@ -67,7 +67,7 @@ struct MetadataCreatorEditorView: View {
         return authors.split(separator: "\n").map(String.init)
     }
 
-    private func prepare() throws -> MetadataCreatorEditPlan {
+    private func editAction() throws -> MetadataFieldEditAction {
         if tag.isDate, mode == .offset {
             let amounts = try dateOffsets.map { text in
                 guard let value = Int(text.trimmingCharacters(in: .whitespacesAndNewlines)) else {
@@ -75,17 +75,17 @@ struct MetadataCreatorEditorView: View {
                 }
                 return value
             }
-            return try MetadataCreatorEditPlan.prepare(readings, tag: tag, action: .offsetDate(
+            return .offsetDate(
                 years: amounts[0], months: amounts[1], days: amounts[2],
-                hours: amounts[3], minutes: amounts[4], seconds: amounts[5]))
+                hours: amounts[3], minutes: amounts[4], seconds: amounts[5])
         }
         if tag == .creator {
-            let action: MetadataCreatorEditAction = switch mode {
-            case .set: .set(names)
-            case .fillMissing: .fillMissing(names)
+            let action: MetadataFieldEditAction = switch mode {
+            case .set: .replaceAuthors(names)
+            case .fillMissing: .fillMissingAuthors(names)
             default: .remove
             }
-            return try MetadataCreatorEditPlan.prepare(readings, action: action)
+            return action
         }
         let action: MetadataFieldEditAction = switch mode {
         case .set: tag.isList && tag != .creator ? .replaceKeywords(names) : .setText(authors)
@@ -95,7 +95,7 @@ struct MetadataCreatorEditorView: View {
         case .remove: .remove
         case .offset: throw MetadataFieldEditError.invalidAction
         }
-        return try MetadataCreatorEditPlan.prepare(readings, tag: tag, action: action)
+        return action
     }
 
     var body: some View {
@@ -108,7 +108,7 @@ struct MetadataCreatorEditorView: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 6) {
                     Text(L10n.text("已选择 %1$@ 张照片", readings.count))
-                    Text(L10n.text("编辑 → 预览 → 加入待保存"))
+                    Text(L10n.text("编辑 → 应用 → 保存照片"))
                         .font(.callout).foregroundStyle(.secondary)
                 }
             }
@@ -117,17 +117,18 @@ struct MetadataCreatorEditorView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(.background, in: RoundedRectangle(cornerRadius: 10))
                     .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.quaternary))
-                previewContent.frame(width: 270)
-            }.frame(maxHeight: .infinity)
+                currentContent.frame(width: 270)
+            }.frame(maxHeight: .infinity).disabled(application.busy || application.applied)
+            if !application.notice.isEmpty { Text(application.notice).font(.callout).textSelection(.enabled) }
             if let error { Text(error).font(.callout).foregroundStyle(.red).textSelection(.enabled) }
             Divider()
             HStack(spacing: 12) {
-                Button(L10n.text("预览")) { makePreview() }.accessibilityIdentifier("metadataPreview")
+                if application.busy { ProgressView().controlSize(.small) }
                 Spacer()
-                Button(L10n.text("取消")) { dismiss() }.keyboardShortcut(.cancelAction)
-                Button(L10n.text("加入待保存修改")) { applyPreview() }
+                Button(L10n.text(application.busy ? "取消" : "关闭")) { application.cancel(); dismiss() }.keyboardShortcut(.cancelAction)
+                Button(L10n.text("应用")) { apply() }.keyboardShortcut(.defaultAction)
                     .buttonStyle(.borderedProminent)
-                    .disabled(preview?.items.contains(where: { $0.change != nil }) != true)
+                    .disabled(application.busy || application.applied || store.saveInProgress)
                     .accessibilityIdentifier("metadataApplyDraft")
             }.controlSize(.large)
         }
@@ -154,9 +155,11 @@ struct MetadataCreatorEditorView: View {
             if let initialInput { authors = initialInput }
             mode = modes.contains(initialMode) ? initialMode : .set
         }
-        .onChange(of: mode) { preview = nil; error = nil }
-        .onChange(of: authors) { preview = nil; error = nil }
-        .onChange(of: dateOffsets) { mode = .offset; preview = nil; error = nil }
+        .onDisappear { application.cancel() }
+        .onChange(of: store.state) { application.stateChanged(store.state) }
+        .onChange(of: mode) { error = nil }
+        .onChange(of: authors) { error = nil }
+        .onChange(of: dateOffsets) { mode = .offset; error = nil }
     }
 
     private var deviceIdentity: (make: String?, model: String?) {
@@ -189,36 +192,11 @@ struct MetadataCreatorEditorView: View {
         })
     }
 
-    private func makePreview() {
+    private func apply() {
         do {
-            preview = try prepare()
             error = nil
-        } catch {
-            preview = nil
-            if case Exiftool.ExiftoolError.unsupportedIPTCEncoding = error {
-                self.error = L10n.text("现有 IPTC 未明确声明 UTF-8，已阻止写入以保留原编码。")
-            } else { self.error = L10n.text("无法预览字段修改；请检查输入并重新读取元数据。") }
-        }
-    }
-
-    private func applyPreview() {
-        guard let preview else { return }
-        do {
-            let current = try prepare()
-            guard current.items == preview.items, !store.saveInProgress,
-                  readings.allSatisfy({ store[$0.image.id].creatorDraft == $0.image.creatorDraft
-                      && store[$0.image.id].metadata == $0.image.metadata
-                      && store.creatorSaveResults[$0.image.id] != .resultUnknown }) else {
-                self.preview = nil
-                error = L10n.text("来源文件已变化；请重新读取元数据。")
-                return
-            }
-            store.send(.creatorDraftApplied(current.items), description: L10n.text("编辑元数据…"))
-            dismiss()
-        } catch {
-            self.preview = nil
-            self.error = L10n.text("来源文件已变化；请重新读取元数据。")
-        }
+            application.apply(readings: readings, operations: [MetadataOperation(tag: tag, action: try editAction())], store: store)
+        } catch { self.error = L10n.text("操作失败：%1$@", String(describing: error)) }
     }
 
     private func display(_ value: MetadataTagValue?) -> String {
@@ -230,19 +208,7 @@ struct MetadataCreatorEditorView: View {
         }
     }
 
-    private func display(_ item: MetadataCreatorEditPlan.Item) -> String {
-        if mode == .offset, item.originalValue == nil, item.change == nil {
-            return L10n.text("缺失时间，已跳过")
-        }
-        return switch item.change {
-        case nil: display(item.originalValue)
-        case .remove: L10n.text("未填写")
-        case .set(let value): display(value)
-        }
-    }
-}
 
-private extension MetadataCreatorEditorView {
     private func operationLabel(_ mode: Mode) -> String {
         if ![MetadataTag.subject, .iptcKeywords].contains(tag) {
             if mode == .append { return L10n.text("追加项目") }
@@ -258,7 +224,7 @@ private extension MetadataCreatorEditorView {
                 ForEach(modes, id: \.self) { Text(operationLabel($0)).tag($0) }
             }.pickerStyle(.segmented).controlSize(.large)
             if mode == .remove {
-                Label(L10n.text("预览清除结果，再加入待保存修改。"), systemImage: "eraser")
+                Label(L10n.text("清除字段"), systemImage: "eraser")
                     .foregroundStyle(.secondary).padding(.vertical, 16)
             } else if mode == .offset {
                 dateOffsetContent
@@ -358,36 +324,11 @@ private extension MetadataCreatorEditorView {
         }
     }
 
-    var previewContent: some View {
+    var currentContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(L10n.text("当前内容 / 修改预览")).font(.headline)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text(L10n.text("当前内容")).font(.callout).foregroundStyle(.secondary)
-                    Text(currentSummary).frame(maxWidth: .infinity, alignment: .leading)
-                    Divider()
-                    if let preview {
-                        Text(L10n.text("预览：%1$@ 张将修改", preview.items.filter { $0.change != nil }.count))
-                            .font(.callout.weight(.semibold)).foregroundStyle(Color.accentColor)
-                        LazyVStack(alignment: .leading, spacing: 16) {
-                            ForEach(preview.items, id: \.id) { item in
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(item.imageURL.lastPathComponent).font(.caption.weight(.medium)).lineLimit(2)
-                                    Text(display(item.originalValue)).foregroundStyle(.secondary)
-                                    Image(systemName: "arrow.down").font(.caption).foregroundStyle(.secondary)
-                                    Text(display(item)).foregroundStyle(item.change == nil ? Color.secondary : Color.accentColor)
-                                    Text(item.target.path).font(.caption2).foregroundStyle(.tertiary)
-                                }
-                                Divider()
-                            }
-                        }
-                    } else {
-                        Label(L10n.text("点击“预览”检查每张照片的修改结果。"), systemImage: "eye")
-                            .font(.callout).foregroundStyle(.secondary)
-                    }
-                }.frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled)
-            }
-            Text(L10n.text("加入待保存后，回到列表保存照片。"))
+            Text(L10n.text("当前内容")).font(.headline)
+            Text(currentSummary).frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled)
+            Text(L10n.text("应用只加入待保存修改，回到列表后保存照片。"))
                 .font(.caption).foregroundStyle(.secondary)
         }.padding(18).frame(maxHeight: .infinity, alignment: .top)
             .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))

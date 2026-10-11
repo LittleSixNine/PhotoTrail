@@ -83,3 +83,8 @@ All tabs import through `ContentView` and `OpenHelper.importFiles`; `PhotoTrailS
 ## Cross-platform behavior checks
 
 Stable requirement IDs, defaults, geographic algorithm and nonprivate synthetic cases for settings, track adjustments and rename order are maintained in the shared contract. Reuse app, GPX package, map and localization checks when changing these paths. Windows records implementation and machine validation per ID independently; Mac success is not Windows acceptance. [Contract](../FEATURE-CONTRACT-v1.md)。
+
+
+## Direct-apply checks
+
+`MetadataDirectApplyTests` covers 530-photo draft commit/undo, cancellation after calculation starts, selection/draft/skipped-source changes and late-result isolation. `MetadataDirectApplyValidationTests` checks request-scoped IPTC encoding-read reuse and version changes. Run the scale benchmark with `PHOTOTRAIL_DIRECT_APPLY_BENCH=1 swift test --package-path Packages/ImageData --filter MetadataDirectApplyPerformanceTests`; use `PHOTOTRAIL_DIRECT_XMP_BENCH=1` for XMP calculations. Benchmarks use synthetic temporary inputs and frozen snapshots; calculation, source recheck and draft commit are distinct stages. These results do not establish private-photo timings or UI acceptance.
