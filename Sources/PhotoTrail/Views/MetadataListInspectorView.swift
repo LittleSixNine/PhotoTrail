@@ -846,14 +846,15 @@ private extension MetadataListInspectorView {
                 Section {
                     Group {
                         ForEach(tags, id: \.self) { tag in
-                            let values = selected.map { MetadataDisplaySection.value(for: tag, in: advanced[$0.id] ?? [:]) }
                             if let editable = MetadataFieldFilter.mappedTag(tag), let completeValues,
                                editable.supportsSidecar || !selected.contains(where: { if case .xmp = $0.metadata.source { true } else { false } }) {
                                 field(MetadataFieldFilter.displayName(tag), tag: editable, values: completeValues, selected: selected, readings: readings)
                                 if selected.contains(where: { MetadataDisplaySection.sourceKeys(for: tag, in: advanced[$0.id] ?? [:]).count > 1 }) {
-                                    inspectionRow(tag, values: values, selected: selected)
+                                    inspectionRow(tag, values: selected.map { MetadataDisplaySection.value(for: tag, in: advanced[$0.id] ?? [:]) }, selected: selected)
                                 }
-                            } else { inspectionRow(tag, values: values, selected: selected) }
+                            } else {
+                                inspectionRow(tag, values: selected.map { MetadataDisplaySection.value(for: tag, in: advanced[$0.id] ?? [:]) }, selected: selected)
+                            }
                         }
                         if let completeValues {
                             ForEach(editableTags, id: \.rawValue) { tag in

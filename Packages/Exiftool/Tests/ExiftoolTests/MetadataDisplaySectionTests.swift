@@ -3,6 +3,23 @@ import Testing
 @testable import Exiftool
 
 struct MetadataDisplaySectionTests {
+    @Test func sourceNamePrefilterKeepsExactNamesAndImagePriority() {
+        let values = ["IFD0:Make": "ignore", "Image/IFD0:Make": "camera",
+                      "Image/ExifIFD:Copy1:Make": "copy", "Image/IFD0:OtherMake": "wrong name",
+                      "Image/IPTC:Make": "wrong family", "XMP-tiff:Make": "sidecar",
+                      "Image/XMP-tiff:Make": "ignore", "File:FileName": "sidecar.xmp",
+                      "Image/File:FileName": "camera.jpg", "Canon:ISO": "100",
+                      "Canon:Copy1:ISO": "200", "Canon:OtherISO": "wrong name"]
+        #expect(MetadataDisplaySection.sourceKeys(for: "EXIF:Make", in: values)
+                == ["Image/ExifIFD:Copy1:Make", "Image/IFD0:Make"])
+        #expect(MetadataDisplaySection.sourceKeys(for: "XMP:Make", in: values) == ["XMP-tiff:Make"])
+        #expect(MetadataDisplaySection.value(for: "File:FileName", in: values) == "camera.jpg")
+        #expect(MetadataDisplaySection.value(for: "Canon:ISO", in: values) == nil)
+        #expect(MetadataDisplaySection.sourceKeys(for: "Canon:ISO", in: ["Canon:ISO": "100", "Canon:Copy1:ISO": "200"])
+                == ["Canon:Copy1:ISO", "Canon:ISO"])
+        #expect(MetadataDisplaySection.value(for: "EXIF:Make", in: values, exactSource: true) == nil)
+    }
+
     @Test(arguments: [("alldata", "jpg"), ("262M1559", "xmp")])
     func standardReadKeepsReferenceValuesWithoutLoadingUnlistedFamilies(name: String, ext: String) throws {
         let image = try #require(Bundle.module.url(forResource: name, withExtension: ext))

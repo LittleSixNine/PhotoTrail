@@ -60,6 +60,8 @@ Debug／Release 都须检查真实二进制的最低系统版本；双架构构�
 
 ## 测试
 
+字段显示来源解析的规模基准可用 `PHOTOTRAIL_DISPLAY_BENCH_PATH` 指向一张生成的 JPEG，运行 `swift test --package-path Packages/Exiftool --filter MetadataDisplayPerformanceTests`；固定快照按 530 张、73 个字段解析三轮并核对原始字节不变。它测 CPU 解析，不包括 530 次文件读取；实际全选／菜单／窗口首帧须另用同一批 530 张合成副本前后测量，分别记录输入与辅助观察开销。
+
 ```sh
 make test-localization # 七语言文案、占位符、资源及文档链接
 make test-map   # 高德网页桥接测试

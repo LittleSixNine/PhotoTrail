@@ -68,6 +68,8 @@ See [development history](../CHANGELOG.md). `MetadataLoadingQueue.swift` manages
 
 ## Browsing performance and session caches
 
+Set `PHOTOTRAIL_DISPLAY_BENCH_PATH` to a generated JPEG and run `swift test --package-path Packages/Exiftool --filter MetadataDisplayPerformanceTests` to measure 530 frozen display dictionaries across 73 fields, three times, while checking that source bytes stay unchanged. This measures CPU source resolution, not 530 file reads. Separately compare select-all, menu and first editable window on the same 530 synthetic copies, recording input and accessibility observation overhead.
+
 `PhotoListProjection.swift` reuses list filtering and counts, filmstrip sorting and the metadata inspector's selected-photo snapshot. A UUID changes with photo data, distinguishing edits on different undo branches. Parsed capture dates are reused until that photo's timestamp or the camera time zone changes. Filmstrip context menus are constructed when opened, keeping selection scans and pasteboard reads out of item layout.
 
 Metadata-list thumbnails use 80 points times the display scale. The location filmstrip chooses a 160/256/384/512/768/1024-pixel size from its display width and scale. Small thumbnails and 1024-pixel previews have separate estimated 64 MiB budgets and 384-entry limits; visible images and active decodes are outside those budgets. Local decoding remains limited to two operations, with the current preview ahead of waiting ordinary thumbnails. Thumbnail, metadata-read and list-projection caches are session-only; the released bundle identifier and persistent track-cache paths stay compatible.

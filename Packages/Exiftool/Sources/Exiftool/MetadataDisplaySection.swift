@@ -79,9 +79,11 @@ public struct MetadataDisplaySection: Sendable {
         guard parts.count == 2 else { return values[tag] == nil ? [] : [tag] }
         let family = String(parts[0])
         let name = String(parts[1])
+        let suffix = ":" + name
         let imagePrefix = values.keys.contains { $0.hasPrefix("Image/") } && family != "XMP" ? "Image/" : ""
         return values.keys.filter { key in
-            guard key.hasPrefix(imagePrefix) else { return false }
+            // Reject unrelated names before allocating/splitting each source key.
+            guard key.hasSuffix(suffix), key.hasPrefix(imagePrefix) else { return false }
             let canonical = String(key.dropFirst(imagePrefix.count))
             let pieces = canonical.split(separator: ":")
             guard pieces.count >= 2, pieces.last == Substring(name) else { return false }
