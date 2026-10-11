@@ -29,3 +29,7 @@ Run DateHost/Build.ps1 before building WPF. See [host instructions](../../DateHo
 ## 2026-10-11 · Targeted missing-time offset checks
 
 With the existing PHOTOTRAIL_EXIFTOOL and a separate PHOTOTRAIL_TEST_OUTPUT configured, run `dotnet run --project PhotoTrail.Windows.Tests -- --offset-skip-checks`. The checks use synthetic XMP files and copies, covering mixed/all-missing selections, six-component order, existing/cleared drafts, invalid values and types, read failures, source changes, invalidation, cancellation and copy readback/source hashes. For production WPF controls, run DateHost/UiChecks with `synthetic-folder --offset-skip-checks`: start with three sample-0/1/2.xmp files, the middle timestamp absent, the other timestamps carrying nine fractional digits with -00:00 and one digit with +08:00. User acceptance and Computer Use observations are recorded separately; clean deployment and full historical checks are outside this task.
+
+## Real computation cancellation (2026-10-11)
+
+See [ComputeCancelChecks](../../DateHost/ComputeCancelChecks/README.md). It uses the original host, 3000 independent six-component offsets, the existing first-item-computed stderr marker, incomplete stdout and a live child. Marker-triggered real WPF Button.Click events and Computer Use mouse input are recorded separately. Production sources and the accepted candidate are unchanged. Generated observations stay in the separate check executable; no pacing, fake host or protocol changes. A click after computation completes is not computation-stage evidence.

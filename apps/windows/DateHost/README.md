@@ -43,3 +43,7 @@ UiChecks使用实际生产MainWindow、真实控件、Dispatcher与事件，不�
 ## 2026-10-11 · 缺失时间偏移定向检查
 
 日期页六组件偏移的定向核心与WPF检查入口见[开发说明](../docs/DEVELOPMENT.md#2026-10-11--缺失时间偏移定向检查)。宿主和固定Swift候选未改；确认缺失的跳过由Windows日期页适配层处理。
+
+## 真实计算取消检查
+
+见[ComputeCancelChecks](ComputeCancelChecks/README.md)：原样真实宿主、合法独立3000偏移、现有首项计算标记与完整输出未完成证据；定向检查和实际WPF取消入口分别记录，不将完成预览后的点击算作计算中取消。
