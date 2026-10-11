@@ -23,9 +23,10 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool Explic
             var parts = line.TrimEnd('\r').Split('|');
             var kind = parts[0] switch { "前缀" => "prefix", "后缀" => "suffix", "替换" => "replace", "设名" => "set", "大写" => "upper", "小写" => "lower", "序号" => "sequence", _ => parts[0] };
             if (kind == "sequence" && parts.Length == 4 && int.TryParse(parts[1], out var start) && int.TryParse(parts[2], out var step) && int.TryParse(parts[3], out var padding)) result.Add(new(kind, Start:start, Step:step, Padding:padding));
-            else if (kind is "prefix" or "suffix" or "set" && parts.Length == 2) result.Add(new(kind, parts[1]));
+            else if (kind is "prefix" or "suffix" or "set" or "date-prefix" or "city-prefix" or "model-suffix" && parts.Length == 2) result.Add(new(kind, parts[1]));
             else if (kind == "replace" && parts.Length == 3) result.Add(new(kind, parts[1], parts[2]));
-            else if (kind is "upper" or "lower" && parts.Length == 1) result.Add(new(kind));
+            else if (kind == "sequence-prefix" && parts.Length == 5 && int.TryParse(parts[1],out start) && int.TryParse(parts[2],out step) && int.TryParse(parts[3],out padding)) result.Add(new(kind,parts[4],Start:start,Step:step,Padding:padding));
+            else if (kind is "upper" or "lower" or "date-set" && parts.Length == 1) result.Add(new(kind));
             else throw new ArgumentException("规则格式无效；请参考上方例子。");
             if (result.Count > 64) throw new ArgumentException("规则最多64条。");
         }
@@ -39,7 +40,7 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool Explic
         if (first is "CON" or "PRN" or "AUX" or "NUL" or "CONIN$" or "CONOUT$") return false;
         return !(first.Length == 4 && (first.StartsWith("COM") || first.StartsWith("LPT")) && "123456789¹²³".Contains(first[3]));
     }
-    public static string Apply(string name, IReadOnlyList<RenameRule> rules, int index)
+    public static string Apply(string name, IReadOnlyList<RenameRule> rules, int index, Func<string,string?>? metadata=null)
     {
         if (rules.Count > 64 || index < 0) throw new ArgumentException("规则数量或序号无效。");
         var extension = Path.GetExtension(name); var stem = Path.GetFileNameWithoutExtension(name);
@@ -48,6 +49,11 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool Explic
             if (rule.Text.Length > 256 || rule.Replacement.Length > 256) throw new ArgumentException("规则文字过长。");
             stem = rule.Kind switch
             {
+                "date-set" => CaptureName(metadata),
+                "date-prefix" => CaptureName(metadata)+rule.Text+stem,
+                "city-prefix" => Required(metadata,"city")+rule.Text+stem,
+                "model-suffix" => stem+rule.Text+Required(metadata,"model"),
+                "sequence-prefix" when rule.Start>=0 && rule.Step>0 && rule.Padding is >=1 and <=9 => checked((long)rule.Start+(long)index*rule.Step).ToString("D"+rule.Padding,CultureInfo.InvariantCulture)+rule.Text+stem,
                 "prefix" => rule.Text + stem,
                 "suffix" => stem + rule.Text,
                 "set" => rule.Text,
@@ -62,6 +68,24 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool Explic
         var target = stem + extension;
         if (!ValidName(target)) throw new ArgumentException("生成名称违反Windows文件名规则。");
         return target;
+    }
+    internal static bool UsesMetadata(IReadOnlyList<RenameRule> rules)=>rules.Any(r=>r.Kind is "date-set" or "date-prefix" or "city-prefix" or "model-suffix");
+    internal static bool UsesNewRules(IReadOnlyList<RenameRule> rules)=>UsesMetadata(rules)||rules.Any(r=>r.Kind=="sequence-prefix");
+    internal static void ValidateRules(string text) {
+        _=new UTF8Encoding(false,true).GetByteCount(text);var rules=ParseRules(text);
+        if(!UsesNewRules(rules)){_=Apply("sample.jpg",rules,0);return;}
+        foreach(var rule in rules) {
+            if(rule.Text.Length>256||rule.Replacement.Length>256)throw new ArgumentException("规则文字过长。");
+            if(rule.Kind is "sequence" or "sequence-prefix" && (rule.Start<0||rule.Step<=0||rule.Padding is <1 or >9))throw new ArgumentException("编号设置无效。");
+            if(rule.Kind=="replace"&&rule.Text.Length==0)throw new ArgumentException("替换文字不能为空。");
+        }
+    }
+    static string Required(Func<string,string?>? metadata,string key)=>metadata?.Invoke(key) is {Length:>0} value?value:throw new ArgumentException(key switch{"city"=>"缺失城市，不能生成名称。","model"=>"缺失设备型号，不能生成名称。",_=>"缺失拍摄时间，不能生成名称。"});
+    static string CaptureName(Func<string,string?>? metadata) {
+        var raw=Required(metadata,"captured");
+        if(raw.Length>=19&&raw[4]=='-'&&raw[7]=='-'&&raw[10]=='T')raw=raw[..4]+":"+raw[5..7]+":"+raw[8..10]+" "+raw[11..];
+        try{return MetadataDate.Parse(raw).WallTime.ToString("yyyyMMdd_HHmmss",CultureInfo.InvariantCulture);}
+        catch(ArgumentException error){throw new ArgumentException("非法拍摄时间，不能生成名称。",error);}
     }
     public static Task<RenamePlan> BuildAsync(IEnumerable<string> paths, IReadOnlyList<RenameRule> rules, bool sortByName, CancellationToken cancellation = default)
     {
@@ -119,8 +143,8 @@ public sealed record RenameRulesPreset(string Rules, bool SortByName, RenameOrde
     public static string Encode(string rules, bool sortByName, RenameOrderSettings? order = null)
     {
         var parsed = RenamePlan.ParseRules(rules);
-        _ = RenamePlan.Apply("sample.jpg", parsed, 0);
-        order?.Validate(); var data = new Dictionary<string,object?> { ["version"]=1,["rules"]=rules,["sortByName"]=sortByName }; if(order is not null){data["sort"]=order.Sort;data["descending"]=order.Descending;if(order.MetadataSortTag is not null)data["metadataSortTag"]=order.MetadataSortTag;} var text = System.Text.Json.JsonSerializer.Serialize(data);
+        RenamePlan.ValidateRules(rules);
+        order?.Validate(); var data = new Dictionary<string,object?> { ["version"]=RenamePlan.UsesNewRules(parsed)?2:1,["rules"]=rules,["sortByName"]=sortByName }; if(order is not null){data["sort"]=order.Sort;data["descending"]=order.Descending;if(order.MetadataSortTag is not null)data["metadataSortTag"]=order.MetadataSortTag;} var text = System.Text.Json.JsonSerializer.Serialize(data);
         if (Encoding.UTF8.GetByteCount(text) > MaximumBytes) throw new ArgumentException("规则文件超过64KiB上限。");
         return text;
     }
@@ -132,8 +156,9 @@ public sealed record RenameRulesPreset(string Rules, bool SortByName, RenameOrde
             using var json = System.Text.Json.JsonDocument.Parse(text.TrimStart('\ufeff')); var root = json.RootElement;
             string[] keys = ["version", "rules", "sortByName", "sort", "descending", "metadataSortTag"];
             if (root.ValueKind != System.Text.Json.JsonValueKind.Object || root.EnumerateObject().Count() is < 3 or > 6 || root.EnumerateObject().Any(p => !keys.Contains(p.Name)) || root.EnumerateObject().Select(p => p.Name).Distinct().Count() != root.EnumerateObject().Count()) throw new ArgumentException("Windows规则文件结构无效。");
-            if (!root.GetProperty("version").TryGetInt32(out var version) || version != 1 || root.GetProperty("rules").ValueKind != System.Text.Json.JsonValueKind.String || root.GetProperty("sortByName").ValueKind is not (System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False)) throw new ArgumentException("规则版本或值类型无效。");
+            if (!root.GetProperty("version").TryGetInt32(out var version) || version is not (1 or 2) || root.GetProperty("rules").ValueKind != System.Text.Json.JsonValueKind.String || root.GetProperty("sortByName").ValueKind is not (System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False)) throw new ArgumentException("规则版本或值类型无效。");
             var byName=root.GetProperty("sortByName").GetBoolean(); var sort=root.TryGetProperty("sort",out var sv)?sv.GetString():byName?"name":"input"; bool descending=false;if(root.TryGetProperty("descending",out var dv)){if(dv.ValueKind is not(System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False))throw new ArgumentException("排序方向类型无效。");descending=dv.GetBoolean();} var tag=root.TryGetProperty("metadataSortTag",out var tv)?tv.GetString():null;var order=new RenameOrderSettings(sort!,descending,tag);order.Validate();var preset = new RenameRulesPreset(root.GetProperty("rules").GetString()!,byName,order);
+            if(version==1&&RenamePlan.UsesNewRules(RenamePlan.ParseRules(preset.Rules)))throw new ArgumentException("新Windows规则须使用版本2；Mac方案格式不直接支持。");
             _ = Encode(preset.Rules, preset.SortByName);
             return preset;
         }

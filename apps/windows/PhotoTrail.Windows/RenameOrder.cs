@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 namespace PhotoTrail.Windows;
 
 // Windows adaptation of the fixed REN-01/02 contract; names still use the existing rule engine.
-public sealed record RenameInput(string Path,IReadOnlyDictionary<string,string> Tags,bool MetadataFailed=false,long? Size=null,string Hash="")
+public sealed record RenameInput(string Path,IReadOnlyDictionary<string,string> Tags,bool MetadataFailed=false,long? Size=null,string Hash="",System.Text.Json.JsonElement? Metadata=null)
 {
     public string Name=>System.IO.Path.GetFileName(Path);
     public string Directory=>System.IO.Path.GetDirectoryName(Path)!;

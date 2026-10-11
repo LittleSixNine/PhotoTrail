@@ -25,9 +25,30 @@ public partial class MainWindow
     RenameGroup[] OrderedRenameGroups(){var settings=ReadRenameOrder();var automatic=RenameOrder.Ordered(renameGroups,settings);if(settings.Sort!="manual")return automatic;var byId=automatic.ToDictionary(g=>g.Id);return manualRenameOrder.Where(byId.ContainsKey).Select(id=>byId[id]).Concat(automatic.Where(g=>!manualRenameOrder.Contains(g.Id))).ToArray();}
     RenameGroup[] IncludedRenameGroups(){var filter=ReadRenameFilter();return OrderedRenameGroups().Where(g=>g.Members.Any(filter.Matches)).ToArray();}
     void RenderRenameGroups(){
-        var included=IncludedRenameGroups();var rules=ReadRenameRules();var previews=included.SelectMany((g,index)=>g.Members.Select(m=>new RenameFile(m.Path,Path.Combine(m.Directory,Path.GetFileNameWithoutExtension(RenamePlan.Apply(g.Leader.Name,rules,index))+Path.GetExtension(m.Path)),""))).ToArray();
+        var included=IncludedRenameGroups();var rules=ReadRenameRules();var previews=new List<object>();
+        foreach(var (group,index) in included.Select((g,i)=>(g,i))) {
+            try{var name=Path.GetFileNameWithoutExtension(RenamePlan.Apply(group.Leader.Name,rules,index,key=>RenameNameField(group,key)));foreach(var member in group.Members)previews.Add(new RenameFile(member.Path,Path.Combine(member.Directory,name+Path.GetExtension(member.Path)),""));}
+            catch(Exception error)when(error is ArgumentException or IOException){foreach(var member in group.Members)previews.Add(new RenameNameIssue(member.Path,error.Message));}
+        }
         RenameGroups.ItemsSource=included;RenamePreview.ItemsSource=previews;RenameViewChanged(this,new RoutedEventArgs());
         RenameOrderStatus.Text=$"完整组{renameGroups.Length}／参与{included.Length}／读取失败{renameGroups.SelectMany(g=>g.Members).Count(m=>m.MetadataFailed)}；参与组连续编号，查看不影响处理。";UpdateRenameButtons();
+    }
+    sealed record RenameNameIssue(string Source,string Reason) {public string OriginalName=>Path.GetFileName(Source);public string NewName=>"不可生成";public string Status=>Reason;}
+    string? RenameNameField(RenameGroup group,string key) {
+        if(group.Members.Any(m=>m.MetadataFailed))throw new IOException("元数据读取失败，不能用缺失值生成名称。");
+        var imported=photos.FirstOrDefault(p=>p.Document.FilePath.Equals(group.Leader.Path,StringComparison.OrdinalIgnoreCase))?.Document;
+        var embedded=group.Leader.Metadata??JsonSerializer.SerializeToElement(group.Leader.Tags);
+        var sidecar=group.Members.FirstOrDefault(m=>m.Extension=="xmp"&&!m.Path.Equals(group.Leader.Path,StringComparison.OrdinalIgnoreCase))?.Metadata;
+        if(key=="captured")return imported is not null?BatchTrackMatch.Capture(imported):BatchTrackMatch.Capture(embedded,sidecar,new Dictionary<string,string>());
+        var tags=key=="city"?new[]{"XMP-photoshop:City","IPTC:City"}:new[]{"XMP-tiff:Model","IFD0:Model","ExifIFD:Model"};
+        foreach(var tag in tags) {
+            if(imported?.Draft.TryGetValue(tag,out var draft)==true)return draft.Length==0?null:draft;
+            var data=tag.StartsWith("XMP-",StringComparison.Ordinal)?imported?.Sidecar??sidecar??embedded:embedded;
+            if(!data.TryGetProperty(tag,out var value))continue;
+            if(value.ValueKind!=JsonValueKind.String)throw new ArgumentException("字段类型错误："+tag);
+            if(!string.IsNullOrEmpty(value.GetString()))return value.GetString();
+        }
+        return null;
     }
     private void RenameOrderChanged(object sender,RoutedEventArgs e){if(!IsLoaded||fillingRenameControls)return;RenameRulesChanged(sender,e);}
     private void RenameViewChanged(object sender,RoutedEventArgs e){if(!IsLoaded||RenamePreview.ItemsSource is null)return;var view=System.Windows.Data.CollectionViewSource.GetDefaultView(RenamePreview.ItemsSource);using(view.DeferRefresh()){view.Filter=item=>RenameViewFilter.SelectedIndex switch{1=>item is RenameFile f?f.Source!=f.Target:item is RenameOutcome o&&o.Source!=o.Current,2=>item is RenameFile f?f.Source==f.Target:item is RenameOutcome o&&o.Source==o.Current,_=>true};view.SortDescriptions.Clear();if(RenameViewOrder.SelectedIndex!=0)view.SortDescriptions.Add(new("NewName",RenameViewOrder.SelectedIndex==1?System.ComponentModel.ListSortDirection.Ascending:System.ComponentModel.ListSortDirection.Descending));}UpdateRenameButtons();}
@@ -35,18 +56,18 @@ public partial class MainWindow
         var selected=RenameSelection();var inputPaths=selected.Select(r=>r.Document.FilePath).ToArray();var roots=inputPaths.Select(RenameGroup.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);var paths=inputPaths.ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach(var dir in inputPaths.Select(Path.GetDirectoryName).Distinct(StringComparer.OrdinalIgnoreCase))foreach(var path in Directory.EnumerateFiles(dir!))if(roots.Contains(RenameGroup.Key(path)))paths.Add(path);
         if(roots.Count>3000||paths.Count>6000)throw new ArgumentException("超过3000组或6000个物理文件上限。");
-        var inputs=new List<RenameInput>();foreach(var path in paths){cancellation.ThrowIfCancellationRequested();var hash=await PhotoDocument.HashAsync(path,cancellation);var file=new FileInfo(path);if((file.Attributes&FileAttributes.ReparsePoint)!=0)throw new IOException("配对成员为链接，未读取。");var tags=new Dictionary<string,string>();bool failed=false;
-            try{var data=await Tool().ReadAsync(path,cancellation);var extension=Path.GetExtension(path).TrimStart('.').ToLowerInvariant();if(RenameGroup.Sources.Contains(extension)&&(!data.TryGetProperty("File:MIMEType",out var mime)||!mime.ToString().StartsWith("image/",StringComparison.OrdinalIgnoreCase))||extension=="xmp"&&(!data.TryGetProperty("File:FileType",out var kind)||kind.ToString()!="XMP"))throw new InvalidDataException("配对照片或XMP内容无效。");foreach(var tag in data.EnumerateObject().Where(t=>t.Name!="SourceFile"))tags[tag.Name]=PhotoDocument.Text(tag.Value);}
+        var inputs=new List<RenameInput>();foreach(var path in paths){cancellation.ThrowIfCancellationRequested();var hash=await PhotoDocument.HashAsync(path,cancellation);var file=new FileInfo(path);if((file.Attributes&FileAttributes.ReparsePoint)!=0)throw new IOException("配对成员为链接，未读取。");var tags=new Dictionary<string,string>();JsonElement? metadata=null;bool failed=false;
+            try{var data=await Tool().ReadAsync(path,cancellation);metadata=data.Clone();var extension=Path.GetExtension(path).TrimStart('.').ToLowerInvariant();if(RenameGroup.Sources.Contains(extension)&&(!data.TryGetProperty("File:MIMEType",out var mime)||!mime.ToString().StartsWith("image/",StringComparison.OrdinalIgnoreCase))||extension=="xmp"&&(!data.TryGetProperty("File:FileType",out var kind)||kind.ToString()!="XMP"))throw new InvalidDataException("配对照片或XMP内容无效。");foreach(var tag in data.EnumerateObject().Where(t=>t.Name!="SourceFile"))tags[tag.Name]=PhotoDocument.Text(tag.Value);}
             catch(OperationCanceledException){throw;}catch(Exception error)when(error is IOException or JsonException or InvalidDataException or TimeoutException){failed=true;}
             if(hash!=await PhotoDocument.HashAsync(path,cancellation))throw new IOException("配对成员读取期间改变。");
             var imported=photos.FirstOrDefault(r=>r.Document.FilePath.Equals(path,StringComparison.OrdinalIgnoreCase));if(imported is not null&&hash!=imported.Document.SourceHash)throw new IOException("已导入照片在外部改变，请重新导入。");
-            tags["File:FileCreateDate"]=file.CreationTimeUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ");tags["File:FileModifyDate"]=file.LastWriteTimeUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ");inputs.Add(new(path,tags,failed,file.Length,hash));
+            tags["File:FileCreateDate"]=file.CreationTimeUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ");tags["File:FileModifyDate"]=file.LastWriteTimeUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ");inputs.Add(new(path,tags,failed,file.Length,hash,metadata));
         }
         var groups=inputs.GroupBy(m=>RenameGroup.Key(m.Path),StringComparer.OrdinalIgnoreCase).Select(values=>{var members=values.ToArray();var id=members.Select(m=>renameIdentities.GetValueOrDefault(m.Path)).FirstOrDefault(v=>v is not null)??Guid.NewGuid().ToString("N");foreach(var member in members)renameIdentities[member.Path]=id;return new RenameGroup(id,members);}).ToArray();
         renameGroups=groups;manualRenameOrder=manualRenameOrder.Concat(groups.Select(g=>g.Id).Where(id=>!manualRenameOrder.Contains(id))).ToArray();
     }
     private async void RefreshRenameOrder(object sender,RoutedEventArgs e){
-        if(busy||renameRecoveryRequired)return;var revision=++renameRevision;frozenRenamePlan=null;BeginOperation();try{await ReadRenameGroupsAsync(operation!.Token);if(revision==renameRevision){RenderRenameGroups();RenameStatus.Text="配对元数据与完整处理组已读取；尚未写文件。";}}catch(OperationCanceledException){RenameStatus.Text="读取已取消，未改文件。";}catch(Exception error){renameGroups=[];RenameGroups.ItemsSource=null;RenamePreview.ItemsSource=null;RenameStatus.Text="处理预览未读取："+error.Message;}finally{EndOperation();}
+        if(busy||renameRecoveryRequired)return;renameReadingPreview=true;var revision=++renameRevision;frozenRenamePlan=null;BeginOperation();try{await ReadRenameGroupsAsync(operation!.Token);if(revision==renameRevision){RenderRenameGroups();RenameStatus.Text="配对元数据与完整处理组已读取；尚未写文件。";}}catch(OperationCanceledException){RenameStatus.Text="读取已取消，未改文件。";}catch(Exception error){renameGroups=[];RenameGroups.ItemsSource=null;RenamePreview.ItemsSource=null;RenameStatus.Text="处理预览未读取："+error.Message;}finally{renameReadingPreview=false;EndOperation();}
     }
     void RemapRenameIdentities(RenameResult result){var changed=result.Files.Where(f=>renameIdentities.ContainsKey(f.Source)).Select(f=>(file:f,id:renameIdentities[f.Source])).ToArray();foreach(var item in changed)renameIdentities.Remove(item.file.Source);foreach(var item in changed)renameIdentities[item.file.Current]=item.id;renameGroups=renameGroups.Select(g=>g with{Members=g.Members.Select(m=>result.Files.FirstOrDefault(f=>f.Source.Equals(m.Path,StringComparison.OrdinalIgnoreCase)) is{} f?m with{Path=f.Current}:m).ToArray()}).ToArray();RenameGroups.ItemsSource=IncludedRenameGroups();}
     bool CanMoveRenameGroups=>!busy&&!renameRecoveryRequired&&RenamePreview.ItemsSource is not null&&RenameViewOrder.SelectedIndex==0&&RenameViewFilter.SelectedIndex==0&&System.Windows.Data.CollectionViewSource.GetDefaultView(RenamePreview.ItemsSource).SortDescriptions.Count==0;

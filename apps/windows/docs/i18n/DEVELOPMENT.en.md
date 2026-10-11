@@ -1,3 +1,7 @@
+## 2026-10-12 Rename scheme checks
+
+DateHost/UiChecks adds `--scheme-model-checks` and `--scheme-library-checks`. Isolate `PHOTOTRAIL_RENAME_SCHEMES` as well as existing preferences, journal and WebView paths; use synthetic copies only. Checks cover the local library, strict versioned JSON, stale-state conflicts and production WPF template/freeze/execute/restore behavior. Native management, system dialogs and restart evidence are recorded separately with build identity. Reuse the pinned DateHost binary; do not rebuild Swift. Run relevant date/undo, batch-track and rename recovery regressions without the unrelated historical suite. Mac scheme interchange is unsupported.
+
 # PhotoTrail Windows
 
 ## Windows prototype

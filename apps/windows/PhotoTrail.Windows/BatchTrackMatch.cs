@@ -14,13 +14,14 @@ internal static class BatchTrackMatch
         if((value.ValueKind!=JsonValueKind.String && !(numeric && value.ValueKind==JsonValueKind.Number)) || value.ToString().Length==0)throw new ArgumentException("字段格式或类型错误："+tag);
         return value.ToString();
     }
-    internal static string? Capture(PhotoDocument document) {
+    internal static string? Capture(PhotoDocument document)=>Capture(document.Embedded,document.Sidecar,document.Draft);
+    internal static string? Capture(JsonElement embedded,JsonElement? sidecar,IReadOnlyDictionary<string,string> draft) {
         const string tag="XMP-exif:DateTimeOriginal";
-        if(document.Draft.TryGetValue(tag,out var pending))return pending.Length==0?null:pending;
-        var xmp=Read(document.Sidecar??document.Embedded,tag);if(xmp is not null)return xmp;
-        var raw=Read(document.Embedded,"Composite:SubSecDateTimeOriginal");if(raw is not null)return raw;
-        raw=Read(document.Embedded,"ExifIFD:DateTimeOriginal");if(raw is null)return null;
-        var fraction=Read(document.Embedded,"ExifIFD:SubSecTimeOriginal");var offset=Read(document.Embedded,"ExifIFD:OffsetTimeOriginal");
+        if(draft.TryGetValue(tag,out var pending))return pending.Length==0?null:pending;
+        var xmp=Read(sidecar??embedded,tag);if(xmp is not null)return xmp;
+        var raw=Read(embedded,"Composite:SubSecDateTimeOriginal");if(raw is not null)return raw;
+        raw=Read(embedded,"ExifIFD:DateTimeOriginal");if(raw is null)return null;
+        var fraction=Read(embedded,"ExifIFD:SubSecTimeOriginal");var offset=Read(embedded,"ExifIFD:OffsetTimeOriginal");
         return raw+(fraction is null?"":"."+fraction)+(offset??"");
     }
     internal static string Location(PhotoDocument document) {

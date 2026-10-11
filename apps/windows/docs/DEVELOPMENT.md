@@ -1,3 +1,9 @@
+## 2026-10-12 方案库定向检查（任务20261011）
+
+DateHost/UiChecks增加`--scheme-model-checks`及`--scheme-library-checks`，分别检查初始化、严格格式／原子保存／旧状态冲突，以及真实生产WPF五模板、JPG/RAW/XMP配对、示例编辑、当前日期草稿、冻结执行恢复。运行时必须隔离`PHOTOTRAIL_RENAME_SCHEMES`，同时隔离既有偏好、执行记录与WebView；仅使用合成副本。方案JSON及旧规则兼容见[格式](RENAME-SCHEMES.md)。DateHost复用固定二进制，不重编Swift。
+
+原生管理及系统导入／导出、重启和双实例检查与Dispatcher检查分开记录构建身份。复用日期直接应用／撤销、批量轨迹匹配和重命名排序／部分失败／恢复相称回归；不运行无关历史全套、干净部署或性能基准。
+
 # PhotoTrail Windows
 
 ## Windows 原型构建
