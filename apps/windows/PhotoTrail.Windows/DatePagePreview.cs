@@ -18,6 +18,9 @@ internal sealed class DatePagePreview
     readonly bool strictDate;
     bool consumed;
     internal IReadOnlyList<string?> Values => Array.AsReadOnly(after);
+    internal double SourceCheckMs { get; private set; }
+    internal int FilenameMismatchCount {get;private set;}
+    internal int FilenameInvalidCount {get;private set;}
     internal int MissingCount { get; }
     internal int UnchangedCount { get; }
     internal IReadOnlyList<Measurement> Measurements { get; }
@@ -26,7 +29,18 @@ internal sealed class DatePagePreview
     internal string SkippedText(int index) => before[index].Length==0 ? "缺失时间，已跳过" : "无变化，保留原草稿";
 
     internal static async Task<DatePagePreview> CreateAsync(IReadOnlyList<PhotoDocument> selection, DatePageOptions options,
-        int revision, Func<int> currentRevision, CancellationToken token)
+        int revision, Func<int> currentRevision, CancellationToken token, Action? calculationStarted=null, Action<DateAdapter>? observeAdapter=null)
+    {
+        var preview=await CalculateAsync(selection,options,revision,currentRevision,token,calculationStarted,observeAdapter);
+        var clock=System.Diagnostics.Stopwatch.StartNew();
+        if(options.Mode is 0 or 2)foreach(var doc in selection)await doc.EnsureUnchangedAsync(token);
+        preview.SourceCheckMs=clock.Elapsed.TotalMilliseconds;token.ThrowIfCancellationRequested();
+        if(revision!=currentRevision())throw new DateFailure("staleRevision");
+        preview.ValidateAll();return preview;
+    }
+    // Direct application uses detached request snapshots; its caller verifies all live sources before committing.
+    internal static async Task<DatePagePreview> CalculateAsync(IReadOnlyList<PhotoDocument> selection, DatePageOptions options,
+        int revision, Func<int> currentRevision, CancellationToken token, Action? calculationStarted=null, Action<DateAdapter>? observeAdapter=null)
     {
         var docs=selection.ToArray();
         if(docs.Length is < 1 or > 3000 || docs.Distinct().Count()!=docs.Length || docs.Select(d=>d.SidecarPath??d.FilePath).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=docs.Length || docs.Any(d=>!d.CanEdit))
@@ -34,6 +48,8 @@ internal sealed class DatePagePreview
         var drafts=docs.Select(d=>d.DraftRevision).ToArray();
         var before=docs.Select(d=>options.Mode is 0 or 2?OffsetValue(d):d.Value(Field)).ToArray();
         var adapter=new DateAdapter(Path.Combine(AppContext.BaseDirectory,"DateHost","DateHost.exe"),Source);
+        if(calculationStarted is not null)adapter.CalculationStarted+=calculationStarted;
+        observeAdapter?.Invoke(adapter);
         var jobs=new List<DateJob>();
         string?[]? extracted=null;
         if(options.Mode==4) extracted=MetadataDate.ExtractFilenames(docs.Select(d=>Path.GetFileName(d.FilePath)).ToArray(),options.Pattern,options.Template);
@@ -79,16 +95,12 @@ internal sealed class DatePagePreview
             values[int.Parse(item.Id,System.Globalization.CultureInfo.InvariantCulture)]=item.Values![0];
         }
         int missing=0,unchanged=0;
-        if(options.Mode is 0 or 2)for(int i=0;i<docs.Length;i++) {
-            if(before[i].Length==0)missing++;
-            else if(values[i]==before[i]) { values[i]=null; unchanged++; }
+        for(int i=0;i<docs.Length;i++) {
+            if(options.Mode is 0 or 2 && before[i].Length==0)missing++;
+            else if(values[i] is not null && values[i]==before[i]) { values[i]=null; unchanged++; }
         }
         var preview=new DatePagePreview(docs,drafts,before,values,adapter.Measurements.ToArray(),missing,unchanged,options.Mode is 0 or 2);
-        if(options.Mode is 0 or 2) {
-            foreach(var doc in docs)await doc.EnsureUnchangedAsync(token);
-            token.ThrowIfCancellationRequested();
-            if(revision!=currentRevision())throw new DateFailure("staleRevision");
-        }
+        if(options.Mode==4){preview.FilenameMismatchCount=extracted!.Count(v=>v is null);preview.FilenameInvalidCount=values.Count(v=>v is null)-preview.FilenameMismatchCount-unchanged;}
         preview.ValidateAll();return preview;
     }
     static string OffsetValue(PhotoDocument document) {

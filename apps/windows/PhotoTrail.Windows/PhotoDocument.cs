@@ -23,6 +23,13 @@ public sealed class PhotoDocument
     internal event Action? DraftChanged;
     private void ChangedDraft() { DraftRevision++; DraftChanged?.Invoke(); }
     public void ClearDraft() { draft.Clear(); ChangedDraft(); }
+    internal PhotoDocument BatchSnapshot() {
+        var copy=new PhotoDocument(FilePath,SidecarPath,Embedded,Sidecar,SourceHash,SidecarHash);
+        foreach(var pair in draft)copy.draft.Add(pair.Key,pair.Value);
+        copy.DraftRevision=DraftRevision;return copy;
+    }
+    internal void ReplaceDraft(IReadOnlyDictionary<string,string> state) { draft.Clear();foreach(var pair in state)draft.Add(pair.Key,pair.Value); }
+    internal void NotifyDraftChanged()=>ChangedDraft();
     public string FileType => Embedded.TryGetProperty("File:FileType", out var type) ? type.ToString() : "";
     public bool CanEdit => FileType is "JPEG" or "XMP" || (SidecarPath is not null &&
         FileType is "DNG" or "TIFF" or "HEIC" or "PNG" or "ARW" or "NEF" or "RAF" or "CR2" or "CR3" or "RW2" or "ORF" or "PEF");

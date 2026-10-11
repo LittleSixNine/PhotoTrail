@@ -7,7 +7,7 @@ using Microsoft.VisualBasic.FileIO;
 namespace PhotoTrail.Windows;
 
 public sealed record CsvRecord(string Id, string RelativePath, IReadOnlyDictionary<string, string> Cells);
-public sealed record CsvImport(IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> Changes, IReadOnlyList<string> Warnings);
+public sealed record CsvImport(IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> Changes, IReadOnlyList<string> Warnings,int IdentitySkippedCount=0,int UnknownFieldCount=0);
 
 public static class MetadataCsv
 {
@@ -33,8 +33,11 @@ public static class MetadataCsv
             {
                 if (photo.Draft.TryGetValue(tag, out var draft))
                     cells[tag] = IsList(tag) ? JsonSerializer.Serialize(draft.Split('\n').Where(value => value.Length > 0).ToArray()) : JsonSerializer.Serialize(draft);
-                else if ((photo.Sidecar ?? photo.Embedded).TryGetProperty(tag, out var value))
+                else if ((photo.Sidecar ?? photo.Embedded).TryGetProperty(tag, out var value)) {
+                    bool numeric=tag=="XMP-xmp:Rating"||PhotoDocument.NumericRange(tag) is not null;
+                    if(IsList(tag)?value.ValueKind!=JsonValueKind.String&&(value.ValueKind!=JsonValueKind.Array||value.EnumerateArray().Any(v=>v.ValueKind!=JsonValueKind.String)):value.ValueKind!=JsonValueKind.String&&!(numeric&&value.ValueKind==JsonValueKind.Number))throw new InvalidDataException("CSV来源字段类型无效："+tag);
                     cells[tag] = IsList(tag) ? JsonSerializer.Serialize(value.ValueKind == JsonValueKind.Array ? value.EnumerateArray().Select(item => item.ToString()).ToArray() : new[] { value.ToString() }) : JsonSerializer.Serialize(value.ToString());
+                }
             }
             return new CsvRecord(Identity(photo.FilePath), relative, cells);
         }).ToArray();
@@ -105,11 +108,12 @@ public static class MetadataCsv
             if (row.Length != header.Length || !seen.Add(row[0]) || !paths.Add(row[1])) throw new InvalidDataException("CSV行长度或重复身份/路径无效。");
         var allowed = authorized.ToDictionary(row => row.Id); var warnings = new List<string>();
         if (tags.Any(tag => !Tags.Contains(tag))) warnings.Add("未知或当前不支持的字段已忽略。");
+        int identitySkipped=0;
         var result = new Dictionary<string, IReadOnlyDictionary<string, string>>();
         for (var index = 1; index < rows.Count; index++)
         {
             var row = rows[index];
-            if (!SafePath(row[1]) || !allowed.TryGetValue(row[0], out var original) || original.RelativePath != row[1]) { warnings.Add($"第{index + 1}行：身份或相对路径不在当前选择中，已跳过。"); continue; }
+            if (!SafePath(row[1]) || !allowed.TryGetValue(row[0], out var original) || original.RelativePath != row[1]) { identitySkipped++;warnings.Add($"第{index + 1}行：身份或相对路径不在当前选择中，已跳过。"); continue; }
             var changes = new Dictionary<string, string>();
             try
             {
@@ -140,8 +144,8 @@ public static class MetadataCsv
                 PhotoDocument.ValidateChanges(changes);
                 if (changes.Count > 0) result[row[0]] = changes;
             }
-            catch (Exception error) when (error is JsonException or ArgumentException) { warnings.Add($"第{index + 1}行：字段值无效，整行未加入预览。"); }
+            catch (Exception error) when (error is JsonException or ArgumentException) { throw new InvalidDataException($"第{index + 1}行：字段值无效，整批未应用。",error); }
         }
-        return new(result, warnings.AsReadOnly());
+        return new(result, warnings.AsReadOnly(),identitySkipped,tags.Count(tag=>!Tags.Contains(tag)));
     }
 }

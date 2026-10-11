@@ -563,6 +563,7 @@ public partial class MainWindow : Window
     }
     private async Task ImportAsync(IEnumerable<string> paths)
     {
+        lastApply=null;
         if (busy) return;
         var files = paths.ToArray();
         if (files.Length == 0 || !DiscardEditor()) return;
@@ -668,13 +669,18 @@ public partial class MainWindow : Window
         var editable = !renameRecoveryRequired && selected.Length > 0 && selected.All(p => p.Document.CanEdit);
         Editor.IsEnabled = !busy && editable;
         UpdateGpsButton(); UpdateRenameButtons();
-        DraftActions.IsEnabled = !busy && editable;
+        DraftActions.IsEnabled = !busy && !renameRecoveryRequired;
+        FieldApplyButton.IsEnabled=editable;ClearSelectedDraftButton.IsEnabled=editable;UndoLastApplyButton.IsEnabled=!busy&&!renameRecoveryRequired&&LastApplyCurrent();
+        DatePlanApplyButton.IsEnabled=CsvApplyButton.IsEnabled=!busy&&editable;
+        DateMode.IsEnabled=CsvPath.IsEnabled=!busy;
+        foreach(var box in new[]{DateYears,DateMonths,DateDays,DateHours,DateMinutes,DateSeconds,DateStart,DateEnd,DateStep,DateReplaceYear,DateReplaceMonth,DateReplaceDay,DateReplaceHour,DateReplaceMinute,DateReplaceSecond,DateFilenamePattern,DateFilenameTemplate})box.IsEnabled=!busy;
         SaveButton.IsEnabled = !busy && !renameRecoveryRequired && selected.Any(p => p.Document.Draft.Count > 0);
         RemoveButton.IsEnabled = !busy && selected.Length > 0;
         SelectionInfo.Text = selected.Length == 0 ? "请选择照片。Ctrl / Shift 可多选。" :
             $"已选 {selected.Length} 张；{selected.Count(p => p.Document.Draft.Count > 0)} 张有草稿。" +
             (selected.Length == 1 ? (selected[0].Document.SidecarPath is null ? "XMP 来源：文件内嵌。" : "XMP 来源：同名旁车。") : "混合值显示为空；只应用勾选字段。") +
             (editable ? "" : "所选包含只读格式，暂不支持编辑。");
+        if(busy||preserveBatchEditor){fillingEditor=false;return;}
         foreach (var (tag, apply, value) in Fields)
         {
             var values = selected.Select(p => p.Document.Value(tag)).Distinct().ToArray();
@@ -897,109 +903,24 @@ public partial class MainWindow : Window
         catch(Exception error){Status.Text="XMP未导出："+error.Message;}
     }
 
-    private PhotoRow[] dateSelection = [];
-    private string[] datesBefore = [];
-    private DatePagePreview? datePreview;
     private CancellationTokenSource? dateRequest;
-    private int dateRevision;
-    private int datePending;
-    private readonly HashSet<PhotoDocument> dateObserved = [];
-    private void InvalidateDates()
-    {
-        dateRevision++; dateRequest?.Cancel(); datePreview=null;
-        if(DatePlanApplyButton is not null)DatePlanApplyButton.IsEnabled=false;
-    }
-    private void DatePlanChanged(object sender, RoutedEventArgs e)
-    {
-        InvalidateDates();
-        if (DateFilenameOptions is null) return;
-        DateShiftOptions.Visibility = DateMode.SelectedIndex == 0 ? Visibility.Visible : Visibility.Collapsed;
-        DateReplaceOptions.Visibility = DateMode.SelectedIndex == 2 ? Visibility.Visible : Visibility.Collapsed;
-        DateStartOptions.Visibility = DateMode.SelectedIndex is 1 or 3 ? Visibility.Visible : Visibility.Collapsed;
-        DateSequenceOptions.Visibility = DateMode.SelectedIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
-        DateDistributionOptions.Visibility = DateMode.SelectedIndex == 3 ? Visibility.Visible : Visibility.Collapsed;
-        DateFilenameOptions.Visibility = DateMode.SelectedIndex == 4 ? Visibility.Visible : Visibility.Collapsed;
-    }
-    private async void PreviewDates(object sender, RoutedEventArgs e)
-    {
-        if (busy || renameRecoveryRequired) return;
-        InvalidateDates();
-        var request=new CancellationTokenSource(); dateRequest=request; var revision=dateRevision;datePending++;
-        try
-        {
-            if (Fields.Any(field => field.Apply.IsChecked == true)) throw new InvalidOperationException("请先将输入加入草稿。");
-            dateSelection = Selected;
-            if (dateSelection.Length is < 1 or > 3000 || dateSelection.Any(row => !row.Document.CanEdit)) throw new InvalidOperationException("请选择1至3000个可编辑文件。");
-            datesBefore = dateSelection.Select(row => row.Document.Value("XMP-exif:DateTimeOriginal")).ToArray();
-            foreach(var document in dateObserved)document.DraftChanged-=InvalidateDates;
-            dateObserved.Clear();
-            foreach(var row in dateSelection)if(dateObserved.Add(row.Document))row.Document.DraftChanged+=InvalidateDates;
-            int Number(TextBox input) => int.TryParse(input.Text, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out var number) ? number : throw new ArgumentException("调整量须为整数。");
-            long Seconds(TextBox input) => long.TryParse(input.Text, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out var number) ? number : throw new ArgumentException("秒数须为整数。");
-            int? Component(TextBox input) => input.Text.Length == 0 ? null : Number(input);
-            Dictionary<string,long> Replacements()
-            {
-                var changes=new Dictionary<string,long>();
-                foreach(var (name,input) in new[]{("year",DateReplaceYear),("month",DateReplaceMonth),("day",DateReplaceDay),("hour",DateReplaceHour),("minute",DateReplaceMinute),("second",DateReplaceSecond)})
-                    if(Component(input) is { } value)changes[name]=value;
-                return changes;
-            }
-            var options=DateMode.SelectedIndex switch {
-                0=>new DatePageOptions(0,Number(DateYears),Number(DateMonths),Number(DateDays),Number(DateHours),Number(DateMinutes),Seconds(DateSeconds)),
-                1=>new DatePageOptions(1,Seconds:Seconds(DateStep),Start:DateStart.Text),
-                2=>new DatePageOptions(2,Components:Replacements()),
-                3=>new DatePageOptions(3,Start:DateStart.Text,End:DateEnd.Text),
-                _=>new DatePageOptions(4,Pattern:DateFilenamePattern.Text,Template:DateFilenameTemplate.Text)
-            };
-            var selection=dateSelection.ToArray();var before=datesBefore.ToArray();
-            Status.Text="正在计算日期预览；可更改选择或参数使本次结果失效，或取消。";
-            var preview=await DatePagePreview.CreateAsync(selection.Select(row=>row.Document).ToArray(),options,revision,()=>dateRevision,request.Token);
-            if(revision!=dateRevision || !Selected.SequenceEqual(selection))return;
-            var proposed=preview.Values;
-            dateSelection=selection;datesBefore=before;
-            DatePlanPreview.Text = string.Join("\n", dateSelection.Select((row, index) => row.Name + "：" + (datesBefore[index].Length == 0 ? "（缺失）" : datesBefore[index]) + " → " + (proposed[index] ?? (options.Mode is 0 or 2?preview.SkippedText(index):"（跳过：文件名不匹配或日期无效）"))));
-            if (DatePlanPreview.Text.Length > 65536) DatePlanPreview.Text = DatePlanPreview.Text[..65536] + "\n显示已截短，应用包含全部预览文件。";
-            datePreview=preview;DatePlanApplyButton.IsEnabled=proposed.Any(value=>value is not null);
-            Status.Text=$"日期预览完成：可应用{proposed.Count(value=>value is not null)}，跳过{proposed.Count(value=>value is null)}；缺失时间{preview.MissingCount}，无变化{preview.UnchangedCount}；总/计算{preview.Measurements.Sum(m=>m.TotalMs):F0}/{preview.Measurements.Sum(m=>m.ComputeMs):F0}ms；尚未加入草稿。";
-        }
-        catch (Exception error) { if(revision==dateRevision)Status.Text=DatePlanPreview.Text="日期预览未完成："+DateFailureText(error); }
-        finally { if(ReferenceEquals(dateRequest,request))dateRequest=null;request.Dispose();datePending--; }
+    private int dateRevision,datePending;
+    private void InvalidateDates() { dateRevision++;dateRequest?.Cancel(); }
+    private void DatePlanChanged(object sender,RoutedEventArgs e) {
+        InvalidateDates();if(DateFilenameOptions is null)return;
+        DateShiftOptions.Visibility=DateMode.SelectedIndex==0?Visibility.Visible:Visibility.Collapsed;
+        DateReplaceOptions.Visibility=DateMode.SelectedIndex==2?Visibility.Visible:Visibility.Collapsed;
+        DateStartOptions.Visibility=DateMode.SelectedIndex is 1 or 3?Visibility.Visible:Visibility.Collapsed;
+        DateSequenceOptions.Visibility=DateMode.SelectedIndex==1?Visibility.Visible:Visibility.Collapsed;
+        DateDistributionOptions.Visibility=DateMode.SelectedIndex==3?Visibility.Visible:Visibility.Collapsed;
+        DateFilenameOptions.Visibility=DateMode.SelectedIndex==4?Visibility.Visible:Visibility.Collapsed;
     }
     private static string DateFailureText(Exception error)=>error is OperationCanceledException ? "已取消，草稿未改变。" : error is DateFailure failure ? failure.Code switch {
         "canceled"=>"已取消，草稿未改变。", "timeout"=>"日期计算超时，草稿未改变。",
         "startFailed" or "dependencyMissing"=>"日期宿主或运行库不可用，请按Windows构建说明检查；未回退旧算法。",
-        "staleRevision"=>"状态已改变，请重新预览。", _=>"日期协议或进程失败："+failure.Code
+        "staleRevision"=>"状态已改变，请重新应用。", _=>"日期协议或进程失败："+failure.Code
     }:error.Message;
-    private async void ApplyDates(object sender, RoutedEventArgs e)
-    {
-        if (busy || renameRecoveryRequired || datePreview is not { } preview || dateRequest is not null) return;
-        var revision=dateRevision;var request=new CancellationTokenSource();dateRequest=request;DatePlanApplyButton.IsEnabled=false;datePending++;
-        try
-        {
-            if (Fields.Any(field => field.Apply.IsChecked == true) || !Selected.SequenceEqual(dateSelection) ||
-                !dateSelection.Select(row => row.Document.Value("XMP-exif:DateTimeOriginal")).SequenceEqual(datesBefore) || dateSelection.Any(row => !row.Document.CanEdit))
-                throw new InvalidOperationException("选择、日期或输入已改变，请重新预览。");
-            preview.ValidateAll();
-            foreach(var row in dateSelection)await row.Document.EnsureUnchangedAsync(request.Token);
-            request.Token.ThrowIfCancellationRequested();
-            if(revision!=dateRevision || !Selected.SequenceEqual(dateSelection) || Fields.Any(field=>field.Apply.IsChecked==true))throw new InvalidOperationException("状态已改变，请重新预览。");
-            var count=preview.Values.Count(value=>value is not null);
-            preview.Apply();InvalidateDates();
-            RefreshPhotoRows(); RefreshSelection(); RefreshMatchTime(); ClearMatchMarker(); _ = PostPhotosAsync();
-            Status.Text = $"已为{count}个文件加入日期草稿；尚未写入文件。";
-        }
-        catch (Exception error) { if(revision==dateRevision){InvalidateDates();Status.Text="日期未应用："+DateFailureText(error);} }
-        finally { if(ReferenceEquals(dateRequest,request))dateRequest=null;request.Dispose();datePending--; }
-    }
-
-    private CsvImport? csvImport;
-    private CsvRecord[] csvAuthorized = [];
-    private PhotoRow[] csvSelection = [];
-    private void CsvChanged(object sender, TextChangedEventArgs e)
-    {
-        csvImport = null;
-        if (CsvApplyButton is not null) CsvApplyButton.IsEnabled = false;
-    }
+    private void CsvChanged(object sender,TextChangedEventArgs e)=>InvalidateDates();
     private void ChooseCsv(object sender, RoutedEventArgs e)
     {
         if (busy) return;
@@ -1022,72 +943,11 @@ public partial class MainWindow : Window
         }
         catch (Exception error) { Status.Text = "CSV未导出：" + error.Message; }
     }
-    private async void PreviewCsv(object sender, RoutedEventArgs e)
-    {
-        if (busy || renameRecoveryRequired) return;
-        csvImport = null; CsvApplyButton.IsEnabled = false;
-        try
-        {
-            if (Fields.Any(field => field.Apply.IsChecked == true)) throw new InvalidOperationException("请先将输入加入草稿。");
-            csvSelection = Selected; csvAuthorized = MetadataCsv.Snapshot(csvSelection.Select(row => row.Document).ToArray());
-            var path = CsvPath.Text; BeginOperation();
-            await using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-            if (file.Length > MetadataCsv.MaximumBytes) throw new InvalidDataException("CSV超过8MiB上限。");
-            using var reader = new StreamReader(file, new System.Text.UTF8Encoding(false, true), detectEncodingFromByteOrderMarks: true);
-            var text = await reader.ReadToEndAsync(operation!.Token);
-            csvImport = await Task.Run(() => MetadataCsv.Load(text, csvAuthorized), operation.Token);
-            var records = csvAuthorized.ToDictionary(row => row.Id);
-            var lines = csvImport.Changes.Select(pair => records[pair.Key].RelativePath + "：" + string.Join("；", pair.Value.Select(field => field.Key + " → " + (field.Value.Length == 0 ? "（清除）" : field.Value))));
-            CsvPreview.Text = $"{csvImport.Changes.Count}个文件有变化，{csvImport.Warnings.Count}项提示。\n" + string.Join("\n", lines.Concat(csvImport.Warnings));
-            if (CsvPreview.Text.Length > 65536) CsvPreview.Text = CsvPreview.Text[..65536] + "\n显示内容已截短；应用仍包含全部有效预览行。";
-            Status.Text = "CSV预览完成，尚未加入草稿。";
-        }
-        catch (Exception error) { csvImport = null; CsvPreview.Text = "CSV预览失败：" + error.Message; }
-        finally { if (busy) EndOperation(); CsvApplyButton.IsEnabled = csvImport?.Changes.Count > 0; }
-    }
-    private void ApplyCsv(object sender, RoutedEventArgs e)
-    {
-        if (busy || renameRecoveryRequired || csvImport is null) return;
-        try
-        {
-            if (Fields.Any(field => field.Apply.IsChecked == true) || !Selected.SequenceEqual(csvSelection) ||
-                JsonSerializer.Serialize(MetadataCsv.Snapshot(csvSelection.Select(row => row.Document).ToArray())) != JsonSerializer.Serialize(csvAuthorized))
-                throw new InvalidOperationException("选择或草稿已改变，请重新预览CSV。");
-            var targets = csvSelection.ToDictionary(row => MetadataCsv.Identity(row.Document.FilePath));
-            foreach (var (id, changes) in csvImport.Changes)
-            {
-                if (!targets[id].Document.CanEdit) throw new InvalidOperationException("预览包含只读格式，未应用任何行。");
-                PhotoDocument.ValidateChanges(changes);
-            }
-            foreach (var (id, changes) in csvImport.Changes) targets[id].Document.SetDraft(changes);
-            var count = csvImport.Changes.Count; csvImport = null; CsvApplyButton.IsEnabled = false;
-            RefreshPhotoRows(); RefreshSelection(); RefreshMatchTime(); ClearMatchMarker(); _ = PostPhotosAsync();
-            Status.Text = $"已为{count}个文件加入CSV草稿；原文件未修改。";
-        }
-        catch (Exception error) { csvImport = null; CsvApplyButton.IsEnabled = false; Status.Text = "CSV未应用：" + error.Message; }
-    }
-
-    private void ApplyDraft(object sender, RoutedEventArgs e)
-    {
-        var selected = Selected;
-        try
-        {
-            if (busy || renameRecoveryRequired || selected.Length == 0 || selected.Any(p => !p.Document.CanEdit)) throw new InvalidOperationException("请选择可编辑照片。");
-            var changes = Fields.Where(f => f.Apply.IsChecked == true).ToDictionary(f => f.Tag, f => f.Value.Text.Replace("\r\n", "\n"));
-            if (changes.Count == 0) { Status.Text = "请先勾选要修改的字段。"; return; }
-            PhotoDocument.ValidateChanges(changes);
-            foreach (var row in selected) row.Document.SetDraft(changes);
-            RefreshPhotoRows(); RefreshSelection();
-            if (changes.ContainsKey("XMP-exif:DateTimeOriginal")) { RefreshMatchTime(); ClearMatchMarker(); }
-            _ = PostPhotosAsync();
-            Status.Text = $"已为 {selected.Length} 张照片加入草稿。尚未写入文件。";
-        }
-        catch (Exception error) { Status.Text = "草稿未应用：" + error.Message; }
-    }
     private void UndoDraft(object sender, RoutedEventArgs e)
     {
+        if(busy||renameRecoveryRequired)return;lastApply=null;
         foreach (var row in Selected) row.Document.ClearDraft();
-        RefreshPhotoRows(); RefreshSelection(); Status.Text = "所选草稿已撤销。原文件未修改。";
+        RefreshPhotoRows(); RefreshSelection(); Status.Text = "所选全部草稿已清空。原文件未修改。";
         RefreshMatchTime(); ClearMatchMarker(); _ = PostPhotosAsync();
     }
     private void RemovePhotos(object sender, RoutedEventArgs e)
@@ -1111,6 +971,7 @@ public partial class MainWindow : Window
     {
         if (busy || renameRecoveryRequired) return;
         if (Fields.Any(f => f.Apply.IsChecked == true)) { Status.Text = "请先将输入加入草稿，再保存副本。"; return; }
+        lastApply=null;
         var selected = Selected.Where(p => p.Document.Draft.Count > 0).ToArray();
         if (selected.Length == 0) return;
         var folder = OutputFolder.Text;
@@ -1154,7 +1015,7 @@ public partial class MainWindow : Window
         TrackReadButton.IsEnabled = TrackList.IsEnabled = TrackRemoveButton.IsEnabled = MatchButton.IsEnabled = true; MapRetryButton.IsEnabled = !mapInitializing;
         RefreshSelection();RefreshTrackControls();
     }
-    private void CancelRead(object sender, RoutedEventArgs e) { InvalidateTrackAdjustment();InvalidateDates();dependencyCheck?.Cancel(); operation?.Cancel(); Status.Text=busy?"正在取消任务…":"日期预览已取消或失效，草稿未改变。"; }
+    private void CancelRead(object sender, RoutedEventArgs e) { InvalidateTrackAdjustment();InvalidateDates();dependencyCheck?.Cancel(); operation?.Cancel(); Status.Text=busy?"正在取消任务…":"应用已取消或失效，草稿未改变。"; }
     private void WindowClosing(object? sender, CancelEventArgs e)
     {
         if(datePending>0){InvalidateDates();e.Cancel=true;Status.Text="正在取消日期任务；结束后可关闭。";return;}

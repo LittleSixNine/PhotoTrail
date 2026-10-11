@@ -1,3 +1,5 @@
+> 2026-10-11: Os cinco modos de data, CSV e campos comuns usam Aplicar uma vez para criar rascunhos. Carregar predefinições/XMP apenas preenche parâmetros; salvar uma predefinição não salva fotos. Desfazer a última aplicação restaura todos os rascunhos anteriores ao lote, mantendo edições anteriores; salvar/recarregar invalida isso. A verificação final de todas as fontes e o salvamento de cópias permanecem. Implementado e verificado; este lote e as trilhas aguardam aceitação do usuário.
+
 > 2026-10-11: O ajuste de seis componentes na página de datas ignora e indica horários cuja ausência foi confirmada. Quando todos estão ausentes, não permite adicionar rascunhos de data. Valores inválidos, falhas de leitura e alterações na origem continuam sendo rejeitados. Implementado e verificado localmente; aguardando aceitação do usuário.
 
 > Os cinco modos da página de datas usam o arquivo Swift fixado para prévias assíncronas e rascunhos validados, aguardando aceitação. Compile primeiro o host conforme [as instruções](../../DateHost/README.md). Outras entradas de data mantêm C#; implantação limpa e distribuição ainda não foram verificadas.

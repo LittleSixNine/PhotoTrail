@@ -119,3 +119,9 @@ DateHost/UiChecks参数“独立样本目录 --rename-order-checks”运行生�
 DateHost/UiChecks参数“独立样本目录 --track-adjustment-checks”操作生产WPF：三合成XMP与source.gpx（2段、3+1点、一个无时间点），进行预览／应用／地图消息／匹配、撤销／恢复、GPX导出、实际持久化替换失败和来源失联，复用日期、设置和重命名冻结。地图采用既有Google页面的本地SDK替代，仅测试生产消息和缓存／取景控制，不宣称在线Google通过。再次启动同目录加--track-restore-checks验证启动恢复、重新导入保持调整、显式恢复与会话撤销不跨进程。
 
 PHOTOTRAIL_TRACK_HISTORY隔离旧路径历史；快照位于同一路径加.adjustments-v1.json。同时隔离已有设置、搜索历史、外观、重命名记录及WebView目录。DateHost二进制复用，不编译Swift或改日期协议。Computer Use鼠标及现有OpenFreeMap真实加载单独验证；截图显示于对话，不以模型断言代替。完整日志、轨迹／照片、缓存和二进制仅本机。未重跑全部历史、性能或干净部署。
+
+## 2026-10-11 批量直接应用定向检查
+
+`DateHost/UiChecks`构建后使用独立合成输入与隔离偏好：`--batch-direct-checks`（3个带日期／缺失／带日期XMP，文件名含日期捕获）、`--batch-late-checks`、`--batch-cancel-checks`（530张，旧日期草稿由检查器构造）、`--batch-performance-checks`（1/100/530，530三轮；可加`--offset`）、`--field-performance-checks`（普通字段及CSV）。`--offset-skip-checks`／`--batch-missing-checks`已改为一次应用的缺值检查；旧逐照片预览GUI检查退役，日期核心／适配边界检查仍保留。`--track-late-failure-checks`检查实际来源失败不清后来定位。
+
+性能以Stopwatch分计算、终态全源复核、UI提交／刷新，并记录ExifTool／DateHost请求数；Dispatcher ApplicationIdle与25ms轮询是观察成本，不能冒充鼠标点击到首帧。源码保留内部阶段计时及既有宿主诊断，不更改协议。比较基线仅加计时，完整日志及530输入留本机，公开不写私人路径／数据。核对1/100/530源SHA、显式小副本保存回读；不以断言数量代替实际宿主计算开始／子进程存活／请求收尾证据。

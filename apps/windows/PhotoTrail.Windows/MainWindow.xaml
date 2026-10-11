@@ -13,6 +13,7 @@
     <Button x:Name="FolderButton" Content="导入文件夹" ToolTip="导入文件夹 · Ctrl+Shift+O" AutomationProperties.AcceleratorKey="Ctrl+Shift+O" Padding="12,6" Margin="8,0,0,0" Click="ReadFolder" />
     <Button x:Name="RemoveButton" Content="移除所选" Padding="12,6" Margin="8,0,0,0" Click="RemovePhotos" IsEnabled="False" />
     <Button Content="取消任务" ToolTip="取消进行中的任务 · Esc" AutomationProperties.AcceleratorKey="Esc" Padding="12,6" Margin="8,0,0,0" Click="CancelRead" />
+    <Button x:Name="UndoLastApplyButton" Content="撤销最近一次应用" Click="UndoLastApply" Padding="12,6" Margin="8,0,0,0" IsEnabled="False" ToolTip="恢复最近一批应用之前的完整草稿；不撤销保存文件。"/>
    </WrapPanel>
   </StackPanel>
   <TextBlock x:Name="Status" DockPanel.Dock="Bottom" Text="导入照片或拖入文件。原文件不会被修改。" TextWrapping="Wrap" Margin="0,10,0,0" />
@@ -38,7 +39,7 @@
       <TabControl Grid.Row="1" SelectionChanged="PhotoPreviewTabChanged">
        <TabItem Header="编辑草稿">
         <DockPanel>
-         <WrapPanel x:Name="DraftActions" DockPanel.Dock="Bottom" Margin="10,6" IsEnabled="False"><Button Content="加入草稿" Click="ApplyDraft" Padding="12,6"/><Button Content="撤销所选草稿" Click="UndoDraft" Padding="12,6" Margin="8,0,0,0"/></WrapPanel>
+         <WrapPanel x:Name="DraftActions" DockPanel.Dock="Bottom" Margin="10,6" IsEnabled="False"><Button x:Name="FieldApplyButton" Content="应用" Click="ApplyDraft" Padding="12,6"/><Button x:Name="ClearSelectedDraftButton" Content="清空所选全部草稿" Click="UndoDraft" Padding="12,6" Margin="8,0,0,0"/></WrapPanel>
         <ScrollViewer VerticalScrollBarVisibility="Auto">
          <StackPanel x:Name="Editor" Margin="10" IsEnabled="False">
           <TextBlock Text="只应用勾选字段。勾选并留空会清除该字段；混合值不自动应用。" TextWrapping="Wrap" Margin="0,0,0,10"/>
@@ -140,9 +141,9 @@
           <TextBlock Text="日期模板（$1等捕获组；不匹配/非法日期逐项跳过，不猜测当前时间或时区）" TextWrapping="Wrap"/>
           <TextBox x:Name="DateFilenameTemplate" Text="$1:$2:$3 $4:$5:$6" MaxLength="512" AutomationProperties.Name="文件名日期模板" TextChanged="DatePlanChanged" Margin="0,4"/>
           </StackPanel>
-          <WrapPanel Margin="0,8"><Button Content="预览日期" Click="PreviewDates" Padding="10,5"/><Button x:Name="DatePlanApplyButton" Content="将日期预览加入草稿" Click="ApplyDates" IsEnabled="False" Padding="10,5" Margin="8,0"/><Button Content="取消日期预览" Click="CancelRead" Padding="10,5"/></WrapPanel>
+          <WrapPanel Margin="0,8"><Button x:Name="DatePlanApplyButton" Content="应用" Click="ApplyDates" IsEnabled="False" Padding="10,5" Margin="8,0"/><Button Content="取消应用" Click="CancelRead" Padding="10,5"/></WrapPanel>
           <TextBlock Text="缺失/非法日期不会猜测；闰日或31日调整落入非法日期会拒绝。无时区保持无时区，小数秒和固定偏移原样保留；不处理时区夏令时切换。" TextWrapping="Wrap" Margin="0,0,0,8"/>
-         <TextBlock x:Name="DatePlanPreview" Text="尚未预览。" TextWrapping="Wrap"/>
+         <TextBlock x:Name="DatePlanPreview" Text="设置参数后应用；只加入待保存草稿。" TextWrapping="Wrap"/>
         </StackPanel></ScrollViewer>
        </TabItem>
        <TabItem Header="XMP交换">
@@ -254,10 +255,10 @@
       <WrapPanel><Button Content="导出回导CSV…" Click="ExportRoundtripCsv" Padding="10,6"/><Button Content="导出显示CSV…" Click="ExportDisplayCsv" Padding="10,6" Margin="8,0"/></WrapPanel>
       <TextBlock Text="导入文件" Margin="0,12,0,4"/>
       <DockPanel><Button Content="选择…" DockPanel.Dock="Right" Click="ChooseCsv" Padding="10,5" Margin="8,0,0,0"/><TextBox x:Name="CsvPath" AutomationProperties.Name="CSV导入文件" TextChanged="CsvChanged"/></DockPanel>
-      <WrapPanel Margin="0,8"><Button Content="预览CSV" Click="PreviewCsv" Padding="10,6"/><Button x:Name="CsvApplyButton" Content="将预览加入草稿" Click="ApplyCsv" IsEnabled="False" Padding="10,6" Margin="8,0"/></WrapPanel>
+      <WrapPanel Margin="0,8"><Button x:Name="CsvApplyButton" Content="应用" Click="ApplyCsv" IsEnabled="False" Padding="10,6" Margin="8,0"/></WrapPanel>
       <TextBlock Text="预览不会写入照片。应用后可在元数据页撤销，保存仍只创建副本且不覆盖已有文件。显示CSV有公式防护，不能回导；Google查询结果不导出。" TextWrapping="Wrap" Margin="0,0,0,8"/>
      </StackPanel>
-     <ScrollViewer VerticalScrollBarVisibility="Auto"><TextBlock x:Name="CsvPreview" Text="尚未预览。" TextWrapping="Wrap"/></ScrollViewer>
+     <ScrollViewer VerticalScrollBarVisibility="Auto"><TextBlock x:Name="CsvPreview" Text="设置参数后应用；只加入待保存草稿。" TextWrapping="Wrap"/></ScrollViewer>
     </DockPanel>
    </TabItem>
    <TabItem Header="应用设置">

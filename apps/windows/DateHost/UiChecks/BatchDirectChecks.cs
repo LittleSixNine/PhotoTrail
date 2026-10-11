@@ -1,0 +1,72 @@
+using System.Collections;
+using System.IO;
+using System.Reflection;
+using System.Text.Json;
+using System.Threading;
+using System.Windows.Controls;
+using System.Windows.Threading;
+using PhotoTrail.Windows;
+
+static partial class Program
+{
+ static Dictionary<string,string>[] Drafts(object[] rows)=>rows.Select(r=>new Dictionary<string,string>(Doc(r).Draft)).ToArray();
+ static bool SameDrafts(object[] rows,Dictionary<string,string>[] states)=>rows.Select((r,i)=>Doc(r).Draft.Count==states[i].Count&&states[i].All(p=>Doc(r).Draft.TryGetValue(p.Key,out var v)&&v==p.Value)).All(x=>x);
+ static void Input(string name,string value)=>Control<TextBox>(name).Text=value;
+ static async Task Apply(string method){Action(method);await BatchWait();}
+ static async Task RunBatchDirect()
+ {
+  var list=Control<ListBox>("Photos");for(int i=0;i<1200&&(list.Items.Count<3||(bool)Field("busy")!);i++)await Task.Delay(10);
+  Check(list.Items.Count==3,"direct-real-three-XMP-import");var rows=list.Items.Cast<object>().ToArray();var docs=rows.Select(Doc).ToArray();var sourceHashes=docs.Select(d=>d.SourceHash).ToArray();list.SelectAll();
+  var missing=docs.Single(d=>d.Value("XMP-exif:DateTimeOriginal")=="");var dated=rows.First(r=>Doc(r)!=missing);var dateBefore=Doc(dated).Value("XMP-exif:DateTimeOriginal");
+  foreach(int mode in new[]{0,1,2,3,4}){
+   foreach(var doc in docs)doc.SetDraft(new Dictionary<string,string>{{"XMP-dc:Rights","earlier rights"}});var before=Drafts(rows);
+   SelectMetadataTab("批量日期");Control<ComboBox>("DateMode").SelectedIndex=mode;Input("DateSeconds","1");Input("DateStart","2024:01:01 00:00:00.123456Z");Input("DateEnd","2024:01:01 00:00:04.123456Z");Input("DateStep","2");Input("DateReplaceHour","12");
+   await Apply("ApplyDates");Check(docs.Count(d=>d.Draft.ContainsKey("XMP-exif:DateTimeOriginal"))==(mode is 0 or 2 or 4?2:3),"one-click-five-modes-"+mode);Check(docs.All(d=>d.Value("XMP-dc:Rights")=="earlier rights"),"date-keeps-earlier-draft-"+mode);
+   Action("UndoLastApply");Check(SameDrafts(rows,before),"one-undo-complete-earlier-drafts-"+mode);Action("UndoDraft");
+  }
+  list.SelectedItems.Clear();list.SelectedItem=dated;Control<ComboBox>("DateMode").SelectedIndex=0;Input("DateSeconds","0");Doc(dated).SetDraft(new Dictionary<string,string>{{"XMP-dc:Title","earlier title"}});var noOp=Drafts(rows);await Apply("ApplyDates");Check(SameDrafts(rows,noOp)&&Status.Contains("修改0张"),"zero-offset-does-not-borrow-old-draft");
+  Input("DateYears","1");Input("DateMonths","-12");await Apply("ApplyDates");Check(SameDrafts(rows,noOp)&&Status.Contains("修改0张"),"offset-components-cancel-no-net-change");Input("DateYears","0");Input("DateMonths","0");
+  Control<ComboBox>("DateMode").SelectedIndex=2;Input("DateReplaceHour",dateBefore.Substring(11,2));await Apply("ApplyDates");Check(SameDrafts(rows,noOp)&&Status.Contains("修改0张"),"same-component-no-net-change");Action("UndoDraft");
+  list.SelectedItems.Clear();list.SelectedItem=rows.Single(r=>Doc(r)==missing);missing.SetDraft(new Dictionary<string,string>{{"XMP-exif:DateTimeOriginal",""},{"XMP-dc:Title","keep missing"}});var clear=Drafts(rows);Input("DateReplaceHour","12");await Apply("ApplyDates");Check(SameDrafts(rows,clear)&&Status.Contains("缺失时间跳过1项"),"explicit-clear-is-missing-preserves-other-draft");Input("DateReplaceHour","25");await Apply("ApplyDates");Check(SameDrafts(rows,clear)&&Status.Contains("超出"),"all-missing-invalid-parameter-rejected");Action("UndoDraft");
+  list.SelectAll();Input("DateReplaceHour","12");var missingBytes=File.ReadAllBytes(missing.FilePath);File.AppendAllText(missing.FilePath," ");await Apply("ApplyDates");Check(docs.All(d=>d.Draft.Count==0)&&Status.Contains("改变"),"skipped-source-failure-rejects-entire-batch");File.WriteAllBytes(missing.FilePath,missingBytes);
+  // Ordinary fields, no-op, clearing, and effective undo survive a later no-op or failure.
+  Input("TitleValue","batch title");Input("RightsValue","batch rights");await Apply("ApplyDraft");Check(docs.All(d=>d.Value("XMP-dc:Title")=="batch title"&&d.Value("XMP-dc:Rights")=="batch rights")&&Status.Contains("变化操作6项"),"multi-fields-single-commit-counts-photos-vs-items");var good=Drafts(rows);
+  Input("TitleValue","batch title");Control<CheckBox>("TitleApply").IsChecked=true;await Apply("ApplyDraft");Check(SameDrafts(rows,good)&&Status.Contains("修改0张"),"ordinary-same-value-no-op-keeps-valid-undo");Input("RatingValue","9");await Apply("ApplyDraft");Check(SameDrafts(rows,good)&&Status.Contains("评分"),"invalid-field-no-partial-keeps-undo");Action("UndoLastApply");Check(docs.All(d=>d.Draft.Count==0),"undo-after-noop-and-failure");
+  Input("TitleValue","one title");await Apply("ApplyDraft");Input("TitleValue","");Control<CheckBox>("TitleApply").IsChecked=true;await Apply("ApplyDraft");Check(docs.All(d=>d.Value("XMP-dc:Title")==""),"explicit-field-clear");Action("UndoLastApply");Check(docs.All(d=>d.Value("XMP-dc:Title")=="one title"),"undo-clear-restores-earlier-title");Action("UndoDraft");
+  string preset=Path.Combine(folder,"simple-preset.json");File.WriteAllText(preset,MetadataPreset.Create("test preset",new Dictionary<string,string>{{"XMP-dc:Title","preset title"}}).Encode());Input("PresetPath",preset);Action("LoadPreset");Check(docs.All(d=>d.Draft.Count==0)&&Control<CheckBox>("TitleApply").IsChecked==true,"preset-load-only-fills-parameters");await Apply("ApplyDraft");Check(docs.All(d=>d.Value("XMP-dc:Title")=="preset title"),"loaded-preset-one-apply");Action("UndoLastApply");
+  // Pure existing supported XMP source; importing fills parameters, then common Apply merges.
+  string xmp=Path.Combine(folder,"import-title.xmp");File.WriteAllText(xmp,"<x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'><rdf:Description rdf:about='' xmlns:dc='http://purl.org/dc/elements/1.1/'><dc:title><rdf:Alt><rdf:li xml:lang='x-default'>Synthetic imported title</rdf:li></rdf:Alt></dc:title></rdf:Description></rdf:RDF></x:xmpmeta>");
+  foreach(var d in docs)d.SetDraft(new Dictionary<string,string>{{"XMP-dc:Rights","keep XMP merge"}});var preXmp=Drafts(rows);Input("XmpPath",xmp);Action("ImportXmp");await BatchWait();Check(SameDrafts(rows,preXmp)&&Control<CheckBox>("TitleApply").IsChecked==true,"XMP-load-only-fills-parameters");await Apply("ApplyDraft");Check(docs.All(d=>d.Value("XMP-dc:Title")=="Synthetic imported title"&&d.Value("XMP-dc:Rights")=="keep XMP merge"),"XMP-merge-one-apply");Action("UndoLastApply");Check(SameDrafts(rows,preXmp),"undo-XMP-apply-preserves-before");Action("UndoDraft");
+  var authorized=MetadataCsv.Snapshot(docs);var csvRows=authorized.Select(r=>r with{Cells=new Dictionary<string,string>(r.Cells){{"XMP-dc:Title",JsonSerializer.Serialize("CSV title")}}}).ToArray();string csv=Path.Combine(folder,"import.csv");File.WriteAllText(csv,MetadataCsv.Export(csvRows));Input("CsvPath",csv);await Apply("ApplyCsv");Check(docs.All(d=>d.Value("XMP-dc:Title")=="CSV title"),"CSV-no-preview-required");Action("UndoLastApply");Check(docs.All(d=>d.Draft.Count==0),"CSV-single-undo");
+  File.WriteAllText(csv,MetadataCsv.Export(authorized,true));await Apply("ApplyCsv");Check(docs.All(d=>d.Draft.Count==0)&&Status.Contains("回导格式"),"CSV-display-format-rejected");
+  File.WriteAllText(csv,MetadataCsv.Export(csvRows).Replace("CSV title","@bad"));await Apply("ApplyCsv");Check(docs.All(d=>d.Value("XMP-dc:Title")=="@bad"),"CSV-json-string-keeps-literal-formula-prefix");Action("UndoLastApply");
+  // An invalid scalar cell rejects every row, including preceding valid rows.
+  string invalid=MetadataCsv.Export(csvRows).Replace("\"\"CSV title\"\"","true");File.WriteAllText(csv,invalid);await Apply("ApplyCsv");Check(docs.All(d=>d.Draft.Count==0)&&Status.Contains("字段值无效"),"CSV-wrong-type-rejects-all");
+  // Real compute has finished, but UI continuation is held: perturb source/draft/selection and prove whole-batch rejection.
+  foreach(string change in new[]{"source","draft","selection","parameter","save-state"}){
+   list.SelectAll();Control<ComboBox>("DateMode").SelectedIndex=1;Input("DateStart","2024:02:01 00:00:00");var gate=new HeldContext(SynchronizationContext.Current!);var owner=SynchronizationContext.Current;
+   try{SynchronizationContext.SetSynchronizationContext(gate);Action("ApplyDates");}finally{SynchronizationContext.SetSynchronizationContext(owner);}await gate.Posted.Task.WaitAsync(TimeSpan.FromSeconds(15));
+   if(change=="source")File.AppendAllText(missing.FilePath," ");if(change=="draft")missing.SetDraft(new Dictionary<string,string>{{"XMP-dc:Rights","external edit"}});if(change=="selection")list.SelectedItems.Remove(rows[0]);if(change=="parameter")Input("DateStart","2024:03:01 00:00:00");if(change=="save-state")typeof(MainWindow).GetField("busy",BindingFlags.NonPublic|BindingFlags.Instance)!.SetValue(window,false);
+   gate.Release();await BatchWait();await Responsive();Check(docs.All(d=>!d.Draft.ContainsKey("XMP-exif:DateTimeOriginal")),"terminal-state-whole-batch-rejected-"+change);File.WriteAllBytes(missing.FilePath,missingBytes);list.SelectAll();Action("UndoDraft");
+  }
+  // Explicit save to isolated copies and independent ExifTool readback; save expires batch undo.
+  list.SelectAll();Input("TitleValue","saved batch");Input("RightsValue","non-target rights");await Apply("ApplyDraft");string copies=Path.Combine(folder,"saved-copies");Directory.CreateDirectory(copies);Input("OutputFolder",copies);Action("SaveCopies");await BatchWait();Check(Status.Contains("副本成功 3，失败 0")&&!Control<Button>("UndoLastApplyButton").IsEnabled,"explicit-save-expires-undo");
+  var client=new ExifToolClient(Environment.GetEnvironmentVariable("PHOTOTRAIL_EXIFTOOL")!);foreach(var d in docs){var read=await PhotoDocument.LoadAsync(client,Path.Combine(copies,Path.GetFileName(d.FilePath)));Check(read.Value("XMP-dc:Title")=="saved batch"&&read.Value("XMP-dc:Rights")=="non-target rights"&&read.Value("XMP-exif:DateTimeOriginal")==d.Value("XMP-exif:DateTimeOriginal")&&await PhotoDocument.HashAsync(d.FilePath)==d.SourceHash,"saved-copy-target-and-other-fields-source-hash");}Action("UndoDraft");
+  int font=Control<ComboBox>("MetadataTextSize").SelectedIndex;Control<ComboBox>("MetadataTextSize").SelectedIndex=(font+1)%3;Control<ComboBox>("MetadataTextSize").SelectedIndex=font;Check(docs.All(d=>d.Draft.Count==0),"accepted-settings-regression");SelectMetadataTab("重命名");Action("RefreshRenameOrder");await RenameWait();Input("RenameRules","set|batch_\nsequence|1|1|3");Action("FreezeRename");await RenameWait();Check(Field("frozenRenamePlan")is RenamePlan plan&&plan.Files.Count==3,"rename-freeze-stable-identities-regression");
+  foreach(var d in docs)Check(await PhotoDocument.HashAsync(d.FilePath)==d.SourceHash,"application-undo-source-unchanged");
+  File.WriteAllText(Path.Combine(folder,"batch-direct-results.json"),JsonSerializer.Serialize(new{passed=evidence.Count,evidence,buildSha=Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(typeof(MainWindow).Assembly.Location)))},new JsonSerializerOptions{WriteIndented=true}));Console.WriteLine("BATCH_DIRECT_WPF="+evidence.Count);
+ }
+ static async Task RunBatchCancel()
+ {
+  var list=Control<ListBox>("Photos");for(int i=0;i<12000&&(list.Items.Count<530||(bool)Field("busy")!);i++)await Task.Delay(10);Check(list.Items.Count==530,"cancel-real530-import");list.SelectAll();var rows=list.Items.Cast<object>().ToArray();var docs=rows.Select(Doc).ToArray();foreach(var d in docs)d.SetDraft(new Dictionary<string,string>{{"XMP-dc:Rights","earlier rights"},{"XMP-exif:DateTimeOriginal","2024:01:15 10:20:30.123456Z"}});var before=Drafts(rows);
+  SelectMetadataTab("批量日期");Control<ComboBox>("DateMode").SelectedIndex=0;Input("DateSeconds","1");Action("ApplyDates");Check((bool)Field("busy")!&&!Control<Button>("DatePlanApplyButton").IsEnabled,"repeat-apply-disabled-during-compute");Action("ApplyDates");
+  for(int i=0;i<10000&&!(bool)Field("batchCalculationStarted")!&&(bool)Field("busy")!;i++)await Task.Delay(1);
+  long started=(long)Field("batchCalculationTicks")!;Check(started>0&&(bool)Field("busy")!&&(long)Field("batchFinishedTicks")! ==0,"real-DateHost-first-item-computed-results-not-finished-before-cancel");var adapter=Field("batchDateAdapter")!;var pids=((IEnumerable)adapter.GetType().GetProperty("Pids")!.GetValue(adapter)!).Cast<int>().ToArray();Check(pids.Any(ProcessAlive)&& (int)adapter.GetType().GetProperty("AcceptedFrames")!.GetValue(adapter)! ==0 && (int)adapter.GetType().GetProperty("PublishedCalls")!.GetValue(adapter)! ==0,"real-DateHost-process-still-running-at-cancel");Action("CancelRead");long canceled=StopwatchTimestamp();await BatchWait();long cancelFinished=(long)Field("batchFinishedTicks")!;Check((bool)adapter.GetType().GetProperty("LastChildExited")!.GetValue(adapter)!,"canceled-DateHost-child-settled-before-retry");Check(SameDrafts(rows,before)&&Status.Contains("已取消或失效"),"real-compute-cancel-no-partial-drafts-terminal-notice");
+  Control<ComboBox>("DateMode").SelectedIndex=1;Input("DateStart","2024:03:01 00:00:00.123456Z");await Apply("ApplyDates");Check(docs.All(d=>d.Value("XMP-exif:DateTimeOriginal").StartsWith("2024:03:01")),"new-apply-after-cancel-no-old-overwrite");Action("UndoLastApply");Check(SameDrafts(rows,before),"cancel-new-apply-undo-before-kept");
+  Control<ComboBox>("DateMode").SelectedIndex=0;Input("DateSeconds","1");Action("ApplyDates");for(int i=0;i<10000&&!(bool)Field("batchCalculationStarted")!&&(bool)Field("busy")!;i++)await Task.Delay(1);Check((bool)Field("batchCalculationStarted")!&&(bool)Field("busy")!,"close-during-real-compute");window.Close();Check(window.IsVisible,"close-keeps-window-until-request-settles");await BatchWait();Check(SameDrafts(rows,before)&&Status.Contains("已取消或失效"),"close-cancels-without-partial-drafts-terminal-notice");
+  foreach(var d in docs)Check(await PhotoDocument.HashAsync(d.FilePath)==d.SourceHash,"cancel-source-hash");Action("UndoDraft");
+  File.WriteAllText(Path.Combine(folder,"batch-cancel-results.json"),JsonSerializer.Serialize(new{evidence,started,canceled,finished=(long)Field("batchFinishedTicks")!,cancelFinished,pids,timestampFrequency=System.Diagnostics.Stopwatch.Frequency},new JsonSerializerOptions{WriteIndented=true}));Console.WriteLine("BATCH_CANCEL_WPF="+evidence.Count);
+ }
+ static bool ProcessAlive(int pid){try{return !System.Diagnostics.Process.GetProcessById(pid).HasExited;}catch(ArgumentException){return false;}}
+ static long StopwatchTimestamp()=>System.Diagnostics.Stopwatch.GetTimestamp();
+}

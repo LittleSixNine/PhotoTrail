@@ -1,3 +1,5 @@
+> 2026-10-11: Los modos de fecha, CSV y campos de metadatos usan Aplicar una vez para crear borradores. Cargar preajustes/XMP solo rellena parámetros; guardar un preajuste no guarda fotos. Deshacer la última aplicación restaura todos los borradores anteriores al lote; guardar o recargar lo invalida. Se conservan la comprobación final de todas las fuentes y el guardado de copias. Implementado y verificado; pendiente de aceptación del usuario, también las pistas.
+
 > 2026-10-11: El ajuste de seis componentes en la página de fechas omite y marca las fechas confirmadas como ausentes. Si faltan todas, no permite añadir borradores de fecha. Los valores inválidos, errores de lectura y cambios del origen siguen rechazándose. Implementado y verificado localmente; pendiente de aceptación del usuario.
 
 > Los cinco modos de la página de fechas usan el archivo Swift fijado para vistas previas asíncronas y borradores validados, pendientes de aceptación. Compile primero el host siguiendo [estas instrucciones](../../DateHost/README.md). Las otras entradas de fecha siguen en C#; el despliegue limpio y la distribución están pendientes.

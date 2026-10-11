@@ -44,9 +44,9 @@ static class CsvChecks
         Check(Load([id, record.RelativePath, "@clear", "[]"]).Changes[id].Values.All(value => value == ""), "explicit clear and empty list clear existing fields");
         Check(Load([id, record.RelativePath, JsonSerializer.Serialize("@clear"), ""]).Changes[id]["XMP-dc:Title"] == "@clear", "JSON clear token remains literal text");
         foreach (var invalid in new[] { "not JSON", "123", "null", "{}", "[1]" })
-            Check(Load([id, record.RelativePath, invalid, JsonSerializer.Serialize(new[] { "changed" })]).Changes.Count == 0, "invalid scalar discards entire row: " + invalid);
+            Reject(() => Load([id, record.RelativePath, invalid, JsonSerializer.Serialize(new[] { "changed" })]), "invalid scalar rejects batch: " + invalid);
         foreach (var invalid in new[] { "[1]", "null", "\"text\"", "[\"line\\ninside\"]", "[\"\"]", JsonSerializer.Serialize(Enumerable.Repeat("a", 257)) })
-            Check(Load([id, record.RelativePath, JsonSerializer.Serialize("valid"), invalid]).Changes.Count == 0, "invalid list discards entire row");
+            Reject(() => Load([id, record.RelativePath, JsonSerializer.Serialize("valid"), invalid]), "invalid list rejects batch");
         Check(Load([otherId, record.RelativePath, JsonSerializer.Serialize("changed"), ""]).Warnings.Count == 1, "unauthorized identity skipped");
         foreach (var path in new[] { "../照片.jpg", "/照片.jpg", "旅途\\照片.jpg", "旅途//照片.jpg", "旅途/./照片.jpg", "C:/照片.jpg", "different.jpg" })
             Check(Load([id, path, JsonSerializer.Serialize("changed"), ""]).Changes.Count == 0, "unsafe or mismatched relative path skipped");
@@ -71,7 +71,7 @@ static class CsvChecks
         var legacy = record with { Cells = new Dictionary<string,string> { ["XMP-dc:Creator"] = JsonSerializer.Serialize(new[] { "embedded\nnewline" }) } };
         Check(MetadataCsv.Load(MetadataCsv.Export([legacy]), [legacy]).Changes.Count == 0, "unchanged legacy list identity preserved without flattening");
         Check(MetadataCsv.Load(Csv(["PhotoTrail CSV 1", "RelativePath", "XMP-iptcCore:CountryCode"], [id, record.RelativePath, JsonSerializer.Serialize("CHN")]), allowed).Changes[id]["XMP-iptcCore:CountryCode"] == "CHN", "valid country code previews");
-        Check(MetadataCsv.Load(Csv(["PhotoTrail CSV 1", "RelativePath", "XMP-iptcCore:CountryCode"], [id, record.RelativePath, JsonSerializer.Serialize("XX")]), allowed).Changes.Count == 0, "invalid country code rejected");
+        Reject(() => MetadataCsv.Load(Csv(["PhotoTrail CSV 1", "RelativePath", "XMP-iptcCore:CountryCode"], [id, record.RelativePath, JsonSerializer.Serialize("XX")]), allowed), "invalid country code rejects whole batch");
         Console.WriteLine($"CSV checks complete: {count}");
     }
 }

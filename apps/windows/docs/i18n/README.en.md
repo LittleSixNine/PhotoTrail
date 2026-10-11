@@ -1,3 +1,5 @@
+> 2026-10-11: Metadata date modes, CSV and ordinary fields now use one Apply to pending drafts. Preset/XMP loading only fills parameters; saving a preset does not save photos. Undo Last Apply restores the complete pre-batch drafts, keeping earlier edits; save/reload expires it. Final all-selection source checks and copy-only saving remain. Implemented and verified; both this batch and tracks await user acceptance. Older notes below retain their historical state.
+
 > 2026-10-11: The six-component date-page offset now skips confirmed missing timestamps, labels each skip, and disables adding date drafts when all timestamps are missing. Invalid values, read failures and source changes still reject the preview. Implemented and locally verified; pending user acceptance.
 
 > The five date-page modes now use the pinned Swift file for asynchronous previews and qualified drafts, pending user acceptance. Build the host first using [these instructions](../../DateHost/README.md). Other date entry points retain C#; clean deployment and distribution remain unverified.

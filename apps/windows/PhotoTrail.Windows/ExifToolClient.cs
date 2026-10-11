@@ -7,6 +7,7 @@ namespace PhotoTrail.Windows;
 
 public sealed class ExifToolClient(string executable, string? script = null)
 {
+    internal static long RequestCount;
     public async Task<string> RunAsync(IEnumerable<string> arguments, CancellationToken cancellation = default, TimeSpan? timeout = null, string? workingDirectory = null)
         => new UTF8Encoding(false,true).GetString(await RunBytesAsync(arguments,cancellation,timeout,workingDirectory));
 
@@ -30,6 +31,7 @@ public sealed class ExifToolClient(string executable, string? script = null)
         if (script is not null) info.ArgumentList.Add(script);
         // ExifTool's UTF-8 argfile avoids Windows ANSI command-line loss, including Chinese paths.
         info.ArgumentList.Add("-@"); info.ArgumentList.Add("-");
+        Interlocked.Increment(ref RequestCount);
         using var process = Process.Start(info) ?? throw new IOException("无法启动元数据工具。");
         using var bytes = new MemoryStream();
         var stdout = process.StandardOutput.BaseStream.CopyToAsync(bytes);
