@@ -42,3 +42,10 @@ Rename targeted checks: --rename-order-checks, --rename-preset-checks and --rena
 ## Targeted batch missing-value checks (2026-10-11)
 
 Run PhotoTrail.Windows.Tests with --batch-missing-checks. PHOTOTRAIL_TEST_OUTPUT/mac-fixtures contains the three reviewed Mac XMP inputs a.xmp, missing.xmp and c.xmp; each run uses fresh output. Run DateHost/UiChecks with "isolated three-XMP directory --batch-missing-checks" for production WPF, copy save/readback, complete selection guards and settings/rename regression. Keep the pinned DateHost and existing ExifTool; isolate preference, history and WebView2 directories. Native mouse verification is recorded separately. This does not repeat compute-phase timing, historical suites or clean deployment.
+
+
+## Targeted track adjustment checks (2026-10-11)
+
+Run PhotoTrail.Windows.Tests with --track-adjustment-checks and isolated PHOTOTRAIL_TEST_OUTPUT; set PHOTOTRAIL_TRACK_CONTRACT_FIXTURE to the fixed 73c0640 settings-track-rename-v1.json obtained through Git objects. Coverage includes math/precision/bounds, untimed points, segments, snapshot corruption and failed persistence, source guards, GPX/KML/KMZ exports and cancellation observed after temporary bytes were written.
+
+Run DateHost/UiChecks with "isolated fixture directory --track-adjustment-checks", then a fresh process with --track-restore-checks. Inputs are three synthetic XMPs and a two-segment GPX with four points, one untimed. The production Windows Google page uses a local SDK substitute for deterministic message/cache/framing verification; native mouse and existing OpenFreeMap loading are recorded separately. Isolate PHOTOTRAIL_TRACK_HISTORY, preferences, histories and WebView2; snapshots append .adjustments-v1.json to the history path. Reuse the pinned DateHost. Raw materials/logs/cache/binaries stay local; no full historical suite, performance benchmark or clean deployment.

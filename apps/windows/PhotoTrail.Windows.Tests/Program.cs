@@ -44,6 +44,7 @@ if (args.FirstOrDefault() == "--rename-order-checks") { RenameOrderChecks.Run();
 if (args.FirstOrDefault() == "--rename-checks") { await RenameChecks.RunAsync(); return; }
 if (args.FirstOrDefault() == "--google-checks") { GoogleChecks.Run(); return; }
 if (args.FirstOrDefault() == "--key-checks") { KeyChecks.Run(); return; }
+if(args.FirstOrDefault()=="--track-adjustment-checks"){await TrackAdjustmentChecks.RunAsync();return;}
 if (args.FirstOrDefault() == "--track-checks") { TrackChecks.Run(); return; }
 if (args.FirstOrDefault() == "--kml-checks") { KmlChecks.Run(); return; }
 var point = "{\"type\":\"point\",\"longitude\":135.7681,\"latitude\":35.0116}";

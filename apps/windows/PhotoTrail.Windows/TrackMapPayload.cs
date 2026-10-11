@@ -15,7 +15,13 @@ public static class TrackMapPayload
         }
         return JsonSerializer.Serialize(new { type = "photos", focus, geojson = new { type = "FeatureCollection", features } });
     }
-    public static string Build(TrackData? data, string name, CancellationToken cancellation = default)
+    public static string Compare(TrackData current,TrackData preview,string name,CancellationToken cancellation=default)
+    {
+        using var first=JsonDocument.Parse(Build(current,name,cancellation));using var second=JsonDocument.Parse(Build(preview,name,cancellation,"preview"));
+        var features=first.RootElement.GetProperty("geojson").GetProperty("features").EnumerateArray().Concat(second.RootElement.GetProperty("geojson").GetProperty("features").EnumerateArray()).Select(f=>f.Clone()).ToArray();
+        return JsonSerializer.Serialize(new{type="tracks",name,geojson=new{type="FeatureCollection",features}});
+    }
+    public static string Build(TrackData? data, string name, CancellationToken cancellation = default,string role="current")
     {
         var features = new List<object>();
         foreach (var segment in data?.Segments ?? [])
@@ -39,7 +45,7 @@ public static class TrackMapPayload
         void AddFeature(List<double[]> coordinates)
         {
             if (coordinates.Count == 0) return;
-            features.Add(new { type = "Feature", properties = new { }, geometry = new
+            features.Add(new { type = "Feature", properties = new { role }, geometry = new
             { type = coordinates.Count == 1 ? "Point" : "LineString", coordinates = coordinates.Count == 1 ? (object)coordinates[0] : coordinates.ToArray() } });
         }
         cancellation.ThrowIfCancellationRequested();

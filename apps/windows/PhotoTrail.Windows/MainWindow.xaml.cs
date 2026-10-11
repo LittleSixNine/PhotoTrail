@@ -90,7 +90,7 @@ public partial class MainWindow : Window
         LoadSettings();
         RefreshGoogleKeyStatus();
         LoadLatestRenameJournal();
-        LoadTrackHistory();
+        LoadTrackHistory();LoadTrackSnapshots();
         try
         {
             var files = arguments.Where(path => File.Exists(path) || Directory.Exists(path)).SelectMany(path => Directory.Exists(path) ? Directory.GetFiles(path) : new[] { path }).ToArray();
@@ -356,6 +356,11 @@ public partial class MainWindow : Window
         try { recentTrackPaths = TrackHistory.Read(TrackHistory.DefaultPath); RecentTracks.ItemsSource = recentTrackPaths; if(recentTrackPaths.Length > 0) RecentTracks.SelectedIndex = 0; }
         catch (Exception) { TrackHistoryStatus.Text = "轨迹历史不可读取，未自动覆盖；当前会话仍可导入。"; }
     }
+    private void LoadTrackSnapshots()
+    {
+        try { foreach(var snapshot in TrackSnapshots.Read(TrackSnapshots.DefaultPath))tracks.Add(new TrackRow(snapshot));if(tracks.Count>0)TrackList.SelectedIndex=0; }
+        catch(Exception){TrackAdjustmentStatus.Text="调整记录不可读取，未覆盖；显式导入仍可查看源轨迹。";}
+    }
     private async void ReadRecentTrack(object sender, RoutedEventArgs e)
     {
         if (!busy && RecentTracks.SelectedItem is string path) await ImportTracksAsync([path], reloadExisting:true);
@@ -389,12 +394,18 @@ public partial class MainWindow : Window
                 operation!.Token.ThrowIfCancellationRequested();
                 var full = Path.GetFullPath(path);
                 var existing = tracks.FirstOrDefault(row => row.Path.Equals(full, StringComparison.OrdinalIgnoreCase));
-                if (!IsTrack(full) || (existing is not null && !reloadExisting)) { skipped++; continue; }
+                if (!IsTrack(full)) { skipped++; continue; }
                 Status.Text = "读取轨迹：" + Path.GetFileName(full);
                 try
                 {
-                    var data = await Task.Run(() => TrackReader.Read(full, operation.Token), operation.Token);
-                    var replacement = new TrackRow(full,data);
+                    var source = await TrackSnapshots.ReadSourceAsync(full,operation.Token);
+                    TrackSnapshot? saved=null;
+                    try{saved=TrackSnapshots.Read(TrackSnapshots.DefaultPath).FirstOrDefault(r=>r.Path.Equals(full,StringComparison.OrdinalIgnoreCase));}
+                    catch(Exception){TrackAdjustmentStatus.Text="调整记录不可读取，未覆盖；当前导入仅查看源轨迹。";}
+                    var snapshot=existing?.Snapshot??saved??source;
+                    if(snapshot.Original is null && saved is null && existing?.Snapshot.Original is null)snapshot=source;
+                    var replacement = new TrackRow(snapshot){SourceUnavailable=snapshot.SourceHash!=source.SourceHash,Undo=existing?.Undo};
+                    if(existing is not null&&!reloadExisting){existing.SourceUnavailable=existing.Snapshot.SourceHash!=source.SourceHash;skipped++;if(ReferenceEquals(TrackList.SelectedItem,existing)){InvalidateTrackAdjustment();ClearMatchMarker();RefreshTrackControls();}continue;}
                     if (existing is null) { tracks.Add(replacement); added++; }
                     else
                     {
@@ -418,61 +429,73 @@ public partial class MainWindow : Window
     }
     private async void TrackSelected(object sender, SelectionChangedEventArgs e)
     {
+        InvalidateTrackAdjustment();
         var row = TrackList.SelectedItem as TrackRow;
         TrackInfo.Text = row is null ? "未选择轨迹。" : $"{row.Name}：{row.Data.Segments.Count}段，{row.Data.Segments.Sum(s => s.Count)}点；其中{row.Data.Segments.Sum(s => s.Count(p => p.Time is not null))}点有时间。";
         MatchResult.Text = "轨迹已切换；请重新预览匹配。尚未写入GPS。";
         ClearMatchMarker();
-        await PostTrackAsync();
+        RefreshTrackControls();await PostTrackAsync();
     }
     private void RemoveTrack(object sender, RoutedEventArgs e)
     {
         if (!busy && TrackList.SelectedItem is TrackRow row) { tracks.Remove(row); Status.Text = "轨迹已从会话移除，磁盘文件保留。"; }
     }
-    private async Task PostTrackAsync()
+    private async Task PostTrackAsync(bool fit=true)
     {
         var revision = ++mapRevision; mapUpdate?.Cancel(); mapUpdate?.Dispose(); mapUpdate = new();
         if (!mapReady) return;
         var row = TrackList.SelectedItem as TrackRow; var cancellation = mapUpdate.Token;
         try
         {
-            var payload = await Task.Run(() => TrackMapPayload.Build(row?.Data, row?.Name ?? "", cancellation), cancellation);
+            var data=trackAdjustmentRow==row&&trackAdjustmentPreview is not null?trackAdjustmentPreview:null;
+            var payload = data is not null ? await Task.Run(()=>TrackMapPayload.Compare(row!.Data,data,row.Name,cancellation),cancellation) : row?.MapPayload ?? await Task.Run(() => TrackMapPayload.Build(row?.Data, row?.Name ?? "", cancellation), cancellation);
+            if(data is null&&row is not null&&revision==mapRevision)row.MapPayload=payload;
             if (revision == mapRevision && !cancellation.IsCancellationRequested)
-            { MapView.CoreWebView2.PostWebMessageAsJson(payload); PostPreview(); }
+            { MapView.CoreWebView2.PostWebMessageAsJson(fit?payload:payload.Replace("\"type\":\"tracks\"","\"type\":\"tracks-no-fit\"")); PostPreview(); }
         }
         catch (OperationCanceledException) { }
-        catch (Exception error) { TrackInfo.Text = "轨迹显示失败：" + error.Message; }
+        catch (Exception error) { if(revision==mapRevision)TrackInfo.Text = "轨迹显示失败：" + error.Message; }
     }
-    private void MatchTrack(object sender, RoutedEventArgs e)
+    private async void MatchTrack(object sender, RoutedEventArgs e)
     {
         if (busy) return;
+        ClearMatchMarker();var matchingRevision=++trackMatchRevision;trackMatchPending++;
         try
         {
             if (TrackList.SelectedItem is not TrackRow row) throw new InvalidOperationException("请先导入并选择轨迹。");
             if (Selected.Length != 1) throw new InvalidOperationException("请在元数据页选择一张照片。");
-            var result = row.Data.Match(TrackReader.ParseTimestamp(MatchTimeValue.Text.Trim()));
+            var snapshot=row.Snapshot;var revision=matchingRevision;var selection=Selected;var time=TrackReader.ParseTimestamp(MatchTimeValue.Text.Trim());
+            await EnsureTrackSource(row);
+            var result=await Task.Run(()=>snapshot.Data.Match(time));
+            await EnsureTrackSource(row);
+            if(revision!=trackMatchRevision||currentPreview is not null||!ReferenceEquals(row.Snapshot,snapshot)||!ReferenceEquals(TrackList.SelectedItem,row)||!Selected.SequenceEqual(selection)||TrackReader.ParseTimestamp(MatchTimeValue.Text.Trim())!=time)return;
+            row.SourceUnavailable=false;
             MatchResult.Text = result.Point is { } point ? $"{Selected[0].Name}：{point.Latitude:F6}, {point.Longitude:F6}，{result.Method}。仅预览，未加入GPS草稿。" : result.Reason;
             ClearPlacePreview(); clipboardGpsPreview = false; currentPreview = result.Point is { } matched ? new(matched.Longitude, matched.Latitude) : null;
-            previewAltitude = result.Point?.Elevation; previewMethod = "GPS"; UpdateGpsButton();
+            matchedTrackSource=result.Point is not null?snapshot:null;previewAltitude = result.Point?.Elevation; previewMethod = "GPS"; UpdateGpsButton();
             PostPreview();
         }
-        catch (Exception error) { ClearMatchMarker(); MatchResult.Text = "匹配未执行：" + error.Message; }
+        catch (Exception error) { if(matchingRevision==trackMatchRevision){ClearMatchMarker(); MatchResult.Text = "匹配未执行：" + error.Message;} }
+        finally{trackMatchPending--;}
     }
     private void ClearMatchMarker()
     {
-        ClearPlacePreview(); clipboardGpsPreview = false; currentPreview = null; previewAltitude = null; previewMethod = "MANUAL"; UpdateGpsButton(); PostPreview();
+        trackMatchRevision++;matchedTrackSource=null;ClearPlacePreview(); clipboardGpsPreview = false; currentPreview = null; previewAltitude = null; previewMethod = "MANUAL"; UpdateGpsButton(); PostPreview();
     }
     private void PostPreview()
     {
         if (mapReady) MapView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "match-preview", point = currentPreview }));
     }
     private void UpdateGpsButton() => GpsDraftButton.IsEnabled = !busy && !renameRecoveryRequired && currentPreview is not null && Selected.Length > 0 && Selected.All(row => row.Document.CanEdit);
-    private void AddGpsDraft(object sender, RoutedEventArgs e)
+    private async void AddGpsDraft(object sender, RoutedEventArgs e)
     {
         try
         {
             if (busy || renameRecoveryRequired || currentPreview is null || Selected.Length == 0 || Selected.Any(row => !row.Document.CanEdit)) throw new InvalidOperationException("请选择可编辑照片，并先预览定位。");
-            var changes = PhotoDocument.PositionChanges(currentPreview, previewAltitude, previewMethod);
-            var selected = Selected;
+            var selected = Selected;var point=currentPreview;var revision=trackMatchRevision;
+            if(previewMethod=="GPS"&&!clipboardGpsPreview&&matchedTrackSource is {} source){try{await TrackSnapshots.EnsureSourceAsync(source);}catch{ClearMatchMarker();throw;}}
+            if(revision!=trackMatchRevision||!ReferenceEquals(point,currentPreview)||!Selected.SequenceEqual(selected)||selected.Any(r=>!r.Document.CanEdit))throw new InvalidOperationException("定位或选择已改变，请重新预览。");
+            var changes = PhotoDocument.PositionChanges(point, previewAltitude, previewMethod);
             foreach (var row in selected) row.Document.SetDraft(changes);
             RefreshPhotoRows(); RefreshSelection(); _ = PostPhotosAsync();
             MatchResult.Text = $"已为{selected.Length}张照片加入WGS-84 GPS草稿。未知海拔／定位时间清除旧XMP值；请在元数据页保存副本。";
@@ -1117,7 +1140,7 @@ public partial class MainWindow : Window
     private void BeginOperation()
     {
         InvalidateDates();
-        busy = true; operation?.Dispose(); operation = new();
+        busy = true;RefreshTrackControls(); operation?.Dispose(); operation = new();
         PhotoSearch.IsEnabled = PhotoFilter.IsEnabled = PhotoSort.IsEnabled = false;
         ReadButton.IsEnabled = FolderButton.IsEnabled = OutputButton.IsEnabled = OutputFolder.IsEnabled = Photos.IsEnabled = false;
         TrackReadButton.IsEnabled = TrackList.IsEnabled = TrackRemoveButton.IsEnabled = MatchButton.IsEnabled = MapRetryButton.IsEnabled = false;
@@ -1129,9 +1152,9 @@ public partial class MainWindow : Window
         PhotoSearch.IsEnabled = PhotoFilter.IsEnabled = PhotoSort.IsEnabled = true;
         ReadButton.IsEnabled = FolderButton.IsEnabled = OutputButton.IsEnabled = OutputFolder.IsEnabled = Photos.IsEnabled = true;
         TrackReadButton.IsEnabled = TrackList.IsEnabled = TrackRemoveButton.IsEnabled = MatchButton.IsEnabled = true; MapRetryButton.IsEnabled = !mapInitializing;
-        RefreshSelection();
+        RefreshSelection();RefreshTrackControls();
     }
-    private void CancelRead(object sender, RoutedEventArgs e) { InvalidateDates();dependencyCheck?.Cancel(); operation?.Cancel(); Status.Text=busy?"正在取消任务…":"日期预览已取消或失效，草稿未改变。"; }
+    private void CancelRead(object sender, RoutedEventArgs e) { InvalidateTrackAdjustment();InvalidateDates();dependencyCheck?.Cancel(); operation?.Cancel(); Status.Text=busy?"正在取消任务…":"日期预览已取消或失效，草稿未改变。"; }
     private void WindowClosing(object? sender, CancelEventArgs e)
     {
         if(datePending>0){InvalidateDates();e.Cancel=true;Status.Text="正在取消日期任务；结束后可关闭。";return;}
@@ -1140,7 +1163,7 @@ public partial class MainWindow : Window
         if (photos.Any(p => p.Document.Draft.Count > 0) || Fields.Any(f => f.Apply.IsChecked == true))
             e.Cancel = MessageBox.Show(this, "存在未撤销的草稿或未应用输入。放弃并退出？保存的副本仍保留。", "PhotoTrail", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes;
     }
-    private void WindowClosed(object? sender, EventArgs e) { photoPreviewRequest?.Cancel(); photoPreviewRevision++; PhotoPreviewImage.Source = null; dependencyCheck?.Cancel(); operation?.Cancel(); renameRevision++; SuspendMap(); GoogleKeyInput.Clear(); MapView.Dispose(); }
+    private void WindowClosed(object? sender, EventArgs e) { trackMatchRevision++;InvalidateTrackAdjustment(); photoPreviewRequest?.Cancel(); photoPreviewRevision++; PhotoPreviewImage.Source = null; dependencyCheck?.Cancel(); operation?.Cancel(); renameRevision++; SuspendMap(); GoogleKeyInput.Clear(); MapView.Dispose(); }
     private void MapSelected(object sender, SelectionChangedEventArgs e)
     {
         if (ReferenceEquals(e.Source, WorkspaceTabs) && IsLoaded && WorkspaceTabs.SelectedIndex == 1)
@@ -1260,7 +1283,15 @@ public partial class MainWindow : Window
         finally { mapInitializing = false; MapRetryButton.IsEnabled = !busy; }
     }
     private record MetadataRow(string Tag, string Value){public string FamilyTag=>SettingsPreference.TagLabel(Tag,false);}
-    private record TrackRow(string Path, TrackData Data) { public string Name => System.IO.Path.GetFileName(Path); }
+    private sealed class TrackRow(TrackSnapshot snapshot) {
+        public TrackSnapshot Snapshot {get;set;}=snapshot;
+        public string Path=>Snapshot.Path;
+        public TrackData Data=>Snapshot.Data;
+        public TrackData? Undo {get;set;}
+        public string? MapPayload {get;set;}
+        public bool SourceUnavailable {get;set;}
+        public string Name=>System.IO.Path.GetFileName(Path);
+    }
     private record PhotoRow(PhotoDocument Document)
     {
         public long Imported {get;init;}=Interlocked.Increment(ref nextPhotoOrder);

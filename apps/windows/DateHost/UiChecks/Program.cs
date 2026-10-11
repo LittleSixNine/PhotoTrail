@@ -131,7 +131,7 @@ static partial class Program
   folder=Path.GetFullPath(args[0]);Directory.CreateDirectory(folder);
   var app=new Application{ShutdownMode=ShutdownMode.OnExplicitShutdown};
   window=new MainWindow{Title="PhotoTrail 日期页 · 独立自动交互验证"};
-  window.Loaded+=async(_,_)=>{try{await Task.Delay(300);if(args.Contains("--batch-missing-checks"))await RunBatchMissing();else if(args.Contains("--rename-order-checks"))await RunRenameOrder();else if(args.Contains("--settings-checks"))await RunSettings(false);else if(args.Contains("--settings-restore-checks"))await RunSettings(true);else if(args.Contains("--offset-skip-checks"))await RunOffset();else await Run();app.Shutdown(0);}catch(Exception error){File.WriteAllText(Path.Combine(folder,"ui-failure.txt"),error.ToString());Console.Error.WriteLine(error);app.Shutdown(1);}};
+  window.Loaded+=async(_,_)=>{try{await Task.Delay(300);if(args.Contains("--track-adjustment-checks"))await RunTrackAdjustment(false);else if(args.Contains("--track-restore-checks"))await RunTrackAdjustment(true);else if(args.Contains("--batch-missing-checks"))await RunBatchMissing();else if(args.Contains("--rename-order-checks"))await RunRenameOrder();else if(args.Contains("--settings-checks"))await RunSettings(false);else if(args.Contains("--settings-restore-checks"))await RunSettings(true);else if(args.Contains("--offset-skip-checks"))await RunOffset();else await Run();app.Shutdown(0);}catch(Exception error){File.WriteAllText(Path.Combine(folder,"ui-failure.txt"),error.ToString());Console.Error.WriteLine(error);app.Shutdown(1);}};
   app.Run(window);
  }
 }

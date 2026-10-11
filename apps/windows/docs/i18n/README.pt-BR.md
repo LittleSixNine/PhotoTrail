@@ -32,3 +32,8 @@ Foram adicionados ordenação do processamento por nome, data, extensão, pasta,
 ## 2026-10-11
 
 A substituição de componentes e o ajuste de seis componentes ignoram datas ausentes confirmadas por foto. Valores iguais e ajustes zero não habilitam Aplicar por rascunhos anteriores. Parâmetros ou tipos inválidos e mudanças na origem de toda a seleção rejeitam o lote. Implementado e verificado; aguardando aceitação do usuário.
+
+
+## 2026-10-11
+
+O mapa permite visualizar/aplicar ajustes de tempo e leste/norte, desfazer o último ajuste da sessão e reler o original. Instantâneos efetivo/original são salvos localmente e recuperados ao reiniciar. Origem alterada ou ausente impede correspondência e novos ajustes. A exportação GPX cria um novo arquivo e verifica a leitura, sem alterar a origem ou escrever fotos automaticamente. Preserva segmentos, pontos sem horário e elevação; precisão temporal de100ns, sem estilos/extensões originais. Aguardando aceitação do usuário.

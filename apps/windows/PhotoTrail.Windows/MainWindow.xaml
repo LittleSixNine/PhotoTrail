@@ -178,6 +178,22 @@
       <Button x:Name="TrackRemoveButton" Content="移除当前轨迹" Click="RemoveTrack" Padding="12,6"/>
       <Button x:Name="MapRetryButton" Content="重载地图" Click="RetryMap" Padding="12,6" Margin="8,0,0,0"/>
      </WrapPanel>
+     <Expander Header="调整轨迹 / 导出GPX" DockPanel.Dock="Top" Margin="8,0,8,6" Expanded="TrackAdjustmentExpanded">
+      <StackPanel>
+       <WrapPanel Margin="0,4"><ComboBox x:Name="TrackTimeDirection" SelectedIndex="0" Width="90" AutomationProperties.Name="轨迹时间方向" SelectionChanged="TrackAdjustmentChanged"><ComboBoxItem Content="向后"/><ComboBoxItem Content="向前"/></ComboBox>
+        <TextBlock Text=" 天" VerticalAlignment="Center"/><TextBox x:Name="TrackDays" Text="0" Width="48" AutomationProperties.Name="轨迹调整天" TextChanged="TrackAdjustmentChanged"/>
+        <TextBlock Text=" 时" VerticalAlignment="Center"/><TextBox x:Name="TrackHours" Text="0" Width="48" AutomationProperties.Name="轨迹调整小时" TextChanged="TrackAdjustmentChanged"/>
+        <TextBlock Text=" 分" VerticalAlignment="Center"/><TextBox x:Name="TrackMinutes" Text="0" Width="48" AutomationProperties.Name="轨迹调整分钟" TextChanged="TrackAdjustmentChanged"/>
+        <TextBlock Text=" 秒" VerticalAlignment="Center"/><TextBox x:Name="TrackSeconds" Text="0" Width="70" AutomationProperties.Name="轨迹调整秒" TextChanged="TrackAdjustmentChanged"/>
+       </WrapPanel>
+       <WrapPanel Margin="0,4"><ComboBox x:Name="TrackEastDirection" SelectedIndex="0" Width="90" AutomationProperties.Name="轨迹东西方向" SelectionChanged="TrackAdjustmentChanged"><ComboBoxItem Content="向东"/><ComboBoxItem Content="向西"/></ComboBox><TextBox x:Name="TrackEast" Text="0" Width="85" AutomationProperties.Name="轨迹东西米数" TextChanged="TrackAdjustmentChanged"/><TextBlock Text=" 米    " VerticalAlignment="Center"/>
+        <ComboBox x:Name="TrackNorthDirection" SelectedIndex="0" Width="90" AutomationProperties.Name="轨迹南北方向" SelectionChanged="TrackAdjustmentChanged"><ComboBoxItem Content="向北"/><ComboBoxItem Content="向南"/></ComboBox><TextBox x:Name="TrackNorth" Text="0" Width="85" AutomationProperties.Name="轨迹南北米数" TextChanged="TrackAdjustmentChanged"/><TextBlock Text=" 米" VerticalAlignment="Center"/>
+       </WrapPanel>
+       <WrapPanel><Button x:Name="TrackPreviewButton" Content="预览调整" Click="PreviewTrackAdjustment" Padding="9,4"/><Button x:Name="TrackApplyButton" Content="应用轨迹调整" Click="ApplyTrackAdjustment" IsEnabled="False" Padding="9,4" Margin="6,0"/><Button Content="取消调整预览" Click="CancelTrackAdjustment" Padding="9,4"/><Button x:Name="TrackUndoButton" Content="撤销最近调整" Click="UndoTrackAdjustment" IsEnabled="False" Padding="9,4" Margin="6,0"/><Button x:Name="TrackRestoreButton" Content="恢复原轨迹" Click="RestoreTrackOriginal" IsEnabled="False" Padding="9,4"/></WrapPanel>
+       <TextBlock x:Name="TrackAdjustmentStatus" Text="从当前有效轨迹预览；先保存状态再应用。源文件及照片不自动修改。" TextWrapping="Wrap" Margin="0,4"/>
+       <DockPanel><Button x:Name="TrackExportButton" Content="另存当前轨迹为GPX" Click="ExportTrack" DockPanel.Dock="Right" Padding="9,4"/><Button Content="选择导出位置…" Click="ChooseTrackExport" DockPanel.Dock="Right" Padding="9,4" Margin="6,0"/><TextBox x:Name="TrackExportPath" AutomationProperties.Name="GPX另存路径" ToolTip="新GPX文件完整路径；不覆盖已有文件或源轨迹。"/></DockPanel>
+      </StackPanel>
+     </Expander>
      <WrapPanel DockPanel.Dock="Top" Margin="8,0,8,8">
       <TextBlock Text="最近轨迹" VerticalAlignment="Center"/>
       <ComboBox x:Name="RecentTracks" Width="440" Margin="8,0" AutomationProperties.Name="最近轨迹路径"/>

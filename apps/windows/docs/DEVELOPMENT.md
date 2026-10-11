@@ -110,3 +110,12 @@ DateHost/UiChecks参数“独立样本目录 --rename-order-checks”运行生�
 `dotnet run --project PhotoTrail.Windows.Tests -- --batch-missing-checks`复用Mode0检查并覆盖Mode2参数、类型、净变化、草稿、来源、重复目标、序列和均分位置。PHOTOTRAIL_TEST_OUTPUT下mac-fixtures/a.xmp、missing.xmp、c.xmp按确切Mac返还包读取；哈希／对应预期在私有交接，不上传私人素材。输出每次新建，拒绝覆盖副本。
 
 `DateHost/UiChecks`参数“独立三XMP目录 --batch-missing-checks”操作生产WPF预览、应用及保存入口，检查全选择保护、参数／选择／草稿变化、内存类型变化、取消与新请求、设置持久化和重命名冻结身份。另由Computer Use鼠标操作混合／全部缺失／同值按钮提示；不能把检查计数当作计算阶段取消证明。复用固定DateHost和完整ExifTool，隔离已有偏好／缓存／重命名记录变量。没有重跑全部历史检查、计算阶段时机或干净部署。
+
+
+## 轨迹调整定向检查（2026-10-11）
+
+`dotnet run --project PhotoTrail.Windows.Tests -- --track-adjustment-checks`检查批准公式与边界、亚秒、无时间、分段、快照兼容／损坏／保存失败、来源保护、GPX/KML/KMZ另存回读；另有临时文件实际写入字节后的取消清理证明，不是性能基准。PHOTOTRAIL_TEST_OUTPUT须为独立输出目录，PHOTOTRAIL_TRACK_CONTRACT_FIXTURE指向从固定公开73c0640bca4d1a2919aa3a466487a5cb20c7f28d按Git对象取得的docs/fixtures/settings-track-rename-v1.json；不合并Mac分支。
+
+DateHost/UiChecks参数“独立样本目录 --track-adjustment-checks”操作生产WPF：三合成XMP与source.gpx（2段、3+1点、一个无时间点），进行预览／应用／地图消息／匹配、撤销／恢复、GPX导出、实际持久化替换失败和来源失联，复用日期、设置和重命名冻结。地图采用既有Google页面的本地SDK替代，仅测试生产消息和缓存／取景控制，不宣称在线Google通过。再次启动同目录加--track-restore-checks验证启动恢复、重新导入保持调整、显式恢复与会话撤销不跨进程。
+
+PHOTOTRAIL_TRACK_HISTORY隔离旧路径历史；快照位于同一路径加.adjustments-v1.json。同时隔离已有设置、搜索历史、外观、重命名记录及WebView目录。DateHost二进制复用，不编译Swift或改日期协议。Computer Use鼠标及现有OpenFreeMap真实加载单独验证；截图显示于对话，不以模型断言代替。完整日志、轨迹／照片、缓存和二进制仅本机。未重跑全部历史、性能或干净部署。

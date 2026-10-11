@@ -20,7 +20,7 @@ window.initGoogle=()=>{
  try{
   map=new google.maps.Map(document.getElementById('map'),{center:{lng:135.7681,lat:35.0116},zoom:11});
   trails=new google.maps.Data({map});photos=new google.maps.Data({map});
-  trails.setStyle({strokeColor:'#1477d4',strokeWeight:4});
+  trails.setStyle(feature=>({strokeColor:feature.getProperty('role')==='preview'?'#df7b20':'#1477d4',strokeWeight:4}));
   photos.setStyle(feature=>({icon:{path:google.maps.SymbolPath.CIRCLE,scale:7,fillColor:feature.getProperty('selected')?'#d95914':'#217b43',fillOpacity:1,strokeColor:'white',strokeWeight:2},clickable:true}));
   photos.addListener('click',event=>post({type:'select-photo',id:Number(event.feature.getProperty('id')),revision:Number(event.feature.getProperty('revision'))}));
   map.addListener('click',event=>preview(event.latLng));
@@ -44,10 +44,10 @@ window.chrome.webview.addEventListener('message',event=>{
   script.async=true;script.onerror=fail;loadTimer=setTimeout(fail,20000);document.head.append(script);return;
  }
  if(!map)return;
- if(data.type==='tracks'){
+ if(data.type==='tracks'||data.type==='tracks-no-fit'){
   updateLayer(trails,data.geojson);showPreview(null);
   const points=data.geojson.features.flatMap(f=>f.geometry.type==='Point'?[f.geometry.coordinates]:f.geometry.coordinates);
-  if(points.length){const bounds=new google.maps.LatLngBounds();for(const p of points)bounds.extend({lng:p[0],lat:p[1]});map.fitBounds(bounds,40);}
+  if(points.length&&data.type!=='tracks-no-fit'){const bounds=new google.maps.LatLngBounds();for(const p of points)bounds.extend({lng:p[0],lat:p[1]});map.fitBounds(bounds,40);}
  }else if(data.type==='photos'){
   updateLayer(photos,data.geojson);if(data.focus){map.setCenter({lng:data.focus.Longitude,lat:data.focus.Latitude});map.setZoom(14);}
  }else if(data.type==='match-preview')showPreview(data.point);

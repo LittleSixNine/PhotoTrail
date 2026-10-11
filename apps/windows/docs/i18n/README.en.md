@@ -38,3 +38,8 @@ Old Windows version-1 schemes remain readable; optional sort, descending and met
 ## 2026-10-11
 
 Date component replacement and six-component offset skip confirmed missing dates per photo. Unchanged values and zero offsets do not enable Apply because of existing drafts. Invalid parameters, types and changed sources across the entire selection reject the batch. Implemented and verified; awaiting user acceptance.
+
+
+## 2026-10-11
+
+The map page previews/applies signed time and east/north track offsets, undoes the last session adjustment and explicitly reloads the original. Effective/original snapshots persist locally across restarts; changed or missing sources reject matching and further adjustment. GPX export creates a new file and verifies readback, without changing sources or automatically writing photos. Segments, untimed points and elevations remain; time precision is 100ns. Source styles/extensions are not retained. Implemented and verified; awaiting user acceptance.

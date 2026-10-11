@@ -4,6 +4,7 @@
   <Compile Include="../PhotoTrail.Windows/SettingsPreference.cs" Link="SettingsPreference.cs" />
   <Compile Include="../PhotoTrail.Windows/ThemePreference.cs" Link="ThemePreference.cs" />
   <Compile Include="../PhotoTrail.Windows/PhotoPreview.cs" Link="PhotoPreview.cs" />
+  <Compile Include="../PhotoTrail.Windows/TrackAdjustment.cs" Link="TrackAdjustment.cs" />
   <Compile Include="../PhotoTrail.Windows/TrackHistory.cs" Link="TrackHistory.cs" />
   <Compile Include="../PhotoTrail.Windows/MetadataXmp.cs" Link="MetadataXmp.cs" />
   <Compile Include="../PhotoTrail.Windows/MetadataClipboard.cs" Link="MetadataClipboard.cs" />
