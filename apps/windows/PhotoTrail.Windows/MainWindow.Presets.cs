@@ -22,10 +22,10 @@ public partial class MainWindow
         PresetTarget.SelectedIndex = PresetSource.SelectedIndex = 0;
         PresetAction.ItemsSource = new[] { ("setText","固定设置文字／日期／数字"),("remove","明确清除"),("fillMissingText","仅补确认缺失的标量"),("appendText","文字精确追加"),("replaceAuthors","替换作者列表"),("fillMissingAuthors","仅补缺失作者"),("replaceKeywords","替换关键词"),("appendKeywords","精确追加关键词"),("removeKeywords","精确移除关键词"),("copy","按照片自身字段复制") }.Select(p => new { Action=p.Item1,Name=p.Item2 }).ToArray();
         PresetAction.SelectedIndex = 4; fillingPreset = false;
-        presetOperations.CollectionChanged += (_,_) => InvalidateDates();
+        presetOperations.CollectionChanged += (_,_) => { InvalidateDates(); RefreshPresetLibraryControls(); };
     }
-    void PresetInputChanged(object sender,TextChangedEventArgs e) { if (!fillingPreset) InvalidateDates(); }
-    void PresetEditorChanged(object sender,RoutedEventArgs e) { if (!fillingPreset && IsLoaded) { presetEditorDirty = true; InvalidateDates(); } }
+    void PresetInputChanged(object sender,TextChangedEventArgs e) { if (!fillingPreset) { InvalidateDates(); RefreshPresetLibraryControls(); } }
+    void PresetEditorChanged(object sender,RoutedEventArgs e) { if (!fillingPreset && IsLoaded) { presetEditorDirty = true; InvalidateDates(); RefreshPresetLibraryControls(); } }
     void PresetActionChanged(object sender,SelectionChangedEventArgs e) {
         if (PresetCopyControls is null) return;
         bool copy = PresetAction.SelectedValue as string == "copy";
@@ -41,7 +41,7 @@ public partial class MainWindow
     void FillPresetOperation(MetadataOperation op) {
         fillingPreset = true;
         try { PresetTarget.SelectedValue=op.Tag; PresetAction.SelectedValue=op.Action; PresetValue.Text=op.Action=="copy"?"":op.Value; PresetSource.SelectedValue=op.Action=="copy"?op.Value:MetadataCsv.Tags[0]; PresetRecipients.SelectedItems.Clear(); if(op.Action=="copy")foreach(PresetField field in PresetRecipients.Items)if(field.Tag==op.Tag)PresetRecipients.SelectedItems.Add(field); }
-        finally { fillingPreset=false;presetEditorDirty=false; }
+        finally { fillingPreset=false;presetEditorDirty=false;RefreshPresetLibraryControls(); }
     }
     MetadataOperation[] ReadPresetOperations() {
         string action=PresetAction.SelectedValue as string ?? throw new ArgumentException("请选择动作。");
@@ -74,12 +74,12 @@ public partial class MainWindow
     void DeletePresetOperation(object sender,RoutedEventArgs e)=>ChangePreset(()=>{RequirePresetInputSaved();if(PresetOperations.SelectedIndex>=0)presetOperations.RemoveAt(PresetOperations.SelectedIndex);});
     void ClearPresetOperations(object sender,RoutedEventArgs e)=>ChangePreset(()=>{RequirePresetInputSaved();presetOperations.Clear();});
     void DiscardPresetInput(object sender,RoutedEventArgs e){if(busy)return;presetEditorDirty=false;FillPresetOperation(PresetOperations.SelectedItem as MetadataOperation ?? new(MetadataCsv.Tags[0],"replaceAuthors",""));PresetPreview.Text="未编排参数已放弃；照片草稿保留。";}
-    void SetPresetChain(MetadataPreset preset){fillingPreset=true;try{PresetName.Text=preset.Name;presetOperations.Clear();foreach(var op in preset.Operations)presetOperations.Add(op);PresetOperations.SelectedIndex=-1;presetEditingIndex=-1;}finally{fillingPreset=false;presetEditorDirty=false;}InvalidateDates();PresetPreview.Text=$"{preset.Name}：{presetOperations.Count} 条有序操作，尚未应用。";}
-    void PresetFromFields(object sender,RoutedEventArgs e)=>ChangePreset(()=>{RequirePresetInputSaved();SetPresetChain(MetadataPreset.Create(PresetName.Text,ReadFieldInput()));FillEditor(new Dictionary<string,string>());});
+    void SetPresetChain(MetadataPreset preset){fillingPreset=true;try{PresetName.Text=preset.Name;presetOperations.Clear();foreach(var op in preset.Operations)presetOperations.Add(op);PresetOperations.SelectedIndex=-1;presetEditingIndex=-1;}finally{fillingPreset=false;presetEditorDirty=false;}InvalidateDates();PresetPreview.Text=$"{preset.Name}：{presetOperations.Count} 条有序操作，尚未应用。";RefreshPresetLibraryControls();}
+    void PresetFromFields(object sender,RoutedEventArgs e)=>ChangePreset(()=>{RequirePresetInputSaved();var next=MetadataPreset.Create(PresetName.Text,ReadFieldInput());if(!ResolvePresetChainEdits())return;SetUnsavedPreset(next);FillEditor(new Dictionary<string,string>());});
     void ChoosePreset(object sender,RoutedEventArgs e){if(busy)return;var dialog=new OpenFileDialog{Title="选择字段预设",Filter="JSON预设|*.json",CheckFileExists=true};if(dialog.ShowDialog(this)==true)PresetPath.Text=dialog.FileName;}
     void SaveFieldPreset(object sender,RoutedEventArgs e)=>SavePresetFile(()=>MetadataPreset.Create(PresetName.Text,ReadFieldInput()));
     void SavePreset(object sender,RoutedEventArgs e)=>SavePresetFile(()=>{RequirePresetInputSaved();return MetadataPreset.Create(PresetName.Text,presetOperations);});
     void SavePresetFile(Func<MetadataPreset> read){if(busy||renameRecoveryRequired)return;try{var text=read().Encode();var dialog=new SaveFileDialog{Title="保存字段预设（不覆盖）",Filter="JSON预设|*.json",DefaultExt=".json",FileName="PhotoTrail-preset.json",OverwritePrompt=false};if(dialog.ShowDialog(this)!=true)return;MetadataCsv.WriteNew(dialog.FileName,text);Status.Text="预设已保存，操作链和草稿保留；未修改照片。";}catch(Exception error){Status.Text="预设未保存："+error.Message;}}
-    void LoadPreset(object sender,RoutedEventArgs e){if(busy||renameRecoveryRequired)return;try{RequirePresetInputSaved();if(Fields.Any(f=>f.Apply.IsChecked==true))throw new InvalidOperationException("请先应用或撤销编辑区输入，再载入操作链。");using var file=new FileStream(PresetPath.Text,FileMode.Open,FileAccess.Read,FileShare.Read);if(file.Length>MetadataPreset.MaximumBytes)throw new InvalidDataException("预设超过128KiB上限。");using var reader=new StreamReader(file,new UTF8Encoding(false,true),true);var preset=MetadataPreset.Decode(reader.ReadToEnd());SetPresetChain(preset);Status.Text="预设已载入有序操作链；未应用草稿或写照片。";}catch(Exception error){Status.Text="预设未载入："+error.Message;}}
+    void LoadPreset(object sender,RoutedEventArgs e){if(busy||renameRecoveryRequired)return;try{RequirePresetInputSaved();if(Fields.Any(f=>f.Apply.IsChecked==true))throw new InvalidOperationException("请先应用或撤销编辑区输入，再载入操作链。");var preset=ReadPresetFile(PresetPath.Text);if(!ResolvePresetChainEdits())return;SetUnsavedPreset(preset);Status.Text="预设已载入有序操作链；未应用草稿或写照片。";}catch(Exception error){Status.Text="预设未载入："+error.Message;}}
     async void ApplyPreset(object sender,RoutedEventArgs e){if(busy||renameRecoveryRequired)return;try{RequirePresetInputSaved();if(Fields.Any(f=>f.Apply.IsChecked==true))throw new InvalidOperationException("请先应用或撤销编辑区输入。");var preset=MetadataPreset.Create(PresetName.Text,presetOperations);string input=preset.Encode();await ApplyMetadataBatch("预设",(docs,_,token)=>{int missing=0;foreach(var doc in docs){token.ThrowIfCancellationRequested();missing+=preset.Apply(doc,token);}return Task.FromResult(new BatchDetails(CopyMissing:missing,OperationCount:preset.Operations.Count));},()=>!presetEditorDirty&&!Fields.Any(f=>f.Apply.IsChecked==true)&&MetadataPreset.Create(PresetName.Text,presetOperations).Encode()==input);}catch(Exception error){Status.Text="预设未应用："+error.Message;}}
 }

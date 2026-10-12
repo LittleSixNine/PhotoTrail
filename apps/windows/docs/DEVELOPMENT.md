@@ -143,3 +143,9 @@ Stopwatch记录匹配、预览全来源复核、应用全来源复核、UI草稿
 ## 有序预设定向验证
 
 在apps/windows目录运行 `dotnet run --project PhotoTrail.Windows.Tests -- --preset-checks`：覆盖有序重复目标、当前值、类型、JSON以及静态新旧fixture往返。`DateHost/UiChecks`的 `--ordered-preset-checks` 与 `--ordered-copy-checks` 分别在真实生产WPF控件／Dispatcher上验证整批终态与规模、显式副本保存和ExifTool回读；必须提供独立证据输出及合成输入，配置、照片副本和完整日志仅保留本机。测试检查程序位于DateHost/UiChecks，不重编固定DateHost宿主。原生鼠标／键盘与系统文件对话框另行记录，不能以模型或WPF事件检查替代。
+
+## 元数据预设库定向检查
+
+模型：`dotnet run --project PhotoTrail.Windows.Tests -- --preset-library-checks`；受影响JSON／动作回归为 `--preset-checks`。生产 `DateHost/UiChecks` 新增 `--preset-library-checks`、`--library-restore-checks`（同库新进程）及 `--library-terminal-checks`（三合成XMP）。`--ordered-copy-checks`现从独立库保存／载入，再应用、撤销、保存JPEG／已有RAW旁车／XMP副本并回读。恢复工程的输出目录须无可导入照片；ExifTool须完整配置。
+
+所有检查必须设置独立 `PHOTOTRAIL_METADATA_PRESETS`，同时隔离已有重命名库、设置、搜索／轨迹历史、外观、执行记录及WebView路径。库文件上限1MiB／256项，单条仍128KiB／27操作。损坏／写失败在受控路径验证，不接触用户库。真实双进程和原生确认／系统对话框另记录，不能以模型模拟替代。最终候选DLL的生产检查记录实际SHA；固定DateHost复用，不编译Swift。未重跑性能、日期计算阶段取消、地图或部署。

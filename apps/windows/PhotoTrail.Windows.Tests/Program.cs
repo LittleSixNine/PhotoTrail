@@ -34,6 +34,7 @@ if (args.FirstOrDefault() == "--preview-checks") { await PreviewChecks.RunAsync(
 if (args.FirstOrDefault() == "--history-remember") { try { foreach (var path in args.Skip(2)) TrackHistory.RememberAndSave(args[1],path); } catch (Exception error) { Console.Error.WriteLine(error); Environment.ExitCode = 1; } return; }
 if (args.FirstOrDefault() == "--history-checks") { try { TrackHistoryChecks.Run(); } catch (Exception error) { Console.Error.WriteLine(error); Environment.ExitCode = 1; } return; }
 if (args.FirstOrDefault() == "--clipboard-checks") { try { ClipboardChecks.Run(); } catch (Exception error) { Console.Error.WriteLine(error); Environment.ExitCode = 1; } return; }
+if (args.FirstOrDefault() == "--preset-library-checks") { PresetLibraryChecks.Run(); return; }
 if (args.FirstOrDefault() == "--preset-checks") { PresetChecks.Run(); return; }
 if (args.FirstOrDefault() == "--date-checks") { DateChecks.Run(); return; }
 if (args.FirstOrDefault() == "--csv-checks") { CsvChecks.Run(); return; }

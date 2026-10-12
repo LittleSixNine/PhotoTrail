@@ -87,7 +87,7 @@ public partial class MainWindow : Window
         try { ThemeChoice.SelectedIndex = ThemePreference.Read(themePreferencePath); ThemeStatus.Text = "已读取本机外观偏好；不改变Windows设置。"; }
         catch (Exception) { ThemeStatus.Text = "本机外观偏好不可读取，暂跟随系统；已有配置未覆盖。"; }
         finally { restoringTheme = false; }
-        LoadSettings();
+        LoadSettings();LoadMetadataPresets();
         RefreshGoogleKeyStatus();
         LoadLatestRenameJournal();LoadRenameSchemes();
         LoadTrackHistory();LoadTrackSnapshots();
@@ -641,6 +641,7 @@ public partial class MainWindow : Window
         var editable = !renameRecoveryRequired && selected.Length > 0 && selected.All(p => p.Document.CanEdit);
         Editor.IsEnabled = !busy && editable;
         if (PresetControls is not null) PresetControls.IsEnabled = !busy && !renameRecoveryRequired;
+        RefreshPresetLibraryControls();
         if (PresetApplyButton is not null) PresetApplyButton.IsEnabled = !busy && editable;
         UpdateGpsButton(); UpdateRenameButtons();RefreshBatchTrackControls();
         DraftActions.IsEnabled = !busy && !renameRecoveryRequired;
@@ -958,6 +959,9 @@ public partial class MainWindow : Window
         if(datePending>0){InvalidateDates();e.Cancel=true;Status.Text="正在取消日期任务；结束后可关闭。";return;}
         if (checkingEnvironment) { dependencyCheck?.Cancel(); e.Cancel = true; DependencyStatus.Text = "正在取消环境检查；结束后可关闭。"; return; }
         if (busy) { operation?.Cancel(); e.Cancel = true; Status.Text = "正在取消任务；结束后可关闭。"; return; }
+        if(presetEditorDirty||PresetChainDirty){
+            if(MessageBox.Show(this,"存在未编排参数或尚未保存入库的预设链。明确放弃预设编辑并继续退出？（不会自动写库）","未保存元数据预设",MessageBoxButton.YesNo,MessageBoxImage.Question,MessageBoxResult.No)!=MessageBoxResult.Yes){e.Cancel=true;return;}
+        }
         if (photos.Any(p => p.Document.Draft.Count > 0) || Fields.Any(f => f.Apply.IsChecked == true))
             e.Cancel = MessageBox.Show(this, "存在未撤销的草稿或未应用输入。放弃并退出？保存的副本仍保留。", "PhotoTrail", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes;
     }

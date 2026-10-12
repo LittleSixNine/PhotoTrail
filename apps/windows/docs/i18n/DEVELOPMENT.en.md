@@ -65,3 +65,7 @@ UiChecks: `--track-batch-checks`, `--track-batch-performance`, `--track-batch-ca
 ## Focused ordered-preset checks
 
 From apps/windows, run `dotnet run --project PhotoTrail.Windows.Tests -- --preset-checks` for ordered operations, current values, type/JSON boundaries and legacy/new fixtures. The existing DateHost/UiChecks harness adds `--ordered-preset-checks` and `--ordered-copy-checks` for production WPF terminal validation, scale measurements, explicit copy saving and ExifTool readback. Supply isolated evidence output and synthetic inputs; profiles, images and full logs stay local. UiChecks does not rebuild the fixed DateHost binary. Record native mouse/keyboard and system dialogs separately from model/WPF event checks.
+
+## Metadata preset library checks
+
+Run `PhotoTrail.Windows.Tests -- --preset-library-checks` and the affected `--preset-checks`. Production UiChecks accepts `--preset-library-checks`, `--library-restore-checks`, `--library-terminal-checks`; `--ordered-copy-checks` now saves and explicitly loads from the library before apply/undo/copy/readback. Always isolate PHOTOTRAIL_METADATA_PRESETS plus existing preference/history/WebView paths and provide native ExifTool. Test corruption and failures only on disposable files. Record native dialogs and two actual processes separately; record the exact candidate DLL SHA. Reuse the fixed DateHost. No performance, map, compute-cancel or deployment rerun.

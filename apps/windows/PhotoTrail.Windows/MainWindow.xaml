@@ -93,6 +93,12 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="10">
          <TextBlock Text="按列表顺序对每张照片应用。设置和关键词精确追加可重复而无变化；文字追加每次都会再次生效。载入与保存 JSON 只修改预设，显式保存副本才写照片。" TextWrapping="Wrap"/>
          <StackPanel x:Name="PresetControls">
+          <TextBlock Text="本机已保存预设（库管理只保存配置，不应用照片）"/>
+          <ListBox x:Name="MetadataPresetList" Height="110" SelectionChanged="SavedPresetSelected" AutomationProperties.Name="已保存元数据预设列表"/>
+          <TextBlock x:Name="PresetLibraryStatus" Text="正在读取本机库…" TextWrapping="Wrap"/>
+          <WrapPanel x:Name="PresetLibraryActions"><Button Content="新建编辑链" Click="NewMetadataPreset"/><Button Content="保存为新预设" Click="SaveNewMetadataPreset"/><Button x:Name="UpdateMetadataPresetButton" Content="更新当前预设" Click="UpdateMetadataPreset"/><Button Content="复制已保存项" Click="CopyMetadataPreset"/><Button Content="删除已保存项…" Click="DeleteMetadataPreset"/><Button Content="导入 JSON 到库…" Click="ImportMetadataPreset"/><Button Content="导出已保存项 JSON…" Click="ExportMetadataPreset"/></WrapPanel>
+          <TextBlock Text="重命名所选已保存条目（不修改当前编辑链）"/><DockPanel><Button Content="重命名已保存项" Click="RenameMetadataPreset" DockPanel.Dock="Right"/><TextBox x:Name="PresetLibraryRenameName" MaxLength="80" AutomationProperties.Name="已保存预设的新名称"/></DockPanel>
+          <Button Content="重新读取本机预设库…" Click="ReloadMetadataPresets" HorizontalAlignment="Left"/>
           <TextBlock Text="预设名称"/><TextBox x:Name="PresetName" Text="我的预设" MaxLength="80" AutomationProperties.Name="预设名称" TextChanged="PresetInputChanged"/>
           <ListBox x:Name="PresetOperations" Height="150" Margin="0,8" SelectionChanged="PresetSelectionChanged" AutomationProperties.Name="有序预设操作列表"/>
           <WrapPanel><Button Content="上移" Click="MovePresetUp"/><Button Content="下移" Click="MovePresetDown"/><Button Content="删除所选操作" Click="DeletePresetOperation"/><Button Content="清空操作链" Click="ClearPresetOperations"/></WrapPanel>

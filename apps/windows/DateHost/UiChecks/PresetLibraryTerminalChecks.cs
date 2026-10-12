@@ -1,0 +1,12 @@
+using System.Collections;
+using System.IO;
+using System.Threading;
+using System.Windows.Controls;
+using PhotoTrail.Windows;
+static partial class Program
+{
+ static async Task RunLibraryTerminal(){var list=Control<ListBox>("Photos");for(int i=0;i<1200&&(list.Items.Count<3||(bool)Field("busy")!);i++)await Task.Delay(10);Check(list.Items.Count==3,"library-three-synthetic-photo-import");var rows=list.Items.Cast<object>().ToArray();list.SelectAll();SelectMetadataTab("字段预设");var preset=MetadataPreset.Create("终态库载入",[new("XMP-dc:Title","copy","XMP-dc:Description"),new("XMP-dc:Title","appendText","+")]);Invoke("SetUnsavedPreset",preset);Action("SaveNewMetadataPreset");Control<ListBox>("MetadataPresetList").SelectedIndex=-1;Control<ListBox>("MetadataPresetList").SelectedIndex=0;var docs=rows.Select(Doc).ToArray();
+ foreach(string change in new[]{"source","parameters","selection","draft","cancel","close"}){list.SelectAll();Invoke("SetLibraryPreset",Library()[0]);var bytes=File.ReadAllBytes(docs[0].FilePath);var owner=SynchronizationContext.Current!;var gate=new HeldContext(owner);try{SynchronizationContext.SetSynchronizationContext(gate);Action("ApplyPreset");}finally{SynchronizationContext.SetSynchronizationContext(owner);}await gate.Posted.Task.WaitAsync(TimeSpan.FromSeconds(15));Check(!Control<StackPanel>("PresetControls").IsEnabled,"library-controls-disabled-pending-"+change);if(change=="source")File.AppendAllText(docs[0].FilePath," ");if(change=="parameters")Input("PresetName","changed");if(change=="selection")list.SelectedItems.Remove(rows[2]);if(change=="draft")docs[0].SetDraft(new Dictionary<string,string>{{"XMP-dc:Rights","later"}});if(change=="cancel")Action("CancelRead");if(change=="close")window.Close();gate.Release();await Idle();await Responsive();Check(docs.All(d=>!d.Draft.ContainsKey("XMP-dc:Title")),"library-loaded-terminal-rejects-"+change);if(change=="close")Check(window.IsVisible,"library-close-waits-for-pending-task");if(change=="source")File.WriteAllBytes(docs[0].FilePath,bytes);list.SelectAll();Action("UndoDraft");}
+ Invoke("SetLibraryPreset",Library()[0]);await Apply("ApplyPreset");Check(docs.All(d=>d.Value("XMP-dc:Title")==d.Value("XMP-dc:Description")+"+")&&Status.Contains("修改3张"),"library-own-source-statistics");var changed=Drafts(rows);Action("UndoLastApply");Check(docs.All(d=>d.Draft.Count==0),"library-terminal-full-undo");await Apply("ApplyPreset");Check(SameDrafts(rows,changed),"library-reapply-same-result");Action("UndoLastApply");LibraryResult("terminal");
+ }
+}
