@@ -77,61 +77,39 @@ static class Program
   var first=(PhotoDocument)list.Items[0].GetType().GetProperty("Document")!.GetValue(list.Items[0])!;
   var collection=(IList)Field("photos")!;var rowType=list.Items[0].GetType();var ctor=typeof(PhotoDocument).GetConstructors(BindingFlags.NonPublic|BindingFlags.Instance).Single();
   var data=Path.Combine(ComputeCancelProbe.Folder,"data");Directory.CreateDirectory(data);collection.Clear();docs=new PhotoDocument[3000];
-  for(int i=0;i<docs.Length;i++){
-   var path=Path.Combine(data,$"sample-{i:D4}.xmp");File.Copy(first.FilePath,path);
-   docs[i]=(PhotoDocument)ctor.Invoke([path,null,first.Embedded,null,first.SourceHash,null]);collection.Add(Activator.CreateInstance(rowType,docs[i])!);
-  }
+  for(int i=0;i<docs.Length;i++){var path=Path.Combine(data,$"sample-{i:D4}.xmp");File.Copy(first.FilePath,path);docs[i]=(PhotoDocument)ctor.Invoke([path,null,first.Embedded,null,first.SourceHash,null]);collection.Add(Activator.CreateInstance(rowType,docs[i])!);}
   docs[100].SetDraft(new Dictionary<string,string>{{"XMP-dc:Title","existing synthetic title"}});
   docs[1].SetDraft(new Dictionary<string,string>{{DatePagePreview.Field,"2026:01:01 00:00:00.123Z"}});
-  draftSnapshot=Drafts();list.SelectAll();var dateTab=DatesTab(window)!;((TabControl)LogicalTreeHelper.GetParent(dateTab)).SelectedItem=dateTab;
-  Control<ComboBox>("DateMode").SelectedIndex=0;
+  draftSnapshot=Drafts();list.SelectAll();var dateTab=DatesTab(window)!;((TabControl)LogicalTreeHelper.GetParent(dateTab)).SelectedItem=dateTab;Control<ComboBox>("DateMode").SelectedIndex=0;
   foreach(var name in new[]{"DateYears","DateMonths","DateDays","DateHours","DateMinutes","DateSeconds"})Control<TextBox>(name).Text="1";
-  var cancel=FindButton(window,"取消日期预览")!;var preview=FindButton(window,"预览日期")!;
+  var cancel=FindButton(window,"取消应用")!;var apply=Control<Button>("DatePlanApplyButton");
   cancel.PreviewMouseLeftButtonDown+=(_,_)=>stageConfirmed=ComputeCancelProbe.BeforeCancel();
   cancel.Click+=async(_,_)=>{try{
-   ComputeCancelProbe.Record("wpf_cancel_click_handler",new{stageConfirmed,status=Control<TextBlock>("Status").Text,pending=(int)Field("datePending")!});
-   if(!stageConfirmed) {
-    Check(!Control<Button>("DatePlanApplyButton").IsEnabled&&Field("datePreview") is null&&Drafts()==draftSnapshot,"mouse-entry-invalidated-no-draft-change-not-compute-proof");
-    while((int)Field("datePending")!>0)await Task.Delay(10);
-    foreach(var doc in docs)await doc.EnsureUnchangedAsync();
-    ComputeCancelProbe.Record("manual_entry_complete",new{computeStageProven=false,sourceFiles=docs.Length,existingDraftFiles=2});
-    foreach(var doc in docs)doc.ClearDraft();window.Close();app.Shutdown(0);return;
-   }
+   ComputeCancelProbe.Record("wpf_cancel_click_handler",new{stageConfirmed,status=Control<TextBlock>("Status").Text,busy=(bool)Field("busy")!});
    Check(stageConfirmed,"wpf-real-computation-stage-confirmed");
-   Check(!Control<Button>("DatePlanApplyButton").IsEnabled&&Field("datePreview") is null&&Drafts()==draftSnapshot,"cancel-no-partial-drafts-button-disabled");
-   var oldId=ComputeCancelProbe.LatestId;var pending=(int)Field("datePending")!;
-   Control<TextBox>("DateSeconds").Text="2";preview.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-   ComputeCancelProbe.Record("new_preview_before_old_cleanup",new{oldId,pendingBeforeNew=pending,pendingAfterNew=(int)Field("datePending")!});
-   Check(pending>0&&(int)Field("datePending")!>=2,"overlapping-old-and-new-request");
-   var newRequest=Field("dateRequest");int lastPending=(int)Field("datePending")!;
-   var limit=Stopwatch.StartNew();while((int)Field("datePending")!>0&&limit.Elapsed<TimeSpan.FromSeconds(45)){
-    await Task.Delay(10);int now=(int)Field("datePending")!;
-    if(now!=lastPending){ComputeCancelProbe.Record("wpf_request_pending_changed",new{from=lastPending,to=now,newRequestStillCurrent=ReferenceEquals(Field("dateRequest"),newRequest)});lastPending=now;}
-   }
-   Check((int)Field("datePending")! ==0,"requests-settled");
-   var result=(DatePagePreview?)Field("datePreview");
-   Check(result is not null&&result.Values[0]=="2025:02:02 01:01:02.123456789-00:00"&&result.Values.Count==3000&&Control<Button>("DatePlanApplyButton").IsEnabled,"new-preview-correct-old-result-cannot-restore");
-   Check(Drafts()==draftSnapshot,"existing-drafts-retained-after-both-requests");
+   var limit=Stopwatch.StartNew();while((bool)Field("busy")!&&limit.Elapsed<TimeSpan.FromSeconds(45))await Task.Delay(10);
+   Check(!(bool)Field("busy")!&&Drafts()==draftSnapshot,"cancel-entire-batch-no-partial-drafts");
+   Check(Control<TextBlock>("Status").Text.Contains("已取消或失效"),"cancel-terminal-notice");
+   ComputeCancelProbe.Record("canceled-request-settled",new{draftsPreserved=true});
+   Control<TextBox>("DateSeconds").Text="2";apply.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+   limit.Restart();while((bool)Field("busy")!&&limit.Elapsed<TimeSpan.FromSeconds(45))await Task.Delay(10);
+   Check(!(bool)Field("busy")!&&docs[0].Value(DatePagePreview.Field)=="2025:02:02 01:01:02.123456789-00:00"&&docs.All(d=>d.Draft.ContainsKey(DatePagePreview.Field)),"new-direct-request-after-cancel-correct");
+   typeof(MainWindow).GetMethod("UndoLastApply",BindingFlags.NonPublic|BindingFlags.Instance)!.Invoke(window,[window,new RoutedEventArgs()]);
+   Check(Drafts()==draftSnapshot,"new-complete-undo-restores-earlier-drafts");
    foreach(var doc in docs)await doc.EnsureUnchangedAsync();Check(true,"all-3000-synthetic-sources-unchanged");
-   ComputeCancelProbe.Record("wpf_complete",new{status=Control<TextBlock>("Status").Text,existingDraftFiles=docs.Count(d=>d.Draft.Count>0)});
+   ComputeCancelProbe.Record("wpf_complete",new{input="marker-triggered production cancel Button.Click; not mouse/user input",existingDraftFiles=docs.Count(d=>d.Draft.Count>0)});
    foreach(var doc in docs)doc.ClearDraft();window.Close();app.Shutdown(0);
   }catch(Exception error){Fail(error);}};
-  if(automatic) {
-   ComputeCancelProbe.AfterStarted=()=>{
-    ComputeCancelProbe.AfterStarted=null;
-    stageConfirmed=ComputeCancelProbe.BeforeCancel();
-    ComputeCancelProbe.Record("actual_wpf_cancel_button_event",new{input="marker-triggered production Button.Click event; not mouse/user input"});
-    cancel.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-   };
-   preview.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-  }
-  File.WriteAllText(Path.Combine(ComputeCancelProbe.Folder,"ready.json"),JsonSerializer.Serialize(new{window=window.Title,count=docs.Length,mode="six-component offset",sourceHash=first.SourceHash,existingDraftFiles=2}));
+  if(automatic){ComputeCancelProbe.AfterStarted=()=>{ComputeCancelProbe.AfterStarted=null;window.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Send,new Action(()=>{
+   stageConfirmed=ComputeCancelProbe.BeforeCancel();ComputeCancelProbe.Record("actual_wpf_cancel_button_event",new{input="real-marker-triggered current production Button.Click; not mouse/user input"});cancel.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+  }));};apply.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));}
+  File.WriteAllText(Path.Combine(ComputeCancelProbe.Folder,"ready.json"),JsonSerializer.Serialize(new{window=window.Title,count=docs.Length,mode="six-component offset direct application",sourceHash=first.SourceHash,existingDraftFiles=2}));
   ComputeCancelProbe.Record("wpf_ready",new{count=docs.Length});
  }
  static Button? FindButton(DependencyObject node,string text){if(node is Button button&&button.Content?.ToString()==text)return button;foreach(var child in LogicalTreeHelper.GetChildren(node).OfType<DependencyObject>())if(FindButton(child,text)is{} found)return found;return null;}
  static async void Fail(Exception error){
   File.WriteAllText(Path.Combine(ComputeCancelProbe.Folder,"failure.txt"),error.ToString());ComputeCancelProbe.Record("failed",new{error=error.Message});
-  var limit=Stopwatch.StartNew();while((int)Field("datePending")!>0&&limit.Elapsed<TimeSpan.FromSeconds(45))await Task.Delay(10);
+  var limit=Stopwatch.StartNew();while((bool)Field("busy")!&&limit.Elapsed<TimeSpan.FromSeconds(45))await Task.Delay(10);
   app.Shutdown(1);
  }
  [STAThread]static int Main(string[] args)

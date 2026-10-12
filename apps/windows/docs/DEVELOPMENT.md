@@ -149,3 +149,15 @@ Stopwatch记录匹配、预览全来源复核、应用全来源复核、UI草稿
 模型：`dotnet run --project PhotoTrail.Windows.Tests -- --preset-library-checks`；受影响JSON／动作回归为 `--preset-checks`。生产 `DateHost/UiChecks` 新增 `--preset-library-checks`、`--library-restore-checks`（同库新进程）及 `--library-terminal-checks`（三合成XMP）。`--ordered-copy-checks`现从独立库保存／载入，再应用、撤销、保存JPEG／已有RAW旁车／XMP副本并回读。恢复工程的输出目录须无可导入照片；ExifTool须完整配置。
 
 所有检查必须设置独立 `PHOTOTRAIL_METADATA_PRESETS`，同时隔离已有重命名库、设置、搜索／轨迹历史、外观、执行记录及WebView路径。库文件上限1MiB／256项，单条仍128KiB／27操作。损坏／写失败在受控路径验证，不接触用户库。真实双进程和原生确认／系统对话框另记录，不能以模型模拟替代。最终候选DLL的生产检查记录实际SHA；固定DateHost复用，不编译Swift。未重跑性能、日期计算阶段取消、地图或部署。
+
+## R01a · 正式日期来源接入
+
+固定算法来源改为公开63fb9404ec5f0862df90a000f5dd1c4b81509900的Packages/PhotoTrailDateCore/Sources/PhotoTrailDateCore/MetadataDateEdit.swift，原字节SHA593fa443f634234b81308143d96b0e6bc0373782734d6ba85a69b90c4d153ccc保持。只同步锁与生产Source期望，不迁移其他日期入口，不改date-isolated-v1或工具链6.4.0。Build.ps1保持原固定Git导出／SHA校验／嵌入身份链。缺对象、旧类型别名路径及错误SHA必须拒绝；新旧宿主与期望两向错配必须拒绝，不按SHA相同放行。
+
+共同35向量由[固定Mac来源fixture](https://github.com/LittleSixNine/PhotoTrail/blob/63fb9404ec5f0862df90a000f5dd1c4b81509900/Packages/PhotoTrailDateCore/Tests/PhotoTrailDateCoreTests/Fixtures/date-core-v1.json)取得，只给检查器设置PHOTOTRAIL_DATE_CORE_FIXTURE；PHOTOTRAIL_DATE_CORE_OLD_HOST只在检查中指旧宿主。19预期／16观察分别记录；不把fixture当传输请求，不改历史兼容向量。运行现有Caller后保存具体结果和构建SHA。纯包测试从同一Git对象完整导出到独立目录再swift test；SwiftPM或环境错误须原样记录，直接单文件检查不等于纯包通过。
+
+生产UiChecks新增--date-core-copy-checks（四输入：JPEG、已有DNG旁车、XMP及旁车本身，选择前三目标排除DNG旁车的重复目的）、--date-core-scale-checks（PHOTOTRAIL_R01_COUNT=1/20/100，读取沿32文件批次）、--date-core-mismatch-checks（PHOTOTRAIL_R01_WRONG_HOST指另一个真实来源宿主，仅暂换检查器自身输出后恢复）。五模式应用／统计／完整撤销／再应用／显式副本／ExifTool回读、源与旁车／像素／其他语言保护均记录。1/20/100阶段读取测量是独立等规模ExifTool重读，应用／来源复核／提交／保存／核对各自计时，不冒称端到端鼠标响应或Mac性能门槛。
+
+ComputeCancelChecks复用真实标记与两个被动观测点，改用现有直接应用／取消按钮；先证明进程存活且完整stdout未到达，再取消、终态保留完整草稿、新请求和完整撤销。迟到／选择／草稿／来源／保存进行中失效沿现有--batch-direct-checks与--batch-late-checks，不恢复退役预览UI。旧整批检查把自身测试链保存到隔离库后退出，生产退出保护保持。
+
+所有偏好、库、轨迹／重命名记录、WebView目录及输出必须隔离；只用公开固定对象／合成副本。不替换旧已验收入口。框架依赖.NET10 Desktop与WebView2，包内DateHost运行库须逐文件核对来源／版本／SHA及许可。移除进程PATH仅补充隔离，不代替真实无Swift SDK机器；缺环境／许可／漏洞资料记未验，不能写完整验收或正式发布。

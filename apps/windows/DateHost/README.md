@@ -1,10 +1,10 @@
 # Windows日期页宿主
 
-仅Windows日期页的偏移、序列、原子组件替换、均分、文件名提取后校验使用此宿主。其他日期入口保留既有C#路径。Mac不需改代码；这不是共同正式协议或正式分发包。
+仅Windows日期页的偏移、序列、原子组件替换、均分、文件名提取后校验使用此宿主。其他日期入口保留既有C#路径。算法来自Mac已正式提取的PhotoTrailDateCore包；date-isolated-v1和现有五模式保持，候选仍是测试包。
 
 ## 固定来源与构建
 
-source-lock.json固定公开Git对象3593051e21e3af2c060a061aeaa888dee24c3bb4中的Packages/ImageData/Sources/ImageData/MetadataDateEdit.swift，SHA256为593fa443f634234b81308143d96b0e6bc0373782734d6ba85a69b90c4d153ccc。
+source-lock.json固定公开Git对象63fb9404ec5f0862df90a000f5dd1c4b81509900中的Packages/PhotoTrailDateCore/Sources/PhotoTrailDateCore/MetadataDateEdit.swift，SHA256为593fa443f634234b81308143d96b0e6bc0373782734d6ba85a69b90c4d153ccc。
 
 在apps/windows、使用PowerShell7和**已有**Swift6.4.0 Windows x64工具链、MSVC/Windows SDK、.NET10 SDK：
 
@@ -17,7 +17,7 @@ SwiftRoot按已有安装位置指定。脚本只从公开仓库固定对象按�
 
 ## Windows适配协议
 
-一批一个进程，UTF-8无BOM stdin完整JSON后关闭，stdout一个完整JSON响应，stderr仅非敏感诊断。版本date-isolated-v1沿用实验协议，未升级为共同接口。
+一批一个进程，UTF-8无BOM stdin完整JSON后关闭，stdout一个完整JSON响应，stderr仅非敏感诊断。版本date-isolated-v1保持，不引入新接口或协议升级。
 
 请求`{version,id,items:[{id,op,text,...}]}`；返回`{version,source:{commit,path,sha256},id,results:[{id,values或error:{scope,code}}],computeMs,jobError可选}`。source来自校验后的编译配置，C#核对固定身份/版本/请求ID/结果数量与顺序；拒绝缺项、重复、多项、坏响应。根和item未知成员均拒绝。
 
@@ -47,3 +47,5 @@ UiChecks使用实际生产MainWindow、真实控件、Dispatcher与事件，不�
 ## 真实计算取消检查
 
 见[ComputeCancelChecks](ComputeCancelChecks/README.md)：原样真实宿主、合法独立3000偏移、现有首项计算标记与完整输出未完成证据；定向检查和实际WPF取消入口分别记录，不将完成预览后的点击算作计算中取消。
+
+R01a共同fixture、双向来源拒绝、当前生产WPF副本链、真实计算取消和部署／许可门见[本端开发说明](../docs/DEVELOPMENT.md#r01a--正式日期来源接入)。算法从正式包固定对象消费，不要求将Mac整仓合入Windows工作树。

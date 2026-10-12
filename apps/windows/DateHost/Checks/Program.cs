@@ -113,6 +113,69 @@ static class Program
         Check(adapter.Pids.Count>1 && results.Select(r=>r.Id).SequenceEqual(escaped.Select(j=>j.Item.Id)) && adapter.Measurements.All(m=>m.InputBytes<=DateAdapter.MaxBytes&&m.OutputBytes<=DateAdapter.MaxBytes),"byte-budget-split-global-association");
         Evidence.Add(new{byteBudgetSplit=true,measurements=adapter.Measurements});Clean(adapter,"byte-split");
     }
+
+    static async Task SharedSource()
+    {
+        string? fixturePath=Environment.GetEnvironmentVariable("PHOTOTRAIL_DATE_CORE_FIXTURE");
+        if(fixturePath is not null) {
+            using var fixture=JsonDocument.Parse(File.ReadAllText(fixturePath));
+            var vectors=fixture.RootElement.EnumerateArray().ToArray();
+            Check(vectors.Length==35 && vectors.Count(v=>v.TryGetProperty("expected",out _))==19 &&
+                vectors.Count(v=>v.TryGetProperty("observed",out _))==16,"shared-fixture-19-expected-16-observed");
+            var jobs=vectors.Select((v,i)=>{
+                var parameters=v.GetProperty("parameters");
+                long? Number(string key)=>parameters.TryGetProperty(key,out var x)?long.Parse(x.GetString()!,CultureInfo.InvariantCulture):null;
+                string? Text(string key)=>parameters.TryGetProperty(key,out var x)?x.GetString():null;
+                string op=v.GetProperty("operation").GetString()!;
+                return new DateJob(new("shared-"+i,op=="parse"?"normalize":op,v.GetProperty("input").GetString(),
+                    Days:Number("days"),Seconds:Number("seconds")??Number("stepSeconds"),Component:Text("component"),
+                    Value:Number("value"),Count:Number("count"),Zone:Text("zone")));
+            }).ToArray();
+            var adapter=Real();var results=await adapter.ComputeAsync(jobs,1,()=>1);
+            for(int i=0;i<vectors.Length;i++) {
+                bool established=vectors[i].TryGetProperty("expected",out var reference);
+                if(!established)reference=vectors[i].GetProperty("observed");
+                string actual=results[i].Error is { } error?"error:"+error.Code:string.Join("|",results[i].Values!);
+                Evidence.Add(new{sharedVector=vectors[i].GetProperty("id").GetString(),category=established?"expected":"observed",
+                    input=jobs[i].Item,reference=reference.GetString(),actual});
+                Check(actual==reference.GetString(),"shared-"+(established?"expected-":"observed-")+i);
+            }
+            Clean(adapter,"shared-vectors");
+        }
+        string? oldHost=Environment.GetEnvironmentVariable("PHOTOTRAIL_DATE_CORE_OLD_HOST");
+        if(oldHost is not null) {
+            var oldSource=new SourceIdentity("3593051e21e3af2c060a061aeaa888dee24c3bb4",
+                "Packages/ImageData/Sources/ImageData/MetadataDateEdit.swift",Source.Sha256);
+            foreach(var combination in new[]{(Host:oldHost,Expected:Source,Name:"new-expected-old-host"),
+                                              (Host:Host,Expected:oldSource,Name:"old-expected-new-host")}) {
+                var adapter=new DateAdapter(combination.Host,combination.Expected);
+                await Reject("sourceMismatch",()=>adapter.ComputeAsync([Job("identity","normalize")],1,()=>1),combination.Name);
+                Check(adapter.AcceptedFrames==0 && adapter.PublishedCalls==0,combination.Name+"-no-partial");
+                Clean(adapter,combination.Name);
+            }
+        }
+        var supplements=new List<(WireItem Item,string Expected)>();
+        for(int digits=1;digits<=9;digits++) {
+            string value="2024:01:15 10:20:30."+new string('1',digits)+"-00:00";
+            supplements.Add((new("fraction-"+digits,"normalize",value),value));
+        }
+        foreach(string offset in new[]{"Z","+14:00","-14:00","+08:30","-05:45","-00:00",""}) {
+            string value="2024:01:15 10:20:30"+offset;
+            supplements.Add((new("zone-"+supplements.Count,"normalize",value),value));
+        }
+        foreach(string offset in new[]{"+14:01","-14:01","+15:00","-15:00"})
+            supplements.Add((new("invalid-zone-"+supplements.Count,"normalize","2024:01:15 10:20:30"+offset),"error:invalidDate"));
+        foreach(bool minimum in new[]{false,true})foreach(int component in Enumerable.Range(0,6)) {
+            long amount=minimum?long.MinValue:long.MaxValue;
+            supplements.Add((new("extreme-"+component+"-"+minimum,"offset","2024:01:15 10:20:30",
+                Years:component==0?amount:0,Months:component==1?amount:0,Days:component==2?amount:0,
+                Hours:component==3?amount:0,Minutes:component==4?amount:0,Seconds:component==5?amount:0),"error:invalidDate"));
+        }
+        var real=Real();var values=await real.ComputeAsync(supplements.Select(v=>new DateJob(v.Item)).ToArray(),1,()=>1);
+        for(int i=0;i<values.Length;i++)Check(Actual(values[i])==supplements[i].Expected,"source-supplement-"+supplements[i].Item.Id);
+        Clean(real,"source-supplements");
+    }
+
     static async Task Transport()
     {
         var jobs=Enumerable.Range(0,10).Select(i=>Job("j"+i,"normalize")).ToArray();
@@ -170,7 +233,7 @@ static class Program
         using(var source=JsonDocument.Parse(File.ReadAllText(Path.Combine(Base,"source-lock.json")))) {var value=source.RootElement;Source=new(value.GetProperty("commit").GetString()!,value.GetProperty("path").GetString()!,value.GetProperty("sha256").GetString()!);}
         if(args[0]=="--fixture"){await Fixture(args[1],args[3]);return 0;}
         Host=Path.Combine(Base,"bin","DateHost.exe");
-        try {await Cases();await Transport();File.WriteAllText(Path.Combine(Base,"check-results.json"),JsonSerializer.Serialize(new{passed=Passed,evidence=Evidence},new JsonSerializerOptions{WriteIndented=true}));Console.WriteLine("CHECKS_PASSED="+Passed);return 0;}
+        try {await Cases();await SharedSource();await Transport();File.WriteAllText(Path.Combine(Base,"check-results.json"),JsonSerializer.Serialize(new{passed=Passed,evidence=Evidence},new JsonSerializerOptions{WriteIndented=true}));Console.WriteLine("CHECKS_PASSED="+Passed);return 0;}
         catch(Exception error){File.WriteAllText(Path.Combine(Base,"evidence","failed-check.json"),JsonSerializer.Serialize(new{passed=Passed,error=error.ToString(),evidence=Evidence},new JsonSerializerOptions{WriteIndented=true}));Console.Error.WriteLine(error);return 1;}
     }
 }

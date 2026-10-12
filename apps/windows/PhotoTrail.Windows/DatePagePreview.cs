@@ -9,8 +9,8 @@ internal sealed record DatePageOptions(int Mode, long Years = 0, long Months = 0
 internal sealed class DatePagePreview
 {
     internal const string Field = "XMP-exif:DateTimeOriginal";
-    internal static readonly SourceIdentity Source = new("3593051e21e3af2c060a061aeaa888dee24c3bb4",
-        "Packages/ImageData/Sources/ImageData/MetadataDateEdit.swift", "593fa443f634234b81308143d96b0e6bc0373782734d6ba85a69b90c4d153ccc");
+    internal static readonly SourceIdentity Source = new("63fb9404ec5f0862df90a000f5dd1c4b81509900",
+        "Packages/PhotoTrailDateCore/Sources/PhotoTrailDateCore/MetadataDateEdit.swift", "593fa443f634234b81308143d96b0e6bc0373782734d6ba85a69b90c4d153ccc");
     readonly PhotoDocument[] documents;
     readonly long[] drafts;
     readonly string[] before;

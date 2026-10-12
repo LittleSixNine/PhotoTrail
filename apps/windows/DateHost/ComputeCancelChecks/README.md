@@ -17,3 +17,7 @@ The real marker triggers the actual production cancel button's `Click` event. Th
 Without `--auto`, use the actual preview/cancel controls with Computer Use. A click after the child finishes is explicitly recorded as entry validation, not computation-stage proof. Keep these two evidence categories separate; the natural 3000-item window may be shorter than a screenshot round trip. No production test build is packaged or substituted for an accepted candidate.
 
 All inputs must be disposable synthetic files in a new directory. Full phase logs, generated sources and outputs stay local. User acceptance, clean deployment, full historical regression and real-photo throughput are separate tasks.
+
+## R01a current direct-application entry
+
+The accepted product retired the legacy preview/cancel-preview controls. The WPF check now uses the current Apply/Cancel application buttons. The real stderr marker is marshalled onto the Dispatcher without pacing the host; it proves child alive and stdout incomplete immediately before the actual cancel event. After settlement it checks complete draft preservation, a new direct request, complete undo and all source hashes. Overlapping late results remain in the separate production UiChecks batch-late checks, rather than restoring retired UI controls. The two passive adapter observation points, fixed algorithm and production host are unchanged.
