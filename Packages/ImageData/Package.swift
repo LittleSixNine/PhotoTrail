@@ -9,6 +9,7 @@ let package = Package(
         .library(name: "ImageData", targets: ["ImageData"])
     ],
     dependencies: [
+        .package(name: "PhotoTrailDateCore", path: "../PhotoTrailDateCore"),
         .package(name: "Coords", path: "../Coords"),
         .package(name: "Exiftool", path: "../Exiftool"),
         .package(name: "Imagetool", path: "../Imagetool"),
@@ -19,6 +20,7 @@ let package = Package(
         .target(
             name: "ImageData",
             dependencies: [
+                .product(name: "PhotoTrailDateCore", package: "PhotoTrailDateCore"),
                 .product(name: "Coords", package: "Coords"),
                 .product(name: "Exiftool", package: "Exiftool"),
                 .product(name: "Imagetool", package: "Imagetool"),

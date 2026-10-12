@@ -53,6 +53,7 @@ Debug／Release 都须检查真实二进制的最低系统版本；双架构构�
 | `Exiftool` | 随应用提供的 ExifTool 及调用封装。 |
 | `Imagetool` | 本地图片读取与元数据操作。 |
 | `Phototool` | 系统“照片”图库接口。 |
+| `PhotoTrailDateCore` | 仅依赖 Foundation 的共享日期算法；ImageData 以公开类型别名保持现有调用。 |
 | `ImageData` | 图片状态及不同元数据来源的整合。 |
 | `RunLogView` | 应用内日志查看界面。 |
 
@@ -70,7 +71,7 @@ make test-packages # 各本地 Swift 包的测试
 make test      # 上述四项
 ```
 
-也可以单独运行某个包的测试，例如 `swift test --package-path Packages/Coords`。
+也可以单独运行某个包的测试，例如 `swift test --package-path Packages/Coords`。日期核心使用 `swift test --package-path Packages/PhotoTrailDateCore`；共同 API、来源锁、合成向量及 Windows 兼容升级边界见 [日期核心契约](DATE-CORE-CONTRACT.md)。ImageData 传递依赖该本地包，App 调用者、最低系统和工程配置保持；`make test-packages` 会遍历并纳入它。Mac 验证不替代 Windows Foundation、宿主或无开发工具部署验证。
 
 应用单元测试通过 `PHOTOTRAIL_OFFLINE_TESTS=1` 避免读取私人收藏、凭据和加载交互窗口；该环境变量在项目测试方案中设置。`make test-unit` 使用独立的 `local.PhotoTrail.Validation` 标识，避免覆盖日常应用的设置。界面测试需要单独配置交互运行环境，不能把单元测试结果视作界面或在线接口测试结果。
 

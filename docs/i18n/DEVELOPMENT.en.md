@@ -90,3 +90,7 @@ Stable requirement IDs, defaults, geographic algorithm and nonprivate synthetic 
 ## Direct-apply checks
 
 `MetadataDirectApplyTests` covers 530-photo draft commit/undo, cancellation after calculation starts, selection/draft/skipped-source changes and late-result isolation. `MetadataDirectApplyValidationTests` checks request-scoped IPTC encoding-read reuse and version changes. Run the scale benchmark with `PHOTOTRAIL_DIRECT_APPLY_BENCH=1 swift test --package-path Packages/ImageData --filter MetadataDirectApplyPerformanceTests`; use `PHOTOTRAIL_DIRECT_XMP_BENCH=1` for XMP calculations. Benchmarks use synthetic temporary inputs and frozen snapshots; calculation, source recheck and draft commit are distinct stages. These results do not establish private-photo timings or UI acceptance.
+
+## Shared date core
+
+`PhotoTrailDateCore` contains the unchanged Foundation-only date algorithm. ImageData depends on the local package and preserves existing public names through two typealiases; current App callers, minimum OS and project configuration are unchanged. `make test-packages` includes the package automatically. Run `swift test --package-path Packages/PhotoTrailDateCore` for the pure-core checks. See [the shared contract](../DATE-CORE-CONTRACT.md) for API, pinned source identity, synthetic vectors and Windows upgrade boundaries. Mac checks do not establish Windows Foundation, host or deployment compatibility.

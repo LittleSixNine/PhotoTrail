@@ -1,0 +1,328 @@
+[
+  {
+    "id": "legacy-01",
+    "operation": "replace",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "component": "year",
+      "value": "2025"
+    },
+    "expected": "2025:01:15 10:20:30.123456+08:00"
+  },
+  {
+    "id": "legacy-02",
+    "operation": "replace",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "component": "year",
+      "value": "0"
+    },
+    "expected": "error:invalidDate"
+  },
+  {
+    "id": "legacy-03",
+    "operation": "replace",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "component": "year",
+      "value": "10000"
+    },
+    "expected": "error:invalidDate"
+  },
+  {
+    "id": "legacy-04",
+    "operation": "replace",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "component": "month",
+      "value": "2"
+    },
+    "expected": "2024:02:15 10:20:30.123456+08:00"
+  },
+  {
+    "id": "legacy-05",
+    "operation": "replace",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "component": "month",
+      "value": "0"
+    },
+    "expected": "error:invalidDate"
+  },
+  {
+    "id": "legacy-06",
+    "operation": "replace",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "component": "month",
+      "value": "13"
+    },
+    "expected": "error:invalidDate"
+  },
+  {
+    "id": "legacy-07",
+    "operation": "replace",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "component": "day",
+      "value": "29"
+    },
+    "expected": "2024:01:29 10:20:30.123456+08:00"
+  },
+  {
+    "id": "legacy-08",
+    "operation": "replace",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "component": "day",
+      "value": "0"
+    },
+    "expected": "error:invalidDate"
+  },
+  {
+    "id": "legacy-09",
+    "operation": "replace",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "component": "day",
+      "value": "32"
+    },
+    "expected": "error:invalidDate"
+  },
+  {
+    "id": "legacy-10",
+    "operation": "replace",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "component": "hour",
+      "value": "23"
+    },
+    "expected": "2024:01:15 23:20:30.123456+08:00"
+  },
+  {
+    "id": "legacy-11",
+    "operation": "replace",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "component": "hour",
+      "value": "-1"
+    },
+    "expected": "error:invalidDate"
+  },
+  {
+    "id": "legacy-12",
+    "operation": "replace",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "component": "hour",
+      "value": "24"
+    },
+    "expected": "error:invalidDate"
+  },
+  {
+    "id": "legacy-13",
+    "operation": "replace",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "component": "minute",
+      "value": "59"
+    },
+    "expected": "2024:01:15 10:59:30.123456+08:00"
+  },
+  {
+    "id": "legacy-14",
+    "operation": "replace",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "component": "minute",
+      "value": "-1"
+    },
+    "expected": "error:invalidDate"
+  },
+  {
+    "id": "legacy-15",
+    "operation": "replace",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "component": "minute",
+      "value": "60"
+    },
+    "expected": "error:invalidDate"
+  },
+  {
+    "id": "legacy-16",
+    "operation": "replace",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "component": "second",
+      "value": "59"
+    },
+    "expected": "2024:01:15 10:20:59.123456+08:00"
+  },
+  {
+    "id": "legacy-17",
+    "operation": "replace",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "component": "second",
+      "value": "-1"
+    },
+    "expected": "error:invalidDate"
+  },
+  {
+    "id": "legacy-18",
+    "operation": "replace",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "component": "second",
+      "value": "60"
+    },
+    "expected": "error:invalidDate"
+  },
+  {
+    "id": "legacy-19",
+    "operation": "replace",
+    "input": "2024:02:29 12:00:00",
+    "parameters": {
+      "component": "year",
+      "value": "2023"
+    },
+    "expected": "error:invalidDate"
+  },
+  {
+    "id": "legacy-20",
+    "operation": "calendarDays",
+    "input": "2024:11:02 01:30:00-04:00",
+    "parameters": {
+      "days": "1",
+      "zone": "America/New_York"
+    },
+    "observed": "2024:11:03 01:30:00-04:00"
+  },
+  {
+    "id": "legacy-21",
+    "operation": "calendarDays",
+    "input": "2024:11:03 01:30:00-04:00",
+    "parameters": {
+      "days": "0",
+      "zone": "America/New_York"
+    },
+    "observed": "2024:11:03 01:30:00-04:00"
+  },
+  {
+    "id": "legacy-22",
+    "operation": "calendarDays",
+    "input": "2024:11:03 01:30:00-05:00",
+    "parameters": {
+      "days": "0",
+      "zone": "America/New_York"
+    },
+    "observed": "2024:11:03 01:30:00-05:00"
+  },
+  {
+    "id": "legacy-23",
+    "operation": "parse",
+    "input": "1582:10:04 12:00:00",
+    "parameters": {},
+    "observed": "1582:10:04 12:00:00"
+  },
+  {
+    "id": "legacy-24",
+    "operation": "parse",
+    "input": "1582:10:05 12:00:00",
+    "parameters": {},
+    "observed": "error:invalidDate"
+  },
+  {
+    "id": "legacy-25",
+    "operation": "parse",
+    "input": "1582:10:10 12:00:00",
+    "parameters": {},
+    "observed": "error:invalidDate"
+  },
+  {
+    "id": "legacy-26",
+    "operation": "parse",
+    "input": "1582:10:14 12:00:00",
+    "parameters": {},
+    "observed": "error:invalidDate"
+  },
+  {
+    "id": "legacy-27",
+    "operation": "parse",
+    "input": "1582:10:15 12:00:00",
+    "parameters": {},
+    "observed": "1582:10:15 12:00:00"
+  },
+  {
+    "id": "legacy-28",
+    "operation": "parse",
+    "input": "1582:10:16 12:00:00",
+    "parameters": {},
+    "observed": "1582:10:16 12:00:00"
+  },
+  {
+    "id": "legacy-29",
+    "operation": "shift",
+    "input": "1582:10:04 12:00:00",
+    "parameters": {
+      "seconds": "86400"
+    },
+    "observed": "1582:10:15 12:00:00"
+  },
+  {
+    "id": "legacy-30",
+    "operation": "shift",
+    "input": "1582:10:15 12:00:00",
+    "parameters": {
+      "seconds": "-86400"
+    },
+    "observed": "1582:10:04 12:00:00"
+  },
+  {
+    "id": "legacy-31",
+    "operation": "calendarDays",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "days": "100000"
+    },
+    "observed": "2297:10:30 10:20:30.123456+08:00"
+  },
+  {
+    "id": "legacy-32",
+    "operation": "calendarDays",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "days": "-100000"
+    },
+    "observed": "1750:04:01 10:20:30.123456+08:00"
+  },
+  {
+    "id": "legacy-33",
+    "operation": "calendarDays",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "days": "3660000"
+    },
+    "observed": "error:invalidDate"
+  },
+  {
+    "id": "legacy-34",
+    "operation": "calendarDays",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "days": "-3660000"
+    },
+    "observed": "error:invalidDate"
+  },
+  {
+    "id": "legacy-35",
+    "operation": "sequence",
+    "input": "2024:01:15 10:20:30.123456+08:00",
+    "parameters": {
+      "count": "3",
+      "stepSeconds": "9223372036854775807"
+    },
+    "observed": "error:invalidDate"
+  }
+]
