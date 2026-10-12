@@ -95,10 +95,19 @@ public sealed record MetadataPreset(string Name, IReadOnlyList<MetadataOperation
             return Create(root.GetProperty("name").GetString()!,operations);
         } catch (Exception error) when (error is JsonException or InvalidOperationException) { throw new ArgumentException("预设JSON结构无效。"); }
     }
+    internal IEnumerable<KeyValuePair<string,string>> DateParameters=>Operations.Where(op=>VerifiedMetadataDates.IsDate(op.Tag)&&op.Action is "setText" or "fillMissingText").Select(op=>new KeyValuePair<string,string>(op.Tag,op.Value));
+    public async Task<int> ApplyAsync(PhotoDocument photo,CancellationToken cancellation=default) {
+        var preset=Create(Name,Operations);var revision=photo.DraftRevision;var copy=photo.BatchSnapshot();var skipped=preset.Apply(copy,cancellation);
+        var proof=await VerifiedMetadataDates.CreateAsync(preset.DateParameters.Concat(copy.DateCandidates),cancellation);copy.AcceptDateInputs(proof);
+        await photo.EnsureUnchangedAsync(cancellation);if(revision!=photo.DraftRevision)throw new InvalidOperationException("预设验证期间草稿已改变。");
+        var next=new Dictionary<string,string>(copy.Draft);
+        photo.ReplaceDraft(next);photo.UsePreparedDates(copy);photo.NotifyDraftChanged();return skipped;
+    }
     // The caller supplies detached batch snapshots; no live document is touched before the terminal check.
     public int Apply(PhotoDocument photo, CancellationToken cancellation = default)
     {
-        var preset = Create(Name,Operations); var values = new Dictionary<string,string?>(); var changes = new Dictionary<string,string>(); int skipped = 0;
+        if(!photo.IsBatchSnapshot&&Operations.Any(op=>VerifiedMetadataDates.IsDate(op.Tag)&&op.Action!="remove"))throw new InvalidOperationException("日期预设须异步共享验证。");
+        var preset = Create(Name,Operations);CheckReadSource(photo); var values = new Dictionary<string,string?>(); var changes = new Dictionary<string,string>(); int skipped = 0;
         string? Current(string tag) {
             if (values.TryGetValue(tag,out var value)) return value;
             value = ReadCurrent(photo,tag); values[tag] = value; return value;
@@ -107,7 +116,7 @@ public sealed record MetadataPreset(string Name, IReadOnlyList<MetadataOperation
             cancellation.ThrowIfCancellationRequested(); string? value;
             if (op.Action == "copy") { _ = Current(op.Tag); value = Current(op.Value); if (value is null) { skipped++; continue; } }
             else {
-                var current = Current(op.Tag);
+                var current = op.Action=="remove"?null:Current(op.Tag);
                 if (op.Action is "fillMissingText" or "fillMissingAuthors" && current is not null) continue;
                 value = op.Action switch {
                     "remove" => null,
@@ -121,15 +130,19 @@ public sealed record MetadataPreset(string Name, IReadOnlyList<MetadataOperation
             var checkedOp = string.IsNullOrEmpty(value) ? new MetadataOperation(op.Tag,"remove") : new MetadataOperation(op.Tag, IsList(op.Tag) ? op.Tag == "XMP-dc:Creator" ? "replaceAuthors" : "replaceKeywords" : "setText",value);
             value = Validate(checkedOp).Value;
             if(value.Length>0 && PhotoDocument.NumericRange(op.Tag) is not null)value=PhotoDocument.CheckedNumber(op.Tag,value).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if(photo.IsBatchSnapshot&&VerifiedMetadataDates.IsDate(op.Tag)&&value.Length>0)photo.DateCandidates.Add(new(op.Tag,value));
             changes[op.Tag] = value; values[op.Tag] = value.Length == 0 ? null : value;
         }
-        photo.SetDraft(changes); return skipped;
+        photo.StageDraft(changes); return skipped;
     }
     static string[] Words(string? value) => string.IsNullOrEmpty(value) ? [] : value.Split('\n');
-    static string? ReadCurrent(PhotoDocument photo,string tag)
-    {
+    static void CheckReadSource(PhotoDocument photo) {
         foreach (var source in new[] { photo.Embedded, photo.Sidecar ?? photo.Embedded })
             if (source.ValueKind != JsonValueKind.Object || source.TryGetProperty("ExifTool:Error",out _) || source.TryGetProperty("Error",out _)) throw new ArgumentException("来源读取失败，不能视为缺失。");
+    }
+    static string? ReadCurrent(PhotoDocument photo,string tag)
+    {
+        CheckReadSource(photo);
         if (photo.Draft.TryGetValue(tag,out var pending)) return pending.Length == 0 ? null : pending;
         var metadata = photo.Sidecar ?? photo.Embedded;
         if (!metadata.TryGetProperty(tag,out var item)) return null;

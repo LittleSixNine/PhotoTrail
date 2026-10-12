@@ -8,7 +8,7 @@ static class PresetChecks
         var photo = await PhotoDocument.LoadAsync(client,Path.Combine(fixtures,"aligned.jpg"));
         var preset = MetadataPreset.Create("旅行预设",new Dictionary<string,string>{["XMP-dc:Creator"]="六九\n另一个作者",["XMP-dc:Title"]="预设,中文\n第二行",["XMP-dc:Subject"]="旅行\n风景\n旅行",["XMP-photoshop:City"]="",["XMP-exif:DateTimeOriginal"]="2026:10:10 12:00:00.123456789Z"});
         var path = Path.Combine(folder,"preset.json");MetadataCsv.WriteNew(path,preset.Encode());var loaded = MetadataPreset.Decode(File.ReadAllText(path));
-        loaded.Apply(photo);var copy = await MetadataCopy.SaveAsync(client,photo,folder);var result = await PhotoDocument.LoadAsync(client,copy);
+        await loaded.ApplyAsync(photo);var copy = await MetadataCopy.SaveAsync(client,photo,folder);var result = await PhotoDocument.LoadAsync(client,copy);
         foreach(var field in loaded.Operations.Select(op => new KeyValuePair<string,string>(op.Tag,op.Value))) { if(result.Value(field.Key)!=field.Value)throw new Exception("Preset mismatch "+field.Key);Console.WriteLine("PASS preset copy reload " + field.Key); }
         if(await PhotoDocument.HashAsync(photo.FilePath)!=photo.SourceHash)throw new Exception("Preset changed source");Console.WriteLine("PASS preset source unchanged");
         photo.ClearDraft();if(photo.Draft.Count!=0)throw new Exception("Undo failed");Console.WriteLine("PASS preset undo");Console.WriteLine("Evidence " + folder);

@@ -20,13 +20,37 @@ public sealed class PhotoDocument
     private readonly Dictionary<string, string> draft = [];
     public IReadOnlyDictionary<string, string> Draft => draft;
     internal long DraftRevision { get; private set; }
+    bool detachedBatch;
+    internal bool IsBatchSnapshot=>detachedBatch;
+    IReadOnlyDictionary<string,VerifiedPhotoDate?> dateSnapshot=new Dictionary<string,VerifiedPhotoDate?>();
+    internal string DateReadFailure {get;private set;}="";
+    internal VerifiedPhotoDate? VerifiedDate(string tag)=>dateSnapshot.GetValueOrDefault(Value(tag));
+    internal VerifiedPhotoDate? VerifiedCaptureDate {get { try{return dateSnapshot.GetValueOrDefault(VerifiedPhotoDate.Bridge(BatchTrackMatch.Capture(this)??""));}catch(ArgumentException){return null;} }}
+    IEnumerable<string> DateReadTexts() {
+        foreach(var tag in EditableTags.Where(VerifiedMetadataDates.IsDate))yield return Value(tag);
+        string? capture=null;try{capture=BatchTrackMatch.Capture(this);}catch(ArgumentException){}if(capture is not null)yield return VerifiedPhotoDate.Bridge(capture);
+    }
+    internal void AcceptDateInputs(VerifiedMetadataDates proof) {
+        var next=new Dictionary<string,VerifiedPhotoDate?>(dateSnapshot);
+        foreach(var pair in DateCandidates)next[pair.Value]=VerifiedPhotoDate.FromValidation(pair.Value,proof);dateSnapshot=next;
+    }
+    internal void UsePreparedDates(PhotoDocument frozen)=>dateSnapshot=frozen.dateSnapshot;
+    internal static async Task PrepareReadDatesAsync(IReadOnlyList<PhotoDocument> docs,CancellationToken token) {
+        var revisions=docs.Select(d=>d.DraftRevision).ToArray();
+        IReadOnlyDictionary<string,VerifiedPhotoDate?> result;
+        try{result=await VerifiedPhotoDate.InspectAsync(docs.SelectMany(d=>d.DateReadTexts()),token);}
+        catch(DateFailure error){token.ThrowIfCancellationRequested();foreach(var doc in docs){doc.dateSnapshot=new Dictionary<string,VerifiedPhotoDate?>();doc.DateReadFailure="共享日期读取不可用："+error.Code;}return;}
+        if(docs.Select((d,i)=>d.DraftRevision!=revisions[i]).Any(x=>x))throw new InvalidOperationException("日期读取期间草稿已改变。");
+        foreach(var doc in docs)doc.dateSnapshot=result;
+    }
+    internal readonly List<KeyValuePair<string,string>> DateCandidates=[];
     internal event Action? DraftChanged;
     private void ChangedDraft() { DraftRevision++; DraftChanged?.Invoke(); }
     public void ClearDraft() { draft.Clear(); ChangedDraft(); }
     internal PhotoDocument BatchSnapshot() {
         var copy=new PhotoDocument(FilePath,SidecarPath,Embedded,Sidecar,SourceHash,SidecarHash);
         foreach(var pair in draft)copy.draft.Add(pair.Key,pair.Value);
-        copy.DraftRevision=DraftRevision;return copy;
+        copy.DraftRevision=DraftRevision;copy.dateSnapshot=dateSnapshot;copy.DateReadFailure=DateReadFailure;copy.detachedBatch=true;return copy;
     }
     internal void ReplaceDraft(IReadOnlyDictionary<string,string> state) { draft.Clear();foreach(var pair in state)draft.Add(pair.Key,pair.Value); }
     internal void NotifyDraftChanged()=>ChangedDraft();
@@ -46,7 +70,8 @@ public sealed class PhotoDocument
         var sidecarHash = sidecar is null ? null : await HashAsync(sidecar, cancellation);
         var metadata = await client.ReadAsync(file, cancellation);
         JsonElement? external = sidecar is null ? null : await client.ReadAsync(sidecar, cancellation);
-        return await VerifiedAsync(file, sidecar, metadata, external, hash, sidecarHash, cancellation);
+        var loaded=await VerifiedAsync(file,sidecar,metadata,external,hash,sidecarHash,cancellation);
+        await PrepareReadDatesAsync(new[]{loaded},cancellation);await loaded.EnsureUnchangedAsync(cancellation);return loaded;
     }
 
     private static async Task<PhotoDocument> VerifiedAsync(string file, string? sidecar, JsonElement metadata, JsonElement? external, string hash, string? sidecarHash, CancellationToken cancellation)
@@ -105,7 +130,10 @@ public sealed class PhotoDocument
             catch (OperationCanceledException) { throw; }
             catch (Exception error) when (error is IOException or InvalidDataException or JsonException or ArgumentException or TimeoutException or UnauthorizedAccessException) { results[item.File] = new(item.File, null, error.Message); }
         }
-        return files.Select(path => results[Path.GetFullPath(path)]).ToArray();
+        var loaded=files.Select(path=>results[Path.GetFullPath(path)]).ToArray();
+        await PrepareReadDatesAsync(loaded.Where(r=>r.Document is not null).Select(r=>r.Document!).ToArray(),cancellation);
+        for(int i=0;i<loaded.Length;i++)if(loaded[i].Document is {} photo)try{await photo.EnsureUnchangedAsync(cancellation);}catch(IOException error){loaded[i]=new(photo.FilePath,null,error.Message);}
+        return loaded;
     }
 
     public string Value(string tag)
@@ -116,6 +144,22 @@ public sealed class PhotoDocument
     }
 
     public void SetDraft(IReadOnlyDictionary<string, string> changes)
+    {
+        if(changes.Any(p=>VerifiedMetadataDates.IsDate(p.Key)&&p.Value.Length>0))throw new InvalidOperationException("日期设置须经过异步共享验证。");
+        SetDraftValues(changes);
+    }
+    internal void StageDraft(IReadOnlyDictionary<string,string> changes) {
+        if(!detachedBatch) { SetDraft(changes);return; }
+        SetDraftValues(changes);DateCandidates.AddRange(changes.Where(p=>VerifiedMetadataDates.IsDate(p.Key)&&p.Value.Length>0));
+    }
+    public async Task SetDraftAsync(IReadOnlyDictionary<string,string> changes,CancellationToken token=default) {
+        var frozen=new Dictionary<string,string>(changes);var revision=DraftRevision;
+        var dates=await VerifiedMetadataDates.CreateAsync(frozen,token);await EnsureUnchangedAsync(token);
+        if(revision!=DraftRevision)throw new InvalidOperationException("日期验证期间草稿已改变。");
+        dates.Require(frozen);
+        var next=new Dictionary<string,VerifiedPhotoDate?>(dateSnapshot);foreach(var pair in frozen.Where(p=>VerifiedMetadataDates.IsDate(p.Key)&&p.Value.Length>0))next[pair.Value]=VerifiedPhotoDate.FromValidation(pair.Value,dates);dateSnapshot=next;SetDraftValues(frozen);
+    }
+    void SetDraftValues(IReadOnlyDictionary<string,string> changes)
     {
         if (!CanEdit) throw new InvalidOperationException("此格式目前仅支持读取；已有XMP旁车时可编辑旁车。");
         ValidateChanges(changes);
@@ -139,10 +183,11 @@ public sealed class PhotoDocument
     internal void ApplyDatePage(DatePagePreview preview)
     {
         // The capability checks this exact document, source value and draft revision; no general bypass flag.
-        var value=preview.ValueFor(this);
+        var value=preview.ValueFor(this);var verified=VerifiedPhotoDate.FromPage(preview,this);
         ValidateDatePageShape(DatePagePreview.Field,value);
         var original=(Sidecar??Embedded).TryGetProperty(DatePagePreview.Field,out var field)?Text(field):"";
         if(value==original)draft.Remove(DatePagePreview.Field);else draft[DatePagePreview.Field]=value;
+        var next=new Dictionary<string,VerifiedPhotoDate?>(dateSnapshot);next[value]=verified;dateSnapshot=next;
         ChangedDraft();
     }
 
@@ -234,7 +279,7 @@ public sealed class PhotoDocument
             if (tag == "XMP-exif:GPSProcessingMethod" && value is not ("" or "GPS" or "MANUAL")) throw new ArgumentException("定位来源无效。");
             if (tag == "XMP-exif:GPSDateTime" && value.Length > 0) throw new ArgumentException("当前仅清除旧XMP定位时间，不从照片时间猜测GPS测量时间。");
             if (tag is "XMP-dc:Creator" or "XMP-dc:Subject" && value.Split('\n').Length > 256) throw new ArgumentException("作者或关键词最多支持256项。");
-            if (value.Length != 0 && tag is "XMP-exif:DateTimeOriginal" or "XMP-exif:DateTimeDigitized" or "XMP-xmp:CreateDate" or "XMP-xmp:ModifyDate") _ = MetadataDate.Parse(value);
+            if (value.Length != 0 && tag is "XMP-exif:DateTimeOriginal" or "XMP-exif:DateTimeDigitized" or "XMP-xmp:CreateDate" or "XMP-xmp:ModifyDate") { if(Encoding.UTF8.GetByteCount(value)>128)throw new ArgumentException("日期文字超过128字节边界。"); }
         }
     }
 
@@ -259,11 +304,16 @@ public sealed class PhotoDocument
 
 public static class MetadataCopy
 {
-    public static async Task<string> SaveAsync(ExifToolClient client, PhotoDocument photo, string folder, CancellationToken cancellation = default)
+    public static async Task<string> SaveAsync(ExifToolClient client,PhotoDocument photo,string folder,CancellationToken cancellation=default) {
+        var frozen=new Dictionary<string,string>(photo.Draft);var proof=await VerifiedMetadataDates.CreateAsync(frozen,cancellation);
+        return await SaveValidatedAsync(client,photo,folder,frozen,proof,cancellation);
+    }
+    internal static async Task<string> SaveValidatedAsync(ExifToolClient client, PhotoDocument photo,string folder,IReadOnlyDictionary<string,string> frozen,VerifiedMetadataDates dates,CancellationToken cancellation=default)
     {
         if (!photo.CanEdit || photo.Draft.Count == 0) throw new InvalidOperationException("没有可保存的草稿。");
         // Freeze only the requested fields; UI edits while saving cannot alter this operation.
-        var changes = new Dictionary<string, string>(photo.Draft);
+        var changes=new Dictionary<string,string>(frozen);
+        PhotoDocument.ValidateChanges(changes);dates.Require(changes);
         if (!Directory.Exists(folder)) throw new DirectoryNotFoundException("输出文件夹不存在。");
         var output = Path.Combine(Path.GetFullPath(folder), Path.GetFileName(photo.FilePath));
         var sidecarOutput = photo.SidecarPath is null ? null : Path.ChangeExtension(output, ".xmp");

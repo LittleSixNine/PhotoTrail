@@ -10,6 +10,9 @@
   <Compile Include="../PhotoTrail.Windows/MetadataClipboard.cs" Link="MetadataClipboard.cs" />
   <Compile Include="../PhotoTrail.Windows/MetadataPresetLibrary.cs" Link="MetadataPresetLibrary.cs" />
   <Compile Include="../PhotoTrail.Windows/MetadataPreset.cs" Link="MetadataPreset.cs" />
+  <Compile Include="../PhotoTrail.Windows/BatchTrackMatch.cs" Link="BatchTrackMatch.cs" />
+  <Compile Include="../PhotoTrail.Windows/VerifiedPhotoDate.cs" Link="VerifiedPhotoDate.cs" />
+  <Compile Include="../PhotoTrail.Windows/SharedMetadataDates.cs" Link="SharedMetadataDates.cs" />
   <Compile Include="../PhotoTrail.Windows/MetadataDate.cs" Link="MetadataDate.cs" />
   <Compile Include="../PhotoTrail.Windows/DateAdapter.cs" Link="DateAdapter.cs" />
   <Compile Include="../PhotoTrail.Windows/DatePagePreview.cs" Link="DatePagePreview.cs" />

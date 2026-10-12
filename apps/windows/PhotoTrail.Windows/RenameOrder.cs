@@ -18,25 +18,32 @@ public sealed record RenameInput(string Path,IReadOnlyDictionary<string,string> 
         foreach(var candidate in candidates){var key=Tags.Keys.Where(k=>k.Split(':').Last()==candidate).Order(StringComparer.Ordinal).FirstOrDefault();if(key is not null&&Tags[key].Length>0)return Tags[key];}
         return token switch{"FileName"=>Name,"FileNameWithoutExtension"=>System.IO.Path.GetFileNameWithoutExtension(Path),"FileExtension"=>Extension,"ParentFolderName"=>System.IO.Path.GetFileName(Directory),"FilePath"=>Path,_=>null};
     }
-    public static double? Date(string? raw) {
-        if(string.IsNullOrWhiteSpace(raw))return null;
-        if(raw.Length>=19)raw=raw[..10].Replace('-',':')+raw[10..].Replace('T',' ');
-        if(raw.Length>=24&&raw[^5] is '+' or '-'&&raw[^3]!=':')raw=raw.Insert(raw.Length-2,":");
-        int offset=0;if(raw.EndsWith('Z'))raw=raw[..^1];else if(raw.Length>=25&&raw[^6] is '+' or '-'){
-            if(raw[^3]!=':'||!int.TryParse(raw.AsSpan(raw.Length-5,2),NumberStyles.None,CultureInfo.InvariantCulture,out var hours)||!int.TryParse(raw.AsSpan(raw.Length-2,2),NumberStyles.None,CultureInfo.InvariantCulture,out var minutes)||hours>23||minutes>59)return null;
-            // Rename comparison uses a neutral epoch; it does not widen the metadata editor's offset policy.
-            offset=(raw[^6]=='-'?-1:1)*(hours*3600+minutes*60);raw=raw[..^6];
-        }
-        try{var d=MetadataDate.Parse(raw);return (d.WallTime.Ticks-DateTime.UnixEpoch.Ticks)/(double)TimeSpan.TicksPerSecond+(d.Fraction.Length>0?double.Parse("0"+d.Fraction,CultureInfo.InvariantCulture):0)-offset;}
-        catch(ArgumentException){return null;}
+    internal IReadOnlyDictionary<string,VerifiedPhotoDate?> DateResults {get;init;}=new Dictionary<string,VerifiedPhotoDate?>();
+    internal static string BridgeDate(string raw) {
+        raw=VerifiedPhotoDate.Bridge(raw);
+        if(raw.Length>=24&&raw[^5] is '+' or '-'&&raw[^3]!=':')raw=raw.Insert(raw.Length-2,":");return raw;
     }
-    public double? Shooting {
-        get{foreach(var key in new[]{"Composite:SubSecDateTimeOriginal","Composite:DateTimeOriginal","ExifIFD:DateTimeOriginal","XMP-exif:DateTimeOriginal","ExifIFD:CreateDate","QuickTime:CreationDate","QuickTime:DateTimeOriginal","QuickTime:ContentCreateDate","QuickTime:CreateDate","QuickTime:MediaCreateDate","ID3:Date","XMP-xmp:CreateDate"}){
-            var raw=Tag(key);if(raw is null)continue;var offset=Tag(key.EndsWith(":CreateDate",StringComparison.Ordinal)?"OffsetTimeDigitized":"OffsetTimeOriginal");
+    internal static decimal? Date(string? raw,IReadOnlyDictionary<string,VerifiedPhotoDate?> results) {
+        if(raw is null)return null;var date=results.GetValueOrDefault(BridgeDate(raw));
+        if(date?.SortProjection is not {} projected)return null;
+        return (projected.Ticks-DateTime.UnixEpoch.Ticks)/(decimal)TimeSpan.TicksPerSecond+projected.Nanoseconds/1_000_000_000m;
+    }
+    // System file times are a different domain and never authorize metadata writes.
+    public static decimal? SystemDate(string? raw) {
+        if(raw is null||!DateTimeOffset.TryParse(raw,CultureInfo.InvariantCulture,DateTimeStyles.None,out var time))return null;
+        return (time.UtcTicks-DateTime.UnixEpoch.Ticks)/(decimal)TimeSpan.TicksPerSecond;
+    }
+    internal IEnumerable<string> ShootingTexts() {
+        foreach(var key in new[]{"Composite:SubSecDateTimeOriginal","Composite:DateTimeOriginal","ExifIFD:DateTimeOriginal","XMP-exif:DateTimeOriginal","ExifIFD:CreateDate","QuickTime:CreationDate","QuickTime:DateTimeOriginal","QuickTime:ContentCreateDate","QuickTime:CreateDate","QuickTime:MediaCreateDate","ID3:Date","XMP-xmp:CreateDate"}) {
+            var raw=Tag(key);if(raw is null)continue;bool digitized=key.EndsWith(":CreateDate",StringComparison.Ordinal);
+            var fraction=Tag(digitized?"SubSecTimeDigitized":"SubSecTimeOriginal");var offset=Tag(digitized?"OffsetTimeDigitized":"OffsetTimeOriginal");
+            if(raw.Length>=19&&!raw.Contains('.')) {if(fraction is not null)raw=raw[..19]+"."+fraction+raw[19..];}
             if(raw.Length>=19&&!raw.Contains('Z')&&raw.IndexOf('+',19)<0&&raw.IndexOf('-',19)<0&&offset is not null)raw+=offset;
-            var value=Date(raw);if(value is null)continue;if(!raw.Contains('.')&&double.TryParse("0."+Tag(key.EndsWith(":CreateDate",StringComparison.Ordinal)?"SubSecTimeDigitized":"SubSecTimeOriginal"),CultureInfo.InvariantCulture,out var fraction)&&fraction is >=0 and <1)value+=fraction;return value;
-        }return null;}
+            yield return BridgeDate(raw);
+        }
     }
+    public decimal? Shooting {get {foreach(var text in ShootingTexts()){if(DateResults.TryGetValue(text,out var valid)&&valid is not null)return Date(text,DateResults);}return null;}}
+
 }
 public sealed record RenameGroup(string Id,IReadOnlyList<RenameInput> Members)
 {
@@ -53,7 +60,7 @@ public sealed record RenameOrderSettings(string Sort="input",bool Descending=fal
     public static readonly string[] Sorts=["input","name","natural","shooting","created","modified","fileExtension","folder","size","make","model","city","rating","metadata","manual"];
     public void Validate(){if(!Sorts.Contains(Sort)||MetadataSortTag?.Length>256||MetadataSortTag?.Any(char.IsControl)==true)throw new ArgumentException("排序设置无效。");}
 }
-public sealed record RenameInputFilter(string Query="",string Extension="",string Folder="",string Camera="",double? From=null,double? To=null,int Gps=0,string Tag="",int Presence=0)
+public sealed record RenameInputFilter(string Query="",string Extension="",string Folder="",string Camera="",decimal? From=null,decimal? To=null,int Gps=0,string Tag="",int Presence=0)
 {
     public bool NeedsTags=>Camera.Length>0||From is not null||To is not null||Gps!=0||Tag.Length>0;
     public bool Matches(RenameInput input){
@@ -70,12 +77,14 @@ public static class RenameOrder
     [DllImport("shlwapi.dll",CharSet=CharSet.Unicode,ExactSpelling=true)]static extern int StrCmpLogicalW(string a,string b);
     public static RenameGroup[] Ordered(IEnumerable<RenameGroup> groups,RenameOrderSettings settings){
         settings.Validate();var inputs=groups.ToArray();if(settings.Sort is "input" or "manual")return settings.Descending&&settings.Sort!="manual"?inputs.Reverse().ToArray():inputs;
-        string? Value(RenameGroup g){var m=g.Leader;return settings.Sort switch{"name" or "natural"=>m.Name,"fileExtension"=>m.Extension,"folder"=>m.Directory,"size"=>m.Size?.ToString(CultureInfo.InvariantCulture),"created"=>m.Tag("File:FileCreateDate") is var c?RenameInput.Date(c)?.ToString("R",CultureInfo.InvariantCulture):null,"modified"=>RenameInput.Date(m.Tag("File:FileModifyDate"))?.ToString("R",CultureInfo.InvariantCulture),"shooting"=>m.MetadataFailed?null:m.Shooting?.ToString("R",CultureInfo.InvariantCulture),"make"=>m.Tag("CameraMake"),"model"=>m.Tag("CameraModel"),"city"=>m.Tag("IPTCCity"),"rating"=>m.Tag("XMP-xmp:Rating"),"metadata"=>m.Tag(settings.MetadataSortTag??"") is var v?(RenameInput.Date(v)?.ToString("R",CultureInfo.InvariantCulture)??v):null,_=>null};}
+        string? Value(RenameGroup g){var m=g.Leader;return settings.Sort switch{"name" or "natural"=>m.Name,"fileExtension"=>m.Extension,"folder"=>m.Directory,"size"=>m.Size?.ToString(CultureInfo.InvariantCulture),"created"=>m.Tag("File:FileCreateDate") is var c?RenameInput.SystemDate(c)?.ToString(CultureInfo.InvariantCulture):null,"modified"=>RenameInput.SystemDate(m.Tag("File:FileModifyDate"))?.ToString(CultureInfo.InvariantCulture),"shooting"=>m.MetadataFailed?null:m.Shooting?.ToString(CultureInfo.InvariantCulture),"make"=>m.Tag("CameraMake"),"model"=>m.Tag("CameraModel"),"city"=>m.Tag("IPTCCity"),"rating"=>m.Tag("XMP-xmp:Rating"),"metadata"=>m.Tag(settings.MetadataSortTag??"") is var v?(RenameInput.Date(v,m.DateResults)?.ToString(CultureInfo.InvariantCulture)??v):null,_=>null};}
         var indexed=inputs.Select((g,i)=>(g,i,v:Value(g))).ToArray();Array.Sort(indexed,(a,b)=>{
             bool am=string.IsNullOrWhiteSpace(a.v),bm=string.IsNullOrWhiteSpace(b.v);if(am||bm)return am&&bm?a.i.CompareTo(b.i):am?1:-1;
             int compare;bool numeric=settings.Sort is "created" or "modified" or "shooting" or "size" or "rating" or "metadata";
             bool an=double.TryParse(a.v,NumberStyles.Float,CultureInfo.InvariantCulture,out var av)&&double.IsFinite(av),bn=double.TryParse(b.v,NumberStyles.Float,CultureInfo.InvariantCulture,out var bv)&&double.IsFinite(bv);
-            if(numeric&&(an||bn))compare=an&&bn?av.CompareTo(bv):an?-1:1;else compare=settings.Sort=="natural"?Math.Sign(StrCmpLogicalW(a.v!,b.v!)):StringComparer.Ordinal.Compare(a.v,b.v);
+            bool dateOrder=settings.Sort is "created" or "modified" or "shooting" || settings.Sort=="metadata"&&(a.g.Leader.DateResults.GetValueOrDefault(RenameInput.BridgeDate(a.g.Leader.Tag(settings.MetadataSortTag??"")??"")) is not null||b.g.Leader.DateResults.GetValueOrDefault(RenameInput.BridgeDate(b.g.Leader.Tag(settings.MetadataSortTag??"")??"")) is not null);
+            if(dateOrder&&decimal.TryParse(a.v,NumberStyles.Float,CultureInfo.InvariantCulture,out var ad)&&decimal.TryParse(b.v,NumberStyles.Float,CultureInfo.InvariantCulture,out var bd))compare=ad.CompareTo(bd);
+            else if(numeric&&(an||bn))compare=an&&bn?av.CompareTo(bv):an?-1:1;else compare=settings.Sort=="natural"?Math.Sign(StrCmpLogicalW(a.v!,b.v!)):StringComparer.Ordinal.Compare(a.v,b.v);
             return compare==0?a.i.CompareTo(b.i):settings.Descending?-compare:compare;
         });return indexed.Select(v=>v.g).ToArray();
     }

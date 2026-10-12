@@ -49,3 +49,7 @@ UiChecks使用实际生产MainWindow、真实控件、Dispatcher与事件，不�
 见[ComputeCancelChecks](ComputeCancelChecks/README.md)：原样真实宿主、合法独立3000偏移、现有首项计算标记与完整输出未完成证据；定向检查和实际WPF取消入口分别记录，不将完成预览后的点击算作计算中取消。
 
 R01a共同fixture、双向来源拒绝、当前生产WPF副本链、真实计算取消和部署／许可门见[本端开发说明](../docs/DEVELOPMENT.md#r01a--正式日期来源接入)。算法从正式包固定对象消费，不要求将Mac整仓合入Windows工作树。
+
+## R01b现有生产入口
+
+R01b复用本批固定DateHost原样二进制及既有DateAdapter，不重建Swift、升级协议或改变共享源码。normalize扩展消费至四个XMP日期、CSV、字段剪贴板、XMP、固定预设／复制与重命名日期名称；旧C#元数据历法工具仅剩文件名文本提取。历史时间投影仍未完成，见本端[行为](../docs/BEHAVIOR.md#r01b--现有日期入口共享验证)和[开发说明](../docs/DEVELOPMENT.md#r01b--现有日期入口共享验证)。上方旧168／245及旧入口声明保留历史归属。新输入使用异步共享检查，不把结构Decode当作日期合法性。

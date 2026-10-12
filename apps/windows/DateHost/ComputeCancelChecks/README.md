@@ -21,3 +21,7 @@ All inputs must be disposable synthetic files in a new directory. Full phase log
 ## R01a current direct-application entry
 
 The accepted product retired the legacy preview/cancel-preview controls. The WPF check now uses the current Apply/Cancel application buttons. The real stderr marker is marshalled onto the Dispatcher without pacing the host; it proves child alive and stdout incomplete immediately before the actual cancel event. After settlement it checks complete draft preservation, a new direct request, complete undo and all source hashes. Overlapping late results remain in the separate production UiChecks batch-late checks, rather than restoring retired UI controls. The two passive adapter observation points, fixed algorithm and production host are unchanged.
+
+## R01b existing CSV entry
+
+`--auto --r01b-csv` uses the existing CSV Apply flow with 3000 distinct DateTimeDigitized values and retained drafts. The original host marker, live child and incomplete stdout establish computation-stage cancellation; it then retries and verifies full undo/source hashes. Generated observations remain test-only. Use a fresh synthetic seed/input directory.

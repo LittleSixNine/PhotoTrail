@@ -36,12 +36,12 @@ if (args.FirstOrDefault() == "--history-checks") { try { TrackHistoryChecks.Run(
 if (args.FirstOrDefault() == "--clipboard-checks") { try { ClipboardChecks.Run(); } catch (Exception error) { Console.Error.WriteLine(error); Environment.ExitCode = 1; } return; }
 if (args.FirstOrDefault() == "--preset-library-checks") { PresetLibraryChecks.Run(); return; }
 if (args.FirstOrDefault() == "--preset-checks") { PresetChecks.Run(); return; }
-if (args.FirstOrDefault() == "--date-checks") { DateChecks.Run(); return; }
+if (args.FirstOrDefault() == "--date-checks") { await DateChecks.RunAsync(); return; }
 if (args.FirstOrDefault() == "--csv-checks") { CsvChecks.Run(); return; }
 if (args.FirstOrDefault() == "--rename-bulk-checks") { await RenameBulkChecks.RunAsync(); return; }
 if (args.FirstOrDefault() == "--rename-execution-checks") { await RenameExecutionChecks.RunAsync(); return; }
 if (args.FirstOrDefault() == "--rename-preset-checks") { RenamePresetChecks.Run(); return; }
-if (args.FirstOrDefault() == "--rename-order-checks") { RenameOrderChecks.Run(); return; }
+if (args.FirstOrDefault() == "--rename-order-checks") { await RenameOrderChecks.RunAsync(); return; }
 if (args.FirstOrDefault() == "--rename-checks") { await RenameChecks.RunAsync(); return; }
 if (args.FirstOrDefault() == "--google-checks") { GoogleChecks.Run(); return; }
 if (args.FirstOrDefault() == "--key-checks") { KeyChecks.Run(); return; }
@@ -171,7 +171,7 @@ var inputFile = Path.Combine(inputRoot, "照片 中文.jpg"); File.Copy(Path.Com
 await client.RunAsync(["-charset","filename=UTF8","-overwrite_original","-XMP-dc:Title-fr=Bonjour","-XMP-dc:Description-de=Beschreibung","--",inputFile]);
 var photo = await PhotoDocument.LoadAsync(client, inputFile);
 var changes = new Dictionary<string,string> { ["XMP-dc:Creator"]="作者 六九",["XMP-dc:Title"]="测试 标题",["XMP-dc:Description"]="中文描述\n第二行 $HOME @test \"引号\" \\literal",["XMP-dc:Subject"]="京都\n旅行, 夜景",["XMP-exif:DateTimeOriginal"]="2024:02:29 12:34:56+09:00" };
-photo.SetDraft(changes);
+await photo.SetDraftAsync(changes);
 var saved = await MetadataCopy.SaveAsync(client, photo, outputRoot);
 Check(File.Exists(saved), "JPEG copy saved with five fields");
 Check(await PhotoDocument.HashAsync(inputFile)==photo.SourceHash, "original JPEG unchanged after save");
@@ -180,9 +180,9 @@ Check(photo.Draft.Count==5, "source draft retained after saving a separate copy"
 var savedMetadata=await client.ReadAsync(saved);
 Check(savedMetadata.GetProperty("XMP-dc:Title-fr").ToString()=="Bonjour" && savedMetadata.GetProperty("XMP-dc:Description-de").ToString()=="Beschreibung", "alternate language values preserved");
 try { await MetadataCopy.SaveAsync(client,photo,outputRoot); throw new Exception("Existing output overwritten"); } catch(IOException) { Console.WriteLine("PASS existing target refused"); }
-try { photo.SetDraft(new Dictionary<string,string>{["XMP-exif:DateTimeOriginal"]="2024:02:30 12:00:00"}); throw new Exception("Invalid date accepted"); } catch(ArgumentException) { Console.WriteLine("PASS invalid calendar date refused"); }
+try { await photo.SetDraftAsync(new Dictionary<string,string>{["XMP-exif:DateTimeOriginal"]="2024:02:30 12:00:00"}); throw new Exception("Invalid date accepted"); } catch(ArgumentException) { Console.WriteLine("PASS invalid calendar date refused"); }
 photo.ClearDraft(); Check(photo.Value("XMP-dc:Creator")=="Marco S Hyman", "undo restores source value");
-try { photo.SetDraft(new Dictionary<string,string>{["XMP-dc:Title"]="must not apply",["File:FileName"]="unapproved.jpg"}); throw new Exception("Unknown field accepted"); } catch(ArgumentException) { Console.WriteLine("PASS unknown field refused"); }
+try { await photo.SetDraftAsync(new Dictionary<string,string>{["XMP-dc:Title"]="must not apply",["File:FileName"]="unapproved.jpg"}); throw new Exception("Unknown field accepted"); } catch(ArgumentException) { Console.WriteLine("PASS unknown field refused"); }
 Check(photo.Draft.Count==0,"invalid draft application is atomic");
 var dng=await PhotoDocument.LoadAsync(client,Path.Combine(fixtures,"sidecar.DNG"));
 Check(dng.Value("XMP-dc:Creator")=="Sidecar Alice", "sidecar author wins over embedded XMP");

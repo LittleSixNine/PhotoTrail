@@ -280,17 +280,18 @@ public partial class MainWindow : Window
         catch (Exception error) { RenameStatus.Text = "未开始恢复：" + error.Message; }
     }
     private IReadOnlyList<RenameRule> ReadRenameRules() => RenamePlan.ParseRules(RenameRules.Text);
-    private void RenameRulesChanged(object sender, RoutedEventArgs e)
+    private async void RenameRulesChanged(object sender, RoutedEventArgs e)
     {
         if (RenameRules is null || RenamePreview is null || RenameStatus is null || RenameProcessingSort is null || RenameViewOrder is null || RenameViewFilter is null || fillingRenameControls) return;
         renameRevision++; frozenRenamePlan = null; UpdateRenameButtons();RefreshSchemeControls();
+        var revision=renameRevision;
         try
         {
             var rules = ReadRenameRules();
-            var roots=RenameSelection().Select(r=>RenameGroup.Key(r.Document.FilePath)).ToHashSet(StringComparer.OrdinalIgnoreCase); renameGroups=renameGroups.Where(g=>g.Members.Any(m=>roots.Contains(RenameGroup.Key(m.Path)))).ToArray();RenderRenameGroups();
-            RenameStatus.Text = "名称预览已更新；请检查冲突并冻结计划后执行。";
+            var roots=RenameSelection().Select(r=>RenameGroup.Key(r.Document.FilePath)).ToHashSet(StringComparer.OrdinalIgnoreCase); renameGroups=renameGroups.Where(g=>g.Members.Any(m=>roots.Contains(RenameGroup.Key(m.Path)))).ToArray();await RenderRenameGroupsAsync();
+            if(revision!=renameRevision)return;RenameStatus.Text = "名称预览已更新；请检查冲突并冻结计划后执行。";
         }
-        catch (Exception error) { RenamePreview.ItemsSource = null; RenameStatus.Text = "未生成预览：" + error.Message; }
+        catch (Exception error) { if(revision!=renameRevision)return;RenamePreview.ItemsSource = null; RenameStatus.Text = "未生成预览：" + error.Message; }
     }
     private async void FreezeRename(object sender, RoutedEventArgs e)
     {
@@ -304,7 +305,7 @@ public partial class MainWindow : Window
             var revision = ++renameRevision; BeginOperation();
             try
             {
-                await ReadRenameGroupsAsync(operation!.Token); var included=IncludedRenameGroups();if(included.Length==0)throw new ArgumentException("筛选后无参与组。");if(included.Any(g=>g.Members.Any(m=>m.MetadataFailed)))throw new IOException("参与组元数据读取失败，不能当成缺失冻结。");var targets=included.SelectMany((g,i)=>g.Members.Select(m=>(Source:m.Path,Name:Path.GetFileNameWithoutExtension(RenamePlan.Apply(g.Leader.Name,rules,i,key=>RenameNameField(g,key)))+Path.GetExtension(m.Path)))).ToArray(); var plan=await RenamePlan.BuildTargetsAsync(targets,operation!.Token,includeSidecars:false); foreach(var member in included.SelectMany(g=>g.Members))if(plan.Files.Single(f=>f.Source.Equals(member.Path,StringComparison.OrdinalIgnoreCase)).Hash!=member.Hash)throw new IOException("预览元数据读取后源内容改变。");
+                await ReadRenameGroupsAsync(operation!.Token);await PrepareRenameDatesAsync(operation.Token); var included=IncludedRenameGroups();if(included.Length==0)throw new ArgumentException("筛选后无参与组。");if(included.Any(g=>g.Members.Any(m=>m.MetadataFailed)))throw new IOException("参与组元数据读取失败，不能当成缺失冻结。");var targets=included.SelectMany((g,i)=>g.Members.Select(m=>(Source:m.Path,Name:Path.GetFileNameWithoutExtension(RenamePlan.ApplyVerified(g.Leader.Name,rules,i,key=>RenameNameField(g,key),rules.Any(r=>r.Kind is "date-set" or "date-prefix")?RenameVerifiedDate(g):null))+Path.GetExtension(m.Path)))).ToArray(); var plan=await RenamePlan.BuildTargetsAsync(targets,operation!.Token,includeSidecars:false); foreach(var member in included.SelectMany(g=>g.Members))if(plan.Files.Single(f=>f.Source.Equals(member.Path,StringComparison.OrdinalIgnoreCase)).Hash!=member.Hash)throw new IOException("预览元数据读取后源内容改变。");
                 if (revision != renameRevision) return;
                 if (RenameHasDraft(plan.Files.Select(file=>file.Source))) throw new InvalidOperationException("计划中的照片或旁车有草稿，未冻结。");
                 var versions = plan.Files.ToDictionary(file=>file.Source,file=>file.Hash,StringComparer.OrdinalIgnoreCase);
@@ -599,7 +600,7 @@ public partial class MainWindow : Window
         if (Selected.Length != 1) return;
         try
         {
-            if (MetadataDate.Parse(Selected[0].Document.Value("XMP-exif:DateTimeOriginal")).Instant() is { } time) MatchTimeValue.Text = time.ToString("O");
+            if (Selected[0].Document.VerifiedDate("XMP-exif:DateTimeOriginal")?.Instant() is { } time) MatchTimeValue.Text = time.ToString("O");
         }
         catch (ArgumentException) { }
     }
@@ -765,14 +766,17 @@ public partial class MainWindow : Window
         }
         catch (Exception error) { Status.Text = "字段未复制：" + error.Message; }
     }
-    private void PasteFields(object sender, RoutedEventArgs e)
+    private async void PasteFields(object sender, RoutedEventArgs e)
     {
         if (busy || renameRecoveryRequired) return;
         try
         {
             if (Selected.Length == 0 || Selected.Any(row => !row.Document.CanEdit)) throw new InvalidOperationException("请选择可编辑照片。");
             if (!Clipboard.ContainsText()) throw new InvalidOperationException("剪贴板没有可用文字。");
-            var changes = MetadataClipboard.Prepare(Clipboard.GetText(), Fields.Where(field => field.Apply.IsChecked == true).Select(field => field.Tag));
+            var clipboard=Clipboard.GetText();var targets=Fields.Where(field=>field.Apply.IsChecked==true).Select(field=>field.Tag).ToArray();var selected=Selected;
+            var changes=MetadataClipboard.Prepare(clipboard,targets);
+            await ValidateEditorDatesAsync(changes);
+            if(!Selected.SequenceEqual(selected)||!Clipboard.ContainsText()||Clipboard.GetText()!=clipboard||!Fields.Where(field=>field.Apply.IsChecked==true).Select(field=>field.Tag).SequenceEqual(targets))throw new InvalidOperationException("剪贴板、字段或选择已改变，未填入。");
             fillingEditor = true;
             try { foreach (var (tag, _, value) in Fields) if (changes.TryGetValue(tag, out var text)) value.Text = text; }
             finally { fillingEditor = false; }
@@ -912,15 +916,18 @@ public partial class MainWindow : Window
         var selected = Selected.Where(p => p.Document.Draft.Count > 0).ToArray();
         if (selected.Length == 0) return;
         var folder = OutputFolder.Text;
+        var writeSnapshots=selected.Select(row=>new Dictionary<string,string>(row.Document.Draft)).ToArray();
         BeginOperation();
         var saved = 0; var failures = new List<string>(); var cancelled = false;
         try
         {
             var client = Tool();
-            foreach (var row in selected)
+            var dates=await VerifiedMetadataDates.CreateAsync(writeSnapshots.SelectMany(d=>d),operation!.Token);
+            batchTimings["saveDateCandidates"]=dates.CandidateCount;batchTimings["saveHostRequests"]=dates.Measurements.Count;
+            foreach (var (row,index) in selected.Select((row,index)=>(row,index)))
             {
                 operation!.Token.ThrowIfCancellationRequested(); Status.Text = "保存副本：" + row.Name;
-                try { await MetadataCopy.SaveAsync(client, row.Document, folder, operation.Token); saved++; }
+                try { await MetadataCopy.SaveValidatedAsync(client,row.Document,folder,writeSnapshots[index],dates,operation.Token); saved++; }
                 catch (OperationCanceledException) { throw; }
                 catch (Exception error) { failures.Add(row.Name + "：" + error.Message); }
             }
@@ -965,7 +972,7 @@ public partial class MainWindow : Window
         if (photos.Any(p => p.Document.Draft.Count > 0) || Fields.Any(f => f.Apply.IsChecked == true))
             e.Cancel = MessageBox.Show(this, "存在未撤销的草稿或未应用输入。放弃并退出？保存的副本仍保留。", "PhotoTrail", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes;
     }
-    private void WindowClosed(object? sender, EventArgs e) { trackMatchRevision++;InvalidateTrackAdjustment(); photoPreviewRequest?.Cancel(); photoPreviewRevision++; PhotoPreviewImage.Source = null; dependencyCheck?.Cancel(); operation?.Cancel(); renameRevision++; SuspendMap(); GoogleKeyInput.Clear(); MapView.Dispose(); }
+    private void WindowClosed(object? sender, EventArgs e) { renameDateValidation?.Cancel(); trackMatchRevision++;InvalidateTrackAdjustment(); photoPreviewRequest?.Cancel(); photoPreviewRevision++; PhotoPreviewImage.Source = null; dependencyCheck?.Cancel(); operation?.Cancel(); renameRevision++; SuspendMap(); GoogleKeyInput.Clear(); MapView.Dispose(); }
     private void MapSelected(object sender, SelectionChangedEventArgs e)
     {
         if (ReferenceEquals(e.Source, WorkspaceTabs) && IsLoaded && WorkspaceTabs.SelectedIndex == 1)
@@ -1098,7 +1105,7 @@ public partial class MainWindow : Window
     {
         public long Imported {get;init;}=Interlocked.Increment(ref nextPhotoOrder);
         public (long Ticks,int Nanoseconds)? Captured {
-            get{try{var date=MetadataDate.Parse(Document.Value(DatePagePreview.Field));return((date with{Fraction=""}).Instant()?.UtcTicks??date.WallTime.Ticks,date.Fraction.Length==0?0:int.Parse(date.Fraction[1..].PadRight(9,'0'),System.Globalization.CultureInfo.InvariantCulture));}catch(ArgumentException){return null;}}
+            get=>Document.VerifiedDate(DatePagePreview.Field)?.SortProjection;
         }
         public string Name => Path.GetFileName(Document.FilePath);
         public string Summary => $"{Document.FileType} · {(Document.SidecarPath is null ? "内嵌" : "XMP旁车")} · {(Document.Draft.Count > 0 ? $"{Document.Draft.Count}项草稿" : "原始值")}";

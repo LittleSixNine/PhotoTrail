@@ -161,3 +161,19 @@ Stopwatch记录匹配、预览全来源复核、应用全来源复核、UI草稿
 ComputeCancelChecks复用真实标记与两个被动观测点，改用现有直接应用／取消按钮；先证明进程存活且完整stdout未到达，再取消、终态保留完整草稿、新请求和完整撤销。迟到／选择／草稿／来源／保存进行中失效沿现有--batch-direct-checks与--batch-late-checks，不恢复退役预览UI。旧整批检查把自身测试链保存到隔离库后退出，生产退出保护保持。
 
 所有偏好、库、轨迹／重命名记录、WebView目录及输出必须隔离；只用公开固定对象／合成副本。不替换旧已验收入口。框架依赖.NET10 Desktop与WebView2，包内DateHost运行库须逐文件核对来源／版本／SHA及许可。移除进程PATH仅补充隔离，不代替真实无Swift SDK机器；缺环境／许可／漏洞资料记未验，不能写完整验收或正式发布。
+
+## R01b · 现有日期入口共享验证
+
+四个既有XMP日期字段（DateTimeOriginal、DateTimeDigitized、CreateDate、ModifyDate）的设置、CSV、字段剪贴板、XMP导入与含草稿导出、固定日期设置／补空及自身字段复制均先批量调用固定共享核心normalize。日期参数不Trim、不补UTC，1～9位分数秒及Z／显式偏移（含-00:00）保持原文本。清除不送normalize；未触及的无效原值保持，无关标题等编辑不被阻止。GPSDateTime仍只支持清除。
+
+共享核心采用已有历史历法，1582-10-05至14拒绝，1500-02-29可接受。date-set／date-prefix仅从已验证文本取到秒生成名称，不回写原日期。照片和重命名排序、轨迹匹配均消费请求内校验结果；无偏移不成为绝对时刻，亚100ns精度不舍入为匹配时刻。
+
+**未完成：**当前date-isolated-v1不返回历史历法时间投影。1582-10-15以前的共享合法日期可设置、保存及生成名称，但照片日期排序、重命名日期排序／筛选和轨迹匹配投影不支持；不得当作无效日期或用旧C#历法回退。最小共同接口需由共享核心提供历法投影、偏移存在性及整数秒／纳秒。本批不修改协议。现代日期在共享校验后使用平台时间表示适配。
+
+启动只恢复预设库列表。含共享规则拒绝日期的旧记录保留；实际载入、应用及保存新日期参数拒绝且保持旧编辑／库。操作链每个实际日期接收值（包括随后被覆盖的中间值）都参加验证，固定非法补空参数不因无净变化跳过。
+
+整个请求计算、校验、全部来源与旁车／草稿revision／选择／参数／任务状态复核通过后一次发布；任一宿主或协议失败无部分草稿，无独立算法回退。副本保存先整批校验日期草稿，后按既有逐文件结果执行。公开API日期设置改用SetDraftAsync；同步SetDraft只接受清除及非日期，预设日期用ApplyAsync，结构Decode／ValidateChanges不代替共享合法性。
+
+R01b已实现上述范围并定向验证，待用户验收；历史投影未完成。无SDK环境部署未验、运行库再分发许可不足、Windows SwiftPM包测试失败仍保留，候选不是正式分发包。不增加计算型日期预设、EXIF/IPTC或文件时间写入。
+
+验证：模型 --date-checks、--rename-order-checks；真实生产WPF --r01b-entry-checks、--r01b-protection-checks、--r01b-library-checks、--r01b-rename-checks、--r01b-fault-checks、--r01b-scale-checks，日期页 --date-core-copy-checks，迟到 --batch-late-checks（PHOTOTRAIL_R01B_LATE=1检查新入口）；ComputeCancelChecks --auto --r01b-csv使用两处被动阶段观测。原样候选DLL与专用检查构建归属必须分开。

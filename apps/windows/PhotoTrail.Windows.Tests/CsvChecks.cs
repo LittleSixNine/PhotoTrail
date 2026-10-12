@@ -16,7 +16,7 @@ static class CsvChecks
         try { MetadataCsv.WriteNew(csv, "changed"); throw new Exception("overwrite accepted"); } catch (IOException) { Check(File.ReadAllText(csv) == text, "existing CSV not overwritten"); }
         Check(!Directory.EnumerateFiles(folder, "*.tmp").Any(), "failed export leaves no own temporary file");
         var changes = MetadataCsv.Load(File.ReadAllText(csv), snapshot).Changes[snapshot[0].Id];
-        photo.SetDraft(changes); var saved = await MetadataCopy.SaveAsync(client, photo, folder); var result = await PhotoDocument.LoadAsync(client, saved);
+        await photo.SetDraftAsync(changes); var saved = await MetadataCopy.SaveAsync(client, photo, folder); var result = await PhotoDocument.LoadAsync(client, saved);
         Check(result.Value("XMP-dc:Title") == "CSV中文,引号\"\n第二行" && result.Value("XMP-dc:Creator") == "甲\n乙", "CSV draft copy saved and independently reloaded");
         Check(await PhotoDocument.HashAsync(photo.FilePath) == photo.SourceHash, "CSV leaves source hash unchanged");
         photo.ClearDraft(); Check(photo.Draft.Count == 0, "CSV draft undo restores imported context");

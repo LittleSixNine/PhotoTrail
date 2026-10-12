@@ -18,7 +18,7 @@ static class DatePageChecks
         var replace=new DatePageOptions(2,Components:new(){["hour"]=12});
         var mixed=await Plan(replace);
         Check(mixed.Values.SequenceEqual(new string?[]{"2024:01:15 12:20:30.123456+08:00",null,"2023:12:31 12:02:03"})&&mixed.MissingCount==1,"Mac-XMP-mixed-original-slots");
-        docs[0].SetDraft(new Dictionary<string,string>(){["XMP-exif:DateTimeOriginal"]="2026:01:02 03:04:05.123Z",["XMP-dc:Title"]="prior title"});
+        await docs[0].SetDraftAsync(new Dictionary<string,string>(){["XMP-exif:DateTimeOriginal"]="2026:01:02 03:04:05.123Z",["XMP-dc:Title"]="prior title"});
         docs[1].SetDraft(new Dictionary<string,string>(){["XMP-dc:Title"]="missing title"});
         var current=await Plan(replace);Check(current.Values[0]=="2026:01:02 12:04:05.123Z","Mode2-current-draft-priority");current.Apply();
         var same=await Plan(replace);Check(same.Values.All(v=>v is null)&&same.UnchangedCount==2&&same.MissingCount==1,"same-components-prior-drafts-no-eligibility");
@@ -26,7 +26,7 @@ static class DatePageChecks
         var zero=await Plan(new(0));Check(zero.Values.All(v=>v is null)&&zero.UnchangedCount==2,"zero-offset-prior-drafts-no-eligibility");
         string copies=Path.Combine(folder,"copies");Directory.CreateDirectory(copies);
         foreach(var doc in docs){var copy=await MetadataCopy.SaveAsync(client,doc,copies);var read=await PhotoDocument.LoadAsync(client,copy);Check(read.Value("XMP-exif:DateTimeOriginal")==doc.Value("XMP-exif:DateTimeOriginal")&&read.Value("XMP-dc:Title")==doc.Value("XMP-dc:Title"),"Mode2-copy-and-nontarget-readback");Check(await PhotoDocument.HashAsync(doc.FilePath)==doc.SourceHash,"Mode2-source-protected");doc.ClearDraft();}
-        docs[0].SetDraft(new Dictionary<string,string>(){["XMP-exif:DateTimeOriginal"]="",["XMP-dc:Title"]="keep clear"});
+        await docs[0].SetDraftAsync(new Dictionary<string,string>(){["XMP-exif:DateTimeOriginal"]="",["XMP-dc:Title"]="keep clear"});
         var cleared=await Plan(replace);Check(cleared.MissingCount==2&&cleared.Values[0] is null,"explicit-clear-is-missing");cleared.Apply();Check(docs[0].Draft["XMP-exif:DateTimeOriginal"]==""&&docs[0].Draft["XMP-dc:Title"]=="keep clear","clear-and-other-drafts-retained");
         foreach(var doc in docs)doc.ClearDraft();
         foreach(var doc in docs.Where(d=>d.Value("XMP-exif:DateTimeOriginal").Length>0))doc.SetDraft(new Dictionary<string,string>{["XMP-exif:DateTimeOriginal"]="",["XMP-dc:Title"]="all missing prior"});
@@ -78,13 +78,13 @@ static class DatePageChecks
         string copies=Path.Combine(folder,"copies");Directory.CreateDirectory(copies);
         foreach(var doc in docs){var copy=await MetadataCopy.SaveAsync(client,doc,copies);var read=await PhotoDocument.LoadAsync(client,copy);Check(read.Value("XMP-exif:DateTimeOriginal")==doc.Value("XMP-exif:DateTimeOriginal"),"copy-date-read-"+Path.GetFileName(doc.FilePath));Check(read.Value("XMP-dc:Title")==doc.Value("XMP-dc:Title"),"copy-other-draft-read-"+Path.GetFileName(doc.FilePath));Check(await PhotoDocument.HashAsync(doc.FilePath)==doc.SourceHash,"source-hash-"+Path.GetFileName(doc.FilePath));doc.ClearDraft();}
         var allMissing=await Plan(new[]{missing});Check(allMissing.Values.All(v=>v is null),"all-missing-no-changes");allMissing.Apply();Check(missing.Draft.Count==0,"all-missing-no-draft");
-        first.SetDraft(new Dictionary<string,string>{{"XMP-exif:DateTimeOriginal","2026:01:02 03:04:05.123Z"}});
+        await first.SetDraftAsync(new Dictionary<string,string>{{"XMP-exif:DateTimeOriginal","2026:01:02 03:04:05.123Z"}});
         Check((await Plan(new[]{first})).Values[0]=="2026:01:02 03:08:20.123Z","existing-date-draft-priority");first.ClearDraft();
-        first.SetDraft(new Dictionary<string,string>{{"XMP-exif:DateTimeOriginal","2026:01:02 03:04:05.123Z"}});
+        await first.SetDraftAsync(new Dictionary<string,string>{{"XMP-exif:DateTimeOriginal","2026:01:02 03:04:05.123Z"}});
         Check((await Plan(new[]{first},new(0,Years:1,Months:1,Days:1,Hours:1,Minutes:1,Seconds:1))).Values[0]=="2027:02:03 04:05:06.123Z","all-six-components-order");first.ClearDraft();
         await Reject(()=>Plan(new[]{first},new(0,Years:1)),"invalid-leap-offset-rejected");
         Check((await Plan(new[]{missing},new(2,Components:new(){["year"]=2025}))).MissingCount==1,"replace-missing-skipped");
-        first.SetDraft(new Dictionary<string,string>{{"XMP-exif:DateTimeOriginal",""},{"XMP-dc:Title","keep clear"}});
+        await first.SetDraftAsync(new Dictionary<string,string>{{"XMP-exif:DateTimeOriginal",""},{"XMP-dc:Title","keep clear"}});
         var cleared=await Plan(new[]{first});Check(cleared.Values[0] is null,"cleared-date-draft-is-missing");cleared.Apply();Check(first.Draft["XMP-exif:DateTimeOriginal"]==""&&first.Draft["XMP-dc:Title"]=="keep clear","skip-keeps-clear-and-other-draft");first.ClearDraft();
         var invalid=await Load("invalid","not-a-date");await Reject(()=>Plan(new[]{missing,invalid}),"invalid-date-not-skipped");
         var ctor=typeof(PhotoDocument).GetConstructors(System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance).Single();

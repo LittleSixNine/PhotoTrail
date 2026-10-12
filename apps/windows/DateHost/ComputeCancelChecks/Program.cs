@@ -47,7 +47,7 @@ static class Program
  static Application app=null!;
  static PhotoDocument[] docs=[];
  static string draftSnapshot="";
- static bool stageConfirmed;
+ static bool stageConfirmed,sharedEntry;
  static T Control<T>(string name)where T:class=>(T)window.FindName(name);
  static object? Field(string name)=>typeof(MainWindow).GetField(name,BindingFlags.NonPublic|BindingFlags.Instance)!.GetValue(window);
  static string Drafts()=>JsonSerializer.Serialize(docs.Select(d=>d.Draft));
@@ -79,10 +79,14 @@ static class Program
   var data=Path.Combine(ComputeCancelProbe.Folder,"data");Directory.CreateDirectory(data);collection.Clear();docs=new PhotoDocument[3000];
   for(int i=0;i<docs.Length;i++){var path=Path.Combine(data,$"sample-{i:D4}.xmp");File.Copy(first.FilePath,path);docs[i]=(PhotoDocument)ctor.Invoke([path,null,first.Embedded,null,first.SourceHash,null]);collection.Add(Activator.CreateInstance(rowType,docs[i])!);}
   docs[100].SetDraft(new Dictionary<string,string>{{"XMP-dc:Title","existing synthetic title"}});
-  docs[1].SetDraft(new Dictionary<string,string>{{DatePagePreview.Field,"2026:01:01 00:00:00.123Z"}});
+  await docs[1].SetDraftAsync(new Dictionary<string,string>{{DatePagePreview.Field,"2026:01:01 00:00:00.123Z"}});
   draftSnapshot=Drafts();list.SelectAll();var dateTab=DatesTab(window)!;((TabControl)LogicalTreeHelper.GetParent(dateTab)).SelectedItem=dateTab;Control<ComboBox>("DateMode").SelectedIndex=0;
   foreach(var name in new[]{"DateYears","DateMonths","DateDays","DateHours","DateMinutes","DateSeconds"})Control<TextBox>(name).Text="1";
-  var cancel=FindButton(window,"取消应用")!;var apply=Control<Button>("DatePlanApplyButton");
+  if(sharedEntry){
+   var rows=MetadataCsv.Snapshot(docs).Select((row,index)=>row with{Cells=new Dictionary<string,string>(row.Cells){{"XMP-exif:DateTimeDigitized",JsonSerializer.Serialize("2024:01:01 00:00:00."+index.ToString("D9")+"-00:00")}}}).ToArray();
+   var csv=Path.Combine(ComputeCancelProbe.Folder,"shared-input.csv");MetadataCsv.WriteNew(csv,MetadataCsv.Export(rows,false));Control<TextBox>("CsvPath").Text=csv;Control<TabControl>("WorkspaceTabs").SelectedIndex=4;
+  }
+  var cancel=FindButton(window,sharedEntry?"取消任务":"取消应用")!;var apply=Control<Button>(sharedEntry?"CsvApplyButton":"DatePlanApplyButton");
   cancel.PreviewMouseLeftButtonDown+=(_,_)=>stageConfirmed=ComputeCancelProbe.BeforeCancel();
   cancel.Click+=async(_,_)=>{try{
    ComputeCancelProbe.Record("wpf_cancel_click_handler",new{stageConfirmed,status=Control<TextBlock>("Status").Text,busy=(bool)Field("busy")!});
@@ -93,7 +97,7 @@ static class Program
    ComputeCancelProbe.Record("canceled-request-settled",new{draftsPreserved=true});
    Control<TextBox>("DateSeconds").Text="2";apply.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
    limit.Restart();while((bool)Field("busy")!&&limit.Elapsed<TimeSpan.FromSeconds(45))await Task.Delay(10);
-   Check(!(bool)Field("busy")!&&docs[0].Value(DatePagePreview.Field)=="2025:02:02 01:01:02.123456789-00:00"&&docs.All(d=>d.Draft.ContainsKey(DatePagePreview.Field)),"new-direct-request-after-cancel-correct");
+   Check(!(bool)Field("busy")!&&(sharedEntry?docs.Select((d,i)=>d.Value("XMP-exif:DateTimeDigitized")=="2024:01:01 00:00:00."+i.ToString("D9")+"-00:00").All(x=>x):docs[0].Value(DatePagePreview.Field)=="2025:02:02 01:01:02.123456789-00:00"&&docs.All(d=>d.Draft.ContainsKey(DatePagePreview.Field))),"new-direct-request-after-cancel-correct");
    typeof(MainWindow).GetMethod("UndoLastApply",BindingFlags.NonPublic|BindingFlags.Instance)!.Invoke(window,[window,new RoutedEventArgs()]);
    Check(Drafts()==draftSnapshot,"new-complete-undo-restores-earlier-drafts");
    foreach(var doc in docs)await doc.EnsureUnchangedAsync();Check(true,"all-3000-synthetic-sources-unchanged");
@@ -103,7 +107,7 @@ static class Program
   if(automatic){ComputeCancelProbe.AfterStarted=()=>{ComputeCancelProbe.AfterStarted=null;window.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Send,new Action(()=>{
    stageConfirmed=ComputeCancelProbe.BeforeCancel();ComputeCancelProbe.Record("actual_wpf_cancel_button_event",new{input="real-marker-triggered current production Button.Click; not mouse/user input"});cancel.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
   }));};apply.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));}
-  File.WriteAllText(Path.Combine(ComputeCancelProbe.Folder,"ready.json"),JsonSerializer.Serialize(new{window=window.Title,count=docs.Length,mode="six-component offset direct application",sourceHash=first.SourceHash,existingDraftFiles=2}));
+  File.WriteAllText(Path.Combine(ComputeCancelProbe.Folder,"ready.json"),JsonSerializer.Serialize(new{window=window.Title,count=docs.Length,mode=sharedEntry?"shared CSV date validation":"six-component offset direct application",sourceHash=first.SourceHash,existingDraftFiles=2}));
   ComputeCancelProbe.Record("wpf_ready",new{count=docs.Length});
  }
  static Button? FindButton(DependencyObject node,string text){if(node is Button button&&button.Content?.ToString()==text)return button;foreach(var child in LogicalTreeHelper.GetChildren(node).OfType<DependencyObject>())if(FindButton(child,text)is{} found)return found;return null;}
@@ -114,7 +118,7 @@ static class Program
  }
  [STAThread]static int Main(string[] args)
  {
-  ComputeCancelProbe.Folder=Path.GetFullPath(args[0]);Directory.CreateDirectory(ComputeCancelProbe.Folder);
+  sharedEntry=args.Contains("--r01b-csv");ComputeCancelProbe.Folder=Path.GetFullPath(args[0]);Directory.CreateDirectory(ComputeCancelProbe.Folder);
   if(args.Contains("--adapter")){try{Adapter().GetAwaiter().GetResult();return 0;}catch(Exception error){File.WriteAllText(Path.Combine(ComputeCancelProbe.Folder,"failure.txt"),error.ToString());return 1;}}
   System.Windows.Media.RenderOptions.ProcessRenderMode=System.Windows.Interop.RenderMode.SoftwareOnly;
   app=new Application{ShutdownMode=ShutdownMode.OnExplicitShutdown};window=new MainWindow{Title="PhotoTrail 实宿主计算取消 · 独立验证"};

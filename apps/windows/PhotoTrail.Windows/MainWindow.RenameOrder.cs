@@ -17,21 +17,40 @@ public partial class MainWindow
     Point renameDragStart;
     string[] renameDragIds=[];
     RenameOrderSettings ReadRenameOrder()=>new(RenameOrderSettings.Sorts[RenameProcessingSort.SelectedIndex],RenameDescending.IsChecked==true,RenameMetadataTag.Text.Trim());
+    IReadOnlyDictionary<string,VerifiedPhotoDate?> renameDateResults=new Dictionary<string,VerifiedPhotoDate?>();
+    CancellationTokenSource? renameDateValidation;
+    static string RenameBoundText(string value)=>value.Trim().Length==10?value.Trim().Replace('-',':')+" 00:00:00":RenameInput.BridgeDate(value.Trim());
+    string RenameDateInputs()=>System.Text.Json.JsonSerializer.Serialize(new{Rules=RenameRules.Text,From=RenameDateFrom.Text,To=RenameDateTo.Text,Order=ReadRenameOrder(),Selection=Selected.Select(r=>new{r.Document.FilePath,r.Document.DraftRevision}).ToArray()});
+    async Task PrepareRenameDatesAsync(CancellationToken token) {
+        var groups=renameGroups;int revision=renameRevision;string input=RenameDateInputs();
+        var rules=ReadRenameRules();bool nameDates=rules.Any(r=>r.Kind is "date-set" or "date-prefix");
+        bool needs=nameDates||ReadRenameOrder().Sort is "shooting" or "metadata"||RenameDateFrom.Text.Trim().Length>0||RenameDateTo.Text.Trim().Length>0;
+        var texts=new List<string>();
+        if(needs){foreach(var group in groups){if(nameDates)try{var raw=RenameNameField(group,"captured");if(raw is not null)texts.Add(VerifiedPhotoDate.Bridge(raw));}catch(ArgumentException){}catch(IOException){}
+            foreach(var member in group.Members){texts.AddRange(member.ShootingTexts());if(ReadRenameOrder().Sort=="metadata"&&member.Tag(ReadRenameOrder().MetadataSortTag??"") is {} raw)texts.Add(RenameInput.BridgeDate(raw));}}
+            if(RenameDateFrom.Text.Trim().Length>0)texts.Add(RenameBoundText(RenameDateFrom.Text));if(RenameDateTo.Text.Trim().Length>0)texts.Add(RenameBoundText(RenameDateTo.Text));}
+        var dates=await VerifiedPhotoDate.InspectAsync(texts,token);token.ThrowIfCancellationRequested();
+        if(revision!=renameRevision||!ReferenceEquals(groups,renameGroups)||input!=RenameDateInputs())throw new InvalidOperationException("日期验证期间规则、选择或元数据草稿已改变。");
+        renameDateResults=dates;renameGroups=groups.Select(g=>g with{Members=g.Members.Select(m=>m with{DateResults=dates}).ToArray()}).ToArray();
+    }
+    VerifiedPhotoDate? RenameVerifiedDate(RenameGroup group){var raw=RenameNameField(group,"captured");return raw is null?null:renameDateResults.GetValueOrDefault(VerifiedPhotoDate.Bridge(raw));}
     RenameInputFilter ReadRenameFilter(){
-        double? Bound(string value){if(value.Trim().Length==0)return null;var parsed=RenameInput.Date(value.Trim().Length==10?value.Trim()+"T00:00:00":value.Trim());return parsed??throw new ArgumentException("日期边界无效，使用日期或完整时间；仅日期为当日00:00:00。");}
+        decimal? Bound(string value){if(value.Trim().Length==0)return null;var parsed=RenameInput.Date(RenameBoundText(value),renameDateResults);return parsed??throw new ArgumentException("日期边界无效，使用日期或完整时间；仅日期为当日00:00:00。");}
         var from=Bound(RenameDateFrom.Text);var to=Bound(RenameDateTo.Text);if(from>to)throw new ArgumentException("开始日期晚于结束日期。");
         return new(RenameInputQuery.Text,RenameInputType.Text,RenameInputFolder.Text,RenameInputCamera.Text,from,to,RenameInputGps.SelectedIndex,RenameInputTag.Text,RenameInputPresence.SelectedIndex);
     }
     RenameGroup[] OrderedRenameGroups(){var settings=ReadRenameOrder();var automatic=RenameOrder.Ordered(renameGroups,settings);if(settings.Sort!="manual")return automatic;var byId=automatic.ToDictionary(g=>g.Id);return manualRenameOrder.Where(byId.ContainsKey).Select(id=>byId[id]).Concat(automatic.Where(g=>!manualRenameOrder.Contains(g.Id))).ToArray();}
     RenameGroup[] IncludedRenameGroups(){var filter=ReadRenameFilter();return OrderedRenameGroups().Where(g=>g.Members.Any(filter.Matches)).ToArray();}
-    void RenderRenameGroups(){
+    async Task RenderRenameGroupsAsync(){
+        renameDateValidation?.Cancel();renameDateValidation?.Dispose();renameDateValidation=CancellationTokenSource.CreateLinkedTokenSource(operation?.Token??CancellationToken.None);var request=renameDateValidation;
+        RenamePreview.ItemsSource=null;await PrepareRenameDatesAsync(request.Token);
         var included=IncludedRenameGroups();var rules=ReadRenameRules();var previews=new List<object>();
         foreach(var (group,index) in included.Select((g,i)=>(g,i))) {
-            try{var name=Path.GetFileNameWithoutExtension(RenamePlan.Apply(group.Leader.Name,rules,index,key=>RenameNameField(group,key)));foreach(var member in group.Members)previews.Add(new RenameFile(member.Path,Path.Combine(member.Directory,name+Path.GetExtension(member.Path)),""));}
+            try{var name=Path.GetFileNameWithoutExtension(RenamePlan.ApplyVerified(group.Leader.Name,rules,index,key=>RenameNameField(group,key),rules.Any(r=>r.Kind is "date-set" or "date-prefix")?RenameVerifiedDate(group):null));foreach(var member in group.Members)previews.Add(new RenameFile(member.Path,Path.Combine(member.Directory,name+Path.GetExtension(member.Path)),""));}
             catch(Exception error)when(error is ArgumentException or IOException){foreach(var member in group.Members)previews.Add(new RenameNameIssue(member.Path,error.Message));}
         }
         RenameGroups.ItemsSource=included;RenamePreview.ItemsSource=previews;RenameViewChanged(this,new RoutedEventArgs());
-        RenameOrderStatus.Text=$"完整组{renameGroups.Length}／参与{included.Length}／读取失败{renameGroups.SelectMany(g=>g.Members).Count(m=>m.MetadataFailed)}；参与组连续编号，查看不影响处理。";UpdateRenameButtons();
+        RenameOrderStatus.Text=$"完整组{renameGroups.Length}／参与{included.Length}／读取失败{renameGroups.SelectMany(g=>g.Members).Count(m=>m.MetadataFailed)}；参与组连续编号，查看不影响处理。"+(renameDateResults.Values.Any(d=>d is not null&&d.WallProjection is null)?" 共享历史日期有效；排序/绝对时间投影待共同接口，不采用旧历法。":"");UpdateRenameButtons();
     }
     sealed record RenameNameIssue(string Source,string Reason) {public string OriginalName=>Path.GetFileName(Source);public string NewName=>"不可生成";public string Status=>Reason;}
     string? RenameNameField(RenameGroup group,string key) {
@@ -67,7 +86,7 @@ public partial class MainWindow
         renameGroups=groups;manualRenameOrder=manualRenameOrder.Concat(groups.Select(g=>g.Id).Where(id=>!manualRenameOrder.Contains(id))).ToArray();
     }
     private async void RefreshRenameOrder(object sender,RoutedEventArgs e){
-        if(busy||renameRecoveryRequired)return;renameReadingPreview=true;var revision=++renameRevision;frozenRenamePlan=null;BeginOperation();try{await ReadRenameGroupsAsync(operation!.Token);if(revision==renameRevision){RenderRenameGroups();RenameStatus.Text="配对元数据与完整处理组已读取；尚未写文件。";}}catch(OperationCanceledException){RenameStatus.Text="读取已取消，未改文件。";}catch(Exception error){renameGroups=[];RenameGroups.ItemsSource=null;RenamePreview.ItemsSource=null;RenameStatus.Text="处理预览未读取："+error.Message;}finally{renameReadingPreview=false;EndOperation();}
+        if(busy||renameRecoveryRequired)return;renameReadingPreview=true;var revision=++renameRevision;frozenRenamePlan=null;BeginOperation();try{await ReadRenameGroupsAsync(operation!.Token);if(revision==renameRevision){await RenderRenameGroupsAsync();RenameStatus.Text="配对元数据与完整处理组已读取；尚未写文件。";}}catch(OperationCanceledException){RenameStatus.Text="读取已取消，未改文件。";}catch(Exception error){renameGroups=[];RenameGroups.ItemsSource=null;RenamePreview.ItemsSource=null;RenameStatus.Text="处理预览未读取："+error.Message;}finally{renameReadingPreview=false;EndOperation();}
     }
     void RemapRenameIdentities(RenameResult result){var changed=result.Files.Where(f=>renameIdentities.ContainsKey(f.Source)).Select(f=>(file:f,id:renameIdentities[f.Source])).ToArray();foreach(var item in changed)renameIdentities.Remove(item.file.Source);foreach(var item in changed)renameIdentities[item.file.Current]=item.id;renameGroups=renameGroups.Select(g=>g with{Members=g.Members.Select(m=>result.Files.FirstOrDefault(f=>f.Source.Equals(m.Path,StringComparison.OrdinalIgnoreCase)) is{} f?m with{Path=f.Current}:m).ToArray()}).ToArray();RenameGroups.ItemsSource=IncludedRenameGroups();}
     bool CanMoveRenameGroups=>!busy&&!renameRecoveryRequired&&RenamePreview.ItemsSource is not null&&RenameViewOrder.SelectedIndex==0&&RenameViewFilter.SelectedIndex==0&&System.Windows.Data.CollectionViewSource.GetDefaultView(RenamePreview.ItemsSource).SortDescriptions.Count==0;

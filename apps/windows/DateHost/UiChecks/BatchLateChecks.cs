@@ -11,12 +11,13 @@ static partial class Program
  static async Task RunBatchLate()
  {
   var list=Control<ListBox>("Photos");for(int i=0;i<1200&&(list.Items.Count<3||(bool)Field("busy")!);i++)await Task.Delay(10);Check(list.Items.Count==3,"late-three-real-XMP-import");list.SelectAll();var rows=list.Items.Cast<object>().ToArray();var docs=rows.Select(Doc).ToArray();SelectMetadataTab("批量日期");
+  bool shared=Environment.GetEnvironmentVariable("PHOTOTRAIL_R01B_LATE")=="1";
   foreach(bool failing in new[]{false,true}){
-   Control<ComboBox>("DateMode").SelectedIndex=1;Input("DateStart",failing?"2024:02:30 00:00:00":"2024:02:01 00:00:00");var owner=SynchronizationContext.Current!;var gate=new HeldContext(owner);
-   try{SynchronizationContext.SetSynchronizationContext(gate);Action("ApplyDates");}finally{SynchronizationContext.SetSynchronizationContext(owner);}await gate.Posted.Task.WaitAsync(TimeSpan.FromSeconds(15));
+   Control<ComboBox>("DateMode").SelectedIndex=1;Input("DateStart",failing?"2024:02:30 00:00:00":"2024:02:01 00:00:00");if(shared)EditedFields(new Dictionary<string,string>{{"XMP-exif:DateTimeOriginal",failing?"1582:10:05 00:00:00":"2024:02:01 00:00:00"},{"XMP-dc:Title","old staged title"}});var owner=SynchronizationContext.Current!;var gate=new HeldContext(owner);
+   try{SynchronizationContext.SetSynchronizationContext(gate);Action(shared?"ApplyDraft":"ApplyDates");}finally{SynchronizationContext.SetSynchronizationContext(owner);}await gate.Posted.Task.WaitAsync(TimeSpan.FromSeconds(15));
    Check(docs.All(d=>d.Draft.Count==0),"old-real-compute-not-yet-committed-"+failing);Action("CancelRead");
    // Resume a new real request while the old UI continuation is deliberately still held.
-   typeof(MainWindow).GetField("busy",BindingFlags.NonPublic|BindingFlags.Instance)!.SetValue(window,false);Input("DateStart","2024:03:01 00:00:00");await Apply("ApplyDates");var after=Drafts(rows);var notice=Status;var summary=Control<TextBlock>("DatePlanPreview").Text;
+   typeof(MainWindow).GetField("busy",BindingFlags.NonPublic|BindingFlags.Instance)!.SetValue(window,false);Input("DateStart","2024:03:01 00:00:00");if(shared)EditedFields(new Dictionary<string,string>{{"XMP-exif:DateTimeOriginal","2024:03:01 00:00:00"},{"XMP-dc:Title","new completed title"}});await Apply(shared?"ApplyDraft":"ApplyDates");var after=Drafts(rows);var notice=Status;var summary=Control<TextBlock>("DatePlanPreview").Text;
    gate.Release();await Idle();Check(SameDrafts(rows,after)&&Status==notice&&Control<TextBlock>("DatePlanPreview").Text==summary&&Control<Button>("UndoLastApplyButton").IsEnabled,"late-real-success-or-failure-does-not-overwrite-new-state-"+failing);Action("UndoLastApply");Check(docs.All(d=>d.Draft.Count==0),"new-request-undo-after-old-settles-"+failing);
   }
   // Invalid metadata shapes use synthetic production documents; no fake date host or calculation.

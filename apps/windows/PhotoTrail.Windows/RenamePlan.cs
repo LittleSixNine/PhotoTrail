@@ -40,7 +40,16 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool Explic
         if (first is "CON" or "PRN" or "AUX" or "NUL" or "CONIN$" or "CONOUT$") return false;
         return !(first.Length == 4 && (first.StartsWith("COM") || first.StartsWith("LPT")) && "123456789¹²³".Contains(first[3]));
     }
-    public static string Apply(string name, IReadOnlyList<RenameRule> rules, int index, Func<string,string?>? metadata=null)
+    public static string Apply(string name,IReadOnlyList<RenameRule> rules,int index,Func<string,string?>? metadata=null) {
+        if(rules.Any(r=>r.Kind is "date-set" or "date-prefix"))throw new InvalidOperationException("日期命名规则须异步共享验证。");
+        return ApplyVerified(name,rules,index,metadata,null);
+    }
+    public static async Task<string> ApplyAsync(string name,IReadOnlyList<RenameRule> rules,int index,Func<string,string?>? metadata=null,CancellationToken token=default) {
+        var frozenRules=rules.ToArray();string? captured=frozenRules.Any(r=>r.Kind is "date-set" or "date-prefix")?Required(metadata,"captured"):null;
+        var dates=await VerifiedPhotoDate.InspectAsync(captured is null?Array.Empty<string>():new[]{VerifiedPhotoDate.Bridge(captured)},token);
+        return ApplyVerified(name,frozenRules,index,metadata,captured is null?null:dates.GetValueOrDefault(VerifiedPhotoDate.Bridge(captured)));
+    }
+    internal static string ApplyVerified(string name,IReadOnlyList<RenameRule> rules,int index,Func<string,string?>? metadata,VerifiedPhotoDate? date)
     {
         if (rules.Count > 64 || index < 0) throw new ArgumentException("规则数量或序号无效。");
         var extension = Path.GetExtension(name); var stem = Path.GetFileNameWithoutExtension(name);
@@ -49,8 +58,8 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool Explic
             if (rule.Text.Length > 256 || rule.Replacement.Length > 256) throw new ArgumentException("规则文字过长。");
             stem = rule.Kind switch
             {
-                "date-set" => CaptureName(metadata),
-                "date-prefix" => CaptureName(metadata)+rule.Text+stem,
+                "date-set" => CaptureName(metadata,date),
+                "date-prefix" => CaptureName(metadata,date)+rule.Text+stem,
                 "city-prefix" => Required(metadata,"city")+rule.Text+stem,
                 "model-suffix" => stem+rule.Text+Required(metadata,"model"),
                 "sequence-prefix" when rule.Start>=0 && rule.Step>0 && rule.Padding is >=1 and <=9 => checked((long)rule.Start+(long)index*rule.Step).ToString("D"+rule.Padding,CultureInfo.InvariantCulture)+rule.Text+stem,
@@ -81,11 +90,11 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool Explic
         }
     }
     static string Required(Func<string,string?>? metadata,string key)=>metadata?.Invoke(key) is {Length:>0} value?value:throw new ArgumentException(key switch{"city"=>"缺失城市，不能生成名称。","model"=>"缺失设备型号，不能生成名称。",_=>"缺失拍摄时间，不能生成名称。"});
-    static string CaptureName(Func<string,string?>? metadata) {
+    static string CaptureName(Func<string,string?>? metadata,VerifiedPhotoDate? date) {
         var raw=Required(metadata,"captured");
         if(raw.Length>=19&&raw[4]=='-'&&raw[7]=='-'&&raw[10]=='T')raw=raw[..4]+":"+raw[5..7]+":"+raw[8..10]+" "+raw[11..];
-        try{return MetadataDate.Parse(raw).WallTime.ToString("yyyyMMdd_HHmmss",CultureInfo.InvariantCulture);}
-        catch(ArgumentException error){throw new ArgumentException("非法拍摄时间，不能生成名称。",error);}
+        if(date is null||date.Text!=raw)throw new ArgumentException("拍摄时间未经本次共享验证或已改变，不能生成名称。");
+        return date.NameSeconds;
     }
     public static Task<RenamePlan> BuildAsync(IEnumerable<string> paths, IReadOnlyList<RenameRule> rules, bool sortByName, CancellationToken cancellation = default)
     {

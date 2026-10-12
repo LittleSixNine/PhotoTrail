@@ -38,6 +38,7 @@ public static class MetadataXmp
         }
         if(changes.Count == 0)throw new InvalidDataException("XMP没有当前支持的手填字段。");
         PhotoDocument.ValidateChanges(changes);
+        _=await VerifiedMetadataDates.CreateAsync(changes,cancellation);
         return new(new System.Collections.ObjectModel.ReadOnlyDictionary<string,string>(changes),ignored.AsReadOnly());
     }
     public static async Task ExportAsync(ExifToolClient client,PhotoDocument photo,string path,CancellationToken cancellation = default)
@@ -59,7 +60,7 @@ public static class MetadataXmp
                 await File.WriteAllBytesAsync(packet,bytes.Length == 0 ? System.Text.Encoding.UTF8.GetBytes(EmptyPacket) : bytes,cancellation);
             }
             ValidateXml(packet);var document = await PhotoDocument.LoadAsync(client,packet,cancellation);
-            document.SetDraft(draft);var result = packet;
+            await document.SetDraftAsync(draft,cancellation);var result = packet;
             if(document.Draft.Count > 0){Directory.CreateDirectory(savedFolder);result = await MetadataCopy.SaveAsync(client,document,savedFolder,cancellation);}
             ValidateXml(result);await photo.EnsureUnchangedAsync(cancellation);cancellation.ThrowIfCancellationRequested();
             File.Move(result,path);
