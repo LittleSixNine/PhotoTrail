@@ -69,6 +69,7 @@ static class PresetChecks
         Plan(new MetadataOperation(keywords,"removeKeywords","A\né\né\nZ")).Apply(missing);check(missing.Value(keywords)=="","removing all clears");
         Plan(new MetadataOperation(title,"appendText","!")).Apply(missing);Plan(new MetadataOperation(title,"appendText","!")).Apply(missing);check(missing.Value(title)=="!!","text append repeats exactly without separator");
         Plan(new MetadataOperation(keywords,"replaceKeywords","")).Apply(missing);check(missing.Value(keywords)=="","empty replacement keywords clears");
+        var emptySource=Doc("{\"File:FileType\":\"JPEG\",\"XMP-dc:Description\":\"\",\"XMP-dc:Title\":\"old\"}");check(Plan(new MetadataOperation(title,"copy",description)).Apply(emptySource)==0&&emptySource.Value(title)=="","present empty scalar copy is not missing and clears target");
         var typed=Doc("{\"File:FileType\":\"JPEG\",\"XMP-dc:Title\":3}");reject(()=>Plan(new MetadataOperation(title,"fillMissingText","X")).Apply(typed),"wrong scalar type not missing");
         var typedList=Doc("{\"File:FileType\":\"JPEG\",\"XMP-dc:Creator\":\"not list\"}");reject(()=>Plan(new MetadataOperation(author,"fillMissingAuthors","X")).Apply(typedList),"wrong author type not missing");
         var failed=Doc("{\"File:FileType\":\"JPEG\",\"ExifTool:Error\":\"failure\"}");reject(()=>Plan(new MetadataOperation(title,"fillMissingText","X")).Apply(failed),"read error not missing");

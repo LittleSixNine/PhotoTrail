@@ -118,7 +118,7 @@ public sealed record MetadataPreset(string Name, IReadOnlyList<MetadataOperation
                 };
             }
             if (IsList(op.Tag) && value == "") value = null;
-            var checkedOp = value is null ? new MetadataOperation(op.Tag,"remove") : new MetadataOperation(op.Tag, IsList(op.Tag) ? op.Tag == "XMP-dc:Creator" ? "replaceAuthors" : "replaceKeywords" : "setText",value);
+            var checkedOp = string.IsNullOrEmpty(value) ? new MetadataOperation(op.Tag,"remove") : new MetadataOperation(op.Tag, IsList(op.Tag) ? op.Tag == "XMP-dc:Creator" ? "replaceAuthors" : "replaceKeywords" : "setText",value);
             value = Validate(checkedOp).Value;
             if(value.Length>0 && PhotoDocument.NumericRange(op.Tag) is not null)value=PhotoDocument.CheckedNumber(op.Tag,value).ToString(System.Globalization.CultureInfo.InvariantCulture);
             changes[op.Tag] = value; values[op.Tag] = value.Length == 0 ? null : value;
