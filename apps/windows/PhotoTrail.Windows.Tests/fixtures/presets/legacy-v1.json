@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "name": "旧Windows替换清除",
+  "operations": [
+    {
+      "tag": "XMP-dc:Title-x-default",
+      "action": {
+        "setText": {
+          "_0": "旧标题"
+        }
+      }
+    },
+    {
+      "tag": "XMP-photoshop:City",
+      "action": {
+        "remove": {}
+      }
+    }
+  ]
+}

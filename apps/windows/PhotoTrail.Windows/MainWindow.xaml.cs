@@ -34,7 +34,7 @@ public partial class MainWindow : Window
     private int photoPreviewRevision;
 
     private readonly string[] extensions = [".jpg", ".jpeg", ".png", ".heic", ".dng", ".tif", ".tiff", ".xmp", ".arw", ".nef", ".raf", ".cr2", ".cr3", ".rw2", ".orf", ".pef"];
-    public MainWindow() { InitializeComponent(); metadataBaseFont=FontSize; foreach(var field in Fields)fieldLabels[field.Tag]=field.Apply.Content.ToString()!.Replace(field.Tag,"").Trim(' ','·'); DatePlanChanged(this,new RoutedEventArgs()); Photos.ItemsSource = photos; TrackList.ItemsSource = tracks; ClipboardField.ItemsSource = Fields.Select(field => new { field.Tag, Name = fieldLabels[field.Tag]+" · "+field.Tag }).ToArray(); ClipboardField.SelectedIndex = 0;
+    public MainWindow() { InitializeComponent(); metadataBaseFont=FontSize; foreach(var field in Fields)fieldLabels[field.Tag]=field.Apply.Content.ToString()!.Replace(field.Tag,"").Trim(' ','·'); DatePlanChanged(this,new RoutedEventArgs()); Photos.ItemsSource = photos; TrackList.ItemsSource = tracks; ClipboardField.ItemsSource = Fields.Select(field => new { field.Tag, Name = fieldLabels[field.Tag]+" · "+field.Tag }).ToArray(); ClipboardField.SelectedIndex = 0; InitializePresetEditor();
         AddHandler(System.Windows.Controls.Primitives.ToggleButton.CheckedEvent,new RoutedEventHandler((s,e)=>{if(!fillingEditor)InvalidateDates();}));
         AddHandler(System.Windows.Controls.Primitives.ToggleButton.UncheckedEvent,new RoutedEventHandler((s,e)=>{if(!fillingEditor)InvalidateDates();}));
     }
@@ -640,6 +640,8 @@ public partial class MainWindow : Window
         var selected = Selected;
         var editable = !renameRecoveryRequired && selected.Length > 0 && selected.All(p => p.Document.CanEdit);
         Editor.IsEnabled = !busy && editable;
+        if (PresetControls is not null) PresetControls.IsEnabled = !busy && !renameRecoveryRequired;
+        if (PresetApplyButton is not null) PresetApplyButton.IsEnabled = !busy && editable;
         UpdateGpsButton(); UpdateRenameButtons();RefreshBatchTrackControls();
         DraftActions.IsEnabled = !busy && !renameRecoveryRequired;
         FieldApplyButton.IsEnabled=editable;ClearSelectedDraftButton.IsEnabled=editable;UndoLastApplyButton.IsEnabled=!busy&&!renameRecoveryRequired&&LastApplyCurrent();
@@ -776,44 +778,6 @@ public partial class MainWindow : Window
             Status.Text = "剪贴板文字已填入勾选字段；请核对再加入草稿，尚未写入文件。";
         }
         catch (Exception error) { Status.Text = "剪贴板未填入：" + error.Message; }
-    }
-
-    private void ChoosePreset(object sender, RoutedEventArgs e)
-    {
-        if (busy) return;
-        var dialog = new OpenFileDialog { Title = "选择字段预设", Filter = "JSON预设|*.json", CheckFileExists = true };
-        if (dialog.ShowDialog(this) == true) PresetPath.Text = dialog.FileName;
-    }
-    private void SavePreset(object sender, RoutedEventArgs e)
-    {
-        if (busy || renameRecoveryRequired) return;
-        try
-        {
-            var changes = Fields.Where(field => field.Apply.IsChecked == true).ToDictionary(field => field.Tag, field => field.Value.Text.Replace("\r\n", "\n"));
-            var text = MetadataPreset.Create(PresetName.Text, changes).Encode();
-            var dialog = new SaveFileDialog { Title = "保存字段预设（不覆盖）", Filter = "JSON预设|*.json", DefaultExt = ".json", FileName = "PhotoTrail-preset.json", OverwritePrompt = false };
-            if (dialog.ShowDialog(this) != true) return;
-            MetadataCsv.WriteNew(dialog.FileName, text); Status.Text = "预设已保存，输入保留；未修改照片。";
-        }
-        catch (Exception error) { Status.Text = "预设未保存：" + error.Message; }
-    }
-    private void LoadPreset(object sender, RoutedEventArgs e)
-    {
-        if (busy || renameRecoveryRequired) return;
-        try
-        {
-            if (Selected.Length == 0 || Selected.Any(row => !row.Document.CanEdit)) throw new InvalidOperationException("请先选择可编辑照片。");
-            if (Fields.Any(field => field.Apply.IsChecked == true)) throw new InvalidOperationException("请先将现有输入加入草稿或撤销输入，再载入预设。");
-            using var file = new FileStream(PresetPath.Text, FileMode.Open, FileAccess.Read, FileShare.Read);
-            if (file.Length > MetadataPreset.MaximumBytes) throw new InvalidDataException("预设超过128KiB上限。");
-            using var reader = new StreamReader(file, new System.Text.UTF8Encoding(false, true), detectEncodingFromByteOrderMarks: true);
-            var preset = MetadataPreset.Decode(reader.ReadToEnd());
-            FillEditor(preset.Changes);
-            PresetName.Text = preset.Name;
-            PresetPreview.Text = preset.Name + "\n" + string.Join("\n", preset.Changes.Select(field => field.Key + " → " + (field.Value.Length == 0 ? "（清除）" : field.Value)));
-            Status.Text = "预设已载入编辑区；请核对并加入草稿，尚未写入文件。";
-        }
-        catch (Exception error) { Status.Text = "预设未载入：" + error.Message; }
     }
 
     private void FillEditor(IReadOnlyDictionary<string,string> changes)

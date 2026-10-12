@@ -32,7 +32,7 @@ static class CommonFieldsChecks
   }
   var cameraTags=new[]{"XMP-tiff:Make","XMP-tiff:Model","XMP-aux:Lens","XMP-aux:LensSerialNumber"};
   Check(MetadataClipboard.Prepare("000001",cameraTags).Values.All(value=>value=="000001"));
-  foreach(var tag in cameraTags)Reject(()=>PhotoDocument.ValidateChanges(new Dictionary<string,string>{{tag,new string('x',8193)}}));  var preset=MetadataPreset.Decode(MetadataPreset.Create("版权评分标签",changes).Encode());Check(preset.Changes.SequenceEqual(changes));Check(MetadataClipboard.Prepare("3",new[]{"XMP-xmp:Rating"})["XMP-xmp:Rating"]=="3");
+  foreach(var tag in cameraTags)Reject(()=>PhotoDocument.ValidateChanges(new Dictionary<string,string>{{tag,new string('x',8193)}}));  var preset=MetadataPreset.Decode(MetadataPreset.Create("版权评分标签",changes).Encode());Check(preset.Operations.ToDictionary(op=>op.Tag,op=>op.Value).SequenceEqual(changes));Check(MetadataClipboard.Prepare("3",new[]{"XMP-xmp:Rating"})["XMP-xmp:Rating"]=="3");
   photo.SetDraft(changes);Check(photo.Draft["XMP-exif:ExposureTime"]=="0.008" && photo.Draft["XMP-exif:ISO"]=="800" && photo.Draft["XMP-exif:FocalLength"]=="35");var target=Path.Combine(folder,"out");Directory.CreateDirectory(target);var copied=await MetadataCopy.SaveAsync(client,photo,target);var saved=await PhotoDocument.LoadAsync(client,copied);foreach(var field in changes)Check(Same(field.Key,saved.Value(field.Key),field.Value));
   Check(saved.Embedded.GetProperty("XMP-dc:Rights-fr").ToString()=="droits conservés");Check(await PhotoDocument.HashAsync(source)==photo.SourceHash);
   Check(await MetadataCopy.JpegPixelsAsync(source)==await MetadataCopy.JpegPixelsAsync(copied));

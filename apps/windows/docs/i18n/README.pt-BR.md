@@ -43,3 +43,7 @@ A substituição de componentes e o ajuste de seis componentes ignoram datas aus
 ## 2026-10-11
 
 O mapa permite visualizar/aplicar ajustes de tempo e leste/norte, desfazer o último ajuste da sessão e reler o original. Instantâneos efetivo/original são salvos localmente e recuperados ao reiniciar. Origem alterada ou ausente impede correspondência e novos ajustes. A exportação GPX cria um novo arquivo e verifica a leitura, sem alterar a origem ou escrever fotos automaticamente. Preserva segmentos, pontos sem horário e elevação; precisão temporal de100ns, sem estilos/extensões originais. Aguardando aceitação do usuário.
+
+## Predefinições ordenadas de metadados
+
+A aba permite adicionar, editar, excluir e ordenar operações nos 27 campos XMP existentes, além de salvar/carregar JSON. Carregar altera somente a cadeia; aplique uma vez aos rascunhos selecionados e desfaça a última aplicação. Somente salvar cópias explicitamente grava arquivos. Há definição, limpeza, preenchimento de ausentes, texto/palavras-chave e cópia de campos por foto. Acrescentar texto se repete em cada aplicação; algoritmos de data e ações desconhecidas são rejeitados por inteiro. Apenas um subconjunto do Mac v1 é compatível.

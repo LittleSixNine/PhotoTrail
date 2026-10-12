@@ -28,4 +28,5 @@
   <Compile Include="../PhotoTrail.Windows/KmlReader.cs" Link="KmlReader.cs" />
   <Compile Include="../PhotoTrail.Windows/TrackMapPayload.cs" Link="TrackMapPayload.cs" />
  </ItemGroup>
+ <ItemGroup><Content Include="fixtures/presets/*.json" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

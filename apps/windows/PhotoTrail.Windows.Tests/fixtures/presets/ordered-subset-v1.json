@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "name": "有序重复目标与复制",
+  "operations": [
+    {
+      "tag": "XMP-dc:Title-x-default",
+      "action": {
+        "setText": {
+          "_0": "标题"
+        }
+      }
+    },
+    {
+      "tag": "XMP-dc:Title-x-default",
+      "action": {
+        "appendText": {
+          "_0": "·追加"
+        }
+      }
+    },
+    {
+      "tag": "XMP-dc:Description-x-default",
+      "action": {
+        "setText": {
+          "_0": "每张自身说明"
+        }
+      }
+    },
+    {
+      "tag": "XMP-dc:Title-x-default",
+      "action": {
+        "copy": {
+          "_0": "XMP-dc:Description-x-default"
+        }
+      }
+    },
+    {
+      "tag": "XMP-dc:Subject",
+      "action": {
+        "appendKeywords": {
+          "_0": [
+            "A",
+            "a",
+            "é",
+            "é"
+          ]
+        }
+      }
+    }
+  ]
+}

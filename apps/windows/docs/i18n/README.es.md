@@ -43,3 +43,7 @@ El reemplazo de componentes y el ajuste de seis componentes omiten las fechas au
 ## 2026-10-11
 
 El mapa permite previsualizar/aplicar ajustes temporales y este/norte, deshacer el último ajuste de la sesión y recargar el original. Las instantáneas efectiva/original se guardan localmente y se restauran al reiniciar. Un origen modificado o ausente impide la coincidencia y nuevos ajustes. La exportación GPX crea un archivo nuevo y verifica su lectura, sin modificar el origen ni escribir fotos automáticamente. Conserva segmentos, puntos sin hora y alturas; precisión temporal de100ns, sin estilos/extensiones originales. Pendiente de aceptación del usuario.
+
+## Ajustes de metadatos ordenados
+
+La pestaña permite añadir, editar, eliminar y ordenar operaciones sobre los 27 campos XMP existentes y guardar/cargar JSON. Cargar solo modifica la cadena; se aplica una vez a los borradores seleccionados y se puede deshacer la última aplicación. Solo guardar copias explícitamente escribe archivos. Se admiten asignación, borrado, completar ausentes, texto, palabras clave y copia por foto. Añadir texto se repite en cada aplicación; los algoritmos de fecha y acciones desconocidas se rechazan íntegramente. Solo se admite un subconjunto de Mac v1.

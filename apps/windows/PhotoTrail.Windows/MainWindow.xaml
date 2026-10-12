@@ -91,13 +91,25 @@
        </TabItem>
        <TabItem Header="字段预设">
         <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="10">
-         <TextBlock Text="保存编辑草稿页当前勾选字段为JSON预设。载入只填入编辑区，不自动加入草稿或写入照片。" TextWrapping="Wrap"/>
-         <TextBlock Text="预设名称" Margin="0,10,0,4"/><TextBox x:Name="PresetName" Text="我的预设" MaxLength="80" AutomationProperties.Name="预设名称"/>
-         <Button Content="保存勾选字段为预设…" Click="SavePreset" HorizontalAlignment="Left" Padding="10,6" Margin="0,8"/>
-         <TextBlock Text="预设文件"/><DockPanel Margin="0,4"><Button Content="选择…" DockPanel.Dock="Right" Click="ChoosePreset" Padding="10,5" Margin="8,0,0,0"/><TextBox x:Name="PresetPath" AutomationProperties.Name="预设文件"/></DockPanel>
-         <Button Content="载入预设到编辑区" Click="LoadPreset" HorizontalAlignment="Left" Padding="10,6" Margin="0,8"/>
-         <TextBlock Text="当前支持13个手填XMP字段的替换/清除。未知字段、追加、日期链等复杂Mac预设会完整拒绝，不静默执行部分操作。载入后切回编辑草稿页核对勾选内容，再明确加入所选照片草稿。" TextWrapping="Wrap" Margin="0,0,0,10"/>
-         <TextBlock x:Name="PresetPreview" Text="尚未载入。" TextWrapping="Wrap"/>
+         <TextBlock Text="按列表顺序对每张照片应用。设置和关键词精确追加可重复而无变化；文字追加每次都会再次生效。载入与保存 JSON 只修改预设，显式保存副本才写照片。" TextWrapping="Wrap"/>
+         <StackPanel x:Name="PresetControls">
+          <TextBlock Text="预设名称"/><TextBox x:Name="PresetName" Text="我的预设" MaxLength="80" AutomationProperties.Name="预设名称" TextChanged="PresetInputChanged"/>
+          <ListBox x:Name="PresetOperations" Height="150" Margin="0,8" SelectionChanged="PresetSelectionChanged" AutomationProperties.Name="有序预设操作列表"/>
+          <WrapPanel><Button Content="上移" Click="MovePresetUp"/><Button Content="下移" Click="MovePresetDown"/><Button Content="删除所选操作" Click="DeletePresetOperation"/><Button Content="清空操作链" Click="ClearPresetOperations"/></WrapPanel>
+          <TextBlock Text="目标字段"/><ComboBox x:Name="PresetTarget" DisplayMemberPath="Name" SelectedValuePath="Tag" SelectionChanged="PresetEditorChanged" AutomationProperties.Name="预设目标字段"/>
+          <TextBlock Text="动作"/><ComboBox x:Name="PresetAction" DisplayMemberPath="Name" SelectedValuePath="Action" SelectionChanged="PresetActionChanged" AutomationProperties.Name="预设动作"/>
+          <TextBlock Text="参数（列表每行一项；清除不使用参数）"/><TextBox x:Name="PresetValue" AcceptsReturn="True" Height="60" VerticalScrollBarVisibility="Auto" MaxLength="8192" TextChanged="PresetEditorChanged" AutomationProperties.Name="预设动作参数"/>
+          <StackPanel x:Name="PresetCopyControls" Visibility="Collapsed">
+           <TextBlock Text="复制源字段（每张照片自己的草稿及前一步值）"/><ComboBox x:Name="PresetSource" DisplayMemberPath="Name" SelectedValuePath="Tag" SelectionChanged="PresetEditorChanged" AutomationProperties.Name="预设复制源字段"/>
+           <TextBlock Text="接收字段（可多选；排除源字段，按规范字段顺序展开）"/><ListBox x:Name="PresetRecipients" DisplayMemberPath="Name" SelectionMode="Multiple" Height="110" SelectionChanged="PresetEditorChanged" AutomationProperties.Name="预设复制接收字段"/>
+          </StackPanel>
+          <WrapPanel Margin="0,8"><Button Content="添加操作" Click="AddPresetOperation"/><Button Content="更新所选操作" Click="UpdatePresetOperation"/><Button Content="放弃未编排参数" Click="DiscardPresetInput"/><Button Content="从勾选字段编排" Click="PresetFromFields"/></WrapPanel>
+          <WrapPanel><Button Content="保存操作链 JSON…" Click="SavePreset"/><Button Content="保存勾选字段 JSON…" Click="SaveFieldPreset"/></WrapPanel>
+          <TextBlock Text="预设文件"/><DockPanel><Button Content="选择…" DockPanel.Dock="Right" Click="ChoosePreset"/><TextBox x:Name="PresetPath" AutomationProperties.Name="预设文件"/></DockPanel>
+          <Button Content="载入 JSON 到操作链" Click="LoadPreset" HorizontalAlignment="Left"/>
+         </StackPanel>
+         <WrapPanel Margin="0,8"><Button x:Name="PresetApplyButton" Content="一次应用操作链到所选草稿" Click="ApplyPreset"/><Button Content="撤销最近一次应用" Click="UndoLastApply"/></WrapPanel>
+         <TextBlock x:Name="PresetPreview" Text="尚未编排操作。" TextWrapping="Wrap"/>
         </StackPanel></ScrollViewer>
        </TabItem>
        <TabItem Header="批量日期">

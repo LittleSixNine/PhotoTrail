@@ -49,3 +49,7 @@ Date component replacement and six-component offset skip confirmed missing dates
 ## 2026-10-11
 
 The map page previews/applies signed time and east/north track offsets, undoes the last session adjustment and explicitly reloads the original. Effective/original snapshots persist locally across restarts; changed or missing sources reject matching and further adjustment. GPX export creates a new file and verifies readback, without changing sources or automatically writing photos. Segments, untimed points and elevations remain; time precision is 100ns. Source styles/extensions are not retained. Implemented and verified; awaiting user acceptance.
+
+## Ordered metadata presets
+
+The preset tab composes, edits, deletes and reorders operations for the existing 27 writable XMP fields, with JSON save/load. Loading only fills the chain; apply once to selected drafts, undo the last application, then explicitly save copies. Set, clear, fill missing, text/keyword operations and per-photo field copying are supported. Text append repeats on each application; date algorithms and unknown actions are rejected as a whole. Only a Mac v1 subset is supported, not full interchange.

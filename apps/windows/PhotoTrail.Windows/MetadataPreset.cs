@@ -3,78 +3,139 @@ using System.Text.Json;
 
 namespace PhotoTrail.Windows;
 
-public sealed record MetadataPreset(string Name, IReadOnlyDictionary<string, string> Changes)
+public sealed record MetadataOperation(string Tag, string Action, string Value = "")
+{
+    public override string ToString() => $"{Tag} · {Action} → {(Action == "remove" ? "（清除）" : Value.Replace("\n", " / "))}";
+}
+
+public sealed record MetadataPreset(string Name, IReadOnlyList<MetadataOperation> Operations)
 {
     public const int MaximumBytes = 128 * 1024;
-    public static MetadataPreset Create(string name, IReadOnlyDictionary<string, string> changes)
+    public const int MaximumOperations = 27;
+    public static bool IsList(string tag) => tag is "XMP-dc:Creator" or "XMP-dc:Subject";
+    public static bool IsText(string tag) => MetadataCsv.Tags.Contains(tag) && !IsList(tag) && PhotoDocument.NumericRange(tag) is null && tag is not ("XMP-xmp:Rating" or "XMP-iptcCore:CountryCode" or "XMP-exif:DateTimeOriginal" or "XMP-exif:DateTimeDigitized" or "XMP-xmp:CreateDate" or "XMP-xmp:ModifyDate");
+    public static MetadataPreset Create(string name, IReadOnlyDictionary<string,string> changes) => Create(name, changes.Select(p => new MetadataOperation(p.Key, p.Value.Length == 0 ? "remove" : p.Key == "XMP-dc:Creator" ? "replaceAuthors" : p.Key == "XMP-dc:Subject" ? "replaceKeywords" : "setText", p.Value)).ToArray());
+    public static MetadataPreset Create(string name, IReadOnlyList<MetadataOperation> operations)
     {
         name = name.Trim();
-        if (name.Length is < 1 or > 80 || name.Any(char.IsControl) || (changes.Count < 1 || changes.Count > MetadataCsv.Tags.Length) || changes.Keys.Any(tag => !MetadataCsv.Tags.Contains(tag))) throw new ArgumentException($"预设名称须为1至80字，且包含1至{MetadataCsv.Tags.Length}个支持字段。");
-        PhotoDocument.ValidateChanges(changes);
-        var normalized = new Dictionary<string,string>(changes);
-        foreach (var tag in new[] { "XMP-dc:Creator", "XMP-dc:Subject" })
-            if (normalized.TryGetValue(tag, out var value) && value.Length > 0)
-            {
-                var words = value.Split('\n');
-                if (words.Any(word => word.Length == 0 || word.Contains('\r'))) throw new ArgumentException("列表每项不能为空或含额外换行。");
-                if (tag == "XMP-dc:Subject") normalized[tag] = string.Join("\n", words.Distinct(StringComparer.Ordinal));
-            }
-        return new(name, new System.Collections.ObjectModel.ReadOnlyDictionary<string,string>(normalized));
+        if (name.Length is < 1 or > 80 || name.Any(char.IsControl) || operations.Count is < 1 or > MaximumOperations) throw new ArgumentException("预设名称须为1至80字，操作条目须为1至27条（重复目标也计数）。");
+        _ = new UTF8Encoding(false,true).GetByteCount(name);
+        var normalized = operations.Select(Validate).ToArray();
+        return new(name, Array.AsReadOnly(normalized));
+    }
+    public static MetadataOperation Validate(MetadataOperation op)
+    {
+        if (!MetadataCsv.Tags.Contains(op.Tag)) throw new ArgumentException("预设含未支持字段。");
+        if (op.Action == "remove") { if (op.Value.Length != 0) throw new ArgumentException("清除不接受参数。"); return op; }
+        if (op.Action == "copy") {
+            if (!MetadataCsv.Tags.Contains(op.Value) || op.Tag == op.Value || IsList(op.Tag) != IsList(op.Value)) throw new ArgumentException("复制源和目标须为不同的已开放同类字段（文字／列表）；接收值仍须通过目标校验。");
+            return op;
+        }
+        bool list = op.Action is "replaceAuthors" or "fillMissingAuthors" or "replaceKeywords" or "appendKeywords" or "removeKeywords";
+        bool allowed = op.Action switch {
+            "setText" or "fillMissingText" => !IsList(op.Tag),
+            "appendText" => IsText(op.Tag),
+            "replaceAuthors" or "fillMissingAuthors" => op.Tag == "XMP-dc:Creator",
+            "replaceKeywords" or "appendKeywords" or "removeKeywords" => op.Tag == "XMP-dc:Subject",
+            _ => false
+        };
+        if (!allowed) throw new ArgumentException("此预设动作／字段组合未支持（日期算法不在本批子集）；未载入任何操作。");
+        if (op.Value.Length == 0 && op.Action != "replaceKeywords") throw new ArgumentException("设置／补空／追加参数不能为空；清除请使用明确清除动作。");
+        if (list && op.Value.Length > 0) {
+            var words = op.Value.Split('\n');
+            if (words.Length > 256 || words.Any(w => w.Length == 0 || w.Any(char.IsControl))) throw new ArgumentException("列表最多256项，每项不能为空或含控制字符。");
+            if (op.Tag == "XMP-dc:Subject") op = op with { Value = string.Join("\n", words.Distinct(StringComparer.Ordinal)) };
+        }
+        PhotoDocument.ValidateChanges(new Dictionary<string,string>{{op.Tag, op.Value}});
+        return op;
     }
     public string Encode()
     {
-        var preset = Create(Name, Changes);
-        var operations = preset.Changes.Select(field =>
-        {
-            var list = field.Key is "XMP-dc:Creator" or "XMP-dc:Subject";
-            var kind = field.Value.Length == 0 ? "remove" : field.Key == "XMP-dc:Creator" ? "replaceAuthors" : field.Key == "XMP-dc:Subject" ? "replaceKeywords" : "setText";
-            object payload = field.Value.Length == 0 ? new Dictionary<string,object>() : new Dictionary<string,object> { ["_0"] = list ? field.Value.Split('\n').Select(item => item.TrimEnd('\r')).ToArray() : field.Value };
-            return new { tag = PhotoDocument.WriteTag(field.Key), action = new Dictionary<string,object> { [kind] = payload } };
-        });
+        var preset = Create(Name, Operations);
+        var operations = preset.Operations.Select(op => new { tag = PhotoDocument.WriteTag(op.Tag), action = new Dictionary<string,object> { [op.Action] = op.Action == "remove" ? new Dictionary<string,object>() : new Dictionary<string,object>{{"_0", IsList(op.Tag) && op.Action != "copy" ? op.Value.Length == 0 ? Array.Empty<string>() : op.Value.Split('\n') : op.Action == "copy" ? PhotoDocument.WriteTag(op.Value) : op.Value}} } });
         var text = JsonSerializer.Serialize(new { version = 1, name = preset.Name, operations }, new JsonSerializerOptions { WriteIndented = true });
         if (Encoding.UTF8.GetByteCount(text) > MaximumBytes) throw new ArgumentException("预设超过128KiB上限。");
         return text;
     }
     private static void Members(JsonElement node, params string[] expected)
     {
-        if (node.ValueKind != JsonValueKind.Object || node.EnumerateObject().Count() != expected.Length || node.EnumerateObject().Any(field => !expected.Contains(field.Name)) || node.EnumerateObject().Select(field => field.Name).Distinct().Count() != expected.Length) throw new ArgumentException("预设结构或重复属性无效。");
+        if (node.ValueKind != JsonValueKind.Object || node.EnumerateObject().Count() != expected.Length || node.EnumerateObject().Any(p => !expected.Contains(p.Name)) || node.EnumerateObject().Select(p => p.Name).Distinct().Count() != expected.Length) throw new ArgumentException("预设结构或重复属性无效。");
     }
     public static MetadataPreset Decode(string text)
     {
         if (Encoding.UTF8.GetByteCount(text) > MaximumBytes) throw new ArgumentException("预设超过128KiB上限。");
-        try
-        {
+        try {
             using var json = JsonDocument.Parse(text.TrimStart('\ufeff')); var root = json.RootElement;
-            Members(root, "version", "name", "operations");
+            Members(root,"version","name","operations");
             if (!root.GetProperty("version").TryGetInt32(out var version) || version != 1 || root.GetProperty("name").ValueKind != JsonValueKind.String) throw new ArgumentException("预设版本或名称无效。");
-            var operations = root.GetProperty("operations");
-            if (operations.ValueKind != JsonValueKind.Array || (operations.GetArrayLength() < 1 || operations.GetArrayLength() > MetadataCsv.Tags.Length)) throw new ArgumentException($"预设需包含1至{MetadataCsv.Tags.Length}个操作。");
-            var changes = new Dictionary<string,string>();
-            foreach (var operation in operations.EnumerateArray())
-            {
-                Members(operation, "tag", "action");
-                if (operation.GetProperty("tag").ValueKind != JsonValueKind.String) throw new ArgumentException("预设字段无效。");
-                var tag = PhotoDocument.BaseTag(operation.GetProperty("tag").GetString()!); var action = operation.GetProperty("action");
-                if (!MetadataCsv.Tags.Contains(tag) || changes.ContainsKey(tag) || action.ValueKind != JsonValueKind.Object || action.EnumerateObject().Count() != 1) throw new ArgumentException("预设含重复或未支持字段/操作。");
-                var item = action.EnumerateObject().Single(); string value;
-                if (item.Name == "remove") { Members(item.Value); value = ""; }
-                else
-                {
-                    Members(item.Value, "_0"); var argument = item.Value.GetProperty("_0");
-                    if (item.Name == "setText" && tag is not ("XMP-dc:Creator" or "XMP-dc:Subject") && argument.ValueKind == JsonValueKind.String) value = argument.GetString()!;
-                    else if ((item.Name == "replaceAuthors" && tag == "XMP-dc:Creator" || item.Name == "replaceKeywords" && tag == "XMP-dc:Subject") && argument.ValueKind == JsonValueKind.Array && argument.GetArrayLength() is >= 1 and <= 256)
-                    {
-                        if (argument.EnumerateArray().Any(word => word.ValueKind != JsonValueKind.String)) throw new ArgumentException("预设列表必须为字符串。");
-                        var words = argument.EnumerateArray().Select(word => word.GetString()!).ToArray();
-                        if (words.Any(word => word.Length == 0 || word.Contains('\r') || word.Contains('\n'))) throw new ArgumentException("预设列表每项不能为空或含换行。");
-                        value = string.Join("\n", words);
+            var array = root.GetProperty("operations");
+            if (array.ValueKind != JsonValueKind.Array || array.GetArrayLength() is < 1 or > MaximumOperations) throw new ArgumentException("预设须包含1至27条操作。");
+            var operations = new List<MetadataOperation>();
+            foreach (var item in array.EnumerateArray()) {
+                Members(item,"tag","action");
+                if (item.GetProperty("tag").ValueKind != JsonValueKind.String) throw new ArgumentException("预设字段无效。");
+                var tag = PhotoDocument.BaseTag(item.GetProperty("tag").GetString()!); var action = item.GetProperty("action");
+                if (action.ValueKind != JsonValueKind.Object || action.EnumerateObject().Count() != 1) throw new ArgumentException("预设动作无效。");
+                var entry = action.EnumerateObject().Single(); string value = "";
+                if (entry.Name is not ("remove" or "copy" or "setText" or "fillMissingText" or "appendText" or "replaceAuthors" or "fillMissingAuthors" or "replaceKeywords" or "appendKeywords" or "removeKeywords")) throw new ArgumentException("此预设动作未支持；日期算法不在本批子集，未载入任何操作。");
+                if (entry.Name == "remove") Members(entry.Value);
+                else {
+                    Members(entry.Value,"_0"); var argument = entry.Value.GetProperty("_0");
+                    if (entry.Name is "replaceAuthors" or "fillMissingAuthors" or "replaceKeywords" or "appendKeywords" or "removeKeywords") {
+                        if (argument.ValueKind != JsonValueKind.Array || argument.GetArrayLength() > 256 || argument.EnumerateArray().Any(w => w.ValueKind != JsonValueKind.String || w.GetString()!.Length == 0 || w.GetString()!.Any(char.IsControl))) throw new ArgumentException("预设列表结构无效。");
+                        value = string.Join("\n", argument.EnumerateArray().Select(w => w.GetString()!));
+                    } else {
+                        if (argument.ValueKind != JsonValueKind.String) throw new ArgumentException("预设参数须为文字。");
+                        value = argument.GetString()!;
+                        if (entry.Name == "copy") value = PhotoDocument.BaseTag(value);
                     }
-                    else throw new ArgumentException("此预设操作当前未支持；未载入任何字段。");
                 }
-                changes.Add(tag, value);
+                operations.Add(new(tag,entry.Name,value));
             }
-            return Create(root.GetProperty("name").GetString()!, changes);
+            return Create(root.GetProperty("name").GetString()!,operations);
+        } catch (Exception error) when (error is JsonException or InvalidOperationException) { throw new ArgumentException("预设JSON结构无效。"); }
+    }
+    // The caller supplies detached batch snapshots; no live document is touched before the terminal check.
+    public int Apply(PhotoDocument photo, CancellationToken cancellation = default)
+    {
+        var preset = Create(Name,Operations); var values = new Dictionary<string,string?>(); var changes = new Dictionary<string,string>(); int skipped = 0;
+        string? Current(string tag) {
+            if (values.TryGetValue(tag,out var value)) return value;
+            value = ReadCurrent(photo,tag); values[tag] = value; return value;
         }
-        catch (Exception error) when (error is JsonException or InvalidOperationException) { throw new ArgumentException("预设JSON结构无效。"); }
+        foreach (var op in preset.Operations) {
+            cancellation.ThrowIfCancellationRequested(); string? value;
+            if (op.Action == "copy") { _ = Current(op.Tag); value = Current(op.Value); if (value is null) { skipped++; continue; } }
+            else {
+                var current = Current(op.Tag);
+                if (op.Action is "fillMissingText" or "fillMissingAuthors" && current is not null) continue;
+                value = op.Action switch {
+                    "remove" => null,
+                    "appendText" => (current ?? "") + op.Value,
+                    "appendKeywords" => string.Join("\n", Words(current).Concat(Words(op.Value)).Distinct(StringComparer.Ordinal)),
+                    "removeKeywords" => string.Join("\n", Words(current).Where(w => !Words(op.Value).Contains(w,StringComparer.Ordinal))),
+                    _ => op.Value
+                };
+            }
+            if (IsList(op.Tag) && value == "") value = null;
+            var checkedOp = value is null ? new MetadataOperation(op.Tag,"remove") : new MetadataOperation(op.Tag, IsList(op.Tag) ? op.Tag == "XMP-dc:Creator" ? "replaceAuthors" : "replaceKeywords" : "setText",value);
+            value = Validate(checkedOp).Value;
+            if(value.Length>0 && PhotoDocument.NumericRange(op.Tag) is not null)value=PhotoDocument.CheckedNumber(op.Tag,value).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            changes[op.Tag] = value; values[op.Tag] = value.Length == 0 ? null : value;
+        }
+        photo.SetDraft(changes); return skipped;
+    }
+    static string[] Words(string? value) => string.IsNullOrEmpty(value) ? [] : value.Split('\n');
+    static string? ReadCurrent(PhotoDocument photo,string tag)
+    {
+        foreach (var source in new[] { photo.Embedded, photo.Sidecar ?? photo.Embedded })
+            if (source.ValueKind != JsonValueKind.Object || source.TryGetProperty("ExifTool:Error",out _) || source.TryGetProperty("Error",out _)) throw new ArgumentException("来源读取失败，不能视为缺失。");
+        if (photo.Draft.TryGetValue(tag,out var pending)) return pending.Length == 0 ? null : pending;
+        var metadata = photo.Sidecar ?? photo.Embedded;
+        if (!metadata.TryGetProperty(tag,out var item)) return null;
+        if (IsList(tag)) {
+            if (item.ValueKind != JsonValueKind.Array || item.EnumerateArray().Any(w => w.ValueKind != JsonValueKind.String || w.GetString()!.Length == 0 || w.GetString()!.Any(char.IsControl))) throw new ArgumentException("来源列表类型无效，不能视为缺失。");
+        } else if (item.ValueKind != JsonValueKind.String && !(item.ValueKind == JsonValueKind.Number && (PhotoDocument.NumericRange(tag) is not null || tag == "XMP-xmp:Rating"))) throw new ArgumentException("来源标量类型无效，不能视为缺失。");
+        var text = PhotoDocument.Text(item); PhotoDocument.ValidateChanges(new Dictionary<string,string>{{tag,text}}); return text;
     }
 }
