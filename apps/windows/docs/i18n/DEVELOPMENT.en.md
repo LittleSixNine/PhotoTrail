@@ -61,3 +61,7 @@ The production WPF checker now has `--batch-direct-checks`, `--batch-late-checks
 ## Selected-photo track matching checks (2026-10-11)
 
 UiChecks: `--track-batch-checks`, `--track-batch-performance`, `--track-batch-cancel`. Use isolated settings and synthetic copies. Measure matching, both full-source checks, atomic draft commit, synchronous row refresh and separately observed end-to-end latency. Three 530-photo rounds use two 500-point loaded tracks; cancellation uses a real legal 100,000-point GPX after at least one photo completed, before the batch completes. Keep deterministic WPF continuation checks separate from native mouse evidence. No global cache, new matching algorithm, DateHost protocol change, or full historical suite.
+
+## Focused ordered-preset checks
+
+From apps/windows, run `dotnet run --project PhotoTrail.Windows.Tests -- --preset-checks` for ordered operations, current values, type/JSON boundaries and legacy/new fixtures. The existing DateHost/UiChecks harness adds `--ordered-preset-checks` and `--ordered-copy-checks` for production WPF terminal validation, scale measurements, explicit copy saving and ExifTool readback. Supply isolated evidence output and synthetic inputs; profiles, images and full logs stay local. UiChecks does not rebuild the fixed DateHost binary. Record native mouse/keyboard and system dialogs separately from model/WPF event checks.

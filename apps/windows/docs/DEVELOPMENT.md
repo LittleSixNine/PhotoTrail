@@ -139,3 +139,7 @@ PHOTOTRAIL_TRACK_HISTORY隔离旧路径历史；快照位于同一路径加.adju
 Stopwatch记录匹配、预览全来源复核、应用全来源复核、UI草稿提交与同步列表刷新；端到端计时包含25ms检查轮询及Dispatcher ApplicationIdle观察，不等于鼠标到首帧。取消检查记录真实worker开始／取消／结束与已完成数量，取消发生在一张已完成且整批未完成时；不是启动前取消、假轨迹或延时。迟到检查仅持有真实来源复核的UI续体，保留生产读锁，用另一有效轨迹建立新请求；与原生鼠标证据分开。
 
 复用既有轨迹调整检查和单张迟到失败检查，覆盖日期直接应用、最近一次撤销、设置与重命名冻结身份；不跑历史全套。原生操作验证计算→成功地图查看→未成功复核→应用→撤销，实际OpenFreeMap加载单列；Google在线条件不作通过。完整日志、规模输入和二进制留本机，上传仅审查后的摘要与纯合成小样。
+
+## 有序预设定向验证
+
+在apps/windows目录运行 `dotnet run --project PhotoTrail.Windows.Tests -- --preset-checks`：覆盖有序重复目标、当前值、类型、JSON以及静态新旧fixture往返。`DateHost/UiChecks`的 `--ordered-preset-checks` 与 `--ordered-copy-checks` 分别在真实生产WPF控件／Dispatcher上验证整批终态与规模、显式副本保存和ExifTool回读；必须提供独立证据输出及合成输入，配置、照片副本和完整日志仅保留本机。测试检查程序位于DateHost/UiChecks，不重编固定DateHost宿主。原生鼠标／键盘与系统文件对话框另行记录，不能以模型或WPF事件检查替代。
