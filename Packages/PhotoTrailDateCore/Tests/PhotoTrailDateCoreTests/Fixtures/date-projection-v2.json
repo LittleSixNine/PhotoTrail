@@ -1,0 +1,352 @@
+{
+  "basis" : "1970-01-01T00:00:00; instant is Unix time, wall is a nominal coordinate under the existing Foundation calendar, never an absolute instant",
+  "entries" : [
+    {
+      "expected" : {
+        "kind" : "wall",
+        "nanoseconds" : 0,
+        "seconds" : 0
+      },
+      "id" : "projection-1",
+      "input" : "1970:01:01 00:00:00"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 0,
+        "offsetMinutes" : 0,
+        "seconds" : 0
+      },
+      "id" : "projection-2",
+      "input" : "1970:01:01 00:00:00Z"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 0,
+        "offsetMinutes" : 0,
+        "seconds" : 0
+      },
+      "id" : "projection-3",
+      "input" : "1970:01:01 00:00:00+00:00"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 0,
+        "offsetMinutes" : 0,
+        "seconds" : 0
+      },
+      "id" : "projection-4",
+      "input" : "1970:01:01 00:00:00-00:00"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 0,
+        "offsetMinutes" : 840,
+        "seconds" : -50400
+      },
+      "id" : "projection-5",
+      "input" : "1970:01:01 00:00:00+14:00"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 0,
+        "offsetMinutes" : -840,
+        "seconds" : 50400
+      },
+      "id" : "projection-6",
+      "input" : "1970:01:01 00:00:00-14:00"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 0,
+        "offsetMinutes" : 480,
+        "seconds" : -28800
+      },
+      "id" : "projection-7",
+      "input" : "1970:01:01 00:00:00+08:00"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 0,
+        "offsetMinutes" : -345,
+        "seconds" : 20700
+      },
+      "id" : "projection-8",
+      "input" : "1970:01:01 00:00:00-05:45"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 100000000,
+        "offsetMinutes" : 0,
+        "seconds" : 0
+      },
+      "id" : "projection-9",
+      "input" : "1970:01:01 00:00:00.1Z"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 120000000,
+        "offsetMinutes" : 0,
+        "seconds" : 0
+      },
+      "id" : "projection-10",
+      "input" : "1970:01:01 00:00:00.12Z"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 123000000,
+        "offsetMinutes" : 0,
+        "seconds" : 0
+      },
+      "id" : "projection-11",
+      "input" : "1970:01:01 00:00:00.123Z"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 123400000,
+        "offsetMinutes" : 0,
+        "seconds" : 0
+      },
+      "id" : "projection-12",
+      "input" : "1970:01:01 00:00:00.1234Z"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 123450000,
+        "offsetMinutes" : 0,
+        "seconds" : 0
+      },
+      "id" : "projection-13",
+      "input" : "1970:01:01 00:00:00.12345Z"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 123456000,
+        "offsetMinutes" : 0,
+        "seconds" : 0
+      },
+      "id" : "projection-14",
+      "input" : "1970:01:01 00:00:00.123456Z"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 123456700,
+        "offsetMinutes" : 0,
+        "seconds" : 0
+      },
+      "id" : "projection-15",
+      "input" : "1970:01:01 00:00:00.1234567Z"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 123456780,
+        "offsetMinutes" : 0,
+        "seconds" : 0
+      },
+      "id" : "projection-16",
+      "input" : "1970:01:01 00:00:00.12345678Z"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 123456789,
+        "offsetMinutes" : 0,
+        "seconds" : 0
+      },
+      "id" : "projection-17",
+      "input" : "1970:01:01 00:00:00.123456789Z"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 123456789,
+        "offsetMinutes" : 0,
+        "seconds" : -1
+      },
+      "id" : "projection-18",
+      "input" : "1969:12:31 23:59:59.123456789Z"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 100000000,
+        "offsetMinutes" : 0,
+        "seconds" : 0
+      },
+      "id" : "projection-19",
+      "input" : "1970:01:01 00:00:00.100000000Z"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 1,
+        "offsetMinutes" : 0,
+        "seconds" : 0
+      },
+      "id" : "projection-20",
+      "input" : "1970:01:01 00:00:00.000000001Z"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 123456789,
+        "offsetMinutes" : 345,
+        "seconds" : 1709189396
+      },
+      "id" : "projection-21",
+      "input" : "2024:02:29 12:34:56.123456789+05:45"
+    },
+    {
+      "expected" : {
+        "kind" : "wall",
+        "nanoseconds" : 123456789,
+        "seconds" : 1709210096
+      },
+      "id" : "projection-22",
+      "input" : "2024:02:29 12:34:56.123456789"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 123456789,
+        "offsetMinutes" : 0,
+        "seconds" : -14825894400
+      },
+      "id" : "projection-23",
+      "input" : "1500:02:29 00:00:00.123456789-00:00"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 0,
+        "offsetMinutes" : 480,
+        "seconds" : -14825923200
+      },
+      "id" : "projection-24",
+      "input" : "1500:02:29 00:00:00+08:00"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 0,
+        "offsetMinutes" : 0,
+        "seconds" : -12219379200
+      },
+      "id" : "projection-25",
+      "input" : "1582:10:04 00:00:00Z"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 0,
+        "offsetMinutes" : 0,
+        "seconds" : -12219292800
+      },
+      "id" : "projection-26",
+      "input" : "1582:10:15 00:00:00Z"
+    },
+    {
+      "expected" : {
+        "kind" : "wall",
+        "nanoseconds" : 0,
+        "seconds" : -12219379200
+      },
+      "id" : "projection-27",
+      "input" : "1582:10:04 00:00:00"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 0,
+        "offsetMinutes" : 0,
+        "seconds" : -62135769600
+      },
+      "id" : "projection-28",
+      "input" : "0001:01:01 00:00:00Z"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 0,
+        "offsetMinutes" : 840,
+        "seconds" : -62135820000
+      },
+      "id" : "projection-29",
+      "input" : "0001:01:01 00:00:00+14:00"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 999999999,
+        "offsetMinutes" : 0,
+        "seconds" : 253402300799
+      },
+      "id" : "projection-30",
+      "input" : "9999:12:31 23:59:59.999999999Z"
+    },
+    {
+      "expected" : {
+        "kind" : "instant",
+        "nanoseconds" : 0,
+        "offsetMinutes" : -840,
+        "seconds" : 253402351199
+      },
+      "id" : "projection-31",
+      "input" : "9999:12:31 23:59:59-14:00"
+    },
+    {
+      "error" : "invalidDate",
+      "id" : "projection-32",
+      "input" : "1800:02:29 00:00:00Z"
+    },
+    {
+      "error" : "invalidDate",
+      "id" : "projection-33",
+      "input" : "1582:10:05 00:00:00Z"
+    },
+    {
+      "error" : "invalidDate",
+      "id" : "projection-34",
+      "input" : "1582:10:14 00:00:00"
+    },
+    {
+      "error" : "invalidDate",
+      "id" : "projection-35",
+      "input" : "2024:02:29 00:00:00+14:01"
+    },
+    {
+      "error" : "invalidDate",
+      "id" : "projection-36",
+      "input" : "1970:01:01 00:00:00.1234567890Z"
+    },
+    {
+      "error" : "invalidDate",
+      "id" : "projection-37",
+      "input" : "1970:01:01 00:00:00Z\\n"
+    },
+    {
+      "error" : "invalidDate",
+      "id" : "projection-38",
+      "input" : "0000:01:01 00:00:00Z"
+    }
+  ],
+  "format" : "phototrail-date-projection-fixture",
+  "referencePlatform" : "Mac arm64, Apple Swift 6.4; historical values derived from the unchanged core Date, not a new calendar",
+  "referenceSha256" : "593fa443f634234b81308143d96b0e6bc0373782734d6ba85a69b90c4d153ccc",
+  "referenceSource" : "63fb9404ec5f0862df90a000f5dd1c4b81509900",
+  "version" : 2
+}

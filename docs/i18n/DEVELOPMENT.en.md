@@ -94,3 +94,7 @@ Stable requirement IDs, defaults, geographic algorithm and nonprivate synthetic 
 ## Shared date core
 
 `PhotoTrailDateCore` contains the unchanged Foundation-only date algorithm. ImageData depends on the local package and preserves existing public names through two typealiases; current App callers, minimum OS and project configuration are unchanged. `make test-packages` includes the package automatically. Run `swift test --package-path Packages/PhotoTrailDateCore` for the pure-core checks. See [the shared contract](../DATE-CORE-CONTRACT.md) for API, pinned source identity, synthetic vectors and Windows upgrade boundaries. Mac checks do not establish Windows Foundation, host or deployment compatibility.
+
+## Exact date projection
+
+The core appends `MetadataDate.projection()` with a domain, integer seconds/nanoseconds and an optional fixed offset. Missing-offset metadata remains wall time. Existing Mac callers do not invoke it; ImageData aliases, project configuration and saving paths remain. Core tests retain the 35 old vectors and add 38 projection vectors. See [the contract](../DATE-CORE-CONTRACT.md) for `date-core-v2`, historical references and independent Windows validation/deployment responsibilities.

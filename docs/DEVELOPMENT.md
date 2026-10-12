@@ -139,3 +139,7 @@ PhotoTrail 基于 GeoTag v6.0.2 派生，仍使用其部分应用基础设施与
 ## 直接应用定向检查
 
 `MetadataDirectApplyTests` 覆盖 530 张草稿提交／一次撤销、开始计算后的取消、选择／草稿／跳过来源变化与迟到请求隔离；`MetadataDirectApplyValidationTests` 覆盖请求内 IPTC 编码读取复用及版本变化。运行规模基准：`PHOTOTRAIL_DIRECT_APPLY_BENCH=1 swift test --package-path Packages/ImageData --filter MetadataDirectApplyPerformanceTests`；XMP 计算基准使用 `PHOTOTRAIL_DIRECT_XMP_BENCH=1`。基准使用合成临时输入与稳定快照，区分计算、来源复核及应用提交；不代表私人照片耗时或 UI 验收。
+
+## 精确日期投影
+
+`PhotoTrailDateCore` 在原日期算法末尾追加 `MetadataDate.projection()`，返回有时间域的整数秒／纳秒／偏移；无偏移仍是墙钟。Mac 现有调用链不使用新 API，ImageData 别名、工程配置和保存路径保持。纯包检查包含原35向量和38投影向量；新协议 `date-core-v2` 与 Windows 验证职责见 [共同契约](DATE-CORE-CONTRACT.md)。历史平台投影、Windows宿主／部署不能由Mac通过结果代替。

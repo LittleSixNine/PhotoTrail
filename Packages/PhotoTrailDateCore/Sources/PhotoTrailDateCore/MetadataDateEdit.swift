@@ -144,3 +144,34 @@ public struct MetadataDate: Equatable, Sendable {
         return try (0..<count).map { try first.shifting(seconds: Int((interval * Double($0) / Double(count - 1)).rounded())).text }
     }
 }
+
+public enum MetadataDateProjectionKind: String, Sendable {
+    case wall, instant
+}
+
+public struct MetadataDateProjection: Equatable, Sendable {
+    public let kind: MetadataDateProjectionKind
+    public let seconds: Int64
+    public let nanoseconds: Int32
+    public let offsetMinutes: Int?
+}
+
+public enum MetadataDateProjectionError: Error {
+    case unrepresentable
+}
+
+extension MetadataDate {
+    public func projection() throws -> MetadataDateProjection {
+        guard let seconds = Int64(exactly: date.timeIntervalSince1970) else {
+            throw MetadataDateProjectionError.unrepresentable
+        }
+        let digits = String(fraction.dropFirst())
+        guard let nanoseconds = Int32(digits + String(repeating: "0", count: 9 - digits.count)) else {
+            throw MetadataDateProjectionError.unrepresentable
+        }
+        // With no offset, the same numeric basis is only a wall-clock coordinate.
+        return MetadataDateProjection(kind: offset.isEmpty ? .wall : .instant, seconds: seconds,
+                                      nanoseconds: nanoseconds,
+                                      offsetMinutes: offset.isEmpty ? nil : displayTimeZone.secondsFromGMT() / 60)
+    }
+}
