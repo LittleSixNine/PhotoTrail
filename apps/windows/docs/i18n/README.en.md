@@ -1,3 +1,7 @@
+## 2026-10-13 · R03b
+
+R03b adds explicit in-place saving with mandatory, unique byte backups, real-target readback, persistent recovery records and restore by a reviewed record. Copy remains the default; Ctrl+S still saves selected copies and retains drafts. Only verified local NTFS JPEG, paired JPEG/DNG XMP and standalone XMP are enabled. Unknown outcomes keep files, backups and drafts and block blind writes, reread rebinding and rename. Custom ACLs, links, alternate streams and unsupported filesystems are refused. GPS clearing with EXIF fallback and the SDK/NOTICE/SwiftPM deployment limits remain open. R03a agent delivery was accepted; R03b requires separate acceptance. [Details](../SAVE-TARGETS.md).
+
 > 2026-10-13 · R03a adds an explicit save summary, all pending files and current workspace field scopes, plus new same-directory XMP sidecars for JPEG/DNG. Ctrl+S still prepares selected copies; confirm before writing. Copy saves retain session drafts. Existing sidecars use copies; in-place writing remains unavailable. Clearing XMP coordinates cannot hide embedded EXIF GPS, so that new-sidecar case is refused pending a product decision.
 
 ## 2026-10-13 · Source inspector R02

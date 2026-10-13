@@ -1,3 +1,7 @@
+## 2026-10-13 · R03b
+
+R03b añade guardado explícito en el archivo con copia de seguridad completa y única obligatoria, lectura del destino real, registros persistentes y restauración por registro revisado. La copia sigue siendo el modo predeterminado; Ctrl+S guarda solo copias seleccionadas y conserva borradores. Solo se habilitan JPEG, XMP asociado a JPEG/DNG y XMP independiente verificados en NTFS local. Los resultados desconocidos conservan archivos, copias y borradores y bloquean escrituras, reasignación por relectura y renombrado sin verificar. Se rechazan ACL personalizadas, enlaces, flujos adicionales y sistemas no verificados. Siguen pendientes el borrado GPS con retorno a EXIF y los límites SDK/NOTICE/SwiftPM. R03a fue aceptado como entrega del agente; R03b requiere aceptación separada. [Details](../SAVE-TARGETS.md).
+
 > 2026-10-13 · R03a añade un resumen explícito, todos los borradores de la biblioteca y el alcance de campos del espacio actual, además de nuevos XMP junto al JPEG/DNG. Ctrl+S sigue preparando copias de la selección; confirme antes de escribir. Las copias conservan los borradores. Los XMP existentes se modifican mediante copias; no hay escritura directa. Se rechaza borrar coordenadas XMP si el GPS EXIF original puede reaparecer.
 
 ## 2026-10-13 · Inspector de fuentes R02

@@ -340,8 +340,9 @@ public static class MetadataCopy
         var frozen=new Dictionary<string,string>(photo.Draft);var proof=await VerifiedMetadataDates.CreateAsync(frozen,cancellation);
         return await SaveValidatedAsync(client,photo,folder,frozen,proof,cancellation);
     }
-    internal static async Task<string> SaveValidatedAsync(ExifToolClient client, PhotoDocument photo,string folder,IReadOnlyDictionary<string,string> frozen,VerifiedMetadataDates dates,CancellationToken cancellation=default)
+    internal static async Task<string> SaveValidatedAsync(ExifToolClient client, PhotoDocument photo,string folder,IReadOnlyDictionary<string,string> frozen,VerifiedMetadataDates dates,CancellationToken cancellation=default,string? inplaceRecord=null)
     {
+        InplaceHistory.RequireClear([photo.FilePath,photo.SidecarPath??photo.FilePath],inplaceRecord);
         if (!photo.CanEdit || photo.Draft.Count == 0) throw new InvalidOperationException("没有可保存的草稿。");
         // Freeze only the requested fields; UI edits while saving cannot alter this operation.
         var changes=new Dictionary<string,string>(frozen);var revision=photo.DraftRevision;
@@ -352,7 +353,8 @@ public static class MetadataCopy
         if (File.Exists(output) || (sidecarOutput is not null && File.Exists(sidecarOutput))) throw new IOException("目标文件已存在，不会覆盖。");
         await photo.EnsureUnchangedAsync(cancellation);
         var temporary = Path.Combine(folder, ".phototrail-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(temporary);
+        SavePaths.CreateOwnedDirectory(temporary);
+        var temporaryGuard=inplaceRecord is null?null:SavePaths.LockParents(Path.Combine(temporary,"boundary"),true);
         var stagedImage = Path.Combine(temporary, Path.GetFileName(photo.FilePath));
         var stagedSidecar = sidecarOutput is null ? null : Path.ChangeExtension(stagedImage, ".xmp");
         var valueFiles = new List<string>();
@@ -377,8 +379,7 @@ public static class MetadataCopy
                 {
                     // Literal UTF-8 value files preserve newlines, quotes, $, @ and leading spaces.
                     var valueFile = Path.Combine(temporary, $"value-{valueFiles.Count}.txt");
-                    valueFiles.Add(valueFile);
-                    await File.WriteAllTextAsync(valueFile, item, new UTF8Encoding(false), cancellation);
+                    await using(var valueOutput=new FileStream(valueFile,FileMode.CreateNew,FileAccess.Write,FileShare.None)){valueFiles.Add(valueFile);await valueOutput.WriteAsync(new UTF8Encoding(false).GetBytes(item),cancellation);}
                     arguments.Add("-" + writeTag + "<=" + valueFile);
                 }
             }
@@ -432,15 +433,14 @@ public static class MetadataCopy
         }
         catch
         {
-            if (movedImage && File.Exists(output) && verifiedImageHash == await PhotoDocument.HashAsync(output)) File.Delete(output);
+            if (inplaceRecord is null && movedImage && File.Exists(output) && verifiedImageHash == await PhotoDocument.HashAsync(output)) File.Delete(output);
             throw;
         }
         finally
         {
-            // Delete only files this operation created; never recursively delete an output directory.
-            foreach (var file in new[] { stagedImage, stagedSidecar }) if (file is not null && File.Exists(file)) File.Delete(file);
-            foreach (var file in valueFiles) if (File.Exists(file)) File.Delete(file);
-            Directory.Delete(temporary, recursive: false);
+            temporaryGuard?.Dispose();
+            // In-place records retain their complete stage, including partial or unconfirmed temporary files.
+            if(inplaceRecord is null){foreach (var file in new[] { stagedImage, stagedSidecar }) if (file is not null && File.Exists(file)) File.Delete(file);foreach (var file in valueFiles) if (File.Exists(file)) File.Delete(file);Directory.Delete(temporary,recursive:false);}
         }
     }
 

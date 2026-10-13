@@ -1,3 +1,7 @@
+## 2026-10-13 · R03b
+
+R03b adiciona gravação explícita no arquivo com backup completo, único e obrigatório, releitura do destino real, registros persistentes e restauração por registro revisado. Cópia continua sendo o padrão; Ctrl+S salva apenas cópias selecionadas e mantém rascunhos. São habilitados somente JPEG, XMP associado a JPEG/DNG e XMP independente verificados em NTFS local. Resultados desconhecidos preservam arquivos, backups e rascunhos e bloqueiam gravação, redefinição da origem por releitura e renomeação sem verificação. ACLs personalizadas, links, fluxos adicionais e sistemas não verificados são recusados. A limpeza de GPS com retorno ao EXIF e os limites SDK/NOTICE/SwiftPM continuam pendentes. R03a foi aceito como resultado do agente; R03b exige aceitação separada. [Details](../SAVE-TARGETS.md).
+
 > 2026-10-13 · R03a adiciona um resumo explícito, todos os rascunhos pendentes da biblioteca e o escopo de campos do espaço atual, além de novos XMP ao lado de JPEG/DNG. Ctrl+S continua preparando cópias da seleção; confirme antes de gravar. As cópias mantêm os rascunhos da sessão. XMP existentes usam cópias; gravação direta não está disponível. A limpeza de coordenadas XMP é recusada quando o GPS EXIF original pode reaparecer.
 
 ## 2026-10-13 · Inspetor de fontes R02

@@ -1,3 +1,9 @@
+## 2026-10-13 · R03b
+
+R03b复用既有ExifTool／PhotoDocument／MetadataCopy及原日期宿主；无新增依赖。UiChecks增加 --inplace-checks、--inplace-scale、--inplace-fault-checks、--inplace-restart-checks；故障检查必须使用隔离副本构建，生产源没有注入入口。事务内同字节写取得NTFS隔离锁，句柄中重新验证身份／SHA，再MoveFileTransacted提交。TxF为微软不推荐且未来可能不可用的API；不可用时拒绝写回，没有关闭保护的回退。只支持已实测固定本地NTFS普通继承ACL；自定义ACL、ADS、硬链接、重解析点、网络卷、EFS／压缩／稀疏边界拒绝。并发ACL变化、真实断电／磁盘耗尽未验；不宣称跨日志与目标的断电原子性。备份及JSONL阶段记录Flush(true)，恢复先保留当前版本，实际回读与UI接纳后才完成。测试隔离环境使用PHOTOTRAIL_INPLACE_HISTORY；日用默认LocalAppData/PhotoTrail/Windows/InplaceHistory。1／20／100按原样候选记录备份／暂存／提交／回读／界面接纳／恢复阶段与请求数，不套用Mac并发常量。
+
+[Microsoft TxF documentation](https://learn.microsoft.com/en-us/windows/win32/fileio/transactional-ntfs-portal) · [Programming considerations](https://learn.microsoft.com/en-us/windows/win32/fileio/programming-considerations-for-transacted-fileio-)
+
 ## R03a 保存验证
 
 生产保存计划位于 `PhotoTrail.Windows/SavePlan.cs` 与 `MainWindow.Save.cs`，复用 MetadataXmp／MetadataCopy／PhotoDocument 和 date-core-v2；不增加 SDK／组件／系统环境要求。UiChecks 的 `--save-target-checks` 使用独立临时副本覆盖模式、范围、真实配对、完整XMP、竞态、锁、权限失败、创建后取消／回读故障、revision及生产WPF链；`--save-target-scale` 观测1／20／100张请求数、阶段耗时和Dispatcher间隔。临时权限注入只改任务目录并finally恢复；注入证据与无钩子的原生候选流程分别归属。最终候选检查需逐字节使用候选生产DLL，不以早期构建代替。

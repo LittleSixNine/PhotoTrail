@@ -17,7 +17,7 @@
     <Button x:Name="UndoLastApplyButton" Content="撤销最近一次应用" Click="UndoLastApply" Padding="12,6" Margin="8,0,0,0" IsEnabled="False" ToolTip="恢复最近一批应用之前的完整草稿；不撤销保存文件。"/>
    </WrapPanel>
    <WrapPanel Margin="0,6,0,0">
-    <TextBlock Text="保存模式：" VerticalAlignment="Center"/><ComboBox x:Name="SaveModeChoice" SelectedIndex="0" Width="190" SelectionChanged="SaveModeChanged" AutomationProperties.Name="保存模式，默认副本"><ComboBoxItem Content="副本（保留会话草稿）"/><ComboBoxItem Content="新建同目录XMP旁车"/></ComboBox>
+    <TextBlock Text="保存模式：" VerticalAlignment="Center"/><ComboBox x:Name="SaveModeChoice" SelectedIndex="0" Width="190" SelectionChanged="SaveModeChanged" AutomationProperties.Name="保存模式，默认副本"><ComboBoxItem Content="副本（保留会话草稿）"/><ComboBoxItem Content="新建同目录XMP旁车"/><ComboBoxItem Content="原位保存（强制备份）"/></ComboBox>
     <Button Content="全部待保存…" Click="PrepareSaveAll" Padding="8,5" AutomationProperties.Name="全库全部待保存，不依赖选择或筛选"/>
     <Button Content="当前工作区待保存…" Click="PrepareSaveWorkspace" Padding="8,5" AutomationProperties.Name="全库当前工作区字段范围"/>
    </WrapPanel>
@@ -199,7 +199,8 @@
       <TabItem x:Name="SaveTargetTab" Header="保存摘要">
     <DockPanel Margin="8">
      <WrapPanel DockPanel.Dock="Top"><Button x:Name="ExecuteSaveButton" Content="确认执行冻结计划" Click="ExecuteSavePlan" IsEnabled="False" Padding="12,6"/><Button Content="取消保存计划（不写文件）" Click="CancelSavePlan" Padding="12,6"/></WrapPanel>
-     <TextBox x:Name="SaveSummary" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="保存目标、范围、逐文件结果" Text="尚未准备保存计划。默认副本；不提供原位写回。"/>
+     <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0"><TextBlock Text="原位备份目录（必须已存在；不自动清理）："/><DockPanel><Button DockPanel.Dock="Right" Content="选择备份目录" Click="ChooseBackup"/><TextBox x:Name="BackupFolder" AutomationProperties.Name="原位备份目录" LostFocus="BackupChanged"/></DockPanel><TextBlock Text="保存／恢复记录（启动仅发现，不修改磁盘）："/><ComboBox x:Name="InplaceRecords" DisplayMemberPath="Label" AutomationProperties.Name="选择按记录恢复的事务"/><WrapPanel><Button Content="核对记录摘要" Click="ShowInplaceRecord"/><Button Content="确认核对并接纳结果" Click="CheckInplaceRecord"/><Button Content="按所选记录恢复" Click="RestoreInplaceRecord"/></WrapPanel><TextBlock x:Name="InplaceStatus" TextWrapping="Wrap"/></StackPanel>
+     <TextBox x:Name="SaveSummary" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="保存目标、范围、逐文件结果" Text="尚未准备保存计划。默认副本；原位必须先备份。"/>
     </DockPanel>
    </TabItem>
    </TabControl>

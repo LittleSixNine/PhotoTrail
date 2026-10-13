@@ -18,7 +18,7 @@ public partial class MainWindow
     void LoadSettings()
     {
         try{settings=SettingsPreference.Read(settingsPath);}catch(Exception){settings=new();SettingsStatus.Text="本机设置不可读取，使用默认值。";}
-        ApplySettingsControls();
+        BackupFolder.Text=settings.BackupFolder;ApplySettingsControls();
     }
     void ApplySettingsControls()
     {

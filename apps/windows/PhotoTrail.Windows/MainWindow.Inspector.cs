@@ -61,8 +61,9 @@ public partial class MainWindow
         if(busy||renameRecoveryRequired)return;
         var selected=Selected;if(selected.Length==0)return;
         if(InspectorHasInput()){Status.Text="重新读取已跳过：所选有未应用输入，输入及草稿保留。";return;}
-        var eligible=selected.Where(r=>r.Document.Draft.Count==0).ToArray();int skipped=selected.Length-eligible.Length;
-        if(eligible.Length==0){Status.Text=$"重新读取已跳过{skipped}张：有草稿；请使用现有放弃入口处理。";return;}
+        bool Clear(PhotoRow row){try{InplaceHistory.RequireClear([row.Document.FilePath,row.Document.SidecarPath??row.Document.FilePath]);return true;}catch(Exception error){row.Document.InspectionError="待核对，旧快照保留："+error.Message;return false;}}
+        var eligible=selected.Where(r=>r.Document.Draft.Count==0&&Clear(r)).ToArray();int skipped=selected.Length-eligible.Length;
+        if(eligible.Length==0){Status.Text=$"重新读取已跳过{skipped}张：有草稿或持久待核对记录；草稿保留。";return;}
         long sequence=++rereadSequence;var revisions=eligible.Select(r=>r.Document.DraftRevision).ToArray();
         var editor=Fields.Select(f=>(f.Apply.IsChecked,f.Value.Text)).ToArray();
         BeginOperation();var request=operation!;var clock=Stopwatch.StartNew();long requests=Interlocked.Read(ref ExifToolClient.RequestCount),hostRequests=Interlocked.Read(ref DateAdapter.StartedProcesses);int refreshed=0,failed=0,addedSidecars=0,removedSidecars=0;bool cancelled=false;
@@ -84,7 +85,7 @@ public partial class MainWindow
                 foreach(var item in prepared.Where(x=>x.Next is not null&&x.Error.Length==0)){
                     request.Token.ThrowIfCancellationRequested();
                     foreach(var path in item.Next!.SidecarPath is {} side?new[]{item.Next.FilePath,side}:new[]{item.Next.FilePath})guards.Add(new(path,FileMode.Open,FileAccess.Read,FileShare.Read));
-                    await item.Next.EnsureUnchangedAsync(request.Token);
+                    InplaceHistory.RequireClear([item.Next.FilePath,item.Next.SidecarPath??item.Next.FilePath]);await item.Next.EnsureUnchangedAsync(request.Token);
                 }
                 if(!Current())throw new OperationCanceledException();rereadTimings["sourceMs"]=clock.Elapsed.TotalMilliseconds;
                 fillingEditor=true;try {

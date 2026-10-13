@@ -19,6 +19,7 @@ public static class RenameExecutor
     private record Step(int Index,int State);
     public static async Task<RenameResult> ExecuteAsync(RenamePlan plan,string journalDirectory,CancellationToken cancellation=default,Action<int,int>? progress=null)
     {
+        InplaceHistory.RequireClear(plan.Files.SelectMany(f=>new[]{f.Source,f.Target}));
         if(plan.Files.Count is < 1 or > 6000)throw new ArgumentException("计划为空或过大。");
         var sources=new HashSet<string>(StringComparer.OrdinalIgnoreCase);var targets=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach(var file in plan.Files)

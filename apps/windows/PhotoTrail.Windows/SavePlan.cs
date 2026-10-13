@@ -4,10 +4,10 @@ using System.Text;
 using Microsoft.Win32.SafeHandles;
 namespace PhotoTrail.Windows;
 
-internal enum SaveMode { Copy, NewSidecar }
+internal enum SaveMode { Copy, NewSidecar, Inplace }
 internal enum SaveScope { All, Metadata, Map }
 internal sealed record SaveItem(PhotoDocument Document,long Revision,IReadOnlyDictionary<string,string> Fields,string Target,string? Companion);
-internal sealed record SidecarResult(string Path,string? Hash,PhotoDocument? Document,string State,string Detail);
+internal sealed record SidecarResult(string Path,string? Hash,PhotoDocument? Document,string State,string Detail,string? RecordId=null,Dictionary<string,double>? Timings=null);
 internal sealed record SavePlan(SaveMode Mode,SaveScope Scope,SaveItem[] Items,string[] Skipped)
 {
     internal static bool IsGps(string tag)=>tag.StartsWith("XMP-exif:GPS",StringComparison.Ordinal);
@@ -17,10 +17,14 @@ internal sealed record SavePlan(SaveMode Mode,SaveScope Scope,SaveItem[] Items,s
             var fields=doc.Draft.Where(p=>scope==SaveScope.All || IsGps(p.Key)==(scope==SaveScope.Map)).ToDictionary(p=>p.Key,p=>p.Value);
             if(fields.Count==0){skipped.Add(Path.GetFileName(doc.FilePath)+"：本范围无净草稿");continue;}
             string? reason=mode==SaveMode.NewSidecar?!doc.CanCreateSidecar?"已有旁车／独立XMP／类型未验；使用副本路径":!doc.NewSidecarEditing?"尚未显式选择新旁车":null:!doc.CanEdit?"此格式无图内副本写入资格":null;
-            if(mode==SaveMode.NewSidecar&&fields.Any(p=>p.Key is "XMP-exif:GPSLatitude" or "XMP-exif:GPSLongitude" && p.Value.Length==0)&&doc.Embedded.TryGetProperty("GPS:GPSLatitude",out _))reason="清空XMP坐标不能证明屏蔽原图EXIF GPS；需产品契约确认，草稿保留";
+            if(mode is SaveMode.NewSidecar or SaveMode.Inplace&&fields.Any(p=>p.Key is "XMP-exif:GPSLatitude" or "XMP-exif:GPSLongitude" && p.Value.Length==0)&&doc.Embedded.TryGetProperty("GPS:GPSLatitude",out _))reason="清空XMP坐标不能证明屏蔽原图EXIF GPS；需产品契约确认，草稿保留";
+            if(mode==SaveMode.Inplace&&doc.SidecarPath is null&&doc.FileType!="XMP"&&File.Exists(Path.ChangeExtension(doc.FilePath,".xmp")))reason="新旁车／来源关系尚未核实，禁止升级原位目标";
+            if(mode==SaveMode.Inplace&&!InplaceSave.Supported(doc))reason="本格式没有已验证的原位目标；无旁车RAW请显式新建旁车";
+            InplaceHistory.RequireClear([doc.FilePath,doc.SidecarPath??doc.FilePath]);
+            if(mode==SaveMode.Inplace){InplaceNative.Inspect(doc.SidecarPath??doc.FilePath);if(doc.SidecarPath is not null)InplaceNative.Inspect(doc.FilePath);}
             if((File.GetAttributes(doc.FilePath)&FileAttributes.ReparsePoint)!=0)reason="源为链接，本批未验证";
             if(reason is not null){skipped.Add(Path.GetFileName(doc.FilePath)+"：拒绝，"+reason);continue;}
-            string target=mode==SaveMode.NewSidecar?Path.ChangeExtension(doc.FilePath,".xmp"):Path.Combine(Path.GetFullPath(output),Path.GetFileName(doc.FilePath));
+            string target=mode==SaveMode.Inplace?doc.SidecarPath??doc.FilePath:mode==SaveMode.NewSidecar?Path.ChangeExtension(doc.FilePath,".xmp"):Path.Combine(Path.GetFullPath(output),Path.GetFileName(doc.FilePath));
             var companion=mode==SaveMode.Copy&&doc.SidecarPath is not null?Path.ChangeExtension(target,".xmp"):null;
             items.Add(new(doc,doc.DraftRevision,fields,target,companion));
         }
@@ -28,11 +32,12 @@ internal sealed record SavePlan(SaveMode Mode,SaveScope Scope,SaveItem[] Items,s
         var keys=targets.Select(SavePaths.Canonical).ToArray();
         if(keys.Distinct(StringComparer.OrdinalIgnoreCase).Count()!=keys.Length)throw new IOException("整批拒绝：多个照片映射到同一物理目标。");
         var inputs=library.SelectMany(d=>d.SidecarPath is null?new[]{d.FilePath}:new[]{d.FilePath,d.SidecarPath}).Select(SavePaths.Canonical).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if(keys.Any(inputs.Contains))throw new IOException("整批拒绝：保存目标也是已导入来源。");
-        if(targets.Any(t=>File.Exists(t)||Directory.Exists(t)))throw new IOException("整批拒绝：目标已存在，不会覆盖。");
+        if(mode==SaveMode.Inplace&&items.Any(i=>library.Any(d=>!ReferenceEquals(d,i.Document)&&new[]{d.FilePath,d.SidecarPath??d.FilePath}.Any(path=>SavePaths.Canonical(path).Equals(SavePaths.Canonical(i.Target),StringComparison.OrdinalIgnoreCase)))))throw new IOException("整批拒绝：实际写入目标也作为其他照片／独立旁车导入。");
+        if(mode!=SaveMode.Inplace&&keys.Any(inputs.Contains))throw new IOException("整批拒绝：保存目标也是已导入来源。");
+        if(mode!=SaveMode.Inplace&&targets.Any(t=>File.Exists(t)||Directory.Exists(t)))throw new IOException("整批拒绝：目标已存在，不会覆盖。");
         return new(mode,scope,items.ToArray(),skipped.ToArray());
     }
-    internal string Summary=> $"模式：{(Mode==SaveMode.Copy?"副本":"新建同目录XMP旁车")}\n照片：{Items.Length}；字段范围：{(Scope==SaveScope.All?"全部字段":Scope==SaveScope.Metadata?"元数据（非GPS）":"地图（整组GPS）")}\n新文件：{Items.Sum(i=>i.Companion is null?1:2)}\n"+string.Join("\n",Items.Select(i=>i.Target+(i.Companion is null?"":" + "+i.Companion)+$"（{i.Fields.Count}个技术字段：{string.Join(", ",i.Fields.Keys)}）"))+"\n"+string.Join("\n",Skipped);
+    internal string Summary=> $"模式：{(Mode==SaveMode.Copy?"副本":Mode==SaveMode.NewSidecar?"新建同目录XMP旁车":"原位保存（强制完整备份）")}\n照片：{Items.Length}；字段范围：{(Scope==SaveScope.All?"全部字段":Scope==SaveScope.Metadata?"元数据（非GPS）":"地图（整组GPS）")}\n新文件：{(Mode==SaveMode.Inplace?0:Items.Sum(i=>i.Companion is null?1:2))}\n"+string.Join("\n",Items.Select(i=>i.Target+(i.Companion is null?"":" + "+i.Companion)+$"（{i.Fields.Count}个技术字段：{string.Join(", ",i.Fields.Keys)}）"))+"\n"+string.Join("\n",Skipped);
     internal static void Require(SaveItem item) {
         if(item.Document.DraftRevision!=item.Revision||item.Fields.Any(p=>!item.Document.Draft.TryGetValue(p.Key,out var value)||value!=p.Value))throw new InvalidOperationException("草稿revision已改变，计划失效。");
     }
@@ -75,8 +80,10 @@ internal static class SavePaths
 {
     [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)]static extern SafeFileHandle CreateFileW(string path,uint access,uint share,IntPtr security,uint creation,uint flags,IntPtr template);
     [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)]static extern uint GetFinalPathNameByHandleW(SafeFileHandle handle,StringBuilder path,uint length,uint flags);
-    static SafeFileHandle OpenDirectory(string path) {
-        var handle=CreateFileW(path,0,3,IntPtr.Zero,3,0x02000000,IntPtr.Zero);
+    [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)]static extern bool CreateDirectoryW(string path,IntPtr security);
+    internal static void CreateOwnedDirectory(string path){if(!CreateDirectoryW(path,IntPtr.Zero))throw new IOException("唯一暂存／备份目录不能创建，不接管已有内容；Win32="+Marshal.GetLastWin32Error());}
+    static SafeFileHandle OpenDirectory(string path,bool protectMetadata=false) {
+        var handle=CreateFileW(path,0,protectMetadata?1u:3u,IntPtr.Zero,3,protectMetadata?0x02200000u:0x02000000u,IntPtr.Zero);
         if(handle.IsInvalid){handle.Dispose();throw new IOException("目录缺失、占用或无权访问："+path);}return handle;
     }
     internal static string Canonical(string path) {
@@ -85,10 +92,10 @@ internal static class SavePaths
         if(length==0||length>=result.Capacity)throw new IOException("无法确认物理目录身份。");
         return result.ToString().TrimEnd('\\')+"\\"+Path.GetFileName(path);
     }
-    internal static IDisposable LockParents(string path) {
+    internal static IDisposable LockParents(string path,bool protectMetadata=false) {
         var handles=new List<SafeFileHandle>();
         try { for(var parent=new DirectoryInfo(Path.GetDirectoryName(Path.GetFullPath(path))!);parent is not null;parent=parent.Parent) {
-            if((parent.Attributes&FileAttributes.ReparsePoint)!=0)throw new IOException("来源目录为链接；本批未授权此目标。");handles.Add(OpenDirectory(parent.FullName));
+            if((parent.Attributes&FileAttributes.ReparsePoint)!=0)throw new IOException("来源目录为链接；本批未授权此目标。");var handle=OpenDirectory(parent.FullName,protectMetadata);handles.Add(handle);if(protectMetadata)InplaceNative.RequirePlainDirectory(handle);
         }return new Guards(handles); }catch{foreach(var handle in handles)handle.Dispose();throw;}
     }
     sealed record Guards(List<SafeFileHandle> Handles):IDisposable{public void Dispose(){foreach(var handle in Handles)handle.Dispose();}}

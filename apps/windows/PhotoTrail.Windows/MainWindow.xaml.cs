@@ -87,7 +87,7 @@ public partial class MainWindow : Window
         try { ThemeChoice.SelectedIndex = ThemePreference.Read(themePreferencePath); ThemeStatus.Text = "已读取本机外观偏好；不改变Windows设置。"; }
         catch (Exception) { ThemeStatus.Text = "本机外观偏好不可读取，暂跟随系统；已有配置未覆盖。"; }
         finally { restoringTheme = false; }
-        LoadSettings();LoadMetadataPresets();
+        LoadSettings();LoadInplaceRecords();LoadMetadataPresets();
         RefreshGoogleKeyStatus();
         LoadLatestRenameJournal();LoadRenameSchemes();
         LoadTrackHistory();LoadTrackSnapshots();
