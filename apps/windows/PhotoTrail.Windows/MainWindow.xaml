@@ -183,7 +183,7 @@
         <StackPanel DockPanel.Dock="Top" Margin="4">
          <WrapPanel><ComboBox x:Name="InspectorView" Width="150" SelectedIndex="0" SelectionChanged="InspectorViewChanged" AutomationProperties.Name="常用或完整字段"><ComboBoxItem Content="常用字段"/><ComboBoxItem Content="完整字段"/></ComboBox><Button Content="复制完整标签" Click="CopyMetadataTag" Padding="6,4"/><Button Content="使用既有XMP编辑入口" Click="EditInspectorField" Padding="6,4"/></WrapPanel>
          <TextBox x:Name="MetadataSearch" AutomationProperties.Name="搜索全部已读字段名称、技术标签和值" ToolTip="搜索覆盖全部已读字段，不受常用范围限制。" TextChanged="MetadataFilterChanged"/>
-         <TextBlock x:Name="InspectorCounts" TextWrapping="Wrap" AutomationProperties.Name="所选和全库原标签及净草稿字段计数"/>
+         <TextBlock x:Name="InspectorCounts" TextWrapping="Wrap" AutomationProperties.Name="{Binding Text, RelativeSource={RelativeSource Self}}" AutomationProperties.HelpText="所选和全库原标签及净草稿字段计数"/>
          <TextBlock x:Name="InspectorStatus" TextWrapping="Wrap"/>
         </StackPanel>
         <DataGrid x:Name="MetadataGrid" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" CopyingRowClipboardContent="CopyMetadataRow" VirtualizingPanel.IsVirtualizingWhenGrouping="True">

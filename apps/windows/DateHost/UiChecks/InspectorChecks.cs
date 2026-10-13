@@ -37,6 +37,7 @@ static partial class Program
   try {
    InspectorSelect("embedded.jpg");SelectMetadataTab("原始字段");
    Check(rows.All(r=>Doc(r).Inspection is not null&&Doc(r).InspectionError==""),"four-source-forms-complete-read");
+   Check(System.Windows.Automation.AutomationProperties.GetName(Control<TextBlock>("InspectorCounts"))==Control<TextBlock>("InspectorCounts").Text,"live-count-accessibility-name-includes-current-values");
    var mappings=MetadataInspector.DefaultCommon.Select(tag=>new{tag,actual=InspectorRows().Where(r=>r.Tag.Contains(" / ")&&MetadataInspector.Matches(tag,r.Tag.Split(" / ")[1])).Select(r=>new{r.Tag,r.State,r.Permission}).ToArray()}).ToArray();
    Check(mappings.All(x=>x.actual.Length>0),"default24-real-source-mappings-present");
    File.WriteAllText(Path.Combine(folder,"common24-actual-map.json"),JsonSerializer.Serialize(mappings,new JsonSerializerOptions{WriteIndented=true}));
