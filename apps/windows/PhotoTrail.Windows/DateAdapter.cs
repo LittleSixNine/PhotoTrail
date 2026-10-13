@@ -26,6 +26,7 @@ sealed class DateFailure(string code, Exception? inner = null) : Exception(code,
 sealed class DateAdapter(string executable, SourceIdentity expectedSource, string version = "date-core-v2",
     string arguments = "", int ordinaryBatchSize = 3000, int timeoutMs = 30000)
 {
+    internal static long StartedProcesses;
     internal const int MaxBytes = 1_048_576;
     internal static readonly JsonSerializerOptions Json = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
@@ -149,7 +150,7 @@ sealed class DateAdapter(string executable, SourceIdentity expectedSource, strin
         var clock = Stopwatch.StartNew();
         try {
             linked.Token.ThrowIfCancellationRequested();
-            try { started = process.Start(); if (!started) throw new DateFailure("startFailed"); }
+            try { started = process.Start(); if(started)Interlocked.Increment(ref StartedProcesses); if (!started) throw new DateFailure("startFailed"); }
             catch (System.ComponentModel.Win32Exception error) { throw new DateFailure(error.NativeErrorCode is 126 or 127 or 14001 ? "dependencyMissing" : "startFailed", error); }
             Pids.Add(process.Id); LastChildExited = false;
             output = ReadBoundedAsync(process.StandardOutput, MaxBytes, linked.Token);

@@ -5,10 +5,11 @@ using System.Text.Json.Serialization;
 namespace PhotoTrail.Windows;
 
 public sealed record PhotoSortPreference([property:JsonPropertyName("field")]string Field,[property:JsonPropertyName("descending")]bool Descending);
-public sealed record SettingsPreference(int TextSize=0,int Spacing=0,bool FullTagNames=true,bool RecordSearches=true,PhotoSortPreference[]? Sorts=null)
+public sealed record SettingsPreference(int TextSize=0,int Spacing=0,bool FullTagNames=true,bool RecordSearches=true,PhotoSortPreference[]? Sorts=null,bool CommonOnly=true,string[]? CommonFields=null)
 {
     public static string DefaultPath=>Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"PhotoTrail","Windows","settings-v1.json");
     public PhotoSortPreference[] PhotoSort=>Sorts is {Length:>0}?Sorts:[new("name",false)];
+    public string[] CommonTags=>CommonFields??MetadataInspector.DefaultCommon;
     public double FontDelta=>TextSize*2*96d/72d;
     public double RowPadding=>Spacing<0?2:Spacing>0?10:6;
     public double MinimumRowHeight=>Spacing<0?30:Spacing>0?48:40;
@@ -26,13 +27,15 @@ public sealed record SettingsPreference(int TextSize=0,int Spacing=0,bool FullTa
                 foreach(var item in array.EnumerateArray())
                     if(item.ValueKind==JsonValueKind.Object&&item.TryGetProperty("field",out var field)&&field.ValueKind==JsonValueKind.String&&field.GetString() is "name" or "captured" or "import"&&item.TryGetProperty("descending",out var descending)&&descending.ValueKind is JsonValueKind.True or JsonValueKind.False)
                         sorts.Add(new(field.GetString()!,descending.GetBoolean()));
-            return new(Choice("PhotoTrailMetadataTextSize"),Choice("PhotoTrailMetadataSpacing"),Toggle("PhotoTrailMetadataTagNames"),Toggle("PhotoTrailRecordSearches"),sorts.ToArray());
+            string[]? common=null;
+            if(root.TryGetProperty("PhotoTrailMetadataCommonFields.v1",out var commonJson)&&commonJson.ValueKind==JsonValueKind.Array&&commonJson.EnumerateArray().All(x=>x.ValueKind==JsonValueKind.String&&x.GetString() is {Length:>2 and <=256} tag&&tag.Split(':').Length==2&&!tag.Any(char.IsControl)))common=commonJson.EnumerateArray().Select(x=>x.GetString()!).Distinct(StringComparer.Ordinal).ToArray();
+            return new(Choice("PhotoTrailMetadataTextSize"),Choice("PhotoTrailMetadataSpacing"),Toggle("PhotoTrailMetadataTagNames"),Toggle("PhotoTrailRecordSearches"),sorts.ToArray(),Toggle("metadataCommonFieldsOnly"),common);
         }catch(Exception error)when(error is JsonException or InvalidDataException or InvalidOperationException){return new();}
     }
     public static void Save(string file,SettingsPreference settings)
     {
         if(settings.TextSize is <-1 or >1 || settings.Spacing is <-1 or >1 || settings.PhotoSort.Any(s=>s.Field is not("name" or "captured" or "import")))throw new ArgumentException("设置值无效。");
-        WriteJson(file,new Dictionary<string,object>{["version"]=1,["PhotoTrailMetadataTextSize"]=settings.TextSize,["PhotoTrailMetadataSpacing"]=settings.Spacing,["PhotoTrailMetadataTagNames"]=settings.FullTagNames,["PhotoTrailRecordSearches"]=settings.RecordSearches,["PhotoTrailPhotoSort.v1"]=settings.PhotoSort});
+        WriteJson(file,new Dictionary<string,object>{["version"]=1,["PhotoTrailMetadataTextSize"]=settings.TextSize,["PhotoTrailMetadataSpacing"]=settings.Spacing,["PhotoTrailMetadataTagNames"]=settings.FullTagNames,["PhotoTrailRecordSearches"]=settings.RecordSearches,["PhotoTrailPhotoSort.v1"]=settings.PhotoSort,["metadataCommonFieldsOnly"]=settings.CommonOnly,["PhotoTrailMetadataCommonFields.v1"]=settings.CommonTags});
     }
     internal static JsonDocument ReadJson(string file)
     {

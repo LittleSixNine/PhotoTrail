@@ -25,7 +25,7 @@ public partial class MainWindow
         restoringSettings=true;
         try{MetadataTextSize.SelectedIndex=settings.TextSize+1;MetadataSpacing.SelectedIndex=settings.Spacing+1;FullTagNames.IsChecked=settings.FullTagNames;RecordMapSearches.IsChecked=settings.RecordSearches;photoSort=Array.IndexOf(sortOptions,settings.PhotoSort[0]);PhotoSort.SelectedIndex=photoSort;}
         finally{restoringSettings=false;}
-        RenderMetadataSettings();RefreshSearchHistory();ApplyPhotoView();
+        RenderMetadataSettings();RefreshSearchHistory();ApplyPhotoView();RefreshInspectorSettings();RefreshInspector();
     }
     bool SaveSettings(){try{SettingsPreference.Save(settingsPath,settings);SettingsStatus.Text="设置已保存到本机；即时生效，重启恢复。";return true;}catch(Exception){SettingsStatus.Text="本次设置已生效，但未保存；请检查本机存储访问。";return false;}}
     private void MetadataSettingChanged(object sender,RoutedEventArgs e)
@@ -42,11 +42,11 @@ public partial class MainWindow
         MetadataGrid.MinRowHeight=settings.MinimumRowHeight;
         var cells=new Style(typeof(DataGridCell));cells.Setters.Add(new Setter(Control.PaddingProperty,new Thickness(0)));MetadataGrid.CellStyle=cells;
         foreach(var column in MetadataGrid.Columns.OfType<DataGridTextColumn>()){var text=new Style(typeof(TextBlock));text.Setters.Add(new Setter(TextBlock.FontSizeProperty,metadataBaseFont+settings.FontDelta));text.Setters.Add(new Setter(TextBlock.PaddingProperty,new Thickness(4,settings.RowPadding,4,settings.RowPadding)));text.Setters.Add(new Setter(TextBlock.TextWrappingProperty,TextWrapping.Wrap));column.ElementStyle=text;}
-        ((DataGridTextColumn)MetadataGrid.Columns[0]).Binding=new Binding(settings.FullTagNames?nameof(MetadataRow.Tag):nameof(MetadataRow.FamilyTag));
+        ((DataGridTextColumn)MetadataGrid.Columns[1]).Binding=new Binding(settings.FullTagNames?nameof(InspectorRow.Tag):nameof(InspectorRow.FamilyTag));
     }
     private void ResetSettings(object sender,RoutedEventArgs e)
     {
-        if(busy||Fields.Any(f=>f.Apply.IsChecked==true)){SettingsStatus.Text="请先结束任务或将输入加入草稿，再恢复默认设置。";return;}
+        if(busy||InspectorHasInput()){SettingsStatus.Text="请先结束任务或将输入加入草稿，再恢复默认设置。";return;}
         settings=new();var saved=SaveSettings();ApplySettingsControls();SettingsStatus.Text=saved?"显示、排序及记录开关已恢复默认；历史内容、密钥、地图提供方和外观不变。":"默认设置已在本次会话生效，但未保存；历史及其他数据保留。";
     }
     private void ClearSearchHistory(object sender,RoutedEventArgs e){try{MapSearchHistory.Clear(searchHistoryPath);RefreshSearchHistory();SearchHistoryStatus.Text="最近搜索记录已清除；当前查询及其他数据保留。";}catch(Exception){SearchHistoryStatus.Text="历史未清除，请检查本机存储访问。";}}
@@ -58,10 +58,10 @@ public partial class MainWindow
     private void UseRecentMapSearch(object sender,RoutedEventArgs e){if(RecentMapSearches.SelectedItem is string term){MapSearchQuery.Text=term;MapSearchQuery.Focus();try{MapSearchHistory.Remember(searchHistoryPath,term,settings.RecordSearches);RefreshSearchHistory();}catch(Exception){SearchHistoryStatus.Text="词条已填入，历史顺序未保存；已有记录保持。";}}}
     private void MetadataFilterChanged(object sender,TextChangedEventArgs e)
     {
-        if(MetadataGrid?.ItemsSource is null)return;var text=MetadataSearch.Text;CollectionViewSource.GetDefaultView(MetadataGrid.ItemsSource).Filter=item=>item is MetadataRow row&&(row.Tag.Contains(text,StringComparison.OrdinalIgnoreCase)||row.Value.Contains(text,StringComparison.OrdinalIgnoreCase));
+        RefreshInspector();
     }
-    private void CopyMetadataTag(object sender,RoutedEventArgs e){try{if(MetadataGrid.SelectedItem is MetadataRow row)Clipboard.SetText(row.Tag);}catch(Exception){Status.Text="完整标签未复制；剪贴板暂不可用，草稿保留。";}}
-    private void CopyMetadataRow(object sender,DataGridRowClipboardEventArgs e){if(e.Item is MetadataRow row)for(int i=0;i<e.ClipboardRowContent.Count;i++)if(e.ClipboardRowContent[i].Column==MetadataGrid.Columns[0])e.ClipboardRowContent[i]=new DataGridClipboardCellContent(row,MetadataGrid.Columns[0],row.Tag);}
+    private void CopyMetadataTag(object sender,RoutedEventArgs e){try{if(MetadataGrid.SelectedItem is InspectorRow row)Clipboard.SetText(row.Tag);}catch(Exception){Status.Text="完整标签未复制；剪贴板暂不可用，草稿保留。";}}
+    private void CopyMetadataRow(object sender,DataGridRowClipboardEventArgs e){if(e.Item is InspectorRow row)for(int i=0;i<e.ClipboardRowContent.Count;i++)if(e.ClipboardRowContent[i].Column==MetadataGrid.Columns[1])e.ClipboardRowContent[i]=new DataGridClipboardCellContent(row,MetadataGrid.Columns[1],row.Tag);}
     sealed class PhotoDateComparer(SettingsPreference preference):System.Collections.IComparer
     {
         public int Compare(object? x,object? y) {

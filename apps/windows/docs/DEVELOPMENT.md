@@ -1,3 +1,11 @@
+## 2026-10-13 · 检查器 R02 的读取与验证
+
+生产编辑／日期／保存仍使用原 `-G1` 键；展示另用 `-j -G1:4 -a -u -s -n`，保留来源角色、家族及Copy身份，严格核对SourceFile和批量数量。每32张最多64个物理来源各用一次普通读取与一次展示读取，日期文本仍整批进入v2；getter和计数不启动工具。参数依据[ExifTool官方文档](https://exiftool.org/exiftool_pod2.html)。
+
+模型入口：`dotnet run --project apps/windows/PhotoTrail.Windows.Tests -c Release -- --inspector-checks`；`--inspector-read-checks`仅合成工具响应身份故障；既有`--settings-checks`覆盖受影响设置回归。生产WPF入口位于`DateHost/UiChecks`，使用`--inspector-flow-checks`、`--inspector-late-checks`、`--inspector-empty-restart-checks`和`--inspector-scale-checks`，输入应是四种来源的合成副本，所有偏好／历史／库／输出／WebView目录隔离。Scale使用`PHOTOTRAIL_R02_COUNT=1/20/100`；记录普通／展示ExifTool请求、日期宿主请求、实际导入／刷新耗时和Dispatcher观测范围。重启检查复用同一隔离设置文件。测试钩子、早期构建、最终候选和原生输入证据分别记录，断言数不替代场景归属。
+
+候选仍为Release win-x64、.NET 10框架依赖形式，内嵌确切公开提交。DateHost及运行库从已验收v2组合按原字节复用，逐文件核对，不重编共享源或改变来源锁／协议。SDK部署、许可／NOTICE和SwiftPM／14001不因此销项。
+
 ## 2026-10-13 · date-core-v2 投影接入
 
 来源锁为 a0299e6f6c956f66ace2b85449b54db5e2eeeee4，MetadataDateEdit.swift 完整SHA 15e1f395ac379552b4c43892f6d70321e3c2f0fd6e0dc9d8ccadacc7bb607dc8（177行）。原146行算法前缀SHA593fa443…不是完整新源SHA。工具链保持6.4.0。Build.ps1固定Git原字节→完整SHA→BuildIdentity→真实Host→运行库复制，不从工作树或私有副本回退。

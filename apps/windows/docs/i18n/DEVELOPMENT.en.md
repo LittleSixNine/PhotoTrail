@@ -1,3 +1,9 @@
+## 2026-10-13 · Inspector R02 validation
+
+Keep the existing G1 editing/date/save read. A separate JSON `-G1:4 -a -u -s -n` display read preserves families and copy identities with strict SourceFile/count checks. Each batch of at most32 photos has one ordinary and one display ExifTool request (at most64 physical sources). Getters never start ExifTool or DateHost. See the [ExifTool reference](https://exiftool.org/exiftool_pod2.html).
+
+Use Windows.Tests `--inspector-checks`, `--inspector-read-checks` (synthetic response faults only) and the existing `--settings-checks`. Production UiChecks flags: `--inspector-flow-checks`, `--inspector-late-checks`, `--inspector-empty-restart-checks`, `--inspector-scale-checks`; all fixtures/preferences/history/output/WebView locations must be isolated. Scale counts are1/20/100 via PHOTOTRAIL_R02_COUNT. Record actual import/reread durations, ExifTool and DateHost requests, Dispatcher sampling scope and exact production DLL identity. A test hook is distinct from native user input. Release win-x64 remains .NET10 framework-dependent and embeds the public commit; retain the accepted v2 DateHost/runtime bytes. SDK-free deployment, licenses/NOTICE and SwiftPM/14001 remain open.
+
 ## 2026-10-13: exact shared projection v2
 
 Historical dates now use the pinned shared date-core-v2 projection for photo sorting, rename date sorting/filtering and photo-to-track time conversion. Integer seconds and nanoseconds preserve precision and original date text. Track matching requires an explicit offset, 100 ns representability and platform range; it never invents UTC or rounds. This development candidate awaits acceptance. No-Swift-SDK deployment, runtime licensing/NOTICE and Windows SwiftPM/14001 remain unresolved; not for formal distribution.

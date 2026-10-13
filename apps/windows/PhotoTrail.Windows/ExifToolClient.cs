@@ -96,4 +96,19 @@ public sealed class ExifToolClient(string executable, string? script = null)
             throw new InvalidDataException("照片元数据读取失败。");
         return item.Clone();
     }
+    internal async Task<IReadOnlyDictionary<string,JsonElement>> ReadInspectionAsync(IReadOnlyList<string> files,CancellationToken token)
+    {
+        if(files.Count is <1 or >64)throw new ArgumentException("展示批次限1至64个物理文件。");
+        var paths=files.Select(Path.GetFullPath).ToArray();var expected=paths.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if(expected.Count!=files.Count||paths.Any(p=>!File.Exists(p)))throw new ArgumentException("展示文件重复或不存在。");
+        var output=await RunAsync(new[]{"-charset","filename=UTF8","-j","-G1:4","-a","-u","-s","-n","--"}.Concat(expected),token);
+        using var json=JsonDocument.Parse(output);var result=new Dictionary<string,JsonElement>(StringComparer.OrdinalIgnoreCase);
+        if(json.RootElement.ValueKind!=JsonValueKind.Array)throw new InvalidDataException("完整来源格式无效。");
+        foreach(var item in json.RootElement.EnumerateArray()) {
+            if(item.ValueKind!=JsonValueKind.Object||!item.TryGetProperty("SourceFile",out var identity)||identity.ValueKind!=JsonValueKind.String)throw new InvalidDataException("完整来源缺少身份。");
+            var path=Path.GetFullPath(identity.GetString()!);if(!expected.Contains(path)||!result.TryAdd(path,item.Clone()))throw new InvalidDataException("完整来源身份不一致。");
+        }
+        if(result.Count!=expected.Count)throw new InvalidDataException("完整来源数量不一致。");return result;
+    }
+
 }

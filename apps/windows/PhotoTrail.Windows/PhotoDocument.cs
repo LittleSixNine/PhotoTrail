@@ -16,6 +16,8 @@ public sealed class PhotoDocument
     public JsonElement Embedded { get; }
     public JsonElement? Sidecar { get; }
     public string SourceHash { get; }
+    public InspectorValue[]? Inspection {get;internal set;}
+    public string InspectionError {get;internal set;}="";
     public string? SidecarHash { get; }
     private readonly Dictionary<string, string> draft = [];
     public IReadOnlyDictionary<string, string> Draft => draft;
@@ -61,7 +63,7 @@ public sealed class PhotoDocument
     private PhotoDocument(string file, string? sidecar, JsonElement embedded, JsonElement? metadata, string hash, string? sidecarHash)
     { FilePath = file; SidecarPath = sidecar; Embedded = embedded; Sidecar = metadata; SourceHash = hash; SidecarHash = sidecarHash; }
 
-    public static async Task<PhotoDocument> LoadAsync(ExifToolClient client, string file, CancellationToken cancellation = default)
+    public static async Task<PhotoDocument> LoadAsync(ExifToolClient client, string file, CancellationToken cancellation = default, bool inspect = false)
     {
         file = Path.GetFullPath(file);
         var candidate = Path.ChangeExtension(file, ".xmp");
@@ -71,7 +73,7 @@ public sealed class PhotoDocument
         var metadata = await client.ReadAsync(file, cancellation);
         JsonElement? external = sidecar is null ? null : await client.ReadAsync(sidecar, cancellation);
         var loaded=await VerifiedAsync(file,sidecar,metadata,external,hash,sidecarHash,cancellation);
-        await PrepareReadDatesAsync(new[]{loaded},cancellation);await loaded.EnsureUnchangedAsync(cancellation);return loaded;
+        await PrepareReadDatesAsync(new[]{loaded},cancellation);if(inspect)await PrepareInspectionAsync(client,new[]{loaded},cancellation);await loaded.EnsureUnchangedAsync(cancellation);return loaded;
     }
 
     private static async Task<PhotoDocument> VerifiedAsync(string file, string? sidecar, JsonElement metadata, JsonElement? external, string hash, string? sidecarHash, CancellationToken cancellation)
@@ -91,7 +93,7 @@ public sealed class PhotoDocument
         return new(file, sidecar, metadata, external, hash, sidecarHash);
     }
 
-    public static async Task<IReadOnlyList<PhotoReadResult>> LoadBatchAsync(ExifToolClient client, IReadOnlyList<string> files, CancellationToken cancellation = default)
+    public static async Task<IReadOnlyList<PhotoReadResult>> LoadBatchAsync(ExifToolClient client, IReadOnlyList<string> files, CancellationToken cancellation = default, bool inspect = false)
     {
         if (files.Count is < 1 or > 32 || files.Select(Path.GetFullPath).Distinct(StringComparer.OrdinalIgnoreCase).Count() != files.Count) throw new ArgumentException("批次需包含1至32个不同文件。");
         var prepared = new List<(string File, string? Sidecar, string Hash, string? SidecarHash)>();
@@ -132,8 +134,26 @@ public sealed class PhotoDocument
         }
         var loaded=files.Select(path=>results[Path.GetFullPath(path)]).ToArray();
         await PrepareReadDatesAsync(loaded.Where(r=>r.Document is not null).Select(r=>r.Document!).ToArray(),cancellation);
+        if(inspect)await PrepareInspectionAsync(client,loaded.Where(r=>r.Document is not null).Select(r=>r.Document!).ToArray(),cancellation);
         for(int i=0;i<loaded.Length;i++)if(loaded[i].Document is {} photo)try{await photo.EnsureUnchangedAsync(cancellation);}catch(IOException error){loaded[i]=new(photo.FilePath,null,error.Message);}
         return loaded;
+    }
+
+    internal static async Task PrepareInspectionAsync(ExifToolClient client,IReadOnlyList<PhotoDocument> docs,CancellationToken token)
+    {
+        if(docs.Count==0)return;
+        try {
+            var paths=docs.SelectMany(d=>d.SidecarPath is null?new[]{d.FilePath}:new[]{d.FilePath,d.SidecarPath}).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            var metadata=await client.ReadInspectionAsync(paths,token);
+            foreach(var doc in docs) {
+                try {
+                    var entries=MetadataInspector.Parse(metadata[doc.FilePath],doc.FileType=="XMP"?"独立XMP":"原图").ToList();
+                    entries.Add(new(doc.FileType=="XMP"?"独立XMP":"原图","File:FilePath",doc.FilePath));
+                    if(doc.SidecarPath is not null){entries.AddRange(MetadataInspector.Parse(metadata[doc.SidecarPath],"旁车XMP"));entries.Add(new("旁车XMP","File:FilePath",doc.SidecarPath));}
+                    await doc.EnsureUnchangedAsync(token);doc.Inspection=entries.ToArray();doc.InspectionError="";
+                }catch(OperationCanceledException){throw;}catch(Exception e)when(e is IOException or InvalidDataException or JsonException or UnauthorizedAccessException){doc.InspectionError="完整来源读取失败："+e.Message;}
+            }
+        }catch(OperationCanceledException){throw;}catch(Exception e)when(e is IOException or InvalidDataException or JsonException or TimeoutException or UnauthorizedAccessException){foreach(var doc in docs)doc.InspectionError="完整来源读取失败："+e.Message;}
     }
 
     public string Value(string tag)

@@ -227,7 +227,7 @@ public partial class MainWindow : Window
                 var index = photos.IndexOf(row); var wasSelected = selected.Contains(row); photos.RemoveAt(index);
                 try
                 {
-                    var document = await PhotoDocument.LoadAsync(Tool(), mappings[row.Document.FilePath]);
+                    var document = await PhotoDocument.LoadAsync(Tool(), mappings[row.Document.FilePath],inspect:true);
                     var replacement = new PhotoRow(document){Imported=row.Imported}; photos.Insert(index, replacement);
                     if (wasSelected) Photos.SelectedItems.Add(replacement);
                 }
@@ -543,6 +543,7 @@ public partial class MainWindow : Window
         BeginOperation();
         var added = 0; var skipped = 0; var failures = new List<string>(); var cancelled = false;
         var importClock = System.Diagnostics.Stopwatch.StartNew();
+        long metadataRequests=Interlocked.Read(ref ExifToolClient.RequestCount),dateHostRequests=Interlocked.Read(ref DateAdapter.StartedProcesses);
         try
         {
             var client = Tool();
@@ -558,7 +559,7 @@ public partial class MainWindow : Window
             {
                 operation!.Token.ThrowIfCancellationRequested();
                 Status.Text = $"读取：{added + failures.Count}/{pending.Count}，当前批次{batch.Length}个文件…";
-                var readings = await PhotoDocument.LoadBatchAsync(client, batch, operation.Token);
+                var readings = await PhotoDocument.LoadBatchAsync(client, batch, operation.Token,inspect:true);
                 foreach (var reading in readings)
                     if (reading.Document is { } photo) { photos.Add(new(photo)); added++; }
                     else failures.Add(Path.GetFileName(reading.FilePath) + "：" + reading.Error);
@@ -570,6 +571,7 @@ public partial class MainWindow : Window
         finally { EndOperation(); }
         if (Photos.SelectedIndex < 0 && photos.Count > 0) Photos.SelectedIndex = 0;
         _ = PostPhotosAsync();
+        importMilliseconds=importClock.Elapsed.TotalMilliseconds;importExifToolRequests=Interlocked.Read(ref ExifToolClient.RequestCount)-metadataRequests;importDateHostRequests=Interlocked.Read(ref DateAdapter.StartedProcesses)-dateHostRequests;
         Status.Text = $"{(cancelled ? "导入已取消" : "导入完成")}：新增 {added}，跳过 {skipped}，失败 {failures.Count}。原文件未修改。用时{importClock.Elapsed.TotalSeconds:F1}秒。";
         ShowFailures(failures);
     }
@@ -582,7 +584,7 @@ public partial class MainWindow : Window
             foreach (var row in previousSelection) Photos.SelectedItems.Add(row);
             fillingEditor = false; return;
         }
-        InvalidateDates();previousSelection = Selected; RenameRulesChanged(this, new RoutedEventArgs());
+        rereadSequence++;InvalidateDates();previousSelection = Selected; RenameRulesChanged(this, new RoutedEventArgs());
         RefreshSelection();
         RefreshMatchPhoto();
         _ = PostPhotosAsync();
@@ -621,7 +623,7 @@ public partial class MainWindow : Window
     private void PhotoViewChanged(object sender, RoutedEventArgs e)
     {
         if (!IsLoaded || changingPhotoView) return;
-        if (busy || Fields.Any(field => field.Apply.IsChecked == true))
+        if (busy || InspectorHasInput())
         {
             changingPhotoView = true;
             try { PhotoSearch.Text = photoSearch; PhotoFilter.SelectedIndex = photoFilter; PhotoSort.SelectedIndex = photoSort; }
@@ -638,6 +640,8 @@ public partial class MainWindow : Window
     {
         fillingEditor = true;
         RefreshPhotoCount();
+        RefreshInspector();
+        if(RereadPhotosButton is not null)RereadPhotosButton.IsEnabled=!busy&&!renameRecoveryRequired&&Selected.Length>0;
         var selected = Selected;
         var editable = !renameRecoveryRequired && selected.Length > 0 && selected.All(p => p.Document.CanEdit);
         Editor.IsEnabled = !busy && editable;
@@ -662,15 +666,7 @@ public partial class MainWindow : Window
             var values = selected.Select(p => p.Document.Value(tag)).Distinct().ToArray();
             value.Text = values.Length == 1 ? values[0] : ""; apply.IsChecked = false;
         }
-        var metadata = new List<MetadataRow>();
-        if (selected.Length == 1)
-        {
-            var photo = selected[0].Document;
-            metadata.AddRange(photo.Embedded.EnumerateObject().Where(p => p.Name != "SourceFile").Select(p => new MetadataRow("内嵌 / " + p.Name, PhotoDocument.Text(p.Value))));
-            if (photo.Sidecar is { } sidecar) metadata.AddRange(sidecar.EnumerateObject().Where(p => p.Name != "SourceFile").Select(p => new MetadataRow("旁车 / " + p.Name, PhotoDocument.Text(p.Value))));
-        }
-        MetadataGrid.ItemsSource = metadata;
-        MetadataFilterChanged(this,new TextChangedEventArgs(TextBox.TextChangedEvent,UndoAction.None));
+        RefreshInspector();
         fillingEditor = false;
         _ = RefreshPhotoPreviewAsync();
     }
@@ -1091,7 +1087,6 @@ public partial class MainWindow : Window
         catch (Exception error) { if (!busy) Status.Text = "地图暂不可用：" + error.Message; mapStarted = false; }
         finally { mapInitializing = false; MapRetryButton.IsEnabled = !busy; }
     }
-    private record MetadataRow(string Tag, string Value){public string FamilyTag=>SettingsPreference.TagLabel(Tag,false);}
     private sealed class TrackRow(TrackSnapshot snapshot) {
         public TrackSnapshot Snapshot {get;set;}=snapshot;
         public string Path=>Snapshot.Path;
@@ -1108,7 +1103,7 @@ public partial class MainWindow : Window
             get=>Document.VerifiedDate(DatePagePreview.Field)?.SortProjection;
         }
         public string Name => Path.GetFileName(Document.FilePath);
-        public string Summary => $"{Document.FileType} · {(Document.SidecarPath is null ? "内嵌" : "XMP旁车")} · {(Document.Draft.Count > 0 ? $"{Document.Draft.Count}项草稿" : "原始值")}";
+        public string Summary => $"{Document.FileType} · {(Document.SidecarPath is null ? "内嵌" : "XMP旁车")} · 原标签{(Document.Inspection is null?"未知":Document.Inspection.Count(v=>v.Counted).ToString())}{(Document.InspectionError.Length>0?"（过期/失败）":"")} · {(Document.Draft.Count > 0 ? $"{MetadataInspector.PendingFields(Document)}项草稿" : "原始值")}";
     }
     private static long nextPhotoOrder;
 }

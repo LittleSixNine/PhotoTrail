@@ -28,6 +28,8 @@ if (args.FirstOrDefault()?.StartsWith("--fake-") == true)
     }
 }
 static void Check(bool value, string message) { if (!value) throw new Exception(message); Console.WriteLine("PASS " + message); }
+if (args.FirstOrDefault() == "--inspector-read-checks") { await InspectorChecks.ReadAsync(); return; }
+if (args.FirstOrDefault() == "--inspector-checks") { InspectorChecks.Run(); return; }
 if (args.FirstOrDefault() == "--theme-checks") { ThemeChecks.Run(); return; }
 if (args.FirstOrDefault() == "--settings-checks") { SettingsChecks.Run(); return; }
 if (args.FirstOrDefault() == "--preview-checks") { await PreviewChecks.RunAsync(); return; }

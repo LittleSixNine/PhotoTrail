@@ -11,6 +11,7 @@
    <WrapPanel>
     <Button x:Name="ReadButton" Content="导入照片" ToolTip="导入照片 · Ctrl+O" AutomationProperties.AcceleratorKey="Ctrl+O" Padding="12,6" Click="ReadPhoto" />
     <Button x:Name="FolderButton" Content="导入文件夹" ToolTip="导入文件夹 · Ctrl+Shift+O" AutomationProperties.AcceleratorKey="Ctrl+Shift+O" Padding="12,6" Margin="8,0,0,0" Click="ReadFolder" />
+    <Button x:Name="RereadPhotosButton" Content="重新读取所选照片" AutomationProperties.Name="重新读取所选照片，跳过草稿与未应用输入" Padding="8,6" Click="RereadPhotos"/>
     <Button x:Name="RemoveButton" Content="移除所选" Padding="12,6" Margin="8,0,0,0" Click="RemovePhotos" IsEnabled="False" />
     <Button Content="取消任务" ToolTip="取消进行中的任务 · Esc" AutomationProperties.AcceleratorKey="Esc" Padding="12,6" Margin="8,0,0,0" Click="CancelRead" />
     <Button x:Name="UndoLastApplyButton" Content="撤销最近一次应用" Click="UndoLastApply" Padding="12,6" Margin="8,0,0,0" IsEnabled="False" ToolTip="恢复最近一批应用之前的完整草稿；不撤销保存文件。"/>
@@ -178,7 +179,18 @@
        <TabItem x:Name="PhotoPreviewTab" Header="照片预览">
         <DockPanel Margin="8"><TextBlock x:Name="PhotoPreviewStatus" DockPanel.Dock="Bottom" Text="请选择一张JPEG/PNG/DNG照片。DNG使用内嵌JPEG预览，不改照片。" TextWrapping="Wrap" Margin="0,8,0,0"/><Image x:Name="PhotoPreviewImage" Stretch="Uniform" AutomationProperties.Name="所选照片预览"/></DockPanel>
        </TabItem>
-       <TabItem Header="原始字段"><DockPanel><DockPanel DockPanel.Dock="Top" Margin="4"><Button Content="复制完整标签名称" Click="CopyMetadataTag" DockPanel.Dock="Right" Padding="8,4"/><TextBox x:Name="MetadataSearch" AutomationProperties.Name="搜索原始字段（含完整标签）" ToolTip="搜索完整技术名称及值，不受标签显示设置影响。" TextChanged="MetadataFilterChanged"/></DockPanel><DataGrid x:Name="MetadataGrid" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" CopyingRowClipboardContent="CopyMetadataRow"><DataGrid.RowStyle><Style TargetType="DataGridRow"><Setter Property="ToolTip" Value="{Binding Tag}"/><Setter Property="AutomationProperties.Name" Value="{Binding Tag}"/></Style></DataGrid.RowStyle><DataGrid.Columns><DataGridTextColumn Header="来源 / 字段" Binding="{Binding Tag}" Width="260"/><DataGridTextColumn Header="值" Binding="{Binding Value}" Width="*"/></DataGrid.Columns></DataGrid></DockPanel></TabItem>
+       <TabItem Header="原始字段"><DockPanel>
+        <StackPanel DockPanel.Dock="Top" Margin="4">
+         <WrapPanel><ComboBox x:Name="InspectorView" Width="150" SelectedIndex="0" SelectionChanged="InspectorViewChanged" AutomationProperties.Name="常用或完整字段"><ComboBoxItem Content="常用字段"/><ComboBoxItem Content="完整字段"/></ComboBox><Button Content="复制完整标签" Click="CopyMetadataTag" Padding="6,4"/><Button Content="使用既有XMP编辑入口" Click="EditInspectorField" Padding="6,4"/></WrapPanel>
+         <TextBox x:Name="MetadataSearch" AutomationProperties.Name="搜索全部已读字段名称、技术标签和值" ToolTip="搜索覆盖全部已读字段，不受常用范围限制。" TextChanged="MetadataFilterChanged"/>
+         <TextBlock x:Name="InspectorCounts" TextWrapping="Wrap" AutomationProperties.Name="所选和全库原标签及净草稿字段计数"/>
+         <TextBlock x:Name="InspectorStatus" TextWrapping="Wrap"/>
+        </StackPanel>
+        <DataGrid x:Name="MetadataGrid" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" CopyingRowClipboardContent="CopyMetadataRow" VirtualizingPanel.IsVirtualizingWhenGrouping="True">
+         <DataGrid.GroupStyle><GroupStyle><GroupStyle.HeaderTemplate><DataTemplate><TextBlock Text="{Binding Name}" FontWeight="SemiBold" Margin="4,10,4,4"/></DataTemplate></GroupStyle.HeaderTemplate></GroupStyle></DataGrid.GroupStyle>
+         <DataGrid.RowStyle><Style TargetType="DataGridRow"><Setter Property="ToolTip" Value="{Binding Tag}"/><Setter Property="AutomationProperties.Name" Value="{Binding Tag}"/></Style></DataGrid.RowStyle>
+         <DataGrid.Columns><DataGridTextColumn Header="字段名称" Binding="{Binding Name}" Width="140"/><DataGridTextColumn Header="来源 / 完整标签" Binding="{Binding Tag}" Width="220"/><DataGridTextColumn Header="值" Binding="{Binding Value}" Width="*" MinWidth="100"/><DataGridTextColumn Header="状态" Binding="{Binding State}" Width="120"/><DataGridTextColumn Header="权限" Binding="{Binding Permission}" Width="110"/></DataGrid.Columns>
+        </DataGrid></DockPanel></TabItem>
       </TabControl>
       <StackPanel Grid.Row="2" Margin="0,10,0,0">
        <TextBlock Text="输出文件夹（须已存在；同名文件不覆盖）"/>
@@ -306,6 +318,10 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="16"><TextBlock Text="外观" FontSize="20" FontWeight="SemiBold"/><TextBlock Text="默认跟随Windows系统；更改后保存本机外观偏好，重启恢复。" TextWrapping="Wrap" Margin="0,8"/>
      <ComboBox x:Name="ThemeChoice" Width="220" HorizontalAlignment="Left" SelectedIndex="0" SelectionChanged="ThemeChanged" AutomationProperties.Name="应用外观"><ComboBoxItem Content="跟随系统"/><ComboBoxItem Content="浅色"/><ComboBoxItem Content="深色"/></ComboBox>
      <TextBlock x:Name="ThemeStatus" Text="默认跟随Windows系统外观；不改变系统设置。" TextWrapping="Wrap" Margin="0,8"/>
+     <TextBlock Text="常用字段配置" FontSize="20" FontWeight="SemiBold" Margin="0,12,0,8"/>
+     <TextBox x:Name="CommonFieldSearch" AutomationProperties.Name="搜索常用字段名称或技术标签" TextChanged="CommonFieldSearchChanged"/>
+     <WrapPanel><Button Content="恢复默认24项" Click="RestoreCommonFields" Padding="8,4"/><Button Content="清空常用字段" Click="ClearCommonFields" Padding="8,4"/></WrapPanel>
+     <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto"><ItemsControl x:Name="CommonFieldOptions"><ItemsControl.ItemTemplate><DataTemplate><CheckBox Content="{Binding Label}" Tag="{Binding Tag}" IsChecked="{Binding Selected,Mode=OneWay}" Checked="CommonFieldToggled" Unchecked="CommonFieldToggled" AutomationProperties.Name="{Binding Label}" Margin="2,4"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></ScrollViewer>
      <TextBlock Text="元数据显示" FontSize="20" FontWeight="SemiBold" Margin="0,12,0,8"/>
      <Label Content="文字大小" Target="{Binding ElementName=MetadataTextSize}"/><ComboBox x:Name="MetadataTextSize" Width="220" HorizontalAlignment="Left" SelectedIndex="1" AutomationProperties.Name="元数据文字大小" SelectionChanged="MetadataSettingChanged"><ComboBoxItem Content="小（-2 pt）"/><ComboBoxItem Content="标准"/><ComboBoxItem Content="大（+2 pt）"/></ComboBox>
      <Label Content="行间距" Target="{Binding ElementName=MetadataSpacing}"/><ComboBox x:Name="MetadataSpacing" Width="220" HorizontalAlignment="Left" SelectedIndex="1" AutomationProperties.Name="元数据行间距" SelectionChanged="MetadataSettingChanged"><ComboBoxItem Content="紧凑"/><ComboBoxItem Content="标准"/><ComboBoxItem Content="宽松"/></ComboBox>
