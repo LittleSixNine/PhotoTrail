@@ -8,36 +8,26 @@ internal sealed record VerifiedPhotoDate
     internal string Text { get; }
     internal string Fraction { get; }
     internal string Offset { get; }
-    internal DateTime? WallProjection { get; }
+    internal DateProjection Projection { get; }
     internal string NameSeconds=>Text[..19].Replace(":","").Replace(" ","_");
-    private VerifiedPhotoDate(string text) {
-        Text=text;int suffix=19;while(suffix<text.Length&&(text[suffix]=='.'||char.IsAsciiDigit(text[suffix])))suffix++;
-        Fraction=suffix>19?text[19..suffix]:"";Offset=text[suffix..];
-        // The current wire has no epoch/calendar projection; historical values need a shared interface decision.
-        if(string.CompareOrdinal(text[..10],"1582:10:15")>=0&&DateTime.TryParseExact(text[..19],"yyyy:MM:dd HH:mm:ss",CultureInfo.InvariantCulture,DateTimeStyles.None,out var wall))WallProjection=DateTime.SpecifyKind(wall,DateTimeKind.Unspecified);
+    private VerifiedPhotoDate(DateProjection projection) {
+        Projection=projection;Text=projection.Text;int suffix=19;while(suffix<Text.Length&&(Text[suffix]=='.'||char.IsAsciiDigit(Text[suffix])))suffix++;
+        Fraction=suffix>19?Text[19..suffix]:"";Offset=Text[suffix..];
     }
+    internal string? InstantLimitation => Projection.Kind!="instant"?"时区不足":Projection.Nanoseconds%100!=0?"精度不足":Instant() is null?"平台范围不足":null;
     internal DateTimeOffset? Instant() {
-        if(WallProjection is not {} wall||Offset.Length==0||(Fraction.Length>8&&Fraction[8..].Any(c=>c!='0')))return null;
-        try {
-            long ticks=Fraction.Length==0?0:long.Parse(Fraction[1..].PadRight(7,'0')[..7],CultureInfo.InvariantCulture);
-            var offset=Offset=="Z"?TimeSpan.Zero:TimeSpan.FromMinutes(int.Parse(Offset.AsSpan(1,2),CultureInfo.InvariantCulture)*60+int.Parse(Offset.AsSpan(4,2),CultureInfo.InvariantCulture))*(Offset[0]=='-'?-1:1);
-            return new DateTimeOffset(wall.AddTicks(ticks),offset);
-        }catch(ArgumentException){return null;}
+        if(Projection.Kind!="instant"||Projection.Nanoseconds%100!=0)return null;
+        try { return new DateTimeOffset(checked(DateTime.UnixEpoch.Ticks+checked(Projection.Seconds*TimeSpan.TicksPerSecond)+Projection.Nanoseconds/100),TimeSpan.Zero); }
+        catch(ArgumentException){return null;}catch(OverflowException){return null;}
     }
-    internal (long Ticks,int Nanoseconds)? SortProjection { get {
-        if(WallProjection is not {} wall)return null;
-        long offset=Offset.Length<=1?0:(int.Parse(Offset.AsSpan(1,2),CultureInfo.InvariantCulture)*60L+int.Parse(Offset.AsSpan(4,2),CultureInfo.InvariantCulture))*(Offset[0]=='-'?-1:1);
-        var seconds=checked(wall.Ticks-offset*TimeSpan.TicksPerMinute);
-        int nano=Fraction.Length==0?0:int.Parse(Fraction[1..].PadRight(9,'0'),CultureInfo.InvariantCulture);
-        return(seconds,nano);
-    }}
-    internal static VerifiedPhotoDate FromValidation(string text,VerifiedMetadataDates proof) { if(!proof.Contains(text))throw new InvalidOperationException("日期不属于本请求验证。");return new(text); }
-    internal static VerifiedPhotoDate FromPage(DatePagePreview preview,PhotoDocument document)=>new(preview.ValueFor(document));
+    internal (long Seconds,int Nanoseconds) SortProjection=>(Projection.Seconds,Projection.Nanoseconds);
+    internal static VerifiedPhotoDate FromValidation(string text,VerifiedMetadataDates proof)=>new(proof.Projection(text));
+    internal static VerifiedPhotoDate FromPage(DatePagePreview preview,PhotoDocument document)=>FromValidation(preview.ValueFor(document),preview.Projections);
     internal static string Bridge(string text)=>text.Length>=19&&text[4]=='-'&&text[7]=='-'&&text[10]=='T'?text[..4]+":"+text[5..7]+":"+text[8..10]+" "+text[11..]:text;
     internal static async Task<IReadOnlyDictionary<string,VerifiedPhotoDate?>> InspectAsync(IEnumerable<string> values,CancellationToken token=default) {
         var texts=values.Where(x=>x.Length>0).Distinct(StringComparer.Ordinal).ToArray();
         var adapter=new DateAdapter(Path.Combine(AppContext.BaseDirectory,"DateHost","DateHost.exe"),DatePagePreview.Source);
-        DateResult[] results;try{results=await adapter.ComputeAsync(texts.Select((text,index)=>new DateJob(new WireItem(index.ToString(CultureInfo.InvariantCulture),"normalize",text))).ToArray(),0,()=>0,token);}catch(DateFailure)when(token.IsCancellationRequested){throw new OperationCanceledException(token);}
-        token.ThrowIfCancellationRequested();return texts.Select((text,index)=>(text,value:results[index].Error is null?new VerifiedPhotoDate(text):null)).ToDictionary(x=>x.text,x=>x.value,StringComparer.Ordinal);
+        DateResult[] results;try{results=await adapter.ComputeAsync(texts.Select((text,index)=>new DateJob(new WireItem(index.ToString(CultureInfo.InvariantCulture),"project",text))).ToArray(),0,()=>0,token);}catch(DateFailure)when(token.IsCancellationRequested){throw new OperationCanceledException(token);}
+        token.ThrowIfCancellationRequested();return texts.Select((text,index)=>(text,value:results[index].Error is null?new VerifiedPhotoDate(results[index].Projection!):null)).ToDictionary(x=>x.text,x=>x.value,StringComparer.Ordinal);
     }
 }

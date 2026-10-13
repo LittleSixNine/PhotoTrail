@@ -1,3 +1,9 @@
+## 2026-10-13: exact shared projection v2
+
+Historical dates now use the pinned shared date-core-v2 projection for photo sorting, rename date sorting/filtering and photo-to-track time conversion. Integer seconds and nanoseconds preserve precision and original date text. Track matching requires an explicit offset, 100 ns representability and platform range; it never invents UTC or rounds. This development candidate awaits acceptance. No-Swift-SDK deployment, runtime licensing/NOTICE and Windows SwiftPM/14001 remain unresolved; not for formal distribution.
+
+The pinned source is a0299e6f6c956f66ace2b85449b54db5e2eeeee4; full SHA-256 is 15e1f395ac379552b4c43892f6d70321e3c2f0fd6e0dc9d8ccadacc7bb607dc8. Build.ps1 verifies complete Git bytes with the existing 6.4.0 toolchain. Caller/ProjectionChecks covers 38 projection and 35 legacy vectors, strict typed responses and mismatch/cancellation boundaries. UiChecks --projection-workflow-checks exercises the production paths on isolated synthetic XMP/GPX. Date-page calculation adds one grouped project request before commit; getters never start a host. Keep all preferences and output isolated. Event checks and native input have separate provenance.
+
 ## 2026-10-12 Rename scheme checks
 
 DateHost/UiChecks adds `--scheme-model-checks` and `--scheme-library-checks`. Isolate `PHOTOTRAIL_RENAME_SCHEMES` as well as existing preferences, journal and WebView paths; use synthetic copies only. Checks cover the local library, strict versioned JSON, stale-state conflicts and production WPF template/freeze/execute/restore behavior. Native management, system dialogs and restart evidence are recorded separately with build identity. Reuse the pinned DateHost binary; do not rebuild Swift. Run relevant date/undo, batch-track and rename recovery regressions without the unrelated historical suite. Mac scheme interchange is unsupported.

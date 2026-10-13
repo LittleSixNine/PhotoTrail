@@ -9,7 +9,12 @@ struct Item: Decodable {
 struct Request: Decodable { let version: String; let id: String; let items: [Item] }
 struct Source: Encodable { let commit = BuildIdentity.commit; let path = BuildIdentity.path; let sha256 = BuildIdentity.sha256 }
 struct Failure: Error, Encodable { let scope: String; let code: String }
-struct Result: Encodable { let id: String; let values: [String]?; let error: Failure? }
+struct Projection: Encodable {
+    let text: String; let kind: String; let seconds: Int64; let nanoseconds: Int32; let offsetMinutes: Int?
+}
+struct Result: Encodable {
+    let id: String; let values: [String]?; let error: Failure?; var projection: Projection? = nil
+}
 struct Response: Encodable {
     let version = BuildIdentity.version; let source = Source()
     let id: String; let results: [Result]; let computeMs: Double; let jobError: Failure?
@@ -34,6 +39,25 @@ func checkIntegers(_ data: Data) throws {
             while i < bytes.count && (Array("0123456789+-.eE".utf8).contains(bytes[i])) { i += 1 }
             let token = String(decoding: bytes[start..<i], as: UTF8.self)
             guard !token.contains("."), !token.lowercased().contains("e"), Int64(token) != nil else { throw fail("parameter", "invalidInteger") }
+        } else { i += 1 }
+    }
+}
+// JSONSerialization collapses duplicate keys; reject them before decoding the request.
+func checkUniqueMembers(_ data: Data) throws {
+    let bytes = Array(data); var i = 0; var objects = [Set<String>]()
+    while i < bytes.count {
+        if bytes[i] == 123 { objects.append([]); i += 1 }
+        else if bytes[i] == 125 { guard !objects.isEmpty else { throw fail("parameter", "invalidJSON") }; objects.removeLast(); i += 1 }
+        else if bytes[i] == 34 {
+            let start = i; i += 1
+            while i < bytes.count { if bytes[i] == 92 { i += 2 } else if bytes[i] == 34 { i += 1; break } else { i += 1 } }
+            guard i <= bytes.count else { throw fail("parameter", "invalidJSON") }
+            let end = i
+            while i < bytes.count && [9,10,13,32].contains(bytes[i]) { i += 1 }
+            if i < bytes.count && bytes[i] == 58 {
+                guard !objects.isEmpty, let key = try? JSONDecoder().decode(String.self, from: Data(bytes[start..<end])) else { throw fail("parameter", "invalidJSON") }
+                guard objects[objects.count-1].insert(key).inserted else { throw fail("parameter", "duplicateMember") }
+            }
         } else { i += 1 }
     }
 }
@@ -77,10 +101,11 @@ func calculate(_ item: Item) throws -> [String] {
                 requestId = object["id"] as? String ?? ""
                 guard Set(object.keys).isSubset(of: ["version", "id", "items"]) else { throw fail("parameter", "unknownMember") }
             }
+            try checkUniqueMembers(input)
             try checkIntegers(input)
             if let object = try? JSONSerialization.jsonObject(with: input) as? [String: Any], let items = object["items"] as? [[String: Any]] {
                 let allowed: Set<String> = ["id", "op", "text", "years", "months", "days", "hours", "minutes", "seconds", "component", "value", "components", "count", "end", "zone"]
-                guard items.allSatisfy({ Set($0.keys).isSubset(of: allowed) }) else { throw fail("parameter", "unknownMember") }
+                guard items.allSatisfy({ Set($0.keys).isSubset(of: ($0["op"] as? String == "project") ? ["id", "op", "text"] : allowed) }) else { throw fail("parameter", "unknownMember") }
             }
             let request: Request
             do { request = try JSONDecoder().decode(Request.self, from: input) } catch { throw fail("parameter", "invalidJSON") }
@@ -96,9 +121,17 @@ func calculate(_ item: Item) throws -> [String] {
             let start = Date(); var marked = false
             for item in request.items {
                 do {
-                    let values = try calculate(item)
+                    let result: Result
+                    if item.op == "project" {
+                        let text = try fullInput(item.text)
+                        let value = try MetadataDate(text).projection()
+                        result = Result(id: item.id, values: nil, error: nil, projection: Projection(text: text,
+                            kind: value.kind.rawValue, seconds: value.seconds, nanoseconds: value.nanoseconds, offsetMinutes: value.offsetMinutes))
+                    } else { result = Result(id: item.id, values: try calculate(item), error: nil) }
                     if !marked { marked = true; FileHandle.standardError.write(Data("CALC_STARTED:first_item_computed\n".utf8)) }
-                    results.append(Result(id: item.id, values: values, error: nil))
+                    results.append(result)
+                } catch is MetadataDateProjectionError {
+                    results.append(Result(id: item.id, values: nil, error: fail("business", "projectionUnrepresentable")))
                 } catch let error as MetadataDateError {
                     let code: String
                     switch error { case .invalidDate: code = "invalidDate"; case .invalidSequence: code = "invalidSequence"; case .missingDate: code = "missingDate" }

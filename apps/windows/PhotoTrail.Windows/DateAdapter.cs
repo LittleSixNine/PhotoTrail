@@ -14,14 +14,16 @@ record WireItem(string Id, string Op, string? Text = null, long? Years = null, l
     Dictionary<string, long>? Components = null, long? Count = null, string? End = null, string? Zone = null);
 enum SourceState { Present, ConfirmedMissing, ReadFailed }
 record DateJob(WireItem Item, string Field = "XMP-exif:DateTimeOriginal", SourceState State = SourceState.Present, bool Clear = false);
-record DateResult([property: JsonRequired] string Id, string[]? Values, KernelError? Error, bool Clear = false);
+record DateProjection([property: JsonRequired] string Text, [property: JsonRequired] string Kind,
+    [property: JsonRequired] long Seconds, [property: JsonRequired] int Nanoseconds, int? OffsetMinutes);
+record DateResult([property: JsonRequired] string Id, string[]? Values, KernelError? Error, [property: JsonIgnore] bool Clear = false, DateProjection? Projection = null);
 record Frame([property: JsonRequired] string Version, [property: JsonRequired] string Id, [property: JsonRequired] SourceIdentity Source,
     [property: JsonRequired] DateResult[] Results, [property: JsonRequired] double ComputeMs, KernelError? JobError);
 record Measurement(int Pid, int Items, int InputBytes, int OutputBytes, double TotalMs, double ComputeMs);
 sealed class DateFailure(string code, Exception? inner = null) : Exception(code, inner) { public string Code { get; } = code; }
 
 // One concrete process adapter; local revision/field/source state never enter the wire DTO.
-sealed class DateAdapter(string executable, SourceIdentity expectedSource, string version = "date-isolated-v1",
+sealed class DateAdapter(string executable, SourceIdentity expectedSource, string version = "date-core-v2",
     string arguments = "", int ordinaryBatchSize = 3000, int timeoutMs = 30000)
 {
     internal const int MaxBytes = 1_048_576;
@@ -103,6 +105,35 @@ sealed class DateAdapter(string executable, SourceIdentity expectedSource, strin
             foreach (var member in element.EnumerateObject()) { if (!keys.Add(member.Name)) throw new DateFailure("duplicateMember"); UniqueMembers(member.Value); }
         } else if (element.ValueKind == JsonValueKind.Array) foreach (var child in element.EnumerateArray()) UniqueMembers(child);
     }
+    static void ValidateResultShapes(JsonElement root, WireItem[]? items)
+    {
+        if (items is null || !root.TryGetProperty("results",out var results) || results.ValueKind != JsonValueKind.Array || results.GetArrayLength()!=items.Length) return;
+        for(int i=0;i<items.Length;i++) {
+            var result=results[i];
+            if(result.ValueKind!=JsonValueKind.Object)throw new DateFailure("malformedResult");
+            var names=result.EnumerateObject().Select(p=>p.Name).ToHashSet(StringComparer.Ordinal);
+            bool error=names.Contains("error"), project=items[i].Op=="project";
+            if(!names.SetEquals(new[]{"id",error?"error":project?"projection":"values"}))throw new DateFailure("malformedResult");
+            if(error) { if(result.GetProperty("error").ValueKind!=JsonValueKind.Object)throw new DateFailure("malformedResult");continue; }
+            if(!project)continue;
+            var p=result.GetProperty("projection");
+            if(p.ValueKind!=JsonValueKind.Object)throw new DateFailure("malformedProjection");
+            var fields=p.EnumerateObject().Select(x=>x.Name).ToHashSet(StringComparer.Ordinal);
+            if(!p.TryGetProperty("text",out var text)||text.ValueKind!=JsonValueKind.String||text.GetString()!=items[i].Text||!OutputText.IsMatch(text.GetString()!))throw new DateFailure("projectionText");
+            string raw=text.GetString()!;int suffix=19;while(suffix<raw.Length&&(raw[suffix]=='.'||char.IsAsciiDigit(raw[suffix])))suffix++;
+            string offset=raw[suffix..];bool instant=offset.Length>0;
+            if(!fields.SetEquals(instant?new[]{"text","kind","seconds","nanoseconds","offsetMinutes"}:new[]{"text","kind","seconds","nanoseconds"}))throw new DateFailure("malformedProjection");
+            if(p.GetProperty("kind").GetString()!=(instant?"instant":"wall"))throw new DateFailure("projectionKind");
+            long Integer(string name) { var value=p.GetProperty(name);if(value.ValueKind!=JsonValueKind.Number||!Regex.IsMatch(value.GetRawText(),@"\A-?(?:0|[1-9][0-9]*)\z")||!value.TryGetInt64(out var number))throw new DateFailure("projectionInteger");return number; }
+            _=Integer("seconds");long nano=Integer("nanoseconds");
+            int expectedNano=suffix==19?0:int.Parse(raw[20..suffix].PadRight(9,'0'),System.Globalization.CultureInfo.InvariantCulture);
+            if(nano<0||nano>999999999||nano!=expectedNano)throw new DateFailure("projectionFraction");
+            if(instant) {
+                long minutes=offset=="Z"?0:(int.Parse(offset.AsSpan(1,2),System.Globalization.CultureInfo.InvariantCulture)*60+int.Parse(offset.AsSpan(4,2),System.Globalization.CultureInfo.InvariantCulture))*(offset[0]=='-'?-1:1);
+                long actual=Integer("offsetMinutes");if(actual is < -840 or > 840 || actual!=minutes)throw new DateFailure("projectionOffset");
+            }
+        }
+    }
     async Task<Frame> ExchangeAsync(string input, string requestId, WireItem[]? items, CancellationToken cancellation)
     {
         if (Encoding.UTF8.GetByteCount(input) > MaxBytes) throw new DateFailure("inputLimit");
@@ -134,8 +165,8 @@ sealed class DateAdapter(string executable, SourceIdentity expectedSource, strin
             linked.Token.ThrowIfCancellationRequested();
             if (process.ExitCode != 0) throw new DateFailure(process.ExitCode == unchecked((int)0xc0000135) ? "dependencyMissing" : "nonzeroExit:" + process.ExitCode);
             Frame frame;
-            try { using var doc = JsonDocument.Parse(await output); UniqueMembers(doc.RootElement); frame = JsonSerializer.Deserialize<Frame>(doc.RootElement, Json) ?? throw new DateFailure("emptyResponse"); }
-            catch (JsonException error) { throw new DateFailure("malformedResponse", error); }
+            try { using var doc = JsonDocument.Parse(await output); UniqueMembers(doc.RootElement); ValidateResultShapes(doc.RootElement, items); frame = JsonSerializer.Deserialize<Frame>(doc.RootElement, Json) ?? throw new DateFailure("emptyResponse"); }
+            catch (Exception error) when (error is JsonException or InvalidOperationException or FormatException or OverflowException) { throw new DateFailure("malformedResponse", error); }
             if (frame.Version != version) throw new DateFailure("versionMismatch");
             if (frame.Source != expectedSource) throw new DateFailure("sourceMismatch");
             if (frame.Id != requestId) throw new DateFailure("requestIDMismatch");
@@ -147,7 +178,7 @@ sealed class DateAdapter(string executable, SourceIdentity expectedSource, strin
                 for (int i = 0; i < items.Length; i++) {
                     var result = frame.Results[i];
                     if (result is null || result.Id != items[i].Id || !seen.Add(result.Id)) throw new DateFailure("resultIDMismatch");
-                    if (result.Clear || (result.Values is null) == (result.Error is null)) throw new DateFailure("malformedResult");
+                    if (result.Clear || (result.Error is null ? (items[i].Op == "project" ? result.Projection is null || result.Values is not null : result.Values is null || result.Projection is not null) : result.Values is not null || result.Projection is not null)) throw new DateFailure("malformedResult");
                     if (result.Error is { } error && (error.Scope is not ("business" or "parameter" or "boundary") || string.IsNullOrEmpty(error.Code))) throw new DateFailure("malformedResult");
                     if (result.Values is { } values && (values.Length != Cost(items[i]) || values.Any(v => v is null || Encoding.UTF8.GetByteCount(v) > 128 || !OutputText.IsMatch(v)))) throw new DateFailure("malformedResult");
                 }

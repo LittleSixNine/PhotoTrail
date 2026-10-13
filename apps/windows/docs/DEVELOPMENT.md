@@ -1,3 +1,13 @@
+## 2026-10-13 · date-core-v2 投影接入
+
+来源锁为 a0299e6f6c956f66ace2b85449b54db5e2eeeee4，MetadataDateEdit.swift 完整SHA 15e1f395ac379552b4c43892f6d70321e3c2f0fd6e0dc9d8ccadacc7bb607dc8（177行）。原146行算法前缀SHA593fa443…不是完整新源SHA。工具链保持6.4.0。Build.ps1固定Git原字节→完整SHA→BuildIdentity→真实Host→运行库复制，不从工作树或私有副本回退。
+
+Checks/ProjectionChecks.cs与原Caller共同覆盖固定38投影和35旧日期向量、project独占形态、整数词法、原文／偏移／纳秒一致、未知／重复字段、版本及来源错配、资源、取消与子进程收尾。运行前从固定公开对象导出date-projection-v2.json到DateHost/evidence，PHOTOTRAIL_DATE_CORE_FIXTURE指向原date-core-v1.json；PHOTOTRAIL_PROJECTION_OLD_HOST仅检查旧R01b真实宿主。生成fixture和结果不入Git。
+
+UiChecks --projection-workflow-checks使用8份合成XMP和历史GPX，实际生产窗口检查双向排序缺失置后、1ns稳定排序、编辑／撤销刷新、历史边界筛选／冻结／不覆盖改名与恢复、共享instant轨迹预览／应用／撤销／副本回读和三种平台拒绝。复用R01b入口／五模式／保护／库／迟到；ComputeCancelChecks --auto --r01b-csv现实际走project，两个被动观测点证明首项已算、进程存活且stdout未完成。全部偏好、库、历史、WebView和输出必须隔离。事件检查不是原生鼠标或用户验收。
+
+日期验证批次改为project同批校验和投影，证明绑定精确原文和现有请求快照；getter不启动宿主。日期页五模式返回values后，在同一冻结任务提交前对变化值补一次去重project；阶段计时包含两类请求。不新增缓存／服务／依赖，不改轨迹ISO解析或插值。三项部署门仍未闭合，旧段落按发生时点保留。
+
 ## 2026-10-12 方案库定向检查（任务20261011）
 
 DateHost/UiChecks增加`--scheme-model-checks`及`--scheme-library-checks`，分别检查初始化、严格格式／原子保存／旧状态冲突，以及真实生产WPF五模板、JPG/RAW/XMP配对、示例编辑、当前日期草稿、冻结执行恢复。运行时必须隔离`PHOTOTRAIL_RENAME_SCHEMES`，同时隔离既有偏好、执行记录与WebView；仅使用合成副本。方案JSON及旧规则兼容见[格式](RENAME-SCHEMES.md)。DateHost复用固定二进制，不重编Swift。

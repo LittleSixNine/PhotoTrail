@@ -11,7 +11,7 @@ public partial class MainWindow
     internal DateAdapter? batchDateAdapter;
     internal volatile bool batchCalculationStarted;
     internal long batchCalculationTicks,batchFinishedTicks;
-    sealed record BatchDetails(int Missing=0,int FilenameMismatch=0,int FilenameInvalid=0,int CsvIdentity=0,int CsvUnknown=0,IReadOnlyList<Measurement>? Measurements=null,double InitialSourceMs=0,int CopyMissing=0,int OperationCount=0,int DateCandidates=0);
+    sealed record BatchDetails(int Missing=0,int FilenameMismatch=0,int FilenameInvalid=0,int CsvIdentity=0,int CsvUnknown=0,IReadOnlyList<Measurement>? Measurements=null,double InitialSourceMs=0,int CopyMissing=0,int OperationCount=0,int DateCandidates=0,double ProjectionHostMs=0,int ProjectionRequests=0);
     sealed record AppliedBatch(PhotoRow[] Rows,Dictionary<string,string>[] Before,long[] Revisions);
     AppliedBatch? lastApply;
     bool preserveBatchEditor;
@@ -35,7 +35,7 @@ public partial class MainWindow
             var options=ReadDateInput();string input=JsonSerializer.Serialize(options);
             await ApplyMetadataBatch("日期",async(docs,revision,token)=>{
                 var plan=await DatePagePreview.CalculateAsync(docs,options,revision,()=>Volatile.Read(ref dateRevision),token,()=>{if(revision==Volatile.Read(ref dateRevision)&&!token.IsCancellationRequested){batchCalculationTicks=Stopwatch.GetTimestamp();batchCalculationStarted=true;}},adapter=>{if(revision==Volatile.Read(ref dateRevision))batchDateAdapter=adapter;});
-                plan.Apply();return new(plan.MissingCount,plan.FilenameMismatchCount,plan.FilenameInvalidCount,Measurements:plan.Measurements,InitialSourceMs:plan.SourceCheckMs);
+                plan.Apply();return new(plan.MissingCount,plan.FilenameMismatchCount,plan.FilenameInvalidCount,Measurements:plan.Measurements,InitialSourceMs:plan.SourceCheckMs,ProjectionHostMs:plan.ProjectionHostMs,ProjectionRequests:plan.ProjectionRequests);
             },()=>!Fields.Any(f=>f.Apply.IsChecked==true)&&JsonSerializer.Serialize(ReadDateInput())==input);
         }catch(Exception error){Status.Text="日期未应用："+DateFailureText(error);}
     }
@@ -79,9 +79,9 @@ public partial class MainWindow
                 if(label=="日期")return details;
                 var dates=await VerifiedMetadataDates.CreateAsync(frozen.SelectMany(d=>d.DateCandidates),request.Token,adapter=>{batchDateAdapter=adapter;adapter.CalculationStarted+=()=>{if(Current()){batchCalculationTicks=Stopwatch.GetTimestamp();batchCalculationStarted=true;}};});
                 foreach(var doc in frozen){foreach(var pair in doc.DateCandidates)dates.Require(new Dictionary<string,string>{{pair.Key,pair.Value}});doc.AcceptDateInputs(dates);}
-                return details with{Measurements=dates.Measurements,DateCandidates=dates.CandidateCount};
+                return details with{Measurements=dates.Measurements,DateCandidates=dates.CandidateCount,ProjectionHostMs=dates.Measurements.Sum(m=>m.TotalMs),ProjectionRequests=dates.Measurements.Count};
             },request.Token);
-            if(!Current())return;batchTimings["dateCandidates"]=result.DateCandidates;batchTimings["computeMs"]=clock.Elapsed.TotalMilliseconds;
+            if(!Current())return;batchTimings["dateCandidates"]=result.DateCandidates;batchTimings["projectionHostMs"]=result.ProjectionHostMs;batchTimings["projectionRequests"]=result.ProjectionRequests;batchTimings["computeMs"]=clock.Elapsed.TotalMilliseconds;
             batchHostRequests=result.Measurements?.Count??0;batchTimings["hostComputeMs"]=result.Measurements?.Sum(m=>m.ComputeMs)??0;batchTimings["hostTotalMs"]=result.Measurements?.Sum(m=>m.TotalMs)??0;batchTimings["initialSourceMs"]=result.InitialSourceMs;
             if(!Current())return;ValidateState();Status.Text="正在复核全部来源，包括无变化及跳过项…";clock.Restart();
             await Task.Run(async()=>{foreach(var path in selection.SelectMany(r=>r.Document.SidecarPath is {} sidecar?new[]{r.Document.FilePath,sidecar}:new[]{r.Document.FilePath}).Concat(inputPath is null?Array.Empty<string>():new[]{inputPath}).Distinct(StringComparer.OrdinalIgnoreCase)){request.Token.ThrowIfCancellationRequested();sourceGuards.Add(new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read));}foreach(var row in selection){request.Token.ThrowIfCancellationRequested();await row.Document.EnsureUnchangedAsync(request.Token);}if(inputSource is not null)await inputSource(request.Token);},request.Token);

@@ -50,7 +50,7 @@ public partial class MainWindow
             catch(Exception error)when(error is ArgumentException or IOException){foreach(var member in group.Members)previews.Add(new RenameNameIssue(member.Path,error.Message));}
         }
         RenameGroups.ItemsSource=included;RenamePreview.ItemsSource=previews;RenameViewChanged(this,new RoutedEventArgs());
-        RenameOrderStatus.Text=$"完整组{renameGroups.Length}／参与{included.Length}／读取失败{renameGroups.SelectMany(g=>g.Members).Count(m=>m.MetadataFailed)}；参与组连续编号，查看不影响处理。"+(renameDateResults.Values.Any(d=>d is not null&&d.WallProjection is null)?" 共享历史日期有效；排序/绝对时间投影待共同接口，不采用旧历法。":"");UpdateRenameButtons();
+        RenameOrderStatus.Text=$"完整组{renameGroups.Length}／参与{included.Length}／读取失败{renameGroups.SelectMany(g=>g.Members).Count(m=>m.MetadataFailed)}；参与组连续编号，查看不影响处理。";UpdateRenameButtons();
     }
     sealed record RenameNameIssue(string Source,string Reason) {public string OriginalName=>Path.GetFileName(Source);public string NewName=>"不可生成";public string Status=>Reason;}
     string? RenameNameField(RenameGroup group,string key) {

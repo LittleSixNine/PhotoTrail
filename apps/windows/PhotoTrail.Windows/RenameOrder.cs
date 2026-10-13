@@ -26,7 +26,7 @@ public sealed record RenameInput(string Path,IReadOnlyDictionary<string,string> 
     internal static decimal? Date(string? raw,IReadOnlyDictionary<string,VerifiedPhotoDate?> results) {
         if(raw is null)return null;var date=results.GetValueOrDefault(BridgeDate(raw));
         if(date?.SortProjection is not {} projected)return null;
-        return (projected.Ticks-DateTime.UnixEpoch.Ticks)/(decimal)TimeSpan.TicksPerSecond+projected.Nanoseconds/1_000_000_000m;
+        return projected.Seconds+projected.Nanoseconds/1_000_000_000m;
     }
     // System file times are a different domain and never authorize metadata writes.
     public static decimal? SystemDate(string? raw) {

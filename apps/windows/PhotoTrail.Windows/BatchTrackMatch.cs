@@ -52,9 +52,8 @@ internal static class BatchTrackMatch
             if(text.Length>=19&&text[4]=='-'&&text[7]=='-'&&text[10]=='T')text=text[..4]+":"+text[5..7]+":"+text[8..10]+" "+text[11..];
             date=document.VerifiedCaptureDate;if(date is null)return new(name,"非法时间",document.DateReadFailure.Length>0?document.DateReadFailure:"共享日期未验证或拒绝此输入。");
         }catch(ArgumentException error){return new(name,"非法时间",error.Message);}
-        if(date.WallProjection is null)return new(name,"投影未支持","共享日期有效，但现有协议无历史时间投影；未采用独立历法。待共同接口决定。");
-        if(date.Offset.Length==0)return new(name,"时区不足","没有明确时区，不使用本机时区。");
-        if(date.Instant() is not {} time)return new(name,"精度不足","时间不能被.NET精确表示，未舍入。");
+        if(date.InstantLimitation is {} limitation)return new(name,limitation,"共享日期有效，但不能无损适配轨迹时刻；不补时区、不舍入、不改原文。");
+        var time=date.Instant()!.Value;
         var candidates=new List<(TrackMatch Match,TrackSnapshot Source)>();
         foreach(var track in tracks) {
             token.ThrowIfCancellationRequested();var result=track.Data.Match(time,cancellation:token);

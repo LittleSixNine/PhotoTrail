@@ -62,14 +62,32 @@ public partial class MainWindow
     }
     private void CopyMetadataTag(object sender,RoutedEventArgs e){try{if(MetadataGrid.SelectedItem is MetadataRow row)Clipboard.SetText(row.Tag);}catch(Exception){Status.Text="完整标签未复制；剪贴板暂不可用，草稿保留。";}}
     private void CopyMetadataRow(object sender,DataGridRowClipboardEventArgs e){if(e.Item is MetadataRow row)for(int i=0;i<e.ClipboardRowContent.Count;i++)if(e.ClipboardRowContent[i].Column==MetadataGrid.Columns[0])e.ClipboardRowContent[i]=new DataGridClipboardCellContent(row,MetadataGrid.Columns[0],row.Tag);}
+    sealed class PhotoDateComparer(SettingsPreference preference):System.Collections.IComparer
+    {
+        public int Compare(object? x,object? y) {
+            var a=(PhotoRow)x!;var b=(PhotoRow)y!;
+            foreach(var sort in preference.PhotoSort) {
+                int value;
+                if(sort.Field=="captured") {
+                    var first=a.Captured;var second=b.Captured;
+                    if(first is null || second is null) { if(first is null && second is null)continue;return first is null?1:-1; }
+                    value=first.Value.CompareTo(second.Value);
+                }else value=sort.Field=="name"?StringComparer.CurrentCulture.Compare(a.Name,b.Name):a.Imported.CompareTo(b.Imported);
+                if(value!=0)return sort.Descending?-value:value;
+            }
+            return a.Imported.CompareTo(b.Imported);
+        }
+    }
     void ApplyPhotoView()
     {
         var selected=Selected;var view=CollectionViewSource.GetDefaultView(photos);fillingEditor=true;
         try{
             using(view.DeferRefresh()){
                 view.Filter=item=>item is PhotoRow row&&row.Name.Contains(photoSearch,StringComparison.OrdinalIgnoreCase)&&(photoFilter switch{1=>row.Document.Draft.Count>0,2=>row.Document.Draft.Count==0,3=>row.Document.Position()is not null,4=>row.Document.Position()is null,_=>true});
+                if(view is ListCollectionView previous)previous.CustomSort=null;
                 view.SortDescriptions.Clear();foreach(var sort in settings.PhotoSort)view.SortDescriptions.Add(new(sort.Field switch{"name"=>nameof(PhotoRow.Name),"captured"=>nameof(PhotoRow.Captured),_=>nameof(PhotoRow.Imported)},sort.Descending?ListSortDirection.Descending:ListSortDirection.Ascending));
                 if(!settings.PhotoSort.Any(s=>s.Field=="import"))view.SortDescriptions.Add(new(nameof(PhotoRow.Imported),ListSortDirection.Ascending));
+                if(view is ListCollectionView list&&settings.PhotoSort.Any(s=>s.Field=="captured"))list.CustomSort=new PhotoDateComparer(settings);
             }
             Photos.SelectedItems.Clear();foreach(var row in selected)if(Photos.Items.Contains(row))Photos.SelectedItems.Add(row);
         }finally{fillingEditor=false;}

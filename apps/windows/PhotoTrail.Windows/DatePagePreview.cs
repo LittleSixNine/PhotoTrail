@@ -9,13 +9,16 @@ internal sealed record DatePageOptions(int Mode, long Years = 0, long Months = 0
 internal sealed class DatePagePreview
 {
     internal const string Field = "XMP-exif:DateTimeOriginal";
-    internal static readonly SourceIdentity Source = new("63fb9404ec5f0862df90a000f5dd1c4b81509900",
-        "Packages/PhotoTrailDateCore/Sources/PhotoTrailDateCore/MetadataDateEdit.swift", "593fa443f634234b81308143d96b0e6bc0373782734d6ba85a69b90c4d153ccc");
+    internal static readonly SourceIdentity Source = new("a0299e6f6c956f66ace2b85449b54db5e2eeeee4",
+        "Packages/PhotoTrailDateCore/Sources/PhotoTrailDateCore/MetadataDateEdit.swift", "15e1f395ac379552b4c43892f6d70321e3c2f0fd6e0dc9d8ccadacc7bb607dc8");
     readonly PhotoDocument[] documents;
     readonly long[] drafts;
     readonly string[] before;
     readonly string?[] after;
     readonly bool strictDate;
+    internal double ProjectionHostMs=>Projections.Measurements.Sum(m=>m.TotalMs);
+    internal int ProjectionRequests=>Projections.Measurements.Count;
+    internal VerifiedMetadataDates Projections {get;private set;}=null!;
     bool consumed;
     internal IReadOnlyList<string?> Values => Array.AsReadOnly(after);
     internal double SourceCheckMs { get; private set; }
@@ -99,7 +102,9 @@ internal sealed class DatePagePreview
             if(options.Mode is 0 or 2 && before[i].Length==0)missing++;
             else if(values[i] is not null && values[i]==before[i]) { values[i]=null; unchanged++; }
         }
-        var preview=new DatePagePreview(docs,drafts,before,values,adapter.Measurements.ToArray(),missing,unchanged,options.Mode is 0 or 2);
+        var projection=await VerifiedMetadataDates.CreateAsync(values.Where(v=>v is not null).Select(v=>new KeyValuePair<string,string>(Field,v!)),token);
+        token.ThrowIfCancellationRequested();if(revision!=currentRevision())throw new DateFailure("staleRevision");
+        var preview=new DatePagePreview(docs,drafts,before,values,adapter.Measurements.Concat(projection.Measurements).ToArray(),missing,unchanged,options.Mode is 0 or 2){Projections=projection};
         if(options.Mode==4){preview.FilenameMismatchCount=extracted!.Count(v=>v is null);preview.FilenameInvalidCount=values.Count(v=>v is null)-preview.FilenameMismatchCount-unchanged;}
         preview.ValidateAll();return preview;
     }

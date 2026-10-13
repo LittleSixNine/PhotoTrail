@@ -3,7 +3,7 @@ using System.Globalization;
 using PhotoTrail.Windows;
 using System.Text.Json;
 
-static class Program
+static partial class Program
 {
     static readonly List<object> Evidence = [];
     static SourceIdentity Source = null!;
@@ -97,12 +97,12 @@ static class Program
         await Reject("invalidField",()=>Real().ComputeAsync([new(new("field","normalize",precise),Field:"EXIF:Other")],1,()=>1),"field-local");
         foreach(string op in new[]{"sequence","distribute"}) await Reject("resultLimit",()=>Real().ComputeAsync([new(new("big",op,precise,Seconds:1,Count:3001,End:precise))],1,()=>1),"global-limit-"+op);
         foreach(string number in new[]{"1.0","1e0","9223372036854775808"}) {
-            string raw="{\"version\":\"date-isolated-v1\",\"id\":\"raw\",\"items\":[{\"id\":\"n\",\"op\":\"shift\",\"text\":\"2024:01:01 00:00:00\",\"seconds\":"+number+"}]}";
+            string raw="{\"version\":\"date-core-v2\",\"id\":\"raw\",\"items\":[{\"id\":\"n\",\"op\":\"shift\",\"text\":\"2024:01:01 00:00:00\",\"seconds\":"+number+"}]}";
             await Reject("parameter:invalidInteger",()=>Real().RawAsync(raw,"raw"),"integer-"+number);
         }
         await Reject("inputLimit",()=>Real().RawAsync(new string('x',DateAdapter.MaxBytes+1),"raw"),"input-budget-before-start");
         await Reject("parameter:versionMismatch",()=>Real().RawAsync("{\"version\":\"wrong\",\"id\":\"raw\",\"items\":[]}","raw"),"host-request-version");
-        await Reject("parameter:unknownMember",()=>Real().RawAsync("{\"version\":\"date-isolated-v1\",\"id\":\"raw\",\"items\":[{\"id\":\"x\",\"op\":\"normalize\",\"text\":\"2024:01:01 00:00:00\",\"unused\":1}]}","raw"),"host-item-unknown-member");
+        await Reject("parameter:unknownMember",()=>Real().RawAsync("{\"version\":\"date-core-v2\",\"id\":\"raw\",\"items\":[{\"id\":\"x\",\"op\":\"normalize\",\"text\":\"2024:01:01 00:00:00\",\"unused\":1}]}","raw"),"host-item-unknown-member");
         foreach(string op in new[]{"sequence","distribute"}) {
             adapter=Real();results=await adapter.ComputeAsync([new(new("global",op,"2024:01:01 00:00:00.1Z",Seconds:1,Count:3000,End:"2024:01:01 00:49:59.1Z"))],1,()=>1);
             Check(results[0].Values!.Length==3000 && results[0].Values![0]=="2024:01:01 00:00:00.1Z" && results[0].Values![1499]=="2024:01:01 00:24:59.1Z" && results[0].Values![2999]=="2024:01:01 00:49:59.1Z" && adapter.Pids.Count==1,"global-3000-"+op);
@@ -206,6 +206,7 @@ static class Program
     }
     static async Task Fixture(string mode,string counter)
     {
+        if(mode.StartsWith("projection-",StringComparison.Ordinal)){await ProjectionFixture(mode);return;}
         if(mode=="noRead"){await Task.Delay(60000);return;}
         string input=await Console.In.ReadToEndAsync();using var doc=JsonDocument.Parse(input);var root=doc.RootElement;
         if(mode=="tree") {using var child=Process.Start(new ProcessStartInfo(Environment.ProcessPath!,$"\"{typeof(Program).Assembly.Location}\" --fixture noRead \"{Base}\" \"\""){UseShellExecute=false,CreateNoWindow=true});Console.Error.WriteLine("CHILD_PID="+child!.Id);await Task.Delay(60000);return;}
@@ -219,10 +220,10 @@ static class Program
         if(mode=="extra")results.Add(new("extra",["2024:01:01 00:00:00"],null));
         if(mode=="order")results.Reverse();
         if(mode=="emptyValue")results[0]=results[0] with{Values=[""]};
-        var frame=new Frame(mode=="version"?"wrong":"date-isolated-v1",mode=="request"?"wrong":root.GetProperty("id").GetString()!,mode=="source"?Source with{Sha256="wrong"}:Source,results.ToArray(),0,null);
+        var frame=new Frame(mode=="version"?"wrong":"date-core-v2",mode=="request"?"wrong":root.GetProperty("id").GetString()!,mode=="source"?Source with{Sha256="wrong"}:Source,results.ToArray(),0,null);
         string json=JsonSerializer.Serialize(frame,DateAdapter.Json);
         if(mode=="missingHeader"){using var parsed=JsonDocument.Parse(json);json=JsonSerializer.Serialize(parsed.RootElement.EnumerateObject().Where(p=>p.Name!="computeMs").ToDictionary(p=>p.Name,p=>p.Value.Clone()));}
-        if(mode=="duplicateMember")json=json.Insert(1,"\"version\":\"date-isolated-v1\",");
+        if(mode=="duplicateMember")json=json.Insert(1,"\"version\":\"date-core-v2\",");
         Console.Write(json);
     }
     public static async Task<int> Main(string[] args)
@@ -233,7 +234,7 @@ static class Program
         using(var source=JsonDocument.Parse(File.ReadAllText(Path.Combine(Base,"source-lock.json")))) {var value=source.RootElement;Source=new(value.GetProperty("commit").GetString()!,value.GetProperty("path").GetString()!,value.GetProperty("sha256").GetString()!);}
         if(args[0]=="--fixture"){await Fixture(args[1],args[3]);return 0;}
         Host=Path.Combine(Base,"bin","DateHost.exe");
-        try {await Cases();await SharedSource();await Transport();File.WriteAllText(Path.Combine(Base,"check-results.json"),JsonSerializer.Serialize(new{passed=Passed,evidence=Evidence},new JsonSerializerOptions{WriteIndented=true}));Console.WriteLine("CHECKS_PASSED="+Passed);return 0;}
+        try {await Cases();await SharedSource();await ProjectionCases();await Transport();File.WriteAllText(Path.Combine(Base,"check-results.json"),JsonSerializer.Serialize(new{passed=Passed,evidence=Evidence},new JsonSerializerOptions{WriteIndented=true}));Console.WriteLine("CHECKS_PASSED="+Passed);return 0;}
         catch(Exception error){File.WriteAllText(Path.Combine(Base,"evidence","failed-check.json"),JsonSerializer.Serialize(new{passed=Passed,error=error.ToString(),evidence=Evidence},new JsonSerializerOptions{WriteIndented=true}));Console.Error.WriteLine(error);return 1;}
     }
 }

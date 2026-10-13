@@ -1,7 +1,7 @@
 {
-  "commit": "63fb9404ec5f0862df90a000f5dd1c4b81509900",
+  "commit": "a0299e6f6c956f66ace2b85449b54db5e2eeeee4",
   "path": "Packages/PhotoTrailDateCore/Sources/PhotoTrailDateCore/MetadataDateEdit.swift",
-  "sha256": "593fa443f634234b81308143d96b0e6bc0373782734d6ba85a69b90c4d153ccc",
-  "version": "date-isolated-v1",
+  "sha256": "15e1f395ac379552b4c43892f6d70321e3c2f0fd6e0dc9d8ccadacc7bb607dc8",
+  "version": "date-core-v2",
   "toolchain": "6.4.0"
 }

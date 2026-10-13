@@ -1104,7 +1104,7 @@ public partial class MainWindow : Window
     private record PhotoRow(PhotoDocument Document)
     {
         public long Imported {get;init;}=Interlocked.Increment(ref nextPhotoOrder);
-        public (long Ticks,int Nanoseconds)? Captured {
+        public (long Seconds,int Nanoseconds)? Captured {
             get=>Document.VerifiedDate(DatePagePreview.Field)?.SortProjection;
         }
         public string Name => Path.GetFileName(Document.FilePath);
