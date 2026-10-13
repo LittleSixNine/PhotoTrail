@@ -75,6 +75,7 @@ static partial class Program
  static async Task InplaceScale() {
   int count=int.Parse(Environment.GetEnvironmentVariable("PHOTOTRAIL_R02_COUNT")!);var rows=await DateCoreRows(count);var docs=rows.Select(Doc).ToArray();var backup=Path.Combine(folder,"backups");Directory.CreateDirectory(backup);Input("BackupFolder",backup);Control<ComboBox>("SaveModeChoice").SelectedIndex=2;
   foreach(var doc in docs)doc.SetDraft(new Dictionary<string,string>{{"XMP-dc:Title","scale-save"}});
+  Control<ListBox>("Photos").SelectedItems.Clear();
   var responseClock=Stopwatch.StartNew();double previous=0,gap=0;var timer=new System.Windows.Threading.DispatcherTimer{Interval=TimeSpan.FromMilliseconds(20)};timer.Tick+=(_,_)=>{double now=responseClock.Elapsed.TotalMilliseconds;gap=Math.Max(gap,now-previous);previous=now;};timer.Start();
   var stopwatch=Stopwatch.StartNew();Action("PrepareSaveAll");double prepare=stopwatch.Elapsed.TotalMilliseconds;long exif=ExifToolClient.RequestCount,hosts=DateAdapter.StartedProcesses;stopwatch.Restart();Action("ExecuteSavePlan");await BatchWait();double save=stopwatch.Elapsed.TotalMilliseconds;double saveGap=gap;gap=0;
   var results=((List<SidecarResult>)Field("saveResults")!).ToArray();Check(results.Length==count&&results.All(r=>r.State=="成功"),"scale-all-inplace-saved");
