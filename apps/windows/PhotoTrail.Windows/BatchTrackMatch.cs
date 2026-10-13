@@ -41,7 +41,7 @@ internal static class BatchTrackMatch
     }
     internal static BatchTrackResult Calculate(PhotoDocument document,IReadOnlyList<TrackSnapshot> tracks,bool overwrite,CancellationToken token) {
         var name=System.IO.Path.GetFileName(document.FilePath);token.ThrowIfCancellationRequested();
-        if(!document.CanEdit)return new(name,"不可编辑","保留全部草稿。");
+        if(!document.CanStage)return new(name,"不可编辑","保留全部草稿。");
         try{if(Location(document)=="valid"&&!overwrite)return new(name,"已有定位保持","补齐缺失定位，不覆盖。");}
         catch(ArgumentException error){return new(name,"定位无效",error.Message);}
         string? text;

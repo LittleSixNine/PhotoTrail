@@ -1,3 +1,9 @@
+## R03a 保存验证
+
+生产保存计划位于 `PhotoTrail.Windows/SavePlan.cs` 与 `MainWindow.Save.cs`，复用 MetadataXmp／MetadataCopy／PhotoDocument 和 date-core-v2；不增加 SDK／组件／系统环境要求。UiChecks 的 `--save-target-checks` 使用独立临时副本覆盖模式、范围、真实配对、完整XMP、竞态、锁、权限失败、创建后取消／回读故障、revision及生产WPF链；`--save-target-scale` 观测1／20／100张请求数、阶段耗时和Dispatcher间隔。临时权限注入只改任务目录并finally恢复；注入证据与无钩子的原生候选流程分别归属。最终候选检查需逐字节使用候选生产DLL，不以早期构建代替。
+
+旧副本入口现在先摘要再显式确认，因此生产交互检查中的 SaveCopies 之后须检查摘要，再执行 ExecuteSavePlan；不能跳过摘要或据旧单事件测试断言假失败。无关历史全套不机械重跑。
+
 ## 2026-10-13 · 检查器 R02 的读取与验证
 
 生产编辑／日期／保存仍使用原 `-G1` 键；展示另用 `-j -G1:4 -a -u -s -n`，保留来源角色、家族及Copy身份，严格核对SourceFile和批量数量。每32张最多64个物理来源各用一次普通读取与一次展示读取，日期文本仍整批进入v2；getter和计数不启动工具。参数依据[ExifTool官方文档](https://exiftool.org/exiftool_pod2.html)。

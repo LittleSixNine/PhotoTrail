@@ -46,7 +46,7 @@ internal sealed class DatePagePreview
         int revision, Func<int> currentRevision, CancellationToken token, Action? calculationStarted=null, Action<DateAdapter>? observeAdapter=null)
     {
         var docs=selection.ToArray();
-        if(docs.Length is < 1 or > 3000 || docs.Distinct().Count()!=docs.Length || docs.Select(d=>d.SidecarPath??d.FilePath).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=docs.Length || docs.Any(d=>!d.CanEdit))
+        if(docs.Length is < 1 or > 3000 || docs.Distinct().Count()!=docs.Length || docs.Select(d=>d.SidecarPath??d.FilePath).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=docs.Length || docs.Any(d=>!d.CanStage))
             throw new InvalidOperationException("请选择1至3000个不同的可编辑文件。");
         var drafts=docs.Select(d=>d.DraftRevision).ToArray();
         var before=docs.Select(d=>options.Mode is 0 or 2?OffsetValue(d):d.Value(Field)).ToArray();
@@ -116,7 +116,7 @@ internal sealed class DatePagePreview
         return value.GetString()!;
     }
     void Current(int i) {
-        if(consumed || !documents[i].CanEdit || documents[i].DraftRevision!=drafts[i] || (strictDate?OffsetValue(documents[i]):documents[i].Value(Field))!=before[i])
+        if(consumed || !documents[i].CanStage || documents[i].DraftRevision!=drafts[i] || (strictDate?OffsetValue(documents[i]):documents[i].Value(Field))!=before[i])
             throw new InvalidOperationException("照片或草稿状态已改变，请重新预览。");
     }
     internal void ValidateAll() {

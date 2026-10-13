@@ -1,3 +1,7 @@
+## R03a save validation
+
+SavePlan and MainWindow.Save reuse existing XMP/copy and date-core-v2 protection. UiChecks `--save-target-checks` covers real targets, field scopes, complete packets, races, failures and production WPF events; `--save-target-scale` measures 1/20/100 files and Dispatcher delays. Each test uses temporary copies and isolated preferences. Fault-injected evidence and the unchanged native candidate flow have separate attribution. The selected-copy action now prepares a summary; checks must confirm ExecuteSavePlan explicitly. Do not substitute an earlier build for final candidate evidence. No in-place saving, SDK installation or system changes.
+
 ## 2026-10-13 · Inspector R02 validation
 
 Keep the existing G1 editing/date/save read. A separate JSON `-G1:4 -a -u -s -n` display read preserves families and copy identities with strict SourceFile/count checks. Each batch of at most32 photos has one ordinary and one display ExifTool request (at most64 physical sources). Getters never start ExifTool or DateHost. See the [ExifTool reference](https://exiftool.org/exiftool_pod2.html).

@@ -43,11 +43,15 @@ public static class MetadataXmp
     }
     public static async Task ExportAsync(ExifToolClient client,PhotoDocument photo,string path,CancellationToken cancellation = default)
     {
+        var draft=new Dictionary<string,string>(photo.Draft);var dates=await VerifiedMetadataDates.CreateAsync(draft,cancellation);
+        await ExportValidatedAsync(client,photo,path,draft,dates,cancellation);
+    }
+    internal static async Task ExportValidatedAsync(ExifToolClient client,PhotoDocument photo,string path,IReadOnlyDictionary<string,string> draft,VerifiedMetadataDates dates,CancellationToken cancellation) {
         path = Path.GetFullPath(path);var folder = Path.GetDirectoryName(path)!;
         if(!Path.GetExtension(path).Equals(".xmp",StringComparison.OrdinalIgnoreCase))throw new ArgumentException("输出须为.xmp文件。");
         if(!Directory.Exists(folder))throw new DirectoryNotFoundException("输出文件夹不存在。");
         if(File.Exists(path))throw new IOException("目标已存在，不会覆盖。");
-        var draft = new Dictionary<string,string>(photo.Draft); await photo.EnsureUnchangedAsync(cancellation);
+        PhotoDocument.ValidateChanges(draft);dates.Require(draft);await photo.EnsureUnchangedAsync(cancellation);
         var temporary = Path.Combine(folder,".phototrail-xmp-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(temporary);
         var packet = Path.Combine(temporary,"packet.xmp");var savedFolder = Path.Combine(temporary,"saved");var saved = Path.Combine(savedFolder,"packet.xmp");
         try
@@ -60,8 +64,8 @@ public static class MetadataXmp
                 await File.WriteAllBytesAsync(packet,bytes.Length == 0 ? System.Text.Encoding.UTF8.GetBytes(EmptyPacket) : bytes,cancellation);
             }
             ValidateXml(packet);var document = await PhotoDocument.LoadAsync(client,packet,cancellation);
-            await document.SetDraftAsync(draft,cancellation);var result = packet;
-            if(document.Draft.Count > 0){Directory.CreateDirectory(savedFolder);result = await MetadataCopy.SaveAsync(client,document,savedFolder,cancellation);}
+            await document.SetDraftValidatedAsync(draft,dates,document.DraftRevision,cancellation);var result = packet;
+            if(document.Draft.Count > 0){Directory.CreateDirectory(savedFolder);result = await MetadataCopy.SaveValidatedAsync(client,document,savedFolder,new Dictionary<string,string>(document.Draft),dates,cancellation);}
             ValidateXml(result);await photo.EnsureUnchangedAsync(cancellation);cancellation.ThrowIfCancellationRequested();
             File.Move(result,path);
         }

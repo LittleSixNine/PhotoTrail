@@ -52,13 +52,22 @@ public sealed class PhotoDocument
     internal PhotoDocument BatchSnapshot() {
         var copy=new PhotoDocument(FilePath,SidecarPath,Embedded,Sidecar,SourceHash,SidecarHash);
         foreach(var pair in draft)copy.draft.Add(pair.Key,pair.Value);
-        copy.DraftRevision=DraftRevision;copy.dateSnapshot=dateSnapshot;copy.DateReadFailure=DateReadFailure;copy.detachedBatch=true;return copy;
+        copy.DraftRevision=DraftRevision;copy.dateSnapshot=dateSnapshot;copy.DateReadFailure=DateReadFailure;copy.detachedBatch=true;copy.NewSidecarEditing=NewSidecarEditing;return copy;
     }
     internal void ReplaceDraft(IReadOnlyDictionary<string,string> state) { draft.Clear();foreach(var pair in state)draft.Add(pair.Key,pair.Value); }
     internal void NotifyDraftChanged()=>ChangedDraft();
     public string FileType => Embedded.TryGetProperty("File:FileType", out var type) ? type.ToString() : "";
     public bool CanEdit => FileType is "JPEG" or "XMP" || (SidecarPath is not null &&
         FileType is "DNG" or "TIFF" or "HEIC" or "PNG" or "ARW" or "NEF" or "RAF" or "CR2" or "CR3" or "RW2" or "ORF" or "PEF");
+
+    internal bool NewSidecarEditing {get;private set;}
+    internal bool CanCreateSidecar => SidecarPath is null && FileType is "JPEG" or "DNG";
+    internal bool CanStage => CanEdit || NewSidecarEditing && CanCreateSidecar;
+    internal void SelectSidecarEditing(bool enabled) {
+        if(NewSidecarEditing==enabled)return;
+        if(!enabled && !CanEdit && Draft.Count>0)throw new InvalidOperationException("无旁车RAW草稿绑定新旁车；请先完成保存或明确放弃，不能改为图内副本。");
+        NewSidecarEditing=enabled;ChangedDraft();
+    }
 
     private PhotoDocument(string file, string? sidecar, JsonElement embedded, JsonElement? metadata, string hash, string? sidecarHash)
     { FilePath = file; SidecarPath = sidecar; Embedded = embedded; Sidecar = metadata; SourceHash = hash; SidecarHash = sidecarHash; }
@@ -174,14 +183,17 @@ public sealed class PhotoDocument
     }
     public async Task SetDraftAsync(IReadOnlyDictionary<string,string> changes,CancellationToken token=default) {
         var frozen=new Dictionary<string,string>(changes);var revision=DraftRevision;
-        var dates=await VerifiedMetadataDates.CreateAsync(frozen,token);await EnsureUnchangedAsync(token);
+        var dates=await VerifiedMetadataDates.CreateAsync(frozen,token);await SetDraftValidatedAsync(frozen,dates,revision,token);
+    }
+    internal async Task SetDraftValidatedAsync(IReadOnlyDictionary<string,string> frozen,VerifiedMetadataDates dates,long revision,CancellationToken token) {
+        await EnsureUnchangedAsync(token);
         if(revision!=DraftRevision)throw new InvalidOperationException("日期验证期间草稿已改变。");
         dates.Require(frozen);
         var next=new Dictionary<string,VerifiedPhotoDate?>(dateSnapshot);foreach(var pair in frozen.Where(p=>VerifiedMetadataDates.IsDate(p.Key)&&p.Value.Length>0))next[pair.Value]=VerifiedPhotoDate.FromValidation(pair.Value,dates);dateSnapshot=next;SetDraftValues(frozen);
     }
     void SetDraftValues(IReadOnlyDictionary<string,string> changes)
     {
-        if (!CanEdit) throw new InvalidOperationException("此格式目前仅支持读取；已有XMP旁车时可编辑旁车。");
+        if (!CanStage) throw new InvalidOperationException("此格式目前仅支持读取；已有XMP旁车时可编辑旁车。");
         ValidateChanges(changes);
         foreach (var (tag, value) in changes)
         {
@@ -332,7 +344,7 @@ public static class MetadataCopy
     {
         if (!photo.CanEdit || photo.Draft.Count == 0) throw new InvalidOperationException("没有可保存的草稿。");
         // Freeze only the requested fields; UI edits while saving cannot alter this operation.
-        var changes=new Dictionary<string,string>(frozen);
+        var changes=new Dictionary<string,string>(frozen);var revision=photo.DraftRevision;
         PhotoDocument.ValidateChanges(changes);dates.Require(changes);
         if (!Directory.Exists(folder)) throw new DirectoryNotFoundException("输出文件夹不存在。");
         var output = Path.Combine(Path.GetFullPath(folder), Path.GetFileName(photo.FilePath));
@@ -411,6 +423,7 @@ public static class MetadataCopy
                     throw new InvalidDataException("JPEG像素载荷发生变化。");
             }
             await photo.EnsureUnchangedAsync(cancellation);
+            if(photo.DraftRevision!=revision)throw new InvalidOperationException("保存期间草稿revision已改变，副本未交付。");
             verifiedImageHash = await PhotoDocument.HashAsync(stagedImage, cancellation);
             cancellation.ThrowIfCancellationRequested();
             File.Move(stagedImage, output); movedImage = true;

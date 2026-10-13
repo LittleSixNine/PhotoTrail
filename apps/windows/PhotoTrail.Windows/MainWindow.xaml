@@ -16,6 +16,11 @@
     <Button Content="取消任务" ToolTip="取消进行中的任务 · Esc" AutomationProperties.AcceleratorKey="Esc" Padding="12,6" Margin="8,0,0,0" Click="CancelRead" />
     <Button x:Name="UndoLastApplyButton" Content="撤销最近一次应用" Click="UndoLastApply" Padding="12,6" Margin="8,0,0,0" IsEnabled="False" ToolTip="恢复最近一批应用之前的完整草稿；不撤销保存文件。"/>
    </WrapPanel>
+   <WrapPanel Margin="0,6,0,0">
+    <TextBlock Text="保存模式：" VerticalAlignment="Center"/><ComboBox x:Name="SaveModeChoice" SelectedIndex="0" Width="190" SelectionChanged="SaveModeChanged" AutomationProperties.Name="保存模式，默认副本"><ComboBoxItem Content="副本（保留会话草稿）"/><ComboBoxItem Content="新建同目录XMP旁车"/></ComboBox>
+    <Button Content="全部待保存…" Click="PrepareSaveAll" Padding="8,5" AutomationProperties.Name="全库全部待保存，不依赖选择或筛选"/>
+    <Button Content="当前工作区待保存…" Click="PrepareSaveWorkspace" Padding="8,5" AutomationProperties.Name="全库当前工作区字段范围"/>
+   </WrapPanel>
   </StackPanel>
   <TextBlock x:Name="Status" DockPanel.Dock="Bottom" Text="导入照片或拖入文件。原文件不会被修改。" TextWrapping="Wrap" Margin="0,10,0,0" />
   <TabControl x:Name="WorkspaceTabs" SelectionChanged="MapSelected">
@@ -191,7 +196,13 @@
          <DataGrid.RowStyle><Style TargetType="DataGridRow"><Setter Property="ToolTip" Value="{Binding Tag}"/><Setter Property="AutomationProperties.Name" Value="{Binding Tag}"/></Style></DataGrid.RowStyle>
          <DataGrid.Columns><DataGridTextColumn Header="字段名称" Binding="{Binding Name}" Width="140"/><DataGridTextColumn Header="来源 / 完整标签" Binding="{Binding Tag}" Width="220"/><DataGridTextColumn Header="值" Binding="{Binding Value}" Width="*" MinWidth="100"/><DataGridTextColumn Header="状态" Binding="{Binding State}" Width="120"/><DataGridTextColumn Header="权限" Binding="{Binding Permission}" Width="110"/></DataGrid.Columns>
         </DataGrid></DockPanel></TabItem>
-      </TabControl>
+      <TabItem x:Name="SaveTargetTab" Header="保存摘要">
+    <DockPanel Margin="8">
+     <WrapPanel DockPanel.Dock="Top"><Button x:Name="ExecuteSaveButton" Content="确认执行冻结计划" Click="ExecuteSavePlan" IsEnabled="False" Padding="12,6"/><Button Content="取消保存计划（不写文件）" Click="CancelSavePlan" Padding="12,6"/></WrapPanel>
+     <TextBox x:Name="SaveSummary" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="保存目标、范围、逐文件结果" Text="尚未准备保存计划。默认副本；不提供原位写回。"/>
+    </DockPanel>
+   </TabItem>
+   </TabControl>
       <StackPanel Grid.Row="2" Margin="0,10,0,0">
        <TextBlock Text="输出文件夹（须已存在；同名文件不覆盖）"/>
        <DockPanel Margin="0,4,0,6"><Button x:Name="OutputButton" DockPanel.Dock="Right" Content="选择…" Click="ChooseOutput" Padding="10,4" Margin="6,0,0,0"/><TextBox x:Name="OutputFolder" AutomationProperties.Name="输出文件夹" VerticalContentAlignment="Center"/></DockPanel>

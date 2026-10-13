@@ -32,7 +32,7 @@ public partial class MainWindow
         BatchTrackApply.IsEnabled=!busy&&!checkingEnvironment&&!renameRecoveryRequired&&trackBatch is {} b&&TrackBatchCurrent(b)&&b.Results.Any(r=>r.Point is not null);
         BatchOverwrite.IsEnabled=BatchCurrentOnly.IsEnabled=!busy;
     }
-    bool TrackBatchCurrent(TrackBatch batch) => !renameRecoveryRequired&&!checkingEnvironment&&Selected.SequenceEqual(batch.Rows)&&batch.Overwrite==(BatchOverwrite.IsChecked==true)&&batch.CurrentOnly==(BatchCurrentOnly.IsChecked==true)&&ParticipatingTracks().SequenceEqual(batch.Tracks)&&batch.Rows.Select((r,i)=>photos.Contains(r)&&r.Document.DraftRevision==batch.Revisions[i]&&r.Document.CanEdit==batch.Frozen[i].CanEdit).All(x=>x);
+    bool TrackBatchCurrent(TrackBatch batch) => !renameRecoveryRequired&&!checkingEnvironment&&Selected.SequenceEqual(batch.Rows)&&batch.Overwrite==(BatchOverwrite.IsChecked==true)&&batch.CurrentOnly==(BatchCurrentOnly.IsChecked==true)&&ParticipatingTracks().SequenceEqual(batch.Tracks)&&batch.Rows.Select((r,i)=>photos.Contains(r)&&r.Document.DraftRevision==batch.Revisions[i]&&r.Document.CanStage==batch.Frozen[i].CanStage).All(x=>x);
     static async Task CheckTrackBatchSources(TrackBatch batch,List<FileStream> guards,CancellationToken token) {
         foreach(var path in batch.Rows.SelectMany(r=>r.Document.SidecarPath is {} sidecar?new[]{r.Document.FilePath,sidecar}:new[]{r.Document.FilePath}).Concat(batch.Tracks.Select(t=>t.Path)).Distinct(StringComparer.OrdinalIgnoreCase)) {
             token.ThrowIfCancellationRequested();guards.Add(new(path,FileMode.Open,FileAccess.Read,FileShare.Read));

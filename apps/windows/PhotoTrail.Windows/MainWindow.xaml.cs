@@ -459,15 +459,15 @@ public partial class MainWindow : Window
     {
         if (mapReady) MapView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "match-preview", point = currentPreview, focus = batchTrackViewing }));
     }
-    private void UpdateGpsButton() => GpsDraftButton.IsEnabled = !batchTrackViewing && !busy && !renameRecoveryRequired && currentPreview is not null && Selected.Length > 0 && Selected.All(row => row.Document.CanEdit);
+    private void UpdateGpsButton() => GpsDraftButton.IsEnabled = !batchTrackViewing && !busy && !renameRecoveryRequired && currentPreview is not null && Selected.Length > 0 && Selected.All(row => row.Document.CanStage);
     private async void AddGpsDraft(object sender, RoutedEventArgs e)
     {
         var selected = Selected;var point=currentPreview;var revision=trackMatchRevision;
         try
         {
-            if (batchTrackViewing || busy || renameRecoveryRequired || currentPreview is null || Selected.Length == 0 || Selected.Any(row => !row.Document.CanEdit)) throw new InvalidOperationException("请选择可编辑照片，并先预览定位。");
+            if (batchTrackViewing || busy || renameRecoveryRequired || currentPreview is null || Selected.Length == 0 || Selected.Any(row => !row.Document.CanStage)) throw new InvalidOperationException("请选择可编辑照片，并先预览定位。");
             if(previewMethod=="GPS"&&!clipboardGpsPreview&&matchedTrackSource is {} source)await TrackSnapshots.EnsureSourceAsync(source);
-            if(revision!=trackMatchRevision||!ReferenceEquals(point,currentPreview)||!Selected.SequenceEqual(selected)||selected.Any(r=>!r.Document.CanEdit))throw new InvalidOperationException("定位或选择已改变，请重新预览。");
+            if(revision!=trackMatchRevision||!ReferenceEquals(point,currentPreview)||!Selected.SequenceEqual(selected)||selected.Any(r=>!r.Document.CanStage))throw new InvalidOperationException("定位或选择已改变，请重新预览。");
             var changes = PhotoDocument.PositionChanges(point, previewAltitude, previewMethod);
             foreach (var row in selected) row.Document.SetDraft(changes);
             RefreshPhotoRows(); RefreshSelection(); _ = PostPhotosAsync();
@@ -642,8 +642,9 @@ public partial class MainWindow : Window
         RefreshPhotoCount();
         RefreshInspector();
         if(RereadPhotosButton is not null)RereadPhotosButton.IsEnabled=!busy&&!renameRecoveryRequired&&Selected.Length>0;
+        SyncSaveMode();
         var selected = Selected;
-        var editable = !renameRecoveryRequired && selected.Length > 0 && selected.All(p => p.Document.CanEdit);
+        var editable = !renameRecoveryRequired && selected.Length > 0 && selected.All(p => p.Document.CanStage);
         Editor.IsEnabled = !busy && editable;
         if (PresetControls is not null) PresetControls.IsEnabled = !busy && !renameRecoveryRequired;
         RefreshPresetLibraryControls();
@@ -739,7 +740,7 @@ public partial class MainWindow : Window
         if (busy || renameRecoveryRequired) return;
         try
         {
-            if (Selected.Length == 0 || Selected.Any(row => !row.Document.CanEdit)) throw new InvalidOperationException("请选择可编辑的目标照片。");
+            if (Selected.Length == 0 || Selected.Any(row => !row.Document.CanStage)) throw new InvalidOperationException("请选择可编辑的目标照片。");
             if (Fields.Any(field => field.Apply.IsChecked == true)) throw new InvalidOperationException("请先处理未应用字段输入。");
             if (!Clipboard.ContainsText()) throw new InvalidOperationException("剪贴板没有可用文字。");
             var point = MetadataClipboard.ReadGps(Clipboard.GetText());
@@ -767,7 +768,7 @@ public partial class MainWindow : Window
         if (busy || renameRecoveryRequired) return;
         try
         {
-            if (Selected.Length == 0 || Selected.Any(row => !row.Document.CanEdit)) throw new InvalidOperationException("请选择可编辑照片。");
+            if (Selected.Length == 0 || Selected.Any(row => !row.Document.CanStage)) throw new InvalidOperationException("请选择可编辑照片。");
             if (!Clipboard.ContainsText()) throw new InvalidOperationException("剪贴板没有可用文字。");
             var clipboard=Clipboard.GetText();var targets=Fields.Where(field=>field.Apply.IsChecked==true).Select(field=>field.Tag).ToArray();var selected=Selected;
             var changes=MetadataClipboard.Prepare(clipboard,targets);
@@ -805,7 +806,7 @@ public partial class MainWindow : Window
         if(busy || renameRecoveryRequired)return;
         try
         {
-            if(Selected.Length == 0 || Selected.Any(row=>!row.Document.CanEdit))throw new InvalidOperationException("请先选择可编辑照片。");
+            if(Selected.Length == 0 || Selected.Any(row=>!row.Document.CanStage))throw new InvalidOperationException("请先选择可编辑照片。");
             if(Fields.Any(field=>field.Apply.IsChecked == true))throw new InvalidOperationException("请先将现有输入加入草稿或撤销输入。");
             var path = XmpPath.Text; var selected = Selected; XmpImport result;
             BeginOperation();
@@ -904,36 +905,7 @@ public partial class MainWindow : Window
         var dialog = new OpenFolderDialog { Title = "选择保存副本的文件夹" };
         if (dialog.ShowDialog(this) == true) OutputFolder.Text = dialog.FolderName;
     }
-    private async void SaveCopies(object sender, RoutedEventArgs e)
-    {
-        if (busy || renameRecoveryRequired) return;
-        if (Fields.Any(f => f.Apply.IsChecked == true)) { Status.Text = "请先将输入加入草稿，再保存副本。"; return; }
-        lastApply=null;
-        var selected = Selected.Where(p => p.Document.Draft.Count > 0).ToArray();
-        if (selected.Length == 0) return;
-        var folder = OutputFolder.Text;
-        var writeSnapshots=selected.Select(row=>new Dictionary<string,string>(row.Document.Draft)).ToArray();
-        BeginOperation();
-        var saved = 0; var failures = new List<string>(); var cancelled = false;
-        try
-        {
-            var client = Tool();
-            var dates=await VerifiedMetadataDates.CreateAsync(writeSnapshots.SelectMany(d=>d),operation!.Token);
-            batchTimings["saveDateCandidates"]=dates.CandidateCount;batchTimings["saveHostRequests"]=dates.Measurements.Count;
-            foreach (var (row,index) in selected.Select((row,index)=>(row,index)))
-            {
-                operation!.Token.ThrowIfCancellationRequested(); Status.Text = "保存副本：" + row.Name;
-                try { await MetadataCopy.SaveValidatedAsync(client,row.Document,folder,writeSnapshots[index],dates,operation.Token); saved++; }
-                catch (OperationCanceledException) { throw; }
-                catch (Exception error) { failures.Add(row.Name + "：" + error.Message); }
-            }
-        }
-        catch (OperationCanceledException) { cancelled = true; }
-        catch (Exception error) { failures.Add(error.Message); }
-        finally { EndOperation(); }
-        Status.Text = $"{(cancelled ? "保存已取消" : "保存结束")}：副本成功 {saved}，失败 {failures.Count}。原文件未修改；草稿保留，保存后最近一次应用撤销失效。";
-        ShowFailures(failures);
-    }
+    private void SaveCopies(object sender, RoutedEventArgs e)=>PrepareSave(Selected.Select(r=>r.Document),SaveMode.Copy,SaveScope.All);
     private void ShowFailures(List<string> failures)
     {
         if (failures.Count > 0) MessageBox.Show(this, string.Join("\n", failures), "任务结果", MessageBoxButton.OK, MessageBoxImage.Warning);

@@ -66,12 +66,12 @@ public partial class MainWindow
     }
     async Task ApplyMetadataBatch(string label,Func<PhotoDocument[],int,CancellationToken,Task<BatchDetails>> calculate,Func<bool> inputCurrent,Func<CancellationToken,Task>? inputSource=null,string? inputPath=null) {
         var selection=Selected;
-        if(selection.Length is <1 or >3000||selection.Any(r=>!r.Document.CanEdit)||selection.Select(r=>r.Document.SidecarPath??r.Document.FilePath).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=selection.Length)throw new InvalidOperationException("请选择1至3000个不同的可编辑文件。");
+        if(selection.Length is <1 or >3000||selection.Any(r=>!r.Document.CanStage)||selection.Select(r=>r.Document.SidecarPath??r.Document.FilePath).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=selection.Length)throw new InvalidOperationException("请选择1至3000个不同的可编辑文件。");
         var frozen=selection.Select(r=>r.Document.BatchSnapshot()).ToArray();var before=frozen.Select(d=>new Dictionary<string,string>(d.Draft)).ToArray();var revisions=frozen.Select(d=>d.DraftRevision).ToArray();
         BeginOperation();var request=operation!;dateRequest=request;int revision=dateRevision;datePending++;batchTimings.Clear();batchHostRequests=0;batchDateAdapter=null;batchCalculationStarted=false;batchCalculationTicks=batchFinishedTicks=0;
         var sourceGuards=new List<FileStream>();bool completed=false;
         bool Current()=>ReferenceEquals(operation,request)&&revision==dateRevision&&!request.IsCancellationRequested;
-        void ValidateState(){if(!Current()||!busy||renameRecoveryRequired||checkingEnvironment||!Selected.SequenceEqual(selection)||!inputCurrent()||selection.Select((r,i)=>r.Document.DraftRevision==revisions[i]&&r.Document.CanEdit&&photos.Contains(r)&&((r.Document.SidecarPath is not null)==(!r.Document.FilePath.Equals(Path.ChangeExtension(r.Document.FilePath,".xmp"),StringComparison.OrdinalIgnoreCase)&&File.Exists(Path.ChangeExtension(r.Document.FilePath,".xmp"))))).Any(x=>!x))throw new InvalidOperationException("选择、参数、草稿或任务状态已改变，整批未应用。");}
+        void ValidateState(){if(!Current()||!busy||renameRecoveryRequired||checkingEnvironment||!Selected.SequenceEqual(selection)||!inputCurrent()||selection.Select((r,i)=>r.Document.DraftRevision==revisions[i]&&r.Document.CanStage&&photos.Contains(r)&&((r.Document.SidecarPath is not null)==(!r.Document.FilePath.Equals(Path.ChangeExtension(r.Document.FilePath,".xmp"),StringComparison.OrdinalIgnoreCase)&&File.Exists(Path.ChangeExtension(r.Document.FilePath,".xmp"))))).Any(x=>!x))throw new InvalidOperationException("选择、参数、草稿或任务状态已改变，整批未应用。");}
         try {
             Status.Text="正在计算与校验"+label+"；可取消，尚未加入草稿。";
             var clock=Stopwatch.StartNew();var result=await Task.Run(async()=>{

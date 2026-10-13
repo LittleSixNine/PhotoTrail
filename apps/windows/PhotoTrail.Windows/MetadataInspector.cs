@@ -140,7 +140,7 @@ public static class MetadataInspector
             bool mixed=present.Length!=docs.Count||present.Distinct(StringComparer.Ordinal).Count()>1;
             string value=mixed?$"混合值（{present.Length}/{docs.Count}已读）":present.FirstOrDefault()??"";
             if(state=="已读"&&value.Length==0)state="空值";
-            bool writable=docs.Count==1&&docs[0].CanEdit&&tag.Split(':').Length==2&&PhotoDocument.EditableTags.Contains(tag)&&!tag.Contains(":GPS",StringComparison.Ordinal)&&role==(docs[0].SidecarPath is not null?"旁车XMP":docs[0].FileType=="XMP"?"独立XMP":"原图");
+            bool writable=docs.Count==1&&docs[0].CanStage&&tag.Split(':').Length==2&&PhotoDocument.EditableTags.Contains(tag)&&!tag.Contains(":GPS",StringComparison.Ordinal)&&role==(docs[0].SidecarPath is not null?"旁车XMP":docs[0].FileType=="XMP"?"独立XMP":"原图");
             rows.Add(new(section,name,role+" / "+tag,value,state,isCommon,writable,writable?tag:null));
         }
     }
