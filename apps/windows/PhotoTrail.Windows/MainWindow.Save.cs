@@ -60,6 +60,7 @@ public partial class MainWindow
             var client=Tool();
             // Include retained date drafts so source adoption can carry their verified values.
             var dates=await VerifiedMetadataDates.CreateAsync(plan.Items.SelectMany(i=>i.Document.Draft),request.Token);
+            batchTimings["saveDateCandidates"]=dates.CandidateCount;batchTimings["saveHostRequests"]=dates.Measurements.Count;
             saveTimings["dateMs"]=clock.Elapsed.TotalMilliseconds;clock.Restart();
             foreach(var item in plan.Items) {
                 if(request.IsCancellationRequested){saveResults.Add(new(item.Target,null,null,"取消","尚未执行；草稿保留。"));continue;}
@@ -93,7 +94,7 @@ public partial class MainWindow
             saveTimings["writeAndReadbackMs"]=clock.Elapsed.TotalMilliseconds;saveTimings["exifRequests"]=Interlocked.Read(ref ExifToolClient.RequestCount)-exif;saveTimings["dateHostRequests"]=Interlocked.Read(ref DateAdapter.StartedProcesses)-hosts;
             lastApply=null;InvalidateDates();InvalidateBatchTrack();RenameRulesChanged(this,new RoutedEventArgs());RefreshPhotoRows();RefreshMatchPhoto();_=PostPhotosAsync();EndOperation();
             SaveSummary.Text+="\n"+string.Join("\n",saveResults.Select(r=>$"{r.State}：{r.Path} SHA={r.Hash??"unknown"}；{r.Detail}"));
-            Status.Text=$"保存结束：成功{saveResults.Count(r=>r.State=="成功")}，失败{saveResults.Count(r=>r.State=="失败")}，取消{saveResults.Count(r=>r.State=="取消")}，结果未知{saveResults.Count(r=>r.State=="结果未知")}；跳过{plan.Skipped.Length}。详见摘要；原图未改写。";
+            Status.Text=plan.Mode==SaveMode.Copy?$"保存结束：副本成功 {saveResults.Count(r=>r.State=="成功")}，失败 {saveResults.Count(r=>r.State=="失败")}，取消 {saveResults.Count(r=>r.State=="取消")}，结果未知 {saveResults.Count(r=>r.State=="结果未知")}；跳过{plan.Skipped.Length}。详见摘要；原件和会话草稿保留。":$"保存结束：成功{saveResults.Count(r=>r.State=="成功")}，失败{saveResults.Count(r=>r.State=="失败")}，取消{saveResults.Count(r=>r.State=="取消")}，结果未知{saveResults.Count(r=>r.State=="结果未知")}；跳过{plan.Skipped.Length}。详见摘要；原图未改写。";
         }
     }
 }

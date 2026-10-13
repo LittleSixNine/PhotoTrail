@@ -16,7 +16,12 @@ static partial class Program
  static T Control<T>(string name)where T:class=>(T)window.FindName(name);
  static string Status=>Control<TextBlock>("Status").Text;
  static object? Field(string name)=>typeof(MainWindow).GetField(name,BindingFlags.NonPublic|BindingFlags.Instance)!.GetValue(window);
- static void Action(string method)=>typeof(MainWindow).GetMethod(method,BindingFlags.NonPublic|BindingFlags.Instance)!.Invoke(window,[window,new RoutedEventArgs()]);
+ static bool explicitSavePlanChecks;
+ static void Action(string method) {
+  typeof(MainWindow).GetMethod(method,BindingFlags.NonPublic|BindingFlags.Instance)!.Invoke(window,[window,new RoutedEventArgs()]);
+  // Legacy copy checks still exercise an explicit production confirmation after its summary.
+  if(method=="SaveCopies"&&!explicitSavePlanChecks)typeof(MainWindow).GetMethod("ExecuteSavePlan",BindingFlags.NonPublic|BindingFlags.Instance)!.Invoke(window,[window,new RoutedEventArgs()]);
+ }
  static void Check(bool value,string name){if(!value)throw new Exception(name+": "+Status);evidence.Add(new{name,passed=true,status=Status});}
  static async Task Idle(){for(int i=0;i<1600&&(int)Field("datePending")!>0;i++)await Task.Delay(25);Check((int)Field("datePending")! ==0,"request-settled");}
  static PhotoDocument Doc(object row)=>(PhotoDocument)row.GetType().GetProperty("Document")!.GetValue(row)!;
@@ -27,6 +32,7 @@ static partial class Program
  }
  [STAThread]static void Main(string[] args)
  {
+  explicitSavePlanChecks=args.Contains("--save-target-checks")||args.Contains("--save-target-scale");
   folder=Path.GetFullPath(args[0]);Directory.CreateDirectory(folder);
   var app=new Application{ShutdownMode=ShutdownMode.OnExplicitShutdown};
   window=new MainWindow{Title="PhotoTrail 日期页 · 独立自动交互验证"};

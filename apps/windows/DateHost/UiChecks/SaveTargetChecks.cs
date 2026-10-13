@@ -140,7 +140,7 @@ static partial class Program
   var embeddedRow=list.Items.Cast<object>().Single(r=>Doc(r).FilePath==jpeg);Doc(embeddedRow).SetDraft(new Dictionary<string,string>{{"XMP-dc:Title","partial one"}});
   string partialOut=Path.Combine(folder,"partial-copy");Directory.CreateDirectory(partialOut);Input("OutputFolder",partialOut);list.SelectedItems.Clear();list.SelectedItems.Add(embeddedRow);list.SelectedItems.Add(paired);Invoke("RefreshSelection");Action("SaveCopies");
   File.AppendAllText(Doc(paired).FilePath,"source changed after frozen summary");Action("ExecuteSavePlan");await BatchWait();
-  Check(Status.Contains("成功1")&&Status.Contains("失败1")&&File.Exists(Path.Combine(partialOut,"embedded.jpg"))&&!File.Exists(Path.Combine(partialOut,"paired.jpg")),"partial-success-one-source-change-failure-preserved");
+  Check(Status.Replace(" ","").Contains("成功1")&&Status.Replace(" ","").Contains("失败1")&&File.Exists(Path.Combine(partialOut,"embedded.jpg"))&&!File.Exists(Path.Combine(partialOut,"paired.jpg")),"partial-success-one-source-change-failure-preserved");
   Check(Doc(embeddedRow).Draft.Count>0&&Doc(paired).Draft.Count>0,"partial-copy-all-original-session-drafts-retained");
   File.WriteAllBytes(Doc(paired).FilePath,hashes[Doc(paired).FilePath]);
   foreach(var kv in hashes)Check(File.ReadAllBytes(kv.Key).SequenceEqual(kv.Value),"original-SHA-protected-"+Path.GetFileName(kv.Key));Check(await MetadataCopy.JpegPixelsAsync(jpeg)==pixels,"JPEG-pixels-protected");
