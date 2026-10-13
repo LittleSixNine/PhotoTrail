@@ -39,9 +39,9 @@ public partial class MainWindow
         if(InspectorHasInput()){Status.Text="保存准备被阻止：有未应用输入，请明确加入草稿；不会隐式保存。";return;}
         try {
             var plan=SavePlan.Prepare(docs.ToArray(),mode,scope,OutputFolder.Text,photos.Select(r=>r.Document));
-            preparedSave=plan;preparedMode=SaveModeChoice.SelectedIndex;preparedOutput=OutputFolder.Text;SaveSummary.Text=plan.Summary;SaveTargetTab.IsSelected=true;ExecuteSaveButton.IsEnabled=plan.Items.Length>0;
+            preparedSave=plan;preparedMode=SaveModeChoice.SelectedIndex;preparedOutput=OutputFolder.Text;SaveSummary.Text=plan.Summary;WorkspaceTabs.SelectedIndex=0;SaveTargetTab.IsSelected=true;ExecuteSaveButton.IsEnabled=plan.Items.Length>0;
             Status.Text="请核对冻结摘要；确认前不创建文件。";
-        }catch(Exception error){SaveSummary.Text=Status.Text="保存准备失败（未写入）："+error.Message;SaveTargetTab.IsSelected=true;}
+        }catch(Exception error){SaveSummary.Text=Status.Text="保存准备失败（未写入）："+error.Message;WorkspaceTabs.SelectedIndex=0;SaveTargetTab.IsSelected=true;}
     }
     void CancelSavePlan(object sender,RoutedEventArgs e) {
         if(busy){CancelRead(sender,e);return;}preparedSave=null;ExecuteSaveButton.IsEnabled=false;SaveSummary.Text+="\n计划已取消，未创建文件，草稿保留。";
