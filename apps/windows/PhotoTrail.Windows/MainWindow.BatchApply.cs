@@ -93,8 +93,8 @@ public partial class MainWindow
             CommitBatchDrafts(selection,before,drafts,changed,frozen);
             batchTimings["commitMs"]=clock.Elapsed.TotalMilliseconds;
             clock.Restart();if(changed.Length>0){RefreshPhotoRows();RefreshMatchTime();ClearMatchMarker();_=PostPhotosAsync();}batchTimings["refreshMs"]=clock.Elapsed.TotalMilliseconds;
-            string notice=$"{label}应用完成：修改{changed.Length}张，无变化{selection.Length-changed.Length}张；变化操作{items}项；缺失时间跳过{result.Missing}项，文件名不匹配{result.FilenameMismatch}项，文件名日期无效{result.FilenameInvalid}项；CSV身份跳过{result.CsvIdentity}行，忽略字段{result.CsvUnknown}列。原文件未修改；显式保存副本才写文件。";
-            if(label=="预设")notice=$"预设应用完成：修改{changed.Length}张，无变化{selection.Length-changed.Length}张；操作链{result.OperationCount}条，净变化字段{items}项，复制源缺失跳过{result.CopyMissing}项。原文件未修改；显式保存副本才写文件。";
+            string notice=$"{label}应用完成：修改{changed.Length}张，无变化{selection.Length-changed.Length}张；变化操作{items}项；缺失时间跳过{result.Missing}项，文件名不匹配{result.FilenameMismatch}项，文件名日期无效{result.FilenameInvalid}项；CSV身份跳过{result.CsvIdentity}行，忽略字段{result.CsvUnknown}列。原文件未修改；显式确认保存后才写文件。";
+            if(label=="预设")notice=$"预设应用完成：修改{changed.Length}张，无变化{selection.Length-changed.Length}张；操作链{result.OperationCount}条，净变化字段{items}项，复制源缺失跳过{result.CopyMissing}项。原文件未修改；显式确认保存后才写文件。";
             completed=true;Status.Text=notice;if(label=="预设")PresetPreview.Text=notice;if(label=="日期")DatePlanPreview.Text=notice;if(label=="CSV")CsvPreview.Text=notice;
         }
         catch(Exception error){if(Current())Status.Text=label+"未应用："+DateFailureText(error);}
