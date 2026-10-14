@@ -14,6 +14,7 @@
     <Button x:Name="FolderButton" Content="导入文件夹" ToolTip="导入文件夹 · Ctrl+Shift+O" AutomationProperties.AcceleratorKey="Ctrl+Shift+O" Padding="12,6" Margin="8,0,0,0" Click="ReadFolder" />
     <Button x:Name="RereadPhotosButton" Content="重新读取所选照片" AutomationProperties.Name="重新读取所选照片，跳过草稿与未应用输入" Padding="8,6" Click="RereadPhotos"/>
     <Button x:Name="RemoveButton" Content="移除所选" Padding="12,6" Margin="8,0,0,0" Click="RemovePhotos" IsEnabled="False" />
+    <Button x:Name="UndoRemoveButton" Content="撤销移除" Padding="12,6" Click="UndoRemovePhotos" IsEnabled="False" />
     <Button Content="取消任务" ToolTip="取消进行中的任务 · Esc" AutomationProperties.AcceleratorKey="Esc" Padding="12,6" Margin="8,0,0,0" Click="CancelRead" />
     <Button x:Name="UndoLastApplyButton" Content="撤销最近一次应用" Click="UndoLastApply" Padding="12,6" Margin="8,0,0,0" IsEnabled="False" ToolTip="恢复最近一批应用之前的完整草稿；不撤销保存文件。"/>
    </WrapPanel>
@@ -279,7 +280,7 @@
         </StackPanel></ScrollViewer>
        </TabItem>
        <TabItem x:Name="PhotoPreviewTab" Header="照片预览">
-        <DockPanel Margin="8"><TextBlock x:Name="PhotoPreviewStatus" DockPanel.Dock="Bottom" Text="请选择一张JPEG/PNG/DNG照片。DNG使用内嵌JPEG预览，不改照片。" TextWrapping="Wrap" Margin="0,8,0,0"/><Image x:Name="PhotoPreviewImage" Stretch="Uniform" AutomationProperties.Name="所选照片预览"/></DockPanel>
+        <DockPanel Margin="8"><TextBlock x:Name="PhotoPreviewStatus" DockPanel.Dock="Bottom" Text="请选择单张照片。JPEG/PNG/TIFF用本机解码，RAW用合法内嵌JPEG；不改照片。" TextWrapping="Wrap" Margin="0,8,0,0"/><Image x:Name="PhotoPreviewImage" Stretch="Uniform" AutomationProperties.Name="所选照片预览"/></DockPanel>
        </TabItem>
        <TabItem Header="原始字段"><DockPanel>
         <StackPanel DockPanel.Dock="Top" Margin="4">

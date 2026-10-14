@@ -20,8 +20,14 @@ public static class PhotoPreview
         try
         {
             // A basename in the native working directory avoids ExifTool interpreting % codes in user paths.
-            await client.RunAsync(["-charset", "filename=UTF8", "-b", "-PreviewImage", "-W", Path.GetFileName(temporary), "--", Path.GetFullPath(path)], cancellation, workingDirectory: Path.GetDirectoryName(temporary));
-            if (!File.Exists(temporary)) throw new NotSupportedException("DNG没有可用的内嵌JPEG预览；仍可读取元数据。");
+            foreach(var tag in new[]{"PreviewImage","JpgFromRaw","ThumbnailImage"})
+            {
+                cancellation.ThrowIfCancellationRequested();
+                await client.RunAsync(["-charset", "filename=UTF8", "-b", "-"+tag, "-W", Path.GetFileName(temporary), "--", Path.GetFullPath(path)], cancellation, workingDirectory: Path.GetDirectoryName(temporary));
+                if(File.Exists(temporary)&&new FileInfo(temporary).Length>0)break;
+                if(File.Exists(temporary))File.Delete(temporary);
+            }
+            if (!File.Exists(temporary)) throw new NotSupportedException("RAW没有可用的内嵌JPEG预览；仍可读取元数据。");
             using var preview = new FileStream(temporary, FileMode.Open, FileAccess.Read, FileShare.Read);
             if (preview.Length is < 1 or > MaximumBytes) throw new InvalidDataException("内嵌预览大小无效或超过64MiB。");
             var hash = Convert.ToHexString(await SHA256.HashDataAsync(preview, cancellation));
@@ -32,7 +38,7 @@ public static class PhotoPreview
     }
     public static BitmapSource Load(string path, string fileType, string expectedHash, int orientation = 1,int maximumDimension=MaximumDimension)
     {
-        if (fileType is not ("JPEG" or "PNG")) throw new NotSupportedException("当前预览支持JPEG/PNG；其他格式仍可读取元数据。");
+        if (fileType is not ("JPEG" or "PNG" or "TIFF")) throw new NotSupportedException("当前本机预览支持JPEG/PNG/TIFF；其他格式须有合法内嵌预览。");
         if(maximumDimension is <1 or >1024)throw new ArgumentException("显示规格须为1至1024像素。");
         if (orientation is < 1 or > 8) throw new ArgumentException("图像方向无效。");
         using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -40,7 +46,7 @@ public static class PhotoPreview
         if (Convert.ToHexString(SHA256.HashData(file)) != expectedHash) throw new IOException("照片已在外部改变，请重新导入后预览。");
         file.Position = 0;
         var decoder = BitmapDecoder.Create(file, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.None);
-        if ((fileType == "JPEG" && decoder is not JpegBitmapDecoder) || (fileType == "PNG" && decoder is not PngBitmapDecoder))
+        if ((fileType == "JPEG" && decoder is not JpegBitmapDecoder) || (fileType == "PNG" && decoder is not PngBitmapDecoder) || (fileType == "TIFF" && decoder is not TiffBitmapDecoder))
             throw new InvalidDataException("图像格式已改变，请重新导入。");
         var frame = decoder.Frames[0];
         if (frame.PixelWidth < 1 || frame.PixelHeight < 1 || (long)frame.PixelWidth * frame.PixelHeight > 100_000_000)

@@ -26,6 +26,14 @@ static class PreviewChecks
             var converted=new FormatConvertedBitmap(image,PixelFormats.Bgra32,null,0);var actual=new byte[32];converted.CopyPixels(actual,image.PixelWidth*4,0);
             Check(expected[orientation-1].SelectMany(i=>pixels.AsSpan((i-1)*4,4).ToArray()).SequenceEqual(actual),"exact asymmetric orientation pixels: "+orientation);
         }
+        var tiff=Path.Combine(folder,"native.tiff");using(var output=File.Create(tiff)){var encoder=new TiffBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(frame));encoder.Save(output);}
+        var tiffHash=Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(tiff)));
+        for(var direction=1;direction<=8;direction++)
+        {
+            var image=PhotoPreview.Load(tiff,"TIFF",tiffHash,direction);var converted=new FormatConvertedBitmap(image,PixelFormats.Bgra32,null,0);var actual=new byte[32];converted.CopyPixels(actual,image.PixelWidth*4,0);
+            Check(expected[direction-1].SelectMany(i=>pixels.AsSpan((i-1)*4,4).ToArray()).SequenceEqual(actual),"TIFF exact orientation pixels: "+direction);
+        }
+        Reject(()=>PhotoPreview.Load(png,"TIFF",hash),"TIFF content mismatch refuses despite supplied type");
         using(var exclusive=new FileStream(png,FileMode.Open,FileAccess.ReadWrite,FileShare.None))Check(exclusive.Length>0,"preview releases source file for later rename/save");
         Check(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(png)))==hash,"all previews leave source bytes unchanged");
         var jpeg=Path.Combine(folder,"large.jpg");var large=BitmapSource.Create(1024,512,96,96,PixelFormats.Bgra32,null,new byte[1024*512*4],1024*4);

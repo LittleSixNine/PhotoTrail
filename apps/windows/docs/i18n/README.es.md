@@ -1,3 +1,5 @@
+R06b: vista previa nativa JPEG/PNG/TIFF y JPEG integrado en DNG. Quitar un grupo de la lista no cambia el disco y permite recuperar miembros y borradores. Los originales cambiados o ausentes quedan obsoletos y sin escritura; se rechazan identidades duplicadas. Otros RAW siguen sin verificar y HEIC no tiene vista previa.
+
 > 2026-10-14 · R06a añade importación recursiva, grupos JPEG/RAW, preparación pausable, miniaturas según DPI y tira de fotos del mapa. Cada archivo conserva su origen y permisos. Pendiente de aceptación; límites en [IMPORT-THUMBNAILS](../IMPORT-THUMBNAILS.md)。
 
 > 2026-10-14 · R05 añade acciones de fecha ordenadas y copia compatible entre fuentes de cada foto, aplicación y deshacer en un lote y restauración de parámetros del último preset guardado. R04c aceptado; R05 pendiente. Se conservan los riesgos existentes. [Contract](../DATE-PRESETS.md).

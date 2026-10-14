@@ -669,7 +669,8 @@ public partial class MainWindow : Window
         DateTarget.IsEnabled=DateMode.IsEnabled=CsvPath.IsEnabled=!busy;
         foreach(var box in new[]{DateYears,DateMonths,DateDays,DateHours,DateMinutes,DateSeconds,DateStart,DateEnd,DateStep,DateReplaceYear,DateReplaceMonth,DateReplaceDay,DateReplaceHour,DateReplaceMinute,DateReplaceSecond,DateFilenamePattern,DateFilenameTemplate})box.IsEnabled=!busy;
         SaveButton.IsEnabled = !busy && !renameRecoveryRequired && selected.Any(p => p.Document.Draft.Count > 0);
-        RemoveButton.IsEnabled = !busy && selected.Length > 0;
+        RemoveButton.IsEnabled = !busy && !importRunning && !renameRecoveryRequired && selected.Length > 0;
+        UndoRemoveButton.IsEnabled = !busy && !importRunning && !renameRecoveryRequired && removedPhotos.Count>0;
         SelectionInfo.Text = selected.Length == 0 ? "请选择照片。Ctrl / Shift 可多选。" :
             $"已选 {selected.Length} 张；{selected.Count(p => p.Document.Draft.Count > 0)} 张有草稿。" +
             (selected.Length == 1 ? (selected[0].Document.SidecarPath is null ? "XMP 来源：文件内嵌。" : "XMP 来源：同名旁车。") : "混合值显示为空；只应用勾选字段。") +
@@ -701,7 +702,7 @@ public partial class MainWindow : Window
         if (ReferenceEquals(photo,previewDocument)&&previewOrientation==photo?.Value("IFD0:Orientation")) return;
         photoPreviewRequest?.Cancel(); photoPreviewRequest?.Dispose(); photoPreviewRequest = null; photoPreviewRevision++;
         PhotoPreviewImage.Source = null; previewDocument = null;
-        if (photo is null) { PhotoPreviewStatus.Text = "请选择一张JPEG/PNG/DNG照片进行预览。"; return; }
+        if (photo is null) { PhotoPreviewStatus.Text = "请选择一张照片；无法合法解码的格式仅显示元数据。"; return; }
         if (!PhotoPreviewTab.IsSelected) return;
         previewDocument = photo;previewOrientation=photo.Value("IFD0:Orientation"); var revision = photoPreviewRevision;
         photoPreviewRequest = new(); var token = photoPreviewRequest.Token;
@@ -718,7 +719,7 @@ public partial class MainWindow : Window
             finally { photoPreviewGate.Release(); }
             if (!IsLoaded || token.IsCancellationRequested || revision != photoPreviewRevision) return;
             PhotoPreviewImage.Source = preview;
-            PhotoPreviewStatus.Text = $"{Path.GetFileName(photo.FilePath)} · {(photo.FileType == "DNG" ? "内嵌JPEG预览" : "本机预览")}{preview.PixelWidth}×{preview.PixelHeight}；不修改原图。";
+            PhotoPreviewStatus.Text = $"{Path.GetFileName(photo.FilePath)} · {(ImportSource.Raw(photo.FileType) ? "内嵌JPEG预览" : "本机预览")}{preview.PixelWidth}×{preview.PixelHeight}；不修改原图。";
         }
         catch (OperationCanceledException) { }
         catch (Exception error)
@@ -904,18 +905,6 @@ public partial class MainWindow : Window
         RefreshPhotoRows(); RefreshSelection(); Status.Text = "所选全部草稿已清空。原文件未修改。";
         RefreshMatchTime(); ClearMatchMarker(); _ = PostPhotosAsync();
     }
-    private void RemovePhotos(object sender, RoutedEventArgs e)
-    {
-        if (busy || !DiscardEditor()) return;
-        var selected = Selected;
-        if (selected.Any(p => p.Document.Draft.Count > 0) &&
-            MessageBox.Show(this, "移除会放弃所选草稿，磁盘文件保留。继续？", "PhotoTrail", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) return;
-        fillingEditor = true;
-        foreach (var row in selected) photos.Remove(row);
-        previousSelection = Selected; RenameRulesChanged(this, new RoutedEventArgs()); fillingEditor = false; RefreshSelection();
-        ClearMatchMarker(); _ = PostPhotosAsync();
-        Status.Text = $"已从列表移除 {selected.Length} 项，磁盘文件保留。";
-    }
     private void ChooseOutput(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFolderDialog { Title = "选择保存副本的文件夹" };
@@ -954,7 +943,7 @@ public partial class MainWindow : Window
         if(presetEditorDirty||PresetChainDirty){
             if(MessageBox.Show(this,"存在未编排参数或尚未保存入库的预设链。明确放弃预设编辑并继续退出？（不会自动写库）","未保存元数据预设",MessageBoxButton.YesNo,MessageBoxImage.Question,MessageBoxResult.No)!=MessageBoxResult.Yes){e.Cancel=true;return;}
         }
-        if (photos.Any(p => p.Document.Draft.Count > 0) || Fields.Any(f => f.Apply.IsChecked == true))
+        if (photos.Any(p => p.Document.Draft.Count > 0) || removedPhotos.Any(batch=>batch.Rows.Any(item=>item.Row.Document.Draft.Count>0)) || Fields.Any(f => f.Apply.IsChecked == true))
             e.Cancel = MessageBox.Show(this, "存在未撤销的草稿或未应用输入。放弃并退出？保存的副本仍保留。", "PhotoTrail", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes;
     }
     private void WindowClosed(object? sender, EventArgs e) { renameDateValidation?.Cancel(); trackMatchRevision++;InvalidateTrackAdjustment(); photoPreviewRequest?.Cancel(); photoPreviewRevision++; PhotoPreviewImage.Source = null; dependencyCheck?.Cancel(); operation?.Cancel(); renameRevision++; SuspendMap(); GoogleKeyInput.Clear(); MapView.Dispose(); }

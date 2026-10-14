@@ -61,12 +61,12 @@ public sealed class PhotoDocument
     internal void ReplaceDraft(IReadOnlyDictionary<string,string> state) { draft.Clear();foreach(var pair in state)draft.Add(pair.Key,pair.Value); }
     internal void NotifyDraftChanged()=>ChangedDraft();
     public string FileType => Embedded.TryGetProperty("File:FileType", out var type) ? type.ToString() : "";
-    public bool CanEdit => FileType is "JPEG" or "XMP" || (SidecarPath is not null &&
-        FileType is "DNG" or "TIFF" or "HEIC" or "PNG" or "ARW" or "NEF" or "RAF" or "CR2" or "CR3" or "RW2" or "ORF" or "PEF");
+    public bool CanEdit => InspectionError.Length==0 && (FileType is "JPEG" or "XMP" || (SidecarPath is not null &&
+        FileType is "DNG" or "TIFF" or "HEIC" or "PNG" or "ARW" or "NEF" or "RAF" or "CR2" or "CR3" or "RW2" or "ORF" or "PEF"));
 
     internal bool NewSidecarEditing {get;private set;}
-    internal bool CanCreateSidecar => SidecarPath is null && FileType is "JPEG" or "DNG";
-    internal bool CanStage => CanEdit || NewSidecarEditing && CanCreateSidecar;
+    internal bool CanCreateSidecar => InspectionError.Length==0 && SidecarPath is null && FileType is "JPEG" or "DNG";
+    internal bool CanStage => InspectionError.Length==0 && (CanEdit || NewSidecarEditing && CanCreateSidecar);
     internal void SelectSidecarEditing(bool enabled) {
         if(NewSidecarEditing==enabled)return;
         if(enabled&&Draft.Keys.Any(t=>!t.StartsWith("XMP-",StringComparison.Ordinal)))throw new InvalidOperationException("EXIF／IPTC草稿绑定图内目标；不能切到新旁车。");

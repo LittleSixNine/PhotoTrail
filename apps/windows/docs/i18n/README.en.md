@@ -1,3 +1,5 @@
+R06b: native JPEG/PNG/TIFF previews and bounded embedded JPEG previews for DNG/existing RAW types share the two caches. Other RAW samples remain unverified; HEIC previews remain unavailable. Removal affects only the in-memory paired group; unapplied input blocks removal. Undo preserves drafts, order, selection and sources; changed or missing sources become stale and read-only, and reimported identities block duplicate restoration. Disk files are never deleted by removal.
+
 > 2026-10-14 · R06a adds recursive import, stable JPEG/RAW display groups, pausable preparation, DPI-sized thumbnails and a map photo strip. Members keep independent sources and write permissions. Pending user acceptance; formats and cache limits are documented in [IMPORT-THUMBNAILS](../IMPORT-THUMBNAILS.md)。
 
 > 2026-10-14 · R05 adds ordered date presets and compatible per-photo copying across metadata sources, with one atomic draft application/undo and parameter-only restoration of the last saved preset. R04c agent delivery accepted; R05 awaits acceptance. Existing deployment and protection risks remain. [Contract](../DATE-PRESETS.md).

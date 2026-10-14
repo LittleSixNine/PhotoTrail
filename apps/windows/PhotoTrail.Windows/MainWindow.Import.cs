@@ -28,7 +28,7 @@ public partial class MainWindow
                 while(importPaused||busy){queue.Paused=true;await Task.Delay(30,token);}token.ThrowIfCancellationRequested();
                 var acceptClock=System.Diagnostics.Stopwatch.StartNew();for(int i=0;i<readings.Count;i++){
                     var reading=readings[i];if(reading.Document is not {} doc){importReadFailures++;queue.Error(Path.GetFileName(reading.FilePath)+"："+reading.Error,false);continue;}
-                    try{await Task.Run(()=>batch[i].RequireCurrent(),token);await doc.EnsureUnchangedAsync(token);if(doc.InspectionError.Length>0||doc.DateReadFailure.Length>0)throw new IOException("完整来源／共享日期尚未准备成功，未接纳。");if(doc.FileType!=ImportSource.Types[Path.GetExtension(doc.FilePath)])throw new IOException("实际内容类型与候选扩展名不一致，未接纳。");
+                    try{await Task.Run(()=>batch[i].RequireCurrent(),token);await doc.EnsureUnchangedAsync(token);if(doc.InspectionError.Length>0||doc.DateReadFailure.Length>0)throw new IOException("完整来源／共享日期尚未准备成功，未接纳。");if(!ImportSource.Types.Values.Contains(doc.FileType))throw new IOException("实际内容类型与候选扩展名不一致，未接纳。");
                         while(busy)await Task.Delay(30,token);token.ThrowIfCancellationRequested();batch[i].RequireCurrent();if(photos.Any(r=>r.Document.FilePath.Equals(doc.FilePath,StringComparison.OrdinalIgnoreCase))){queue.Skipped++;continue;}
                         var row=new PhotoRow(doc){PairEligible=importPairing,PhysicalIdentity=batch[i].Identity};photos.Add(row);importAccepted++;
                     }catch(OperationCanceledException){throw;}catch(Exception error)when(error is IOException or UnauthorizedAccessException or ArgumentException){importReadFailures++;queue.Error(Path.GetFileName(doc.FilePath)+"："+error.Message,false);}

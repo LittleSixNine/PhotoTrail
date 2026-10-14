@@ -24,12 +24,13 @@ public partial class MainWindow
     internal bool ThumbnailConsumerCurrent(PhotoDocument document)=>photos.Any(r=>ReferenceEquals(r.Document,document));
     internal async Task<BitmapSource> LoadThumbnailAsync(PhotoDocument document,int pixels,double dpi,bool preview,CancellationToken token)
     {
-        if(document.FileType is not ("JPEG" or "PNG")&&!(preview&&document.FileType=="DNG"))throw new NotSupportedException("本批小图仅JPEG/PNG；DNG沿已有独立大预览。");
+        if(document.FileType is not ("JPEG" or "PNG" or "TIFF")&&!ImportSource.Raw(document.FileType))throw new NotSupportedException("本机解码或合法内嵌预览不可用；元数据读取资格独立。");
         var version=await Task.Run(()=>ImportSource.Read(document.FilePath),token);if(document.Times is {} times&&(times.Created!=version.Created||times.Written!=version.Written))throw new IOException("显示来源属性改变，请重新读取来源。");
-        var orientation=int.TryParse(document.Value("IFD0:Orientation"),out var number)&&number is >=1 and <=8?number:1;
+        var rawOrientation=document.Value("IFD0:Orientation");
+        var orientation=string.IsNullOrEmpty(rawOrientation)?1:int.TryParse(rawOrientation,out var number)&&number is >=1 and <=8?number:throw new InvalidDataException("来源方向无效，拒绝猜测旋转。");
         var key=new ThumbnailKey(document.FilePath,document.SourceHash,$"{version.Identity}/{version.Length}/{version.Created.Ticks}/{version.Written.Ticks}/{version.Changed}",orientation,pixels,dpi,preview);
         var result=await thumbnailLoader.GetAsync(key,async()=>{BitmapSource image;
-            if(preview&&document.FileType=="DNG")image=await PhotoPreview.LoadDngAsync(Tool(),document.FilePath,document.SourceHash,orientation,maximumDimension:pixels);
+            if(ImportSource.Raw(document.FileType))image=await PhotoPreview.LoadDngAsync(Tool(),document.FilePath,document.SourceHash,orientation,maximumDimension:pixels);
             else image=PhotoPreview.Load(document.FilePath,document.FileType,document.SourceHash,orientation,pixels);
             version.RequireCurrent();return image;
         },token);if(firstThumbnailMs<0)firstThumbnailMs=System.Diagnostics.Stopwatch.GetElapsedTime(importStartTicks).TotalMilliseconds;return result;

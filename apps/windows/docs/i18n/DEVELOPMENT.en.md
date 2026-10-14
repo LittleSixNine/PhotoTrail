@@ -1,3 +1,5 @@
+R06b directed checks: UiChecks `--r06b-checks` / `--r06b-scale` (1/20/100), Tests `--preview-checks`, with isolated synthetic files and preferences. Report final DLL and native EXE evidence separately; reuse the pinned DateHost.
+
 ## R06a directed validation
 
 Use the existing .NET10 WPF/ExifTool stack and UiChecks `--r06a-checks` / `--r06a-scale` with isolated short synthetic paths. Keep final EXE, final DLL, earlier builds and source-model evidence separate. Reuse the pinned DateHost. Report bounded enumeration, preparation, acceptance, first image, cold/hot loads, calls, concurrency, decoded-cache estimates and Dispatcher gaps; single runs are not medians.

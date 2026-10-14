@@ -1,3 +1,5 @@
+R06b定向验证：UiChecks `--r06b-checks`／`--r06b-scale`（1/20/100），Tests `--preview-checks`。使用独立合成副本、隔离偏好与历史；正式候选最终DLL和原生EXE结果分别记录。沿用固定DateHost，不重建Swift。
+
 ## R06a定向检查
 
 沿已有.NET10／WPF与ExifTool依赖，运行DateHost/UiChecks的`--r06a-checks`及`--r06a-scale`；使用短独立合成目录、隔离配置和历史。最终EXE／DLL与源模型归属分开，复制已验DateHost，不重建Swift。记录枚举（含有界背压）、元数据、接纳／刷新、首图、冷／热及当前图耗时，实际请求／并发／缓存预算和Dispatcher间隔；不把单次样本当中位数。

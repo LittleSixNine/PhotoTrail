@@ -17,7 +17,13 @@ public partial class MainWindow
     SaveMode ChosenSaveMode=>SaveModeChoice.SelectedIndex==2?SaveMode.Inplace:SaveModeChoice.SelectedIndex==1?SaveMode.NewSidecar:SaveMode.Copy;
     void SyncSaveMode() {
         if(SaveModeChoice is null)return;
-        foreach(var row in photos)row.Document.SelectSidecarEditing(ChosenSaveMode==SaveMode.NewSidecar);
+        foreach(var row in photos)
+        {
+            var doc=row.Document;bool sidecar=ChosenSaveMode==SaveMode.NewSidecar;
+            // Undo can restore drafts bound to another target; selection refresh must preserve that binding.
+            if(doc.Draft.Count>0&&(!sidecar&&!doc.CanEdit||sidecar&&doc.Draft.Keys.Any(t=>!t.StartsWith("XMP-",StringComparison.Ordinal))))continue;
+            doc.SelectSidecarEditing(sidecar);
+        }
         SaveModeChoice.IsEnabled=!busy&&!renameRecoveryRequired;
         if(ExecuteSaveButton is not null)ExecuteSaveButton.IsEnabled=!busy&&!renameRecoveryRequired&&preparedSave?.Items.Length>0;
     }
