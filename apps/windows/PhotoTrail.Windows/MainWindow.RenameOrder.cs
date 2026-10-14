@@ -23,13 +23,13 @@ public partial class MainWindow
     string RenameDateInputs()=>System.Text.Json.JsonSerializer.Serialize(new{Rules=RenameRules.Text,From=RenameDateFrom.Text,To=RenameDateTo.Text,Order=ReadRenameOrder(),Selection=Selected.Select(r=>new{r.Document.FilePath,r.Document.DraftRevision}).ToArray()});
     async Task PrepareRenameDatesAsync(CancellationToken token) {
         var groups=renameGroups;int revision=renameRevision;string input=RenameDateInputs();
-        var rules=ReadRenameRules();bool nameDates=rules.Any(r=>r.Kind is "date-set" or "date-prefix");
+        var rules=ReadRenameRules();bool nameDates=RenamePlan.UsesDates(rules);
         bool needs=nameDates||ReadRenameOrder().Sort is "shooting" or "metadata"||RenameDateFrom.Text.Trim().Length>0||RenameDateTo.Text.Trim().Length>0;
         var texts=new List<string>();
         if(needs){foreach(var group in groups){if(nameDates)try{var raw=RenameNameField(group,"captured");if(raw is not null)texts.Add(VerifiedPhotoDate.Bridge(raw));}catch(ArgumentException){}catch(IOException){}
-            foreach(var member in group.Members){texts.AddRange(member.ShootingTexts());if(ReadRenameOrder().Sort=="metadata"&&member.Tag(ReadRenameOrder().MetadataSortTag??"") is {} raw)texts.Add(RenameInput.BridgeDate(raw));}}
+            foreach(var member in group.Members){texts.AddRange(member.ShootingTexts());if(nameDates){foreach(var key in new[]{"File:FileCreateDate","File:FileModifyDate","PhotoTrail:RenameReferenceDate"})if(member.Tag(key) is {} system)texts.Add(RenameInput.BridgeDate(system));}if(ReadRenameOrder().Sort=="metadata"&&member.Tag(ReadRenameOrder().MetadataSortTag??"") is {} raw)texts.Add(RenameInput.BridgeDate(raw));}}
             if(RenameDateFrom.Text.Trim().Length>0)texts.Add(RenameBoundText(RenameDateFrom.Text));if(RenameDateTo.Text.Trim().Length>0)texts.Add(RenameBoundText(RenameDateTo.Text));}
-        var dates=await VerifiedPhotoDate.InspectAsync(texts,token);token.ThrowIfCancellationRequested();
+        var dates=await RenameTransform.PrepareDatesAsync(texts,rules,token);token.ThrowIfCancellationRequested();
         if(revision!=renameRevision||!ReferenceEquals(groups,renameGroups)||input!=RenameDateInputs())throw new InvalidOperationException("日期验证期间规则、选择或元数据草稿已改变。");
         renameDateResults=dates;renameGroups=groups.Select(g=>g with{Members=g.Members.Select(m=>m with{DateResults=dates}).ToArray()}).ToArray();
     }
@@ -46,12 +46,14 @@ public partial class MainWindow
         RenamePreview.ItemsSource=null;await PrepareRenameDatesAsync(request.Token);
         var included=IncludedRenameGroups();var rules=ReadRenameRules();var previews=new List<object>();
         foreach(var (group,index) in included.Select((g,i)=>(g,i))) {
-            try{var name=Path.GetFileNameWithoutExtension(RenamePlan.ApplyVerified(group.Leader.Name,rules,index,key=>RenameNameField(group,key),rules.Any(r=>r.Kind is "date-set" or "date-prefix")?RenameVerifiedDate(group):null));foreach(var member in group.Members)previews.Add(new RenameFile(member.Path,Path.Combine(member.Directory,name+Path.GetExtension(member.Path)),""));}
+            try{var steps=new List<string>();var name=RenameGroupName(group,rules,index,steps);foreach(var member in group.Members)previews.Add(new RenameFile(member.Path,Path.Combine(member.Directory,RenameMemberName(group,member,name)),""){Steps=string.Join(" → ",steps.Select((step,i)=>$"{i+1}: {step}"))});}
             catch(Exception error)when(error is ArgumentException or IOException){foreach(var member in group.Members)previews.Add(new RenameNameIssue(member.Path,error.Message));}
         }
         RenameGroups.ItemsSource=included;RenamePreview.ItemsSource=previews;RenameViewChanged(this,new RoutedEventArgs());
         RenameOrderStatus.Text=$"完整组{renameGroups.Length}／参与{included.Length}／读取失败{renameGroups.SelectMany(g=>g.Members).Count(m=>m.MetadataFailed)}；参与组连续编号，查看不影响处理。";UpdateRenameButtons();
     }
+    string RenameGroupName(RenameGroup group,IReadOnlyList<RenameRule> rules,int index,List<string>? steps=null)=>RenamePlan.ApplyVerified(group.Leader.Name,rules,index,key=>RenameNameField(group,key),RenamePlan.UsesDates(rules)?RenameVerifiedDate(group):null,renameDateResults,steps);
+    static string RenameMemberName(RenameGroup group,RenameInput member,string leaderName)=>member.Path==group.Leader.Path?leaderName:RenameTransform.Split(leaderName).Stem+RenameTransform.Split(member.Name).Extension;
     sealed record RenameNameIssue(string Source,string Reason) {public string OriginalName=>Path.GetFileName(Source);public string NewName=>"不可生成";public string Status=>Reason;}
     string? RenameNameField(RenameGroup group,string key) {
         if(group.Members.Any(m=>m.MetadataFailed))throw new IOException("元数据读取失败，不能用缺失值生成名称。");
@@ -59,6 +61,14 @@ public partial class MainWindow
         var embedded=group.Leader.Metadata??JsonSerializer.SerializeToElement(group.Leader.Tags);
         var sidecar=group.Members.FirstOrDefault(m=>m.Extension=="xmp"&&!m.Path.Equals(group.Leader.Path,StringComparison.OrdinalIgnoreCase))?.Metadata;
         if(key=="captured")return imported is not null?BatchTrackMatch.Capture(imported):BatchTrackMatch.Capture(embedded,sidecar,new Dictionary<string,string>());
+        if(key is not("city" or "model")) {
+            var values=new Dictionary<string,string>(StringComparer.Ordinal);
+            void Add(JsonElement data,bool xmpOnly=false){foreach(var property in data.EnumerateObject().Where(p=>!xmpOnly||p.Name.StartsWith("XMP-",StringComparison.Ordinal)))values[property.Name]=property.Value.ValueKind is JsonValueKind.Object or JsonValueKind.Null?"\0invalid-type":PhotoDocument.Text(property.Value);}
+            Add(embedded);if((imported?.Sidecar??sidecar) is {} external)Add(external,true);
+            if(imported is not null)foreach(var entry in imported.Draft)values[entry.Key]=entry.Value;
+            foreach(var entry in group.Leader.Tags.Where(p=>p.Key is "File:FileCreateDate" or "File:FileModifyDate" or "PhotoTrail:RenameReferenceDate"))values[entry.Key]=entry.Value;
+            var result=new RenameInput(group.Leader.Path,values).Tag(key);if(result?.StartsWith('\0')==true)throw new ArgumentException("标签类型无效："+key);return result;
+        }
         var tags=key=="city"?new[]{"XMP-photoshop:City","IPTC:City"}:new[]{"XMP-tiff:Model","IFD0:Model","ExifIFD:Model"};
         foreach(var tag in tags) {
             if(imported?.Draft.TryGetValue(tag,out var draft)==true)return draft.Length==0?null:draft;
@@ -72,15 +82,17 @@ public partial class MainWindow
     private void RenameOrderChanged(object sender,RoutedEventArgs e){if(!IsLoaded||fillingRenameControls)return;RenameRulesChanged(sender,e);}
     private void RenameViewChanged(object sender,RoutedEventArgs e){if(!IsLoaded||RenamePreview.ItemsSource is null)return;var view=System.Windows.Data.CollectionViewSource.GetDefaultView(RenamePreview.ItemsSource);using(view.DeferRefresh()){view.Filter=item=>RenameViewFilter.SelectedIndex switch{1=>item is RenameFile f?f.Source!=f.Target:item is RenameOutcome o&&o.Source!=o.Current,2=>item is RenameFile f?f.Source==f.Target:item is RenameOutcome o&&o.Source==o.Current,_=>true};view.SortDescriptions.Clear();if(RenameViewOrder.SelectedIndex!=0)view.SortDescriptions.Add(new("NewName",RenameViewOrder.SelectedIndex==1?System.ComponentModel.ListSortDirection.Ascending:System.ComponentModel.ListSortDirection.Descending));}UpdateRenameButtons();}
     async Task ReadRenameGroupsAsync(CancellationToken cancellation){
+        var reference=DateTimeOffset.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffffffzzz",System.Globalization.CultureInfo.InvariantCulture);
         var selected=RenameSelection();var inputPaths=selected.Select(r=>r.Document.FilePath).ToArray();var roots=inputPaths.Select(RenameGroup.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);var paths=inputPaths.ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach(var dir in inputPaths.Select(Path.GetDirectoryName).Distinct(StringComparer.OrdinalIgnoreCase))foreach(var path in Directory.EnumerateFiles(dir!))if(roots.Contains(RenameGroup.Key(path)))paths.Add(path);
         if(roots.Count>3000||paths.Count>6000)throw new ArgumentException("超过3000组或6000个物理文件上限。");
-        var inputs=new List<RenameInput>();foreach(var path in paths){cancellation.ThrowIfCancellationRequested();var hash=await PhotoDocument.HashAsync(path,cancellation);var file=new FileInfo(path);if((file.Attributes&FileAttributes.ReparsePoint)!=0)throw new IOException("配对成员为链接，未读取。");var tags=new Dictionary<string,string>();JsonElement? metadata=null;bool failed=false;
+        var inputs=new List<RenameInput>();foreach(var path in paths){cancellation.ThrowIfCancellationRequested();var version=ImportSource.Read(path);var hash=await PhotoDocument.HashAsync(path,cancellation);var file=new FileInfo(path);if((file.Attributes&FileAttributes.ReparsePoint)!=0)throw new IOException("配对成员为链接，未读取。");var tags=new Dictionary<string,string>();JsonElement? metadata=null;bool failed=false;
             try{var data=await Tool().ReadAsync(path,cancellation);metadata=data.Clone();var extension=Path.GetExtension(path).TrimStart('.').ToLowerInvariant();if(RenameGroup.Sources.Contains(extension)&&(!data.TryGetProperty("File:MIMEType",out var mime)||!mime.ToString().StartsWith("image/",StringComparison.OrdinalIgnoreCase))||extension=="xmp"&&(!data.TryGetProperty("File:FileType",out var kind)||kind.ToString()!="XMP"))throw new InvalidDataException("配对照片或XMP内容无效。");foreach(var tag in data.EnumerateObject().Where(t=>t.Name!="SourceFile"))tags[tag.Name]=PhotoDocument.Text(tag.Value);}
             catch(OperationCanceledException){throw;}catch(Exception error)when(error is IOException or JsonException or InvalidDataException or TimeoutException){failed=true;}
             if(hash!=await PhotoDocument.HashAsync(path,cancellation))throw new IOException("配对成员读取期间改变。");
+            version.RequireCurrent();
             var imported=photos.FirstOrDefault(r=>r.Document.FilePath.Equals(path,StringComparison.OrdinalIgnoreCase));if(imported is not null&&hash!=imported.Document.SourceHash)throw new IOException("已导入照片在外部改变，请重新导入。");
-            tags["File:FileCreateDate"]=file.CreationTimeUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ");tags["File:FileModifyDate"]=file.LastWriteTimeUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ");inputs.Add(new(path,tags,failed,file.Length,hash,metadata));
+            tags["PhotoTrail:RenameReferenceDate"]=reference;tags["File:FileCreateDate"]=file.CreationTimeUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ");tags["File:FileModifyDate"]=file.LastWriteTimeUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ");inputs.Add(new(path,tags,failed,file.Length,hash,metadata));
         }
         inputs=inputs.Select(member=>{
             var imported=photos.FirstOrDefault(row=>(row.Document.FilePath.Equals(member.Path,StringComparison.OrdinalIgnoreCase)||row.Document.SidecarPath?.Equals(member.Path,StringComparison.OrdinalIgnoreCase)==true))?.Document;

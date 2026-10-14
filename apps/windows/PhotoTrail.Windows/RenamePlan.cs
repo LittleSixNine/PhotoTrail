@@ -5,9 +5,31 @@ using System.Text;
 
 namespace PhotoTrail.Windows;
 
-public record RenameRule(string Kind, string Text = "", string Replacement = "", int Start = 1, int Step = 1, int Padding = 3);
+public record RenameRule(string Kind, string Text = "", string Replacement = "", int Start = 1, int Step = 1, int Padding = 3)
+{
+    public string Action { get; init; } = "date-set";
+    public bool Enabled { get; init; } = true;
+    public string Part { get; init; } = "stem";
+    public string Occurrence { get; init; } = "all";
+    public int MatchNumber { get; init; } = 1;
+    public bool CaseSensitive { get; init; } = true;
+    public string Anchor { get; init; } = "";
+    public int Position { get; init; }
+    public int Length { get; init; } = 1;
+    public string Prefix { get; init; } = "";
+    public string Suffix { get; init; } = "";
+    public string? MetadataField { get; init; }
+    public string DateSource { get; init; } = "shooting";
+    public string DateFormat { get; init; } = "yyyyMMdd_HHmmss";
+    public string TimeZone { get; init; } = "source";
+    public int NightHour { get; init; }
+    public bool SkipMissing { get; init; } = true;
+    public bool FullMatch { get; init; }
+}
 public record RenameFile(string Source, string Target, string Hash)
 {
+    internal FileProperties? Properties { get; init; }
+    public string Steps { get; init; } = "";
     public string OriginalName => Path.GetFileName(Source);
     public string NewName => Path.GetFileName(Target);
     public string Status => Source == Target ? "无需更名" : "预览；尚未执行";
@@ -20,6 +42,11 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool Explic
         var result = new List<RenameRule>();
         foreach (var line in text.Split('\n').Where(value => value.Trim().Length > 0))
         {
+            if (line.TrimStart().StartsWith('{')) {
+                result.Add(RenameTransform.Parse(line));
+                if(result.Count>64)throw new ArgumentException("规则最多64条。");
+                continue;
+            }
             var parts = line.TrimEnd('\r').Split('|');
             var kind = parts[0] switch { "前缀" => "prefix", "后缀" => "suffix", "替换" => "replace", "设名" => "set", "大写" => "upper", "小写" => "lower", "序号" => "sequence", _ => parts[0] };
             if (kind == "sequence" && parts.Length == 4 && int.TryParse(parts[1], out var start) && int.TryParse(parts[2], out var step) && int.TryParse(parts[3], out var padding)) result.Add(new(kind, Start:start, Step:step, Padding:padding));
@@ -41,20 +68,28 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool Explic
         return !(first.Length == 4 && (first.StartsWith("COM") || first.StartsWith("LPT")) && "123456789¹²³".Contains(first[3]));
     }
     public static string Apply(string name,IReadOnlyList<RenameRule> rules,int index,Func<string,string?>? metadata=null) {
-        if(rules.Any(r=>r.Kind is "date-set" or "date-prefix"))throw new InvalidOperationException("日期命名规则须异步共享验证。");
+        if(UsesDates(rules))throw new InvalidOperationException("日期命名规则须异步共享验证。");
         return ApplyVerified(name,rules,index,metadata,null);
     }
     public static async Task<string> ApplyAsync(string name,IReadOnlyList<RenameRule> rules,int index,Func<string,string?>? metadata=null,CancellationToken token=default) {
         var frozenRules=rules.ToArray();string? captured=frozenRules.Any(r=>r.Kind is "date-set" or "date-prefix")?Required(metadata,"captured"):null;
-        var dates=await VerifiedPhotoDate.InspectAsync(captured is null?Array.Empty<string>():new[]{VerifiedPhotoDate.Bridge(captured)},token);
-        return ApplyVerified(name,frozenRules,index,metadata,captured is null?null:dates.GetValueOrDefault(VerifiedPhotoDate.Bridge(captured)));
+        var texts=new List<string>();if(captured is not null)texts.Add(VerifiedPhotoDate.Bridge(captured));if(UsesDates(frozenRules))foreach(var key in new[]{"captured","File:FileCreateDate","File:FileModifyDate","PhotoTrail:RenameReferenceDate"})if(metadata?.Invoke(key) is {} raw)texts.Add(RenameInput.BridgeDate(raw));
+        var dates=await RenameTransform.PrepareDatesAsync(texts,frozenRules,token);
+        return ApplyVerified(name,frozenRules,index,metadata,captured is null?null:dates.GetValueOrDefault(VerifiedPhotoDate.Bridge(captured)),dates);
     }
-    internal static string ApplyVerified(string name,IReadOnlyList<RenameRule> rules,int index,Func<string,string?>? metadata,VerifiedPhotoDate? date)
+    internal static string ApplyVerified(string name,IReadOnlyList<RenameRule> rules,int index,Func<string,string?>? metadata,VerifiedPhotoDate? date,IReadOnlyDictionary<string,VerifiedPhotoDate?>? dates=null,List<string>? steps=null)
     {
         if (rules.Count > 64 || index < 0) throw new ArgumentException("规则数量或序号无效。");
-        var extension = Path.GetExtension(name); var stem = Path.GetFileNameWithoutExtension(name);
-        foreach (var rule in rules)
+        var original=name;
+        foreach (var rule in rules.Where(r=>r.Enabled))
         {
+            if(rule.Kind=="action") {
+                var transformed=RenameTransform.Apply(name,rule,index,metadata,date,dates);
+                name=transformed.Skip?original:transformed.Name;steps?.Add(name+(transformed.Issue is null?"":" ["+transformed.Issue+"]"));
+                if(transformed.Skip)break;
+                continue;
+            }
+            var (stem,extension)=RenameTransform.Split(name);
             if (rule.Text.Length > 256 || rule.Replacement.Length > 256) throw new ArgumentException("规则文字过长。");
             stem = rule.Kind switch
             {
@@ -73,17 +108,20 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool Explic
                 _ => throw new ArgumentException("规则无效或尚未支持。")
             };
             if (stem.Length > 255) throw new ArgumentException("生成文件名过长。");
+            name=stem+extension;steps?.Add(name);
         }
-        var target = stem + extension;
+        var target = name;
         if (!ValidName(target)) throw new ArgumentException("生成名称违反Windows文件名规则。");
         return target;
     }
-    internal static bool UsesMetadata(IReadOnlyList<RenameRule> rules)=>rules.Any(r=>r.Kind is "date-set" or "date-prefix" or "city-prefix" or "model-suffix");
+    internal static bool UsesDates(IReadOnlyList<RenameRule> rules)=>rules.Any(r=>r.Enabled&&(r.Kind is "date-set" or "date-prefix"||r.Kind=="action"&&RenameTransform.NeedsDates(r)));
+    internal static bool UsesMetadata(IReadOnlyList<RenameRule> rules)=>rules.Any(r=>r.Kind is "date-set" or "date-prefix" or "city-prefix" or "model-suffix"||r.Kind=="action");
     internal static bool UsesNewRules(IReadOnlyList<RenameRule> rules)=>UsesMetadata(rules)||rules.Any(r=>r.Kind=="sequence-prefix");
     internal static void ValidateRules(string text) {
         _=new UTF8Encoding(false,true).GetByteCount(text);var rules=ParseRules(text);
         if(!UsesNewRules(rules)){_=Apply("sample.jpg",rules,0);return;}
         foreach(var rule in rules) {
+            if(rule.Kind=="action"){RenameTransform.Validate(rule);continue;}
             if(rule.Text.Length>256||rule.Replacement.Length>256)throw new ArgumentException("规则文字过长。");
             if(rule.Kind is "sequence" or "sequence-prefix" && (rule.Start<0||rule.Step<=0||rule.Padding is <1 or >9))throw new ArgumentException("编号设置无效。");
             if(rule.Kind=="replace"&&rule.Text.Length==0)throw new ArgumentException("替换文字不能为空。");
@@ -140,7 +178,12 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool Explic
         {
             cancellation.ThrowIfCancellationRequested();
             if (Directory.Exists(target) || (File.Exists(target) && !sources.Contains(target))) throw new IOException("目标已存在且不在本次源文件中，拒绝覆盖。");
-            files.Add(new(source, target, await PhotoDocument.HashAsync(source, cancellation)));
+            using var parents=SavePaths.LockParents(source,true);
+            using var handle=WindowsRename.Open(source);
+            var properties=WindowsRename.Properties(handle,source);
+            var hash=Convert.ToHexString(await System.Security.Cryptography.SHA256.HashDataAsync(handle,cancellation));
+            if(!WindowsRename.SameProperties(properties,WindowsRename.Properties(handle,source)))throw new IOException("冻结读取期间System属性改变。");
+            files.Add(new(source,target,hash){Properties=properties});
         }
         return new(Array.AsReadOnly(files.ToArray()),!includeSidecars);
     }

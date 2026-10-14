@@ -14,7 +14,7 @@ public record RenameOutcome(string Source,string Target,string Current,string Ha
 public record RenameResult(string Journal,IReadOnlyList<RenameOutcome> Files,bool Complete,string? Error);
 public static class RenameExecutor
 {
-    private record Entry(string Source,string Target,string Temporary,string Hash);
+    private record Entry(string Source,string Target,string Temporary,string Hash,FileProperties? Properties=null);
     private record Header(int Version,string Id,Entry[] Files);
     private record Step(int Index,int State);
     public static async Task<RenameResult> ExecuteAsync(RenamePlan plan,string journalDirectory,CancellationToken cancellation=default,Action<int,int>? progress=null)
@@ -34,18 +34,20 @@ public static class RenameExecutor
             if(File.Exists(sidecar)&&!sources.Contains(sidecar))throw new IOException("冻结后出现未纳入计划的同名旁车，未执行。");
         }
         var id=Guid.NewGuid().ToString("N");
-        var entries=plan.Files.Where(file=>file.Source!=file.Target).Select((file,index)=>new Entry(file.Source,file.Target,Path.Combine(Path.GetDirectoryName(file.Source)!,$".phototrail-rename-{id}-{index}.tmp"),file.Hash)).ToArray();
-        var header=new Header(1,id,entries);var states=new int[entries.Length];var locks=new Dictionary<string,FileStream>(StringComparer.OrdinalIgnoreCase);
+        var entries=plan.Files.Where(file=>file.Source!=file.Target).Select((file,index)=>new Entry(file.Source,file.Target,Path.Combine(Path.GetDirectoryName(file.Source)!,$".phototrail-rename-{id}-{index}.tmp"),file.Hash,file.Properties)).ToArray();
+        var header=new Header(2,id,entries);var states=new int[entries.Length];var locks=new Dictionary<string,FileStream>(StringComparer.OrdinalIgnoreCase);var parents=new List<IDisposable>();
         string? journal=null;
         try
         {
             foreach(var file in plan.Files)
             {
                 cancellation.ThrowIfCancellationRequested();
+                parents.Add(SavePaths.LockParents(file.Source,true));
                 if((File.GetAttributes(file.Source)&FileAttributes.ReparsePoint)!=0)throw new IOException("源文件变为链接，未执行。");
                 if(Directory.Exists(file.Target)||(File.Exists(file.Target)&&!sources.Contains(file.Target)))throw new IOException("目标在冻结后被占用，未执行。");
                 var stream=WindowsRename.Open(file.Source);
                 locks.Add(file.Source,stream);
+                if(file.Properties is {} properties&&!WindowsRename.SameProperties(properties,WindowsRename.Properties(stream,file.Source)))throw new IOException("来源身份、System时间、属性或权限在冻结后改变，未执行。");
                 if(Convert.ToHexString(await SHA256.HashDataAsync(stream,cancellation))!=file.Hash)throw new IOException("源内容在冻结后改变，未执行。");
             }
             if(entries.Length==0)return new("",[],true,null);
@@ -69,6 +71,7 @@ public static class RenameExecutor
                 {
                     cancellation.ThrowIfCancellationRequested();var stream=locks[entries[index].Source];stream.Position=0;
                     if(Convert.ToHexString(await SHA256.HashDataAsync(stream,cancellation))!=entries[index].Hash)throw new IOException("更名后内容核验失败；保留实际名称，须人工核对。");
+                    if(entries[index].Properties is {} properties&&!WindowsRename.SameProperties(properties,WindowsRename.Properties(stream,entries[index].Target)))throw new IOException("更名后System属性或权限核验失败；保留实际名称与记录。");
                     progress?.Invoke(entries.Length*2+index+1,entries.Length*3);
                 }
                 Write(new Step(-1,5));
@@ -79,7 +82,7 @@ public static class RenameExecutor
                 return Result(header,states,journal,false,error is OperationCanceledException?"已取消；按记录恢复实际名称。":error.Message);
             }
         }
-        finally{foreach(var stream in locks.Values)stream.Dispose();}
+        finally{foreach(var stream in locks.Values)stream.Dispose();foreach(var directory in parents)directory.Dispose();}
     }
     private static RenameResult Result(Header header,int[] states,string journal,bool complete,string? error)
     {
@@ -98,7 +101,7 @@ public static class RenameExecutor
         file.Seek(-1,SeekOrigin.End);var terminated=file.ReadByte()==10;file.Position=0;
         using var reader=new StreamReader(file,Encoding.UTF8,detectEncodingFromByteOrderMarks:true);
         var header=JsonSerializer.Deserialize<Header>(reader.ReadLine()??"")??throw new InvalidDataException("执行记录缺少头部。");
-        if(header.Version!=1||!Guid.TryParseExact(header.Id,"N",out _)||header.Files is null||header.Files.Length is < 1 or > 6000)throw new InvalidDataException("执行记录版本或条目数无效。");
+        if(header.Version is not(1 or 2)||!Guid.TryParseExact(header.Id,"N",out _)||header.Files is null||header.Files.Length is < 1 or > 6000)throw new InvalidDataException("执行记录版本或条目数无效。");
         var sources=new HashSet<string>(StringComparer.OrdinalIgnoreCase);var targets=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         for(var index=0;index<header.Files.Length;index++)
         {
@@ -127,7 +130,7 @@ public static class RenameExecutor
         {
             cancellation.ThrowIfCancellationRequested();
             if(!File.Exists(outcome.Current)||await PhotoDocument.HashAsync(outcome.Current,cancellation)!=outcome.Hash)throw new IOException("待恢复文件缺失或内容改变，未恢复。");
-            if(outcome.Current!=outcome.Source)files.Add(new(outcome.Current,outcome.Source,outcome.Hash));
+            if(outcome.Current!=outcome.Source){using var handle=WindowsRename.Open(outcome.Current);files.Add(new(outcome.Current,outcome.Source,outcome.Hash){Properties=WindowsRename.Properties(handle,outcome.Current)});}
         }
         if(files.Count==0)return new(journal,[],true,null);
         return await ExecuteAsync(new(Array.AsReadOnly(files.ToArray())),journalDirectory,cancellation);

@@ -2,12 +2,21 @@ using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Security.AccessControl;
 using Microsoft.Win32.SafeHandles;
 
 namespace PhotoTrail.Windows;
 
 public static class WindowsRename
 {
+    [StructLayout(LayoutKind.Sequential)]struct Information { public uint Attributes;public System.Runtime.InteropServices.ComTypes.FILETIME Created,Accessed,Written;public uint Volume,SizeHigh,SizeLow,Links,High,Low; }
+    [DllImport("kernel32.dll",SetLastError=true)]static extern bool GetFileInformationByHandle(SafeFileHandle file,out Information information);
+    internal static FileProperties Properties(FileStream file,string path) {
+        if(!GetFileInformationByHandle(file.SafeFileHandle,out var info)||info.Links!=1||(info.Attributes&(uint)FileAttributes.ReparsePoint)!=0)throw new IOException("更名来源身份无法确认或为硬链接／重解析点。");
+        var security=new FileInfo(path).GetAccessControl(AccessControlSections.Access|AccessControlSections.Owner|AccessControlSections.Group).GetSecurityDescriptorSddlForm(AccessControlSections.Access|AccessControlSections.Owner|AccessControlSections.Group);
+        return new(new(info.Volume,info.High,info.Low),(FileAttributes)info.Attributes,SourceTimes.FromFileTime(info.Created),SourceTimes.FromFileTime(info.Written),security,SourceTimes.FromFileTime(info.Accessed));
+    }
+    internal static bool SameProperties(FileProperties a,FileProperties b)=>a.Identity==b.Identity&&a.Attributes==b.Attributes&&a.Created==b.Created&&a.Written==b.Written&&a.Security==b.Security;
     [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true,ExactSpelling=true)]
     private static extern SafeFileHandle CreateFileW(string path,uint access,uint share,IntPtr security,uint creation,uint flags,IntPtr template);
     [DllImport("kernel32.dll",SetLastError=true,ExactSpelling=true)]

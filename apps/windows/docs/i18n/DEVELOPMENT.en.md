@@ -123,3 +123,6 @@ Historical shared-valid values before 1582-10-15 can be written and used for ren
 ## R04a metadata validation
 
 `DateHost/UiChecks --r04a-checks` exercises production WPF controls and isolated synthetic copies. `--r04a-scale` uses `PHOTOTRAIL_R02_COUNT` (1/20/100) and records edit/projection, representative JPEG copies, process requests and Dispatcher gaps. Redirect all preference/history environment variables to the test folder. JSONQ preserves string identifiers; UTF-8 values and UserComment encoding require actual readback. Grouped EXIF dates verify all nine component tags; EXIF relocation compares thumbnail payload and JPEG pixels. Full logs and failed draft snapshots stay local. The pinned shared source and DateHost binaries remain unchanged; deployment, NOTICE and SwiftPM gates remain open.
+
+
+R08a: --r08a-rule-checks and --r08a-checks cover source/property and production WPF behavior separately. Bind final checks to the published DLL; include Unicode-LICENSE.txt. This does not complete deployment/license review.

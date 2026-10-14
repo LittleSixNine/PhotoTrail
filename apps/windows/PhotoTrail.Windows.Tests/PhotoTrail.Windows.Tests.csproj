@@ -30,6 +30,8 @@
   <Compile Include="../PhotoTrail.Windows/WindowsRename.cs" Link="WindowsRename.cs" />
   <Compile Include="../PhotoTrail.Windows/RenameExecutor.cs" Link="RenameExecutor.cs" />
   <Compile Include="../PhotoTrail.Windows/RenameOrder.cs" Link="RenameOrder.cs" />
+  <Compile Include="../PhotoTrail.Windows/RenameEmoji.cs" Link="RenameEmoji.cs" />
+  <Compile Include="../PhotoTrail.Windows/RenameTransform.cs" Link="RenameTransform.cs" />
   <Compile Include="../PhotoTrail.Windows/RenamePlan.cs" Link="RenamePlan.cs" />
   <Compile Include="../PhotoTrail.Windows/MapPlace.cs" Link="MapPlace.cs" />
   <FrameworkReference Include="Microsoft.WindowsDesktop.App" />

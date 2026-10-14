@@ -77,3 +77,6 @@ El mapa permite previsualizar/aplicar ajustes temporales y este/norte, deshacer 
 ## Ajustes de metadatos ordenados
 
 La pestaña permite añadir, editar, eliminar y ordenar operaciones sobre los 27 campos XMP existentes y guardar/cargar JSON. Cargar solo modifica la cadena; se aplica una vez a los borradores seleccionados y se puede deshacer la última aplicación. Solo guardar copias explícitamente escribe archivos. Se admiten asignación, borrado, completar ausentes, texto, palabras clave y copia por foto. Añadir texto se repite en cada aplicación; los algoritmos de fecha y acciones desconocidas se rechazan íntegramente. Solo se admite un subconjunto de Mac v1.
+
+
+R08a añade reglas por grafemas, regex limitada y fuentes verificadas; comprueba identidad/SHA/System/ACL, sin sobrescribir. [Límites](../RENAME-RULES.md).

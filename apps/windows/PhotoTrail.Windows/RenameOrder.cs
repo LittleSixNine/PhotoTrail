@@ -12,11 +12,13 @@ public sealed record RenameInput(string Path,IReadOnlyDictionary<string,string> 
     public string Extension=>System.IO.Path.GetExtension(Path).TrimStart('.').ToLowerInvariant();
     public string? Tag(string token) {
         if(Tags.TryGetValue(token,out var exact)&&exact.Length>0)return exact;
-        string? preferred=token switch{"IPTCCity"=>"XMP-photoshop:City",_=>null};
+        string? preferred=token switch{"IPTCCity"=>"XMP-photoshop:City","IPTCProvinceState"=>"XMP-photoshop:State","IPTCSubLocation"=>"XMP-iptcCore:Location","IPTCCountry"=>"XMP-photoshop:Country",_=>null};
         if(preferred is not null&&Tags.TryGetValue(preferred,out var region)&&region.Length>0)return region;
-        var candidates=token switch{"CameraMake"=>new[]{"Make"},"CameraModel"=>new[]{"Model"},"IPTCCity"=>new[]{"City"},_=>new[]{token}};
+        if(token.Contains(':'))return null;
+        var candidates=token switch{"CameraMake"=>new[]{"Make"},"CameraModel"=>new[]{"Model"},"CameraSerialNumber"=>new[]{"SerialNumber"},"IPTCCity"=>new[]{"City"},"IPTCProvinceState"=>new[]{"Province-State","State"},"IPTCSubLocation"=>new[]{"Sub-location","Location"},"IPTCCountry"=>new[]{"Country-PrimaryLocationName","Country"},"ImageCaption"=>new[]{"Caption-Abstract","Description","ImageDescription"},"ImageKeywords"=>new[]{"Keywords","Subject"},"ImageUserComment"=>new[]{"UserComment"},"Lens"=>new[]{"LensModel","LensID","Lens"},"Aperture"=>new[]{"FNumber","Aperture"},"ShutterSpeed"=>new[]{"ExposureTime","ShutterSpeed"},"FocalLength35mm"=>new[]{"FocalLengthIn35mmFormat"},"width" or "ImageWidth"=>new[]{"ImageWidth","ExifImageWidth"},"height" or "ImageHeight"=>new[]{"ImageHeight","ExifImageHeight"},_=>new[]{token}};
         foreach(var candidate in candidates){var key=Tags.Keys.Where(k=>k.Split(':').Last()==candidate).Order(StringComparer.Ordinal).FirstOrDefault();if(key is not null&&Tags[key].Length>0)return Tags[key];}
-        return token switch{"FileName"=>Name,"FileNameWithoutExtension"=>System.IO.Path.GetFileNameWithoutExtension(Path),"FileExtension"=>Extension,"ParentFolderName"=>System.IO.Path.GetFileName(Directory),"FilePath"=>Path,_=>null};
+        if(token.StartsWith('0')&&long.TryParse(Tag(token[1..]),NumberStyles.Integer,CultureInfo.InvariantCulture,out var number))return number.ToString("D2",CultureInfo.InvariantCulture);
+        return token switch{"FileName"=>Name,"FileNameWithoutExtension"=>RenameTransform.Split(Name).Stem,"FileExtension"=>RenameTransform.Split(Name).Extension.TrimStart('.'),"ParentFolderName"=>System.IO.Path.GetFileName(Directory),"FilePath"=>Path,"NULL"=>"",_=>null};
     }
     internal IReadOnlyDictionary<string,VerifiedPhotoDate?> DateResults {get;init;}=new Dictionary<string,VerifiedPhotoDate?>();
     internal static string BridgeDate(string raw) {
@@ -56,7 +58,7 @@ public sealed record RenameGroup(string Id,IReadOnlyList<RenameInput> Members)
     public string Name=>Leader.Name;
     public string Identity=>Id;
     public string Status=>Members.Any(m=>m.MetadataFailed)?"元数据读取失败；不可冻结":"处理预览";
-    public static string Key(string path)=>Sources.Concat(Targets).Contains(System.IO.Path.GetExtension(path).TrimStart('.').ToLowerInvariant())?System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path)!,System.IO.Path.GetFileNameWithoutExtension(path)).Normalize().ToLowerInvariant():System.IO.Path.GetFullPath(path).ToLowerInvariant();
+    public static string Key(string path)=>Sources.Concat(Targets).Contains(System.IO.Path.GetExtension(path).TrimStart('.').ToLowerInvariant())?System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path)!,RenameTransform.Split(System.IO.Path.GetFileName(path)).Stem).ToLowerInvariant():System.IO.Path.GetFullPath(path).ToLowerInvariant();
 }
 public sealed record RenameOrderSettings(string Sort="input",bool Descending=false,string? MetadataSortTag=null)
 {

@@ -231,3 +231,6 @@ R01b已实现上述范围并定向验证，待用户验收；历史投影未完�
 ## R04a 字段与日期验证入口
 
 `DateHost/UiChecks` 新增 `--r04a-checks` 与 `--r04a-scale`；使用现有生产WPF控件和独立合成目录，须设置全部本机偏好及原位／改名历史环境变量到测试目录。规模入口读取 `PHOTOTRAIL_R02_COUNT` 为1、20、100，记录编辑／投影、代表JPEG副本、ExifTool／DateHost请求和最大Dispatcher间隔。ExifTool读取使用JSONQ和明确UTF-8，不把数字形序列号转换成数值；EXIF布局改变需比较缩略图实际载荷。三组日期实际九标签逐项回读；冻结摘要列出组件。测试失败快照与完整日志留来源机，不进入Git。固定共享源及DateHost38文件组合不变，不安装SDK或修改全局环境。
+
+
+R08a：Tests --r08a-rule-checks与UiChecks --r08a-checks分别验证规则/属性模型和实际WPF。最终候选需绑定最终DLL并原生验证；Unicode16来源及包内Unicode-LICENSE.txt不代替R14全许可门。

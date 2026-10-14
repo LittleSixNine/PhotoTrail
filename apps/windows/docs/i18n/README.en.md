@@ -83,3 +83,6 @@ The map page previews/applies signed time and east/north track offsets, undoes t
 ## Ordered metadata presets
 
 The preset tab composes, edits, deletes and reorders operations for the existing 27 writable XMP fields, with JSON save/load. Loading only fills the chain; apply once to selected drafts, undo the last application, then explicitly save copies. Set, clear, fill missing, text/keyword operations and per-photo field copying are supported. Text append repeats on each application; date algorithms and unknown actions are rejected as a whole. Only a Mac v1 subset is supported, not full interchange.
+
+
+R08a adds grapheme rules, bounded regex, verified sources and intermediate names; freeze checks identity/SHA/System/ACL, with no overwrite. [Limits](../RENAME-RULES.md).

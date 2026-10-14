@@ -223,3 +223,6 @@ Windows规则JSON保留version 1及旧rules/sortByName可读，新增可选sort�
 ## 有序字段预设
 
 在元数据 → 字段预设中添加并排列操作，名称与JSON保存／载入只处理预设。可从编辑区勾选输入编排，或直接添加明确清除、补空、文字／关键词动作以及多接收字段复制。载入后点击“一次应用操作链到所选草稿”；“撤销最近一次应用”恢复本批之前完整草稿，显式另存副本才写文件。文字追加每次再次生效；同值固定设置和精确关键词追加可无变化。支持27个现有字段和Mac v1文字／列表／复制子集，日期算法及未知动作完整拒绝；不承诺完整Mac互导。详情见[行为约定](docs/BEHAVIOR.md)。
+
+
+R08a adds parameter rename rules, grapheme positions, bounded regex, verified sources and intermediate names. Freeze checks identity/SHA/System/ACL; no overwrite. [Limits](docs/RENAME-RULES.md).
