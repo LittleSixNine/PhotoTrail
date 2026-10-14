@@ -35,7 +35,7 @@ public static class RenameExecutor
         }
         var id=Guid.NewGuid().ToString("N");
         var entries=plan.Files.Where(file=>file.Source!=file.Target).Select((file,index)=>new Entry(file.Source,file.Target,Path.Combine(Path.GetDirectoryName(file.Source)!,$".phototrail-rename-{id}-{index}.tmp"),file.Hash,file.Properties)).ToArray();
-        var header=new Header(2,id,entries);var states=new int[entries.Length];var locks=new Dictionary<string,FileStream>(StringComparer.OrdinalIgnoreCase);var parents=new List<IDisposable>();
+        var header=new Header(2,id,entries);var states=new int[entries.Length];var locks=new Dictionary<string,FileStream>(StringComparer.OrdinalIgnoreCase);var actualProperties=new Dictionary<string,FileProperties>(StringComparer.OrdinalIgnoreCase);var parents=new List<IDisposable>();
         string? journal=null;
         try
         {
@@ -47,7 +47,8 @@ public static class RenameExecutor
                 if(Directory.Exists(file.Target)||(File.Exists(file.Target)&&!sources.Contains(file.Target)))throw new IOException("目标在冻结后被占用，未执行。");
                 var stream=WindowsRename.Open(file.Source);
                 locks.Add(file.Source,stream);
-                if(file.Properties is {} properties&&!WindowsRename.SameProperties(properties,WindowsRename.Properties(stream,file.Source)))throw new IOException("来源身份、System时间、属性或权限在冻结后改变，未执行。");
+                var currentProperties=WindowsRename.Properties(stream,file.Source);actualProperties[file.Source]=currentProperties;
+                if(file.Properties is {} properties&&!WindowsRename.SameProperties(properties,currentProperties))throw new IOException("来源身份、System时间、属性或权限在冻结后改变，未执行。");
                 if(Convert.ToHexString(await SHA256.HashDataAsync(stream,cancellation))!=file.Hash)throw new IOException("源内容在冻结后改变，未执行。");
             }
             if(entries.Length==0)return new("",[],true,null);
@@ -64,6 +65,7 @@ public static class RenameExecutor
                     cancellation.ThrowIfCancellationRequested();var entry=entries[index];
                     states[index]=phase==0?1:3;Write(new Step(index,states[index]));
                     WindowsRename.Move(locks[entry.Source],phase==0?entry.Temporary:entry.Target);
+                    WindowsRename.PreserveProperties(locks[entry.Source],actualProperties[entry.Source]);
                     states[index]++;Write(new Step(index,states[index]));
                     progress?.Invoke(phase*entries.Length+index+1,entries.Length*3);
                 }

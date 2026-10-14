@@ -17,6 +17,14 @@ public static class WindowsRename
         return new(new(info.Volume,info.High,info.Low),(FileAttributes)info.Attributes,SourceTimes.FromFileTime(info.Created),SourceTimes.FromFileTime(info.Written),security,SourceTimes.FromFileTime(info.Accessed));
     }
     internal static bool SameProperties(FileProperties a,FileProperties b)=>a.Identity==b.Identity&&a.Attributes==b.Attributes&&a.Created==b.Created&&a.Written==b.Written&&a.Security==b.Security;
+    [StructLayout(LayoutKind.Sequential)]struct BasicInformation {public long Created,Accessed,Written,Changed;public uint Attributes;}
+    [DllImport("kernel32.dll",SetLastError=true,ExactSpelling=true)]
+    [return:MarshalAs(UnmanagedType.Bool)]static extern bool SetFileInformationByHandle(SafeFileHandle file,int information,ref BasicInformation buffer,uint size);
+    internal static void PreserveProperties(FileStream file,FileProperties properties) {
+        // NTFS name tunneling can reuse a former target's creation time even for a same-handle rename.
+        var basic=new BasicInformation{Created=properties.Created.ToFileTimeUtc(),Accessed=properties.Accessed.ToFileTimeUtc(),Written=properties.Written.ToFileTimeUtc(),Attributes=(uint)properties.Attributes};
+        if(!SetFileInformationByHandle(file.SafeFileHandle,0,ref basic,(uint)Marshal.SizeOf<BasicInformation>()))throw new IOException("更名后原System属性未保留；按实际记录处理。",new Win32Exception(Marshal.GetLastWin32Error()));
+    }
     [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true,ExactSpelling=true)]
     private static extern SafeFileHandle CreateFileW(string path,uint access,uint share,IntPtr security,uint creation,uint flags,IntPtr template);
     [DllImport("kernel32.dll",SetLastError=true,ExactSpelling=true)]
@@ -27,7 +35,7 @@ public static class WindowsRename
         var full=Path.GetFullPath(path);
         if(!full.StartsWith(@"\\?\"))full=full.StartsWith(@"\\")?@"\\?\UNC\"+full[2..]:@"\\?\"+full;
         // Deny other writers/deleters; rename the same verified handle instead of reopening its path.
-        var handle=CreateFileW(full,0x80010000,1,IntPtr.Zero,3,0x08000000,IntPtr.Zero);
+        var handle=CreateFileW(full,0x80010100,1,IntPtr.Zero,3,0x08000000,IntPtr.Zero);
         if(handle.IsInvalid){var error=Marshal.GetLastWin32Error();handle.Dispose();throw new IOException("无法锁定待更名文件。",new Win32Exception(error));}
         try{return new FileStream(handle,FileAccess.Read,81920,isAsync:false);}
         catch{handle.Dispose();throw;}
