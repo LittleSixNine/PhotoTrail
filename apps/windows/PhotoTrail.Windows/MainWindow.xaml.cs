@@ -599,9 +599,7 @@ public partial class MainWindow : Window
             fillingEditor = false; return;
         }
         rereadSequence++;InvalidateDates();previousSelection = Selected; RenameRulesChanged(this, new RoutedEventArgs());
-        RefreshSelection();SyncPhotoStrip();
-        RefreshMatchPhoto();
-        _ = PostPhotosAsync();
+        QueueSelectionPresentation();
     }
     private void RefreshMatchPhoto()
     {

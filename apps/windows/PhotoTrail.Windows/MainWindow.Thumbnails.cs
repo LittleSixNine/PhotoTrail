@@ -10,6 +10,17 @@ public partial class MainWindow
 {
     readonly ThumbnailLoader thumbnailLoader=new();bool syncingPhotoStrip,stripSelectionChange;
     internal event Action? ThumbnailsChanged;
+    int selectionPresentationRevision;
+    void QueueSelectionPresentation()
+    {
+        var revision=++selectionPresentationRevision;var input=Fields.Select(f=>(f.Apply.IsChecked,f.Value.Text)).ToArray();bool preserveView=stripSelectionChange;
+        // Updating editor controls inside WPF's selection transaction stalls its reentrant notifications.
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.DataBind,()=>{
+            if(!IsLoaded||revision!=selectionPresentationRevision)return;
+            if(Fields.Select(f=>(f.Apply.IsChecked,f.Value.Text)).SequenceEqual(input))RefreshSelection();else{RefreshPhotoCount();RefreshInspector();}
+            SyncPhotoStrip();RefreshMatchPhoto();bool previous=stripSelectionChange;stripSelectionChange=preserveView;try{_=PostPhotosAsync();}finally{stripSelectionChange=previous;}
+        });
+    }
     internal bool ThumbnailConsumerCurrent(PhotoDocument document)=>photos.Any(r=>ReferenceEquals(r.Document,document));
     internal async Task<BitmapSource> LoadThumbnailAsync(PhotoDocument document,int pixels,double dpi,bool preview,CancellationToken token)
     {
