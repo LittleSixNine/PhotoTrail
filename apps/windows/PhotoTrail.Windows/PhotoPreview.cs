@@ -9,7 +9,7 @@ public static class PhotoPreview
 {
     public const long MaximumBytes = 64L * 1024 * 1024;
     public const int MaximumDimension = 512;
-    public static async Task<BitmapSource> LoadDngAsync(ExifToolClient client, string path, string expectedHash, int orientation, CancellationToken cancellation = default)
+    public static async Task<BitmapSource> LoadDngAsync(ExifToolClient client, string path, string expectedHash, int orientation, CancellationToken cancellation = default,int maximumDimension=MaximumDimension)
     {
         cancellation.ThrowIfCancellationRequested();
         using var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -26,13 +26,14 @@ public static class PhotoPreview
             if (preview.Length is < 1 or > MaximumBytes) throw new InvalidDataException("内嵌预览大小无效或超过64MiB。");
             var hash = Convert.ToHexString(await SHA256.HashDataAsync(preview, cancellation));
             cancellation.ThrowIfCancellationRequested();
-            return Load(temporary, "JPEG", hash, orientation);
+            return Load(temporary, "JPEG", hash, orientation,maximumDimension);
         }
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
-    public static BitmapSource Load(string path, string fileType, string expectedHash, int orientation = 1)
+    public static BitmapSource Load(string path, string fileType, string expectedHash, int orientation = 1,int maximumDimension=MaximumDimension)
     {
         if (fileType is not ("JPEG" or "PNG")) throw new NotSupportedException("当前预览支持JPEG/PNG；其他格式仍可读取元数据。");
+        if(maximumDimension is <1 or >1024)throw new ArgumentException("显示规格须为1至1024像素。");
         if (orientation is < 1 or > 8) throw new ArgumentException("图像方向无效。");
         using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         if (file.Length is < 1 or > MaximumBytes) throw new InvalidDataException("预览文件须为1字节至64MiB。");
@@ -47,10 +48,10 @@ public static class PhotoPreview
         file.Position = 0;
         var image = new BitmapImage(); image.BeginInit();
         image.CacheOption = BitmapCacheOption.OnLoad; image.StreamSource = file;
-        if (Math.Max(frame.PixelWidth, frame.PixelHeight) > MaximumDimension)
+        if (Math.Max(frame.PixelWidth, frame.PixelHeight) > maximumDimension)
         {
-            if (frame.PixelWidth >= frame.PixelHeight) image.DecodePixelWidth = MaximumDimension;
-            else image.DecodePixelHeight = MaximumDimension;
+            if (frame.PixelWidth >= frame.PixelHeight) image.DecodePixelWidth = maximumDimension;
+            else image.DecodePixelHeight = maximumDimension;
         }
         image.EndInit(); image.Freeze();
         var matrix = orientation switch

@@ -1,3 +1,7 @@
+## R06a定向检查
+
+沿已有.NET10／WPF与ExifTool依赖，运行DateHost/UiChecks的`--r06a-checks`及`--r06a-scale`；使用短独立合成目录、隔离配置和历史。最终EXE／DLL与源模型归属分开，复制已验DateHost，不重建Swift。记录枚举（含有界背压）、元数据、接纳／刷新、首图、冷／热及当前图耗时，实际请求／并发／缓存预算和Dispatcher间隔；不把单次样本当中位数。
+
 > 2026-10-14 · R05复用原DateHost38文件组合；不重建Swift、修改共享源或安装环境。新增UiChecks --r05-checks/--r05-restart/--r05-scale，使用隔离短路径合成材料、显式设置/历史目录，最终候选DLL/EXE与早期构建分别记录。单次1/20/100全链阶段及代表副本保存独立测量，不混旧性能。见[契约](DATE-PRESETS.md)。
 
 ## R04c 定向验证

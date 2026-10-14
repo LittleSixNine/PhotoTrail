@@ -23,7 +23,7 @@ public partial class MainWindow
     void ApplySettingsControls()
     {
         restoringSettings=true;
-        try{MetadataTextSize.SelectedIndex=settings.TextSize+1;MetadataSpacing.SelectedIndex=settings.Spacing+1;FullTagNames.IsChecked=settings.FullTagNames;RecordMapSearches.IsChecked=settings.RecordSearches;photoSort=Array.IndexOf(sortOptions,settings.PhotoSort[0]);PhotoSort.SelectedIndex=photoSort;}
+        try{ImportRecursive.IsChecked=settings.RecursiveImport;ImportPair.IsChecked=settings.PairImport;MetadataTextSize.SelectedIndex=settings.TextSize+1;MetadataSpacing.SelectedIndex=settings.Spacing+1;FullTagNames.IsChecked=settings.FullTagNames;RecordMapSearches.IsChecked=settings.RecordSearches;photoSort=Array.IndexOf(sortOptions,settings.PhotoSort[0]);PhotoSort.SelectedIndex=photoSort;}
         finally{restoringSettings=false;}
         RenderMetadataSettings();RefreshSearchHistory();ApplyPhotoView();RefreshInspectorSettings();RefreshInspector();
     }
@@ -83,6 +83,7 @@ public partial class MainWindow
         var selected=Selected;var view=CollectionViewSource.GetDefaultView(photos);fillingEditor=true;
         try{
             using(view.DeferRefresh()){
+                view.GroupDescriptions.Clear();view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(PhotoRow.DisplayGroup)));
                 view.Filter=item=>item is PhotoRow row&&row.Name.Contains(photoSearch,StringComparison.OrdinalIgnoreCase)&&(photoFilter switch{1=>row.Document.Draft.Count>0,2=>row.Document.Draft.Count==0,3=>row.Document.Position()is not null,4=>row.Document.Position()is null,_=>true});
                 if(view is ListCollectionView previous)previous.CustomSort=null;
                 view.SortDescriptions.Clear();foreach(var sort in settings.PhotoSort)view.SortDescriptions.Add(new(sort.Field switch{"name"=>nameof(PhotoRow.Name),"captured"=>nameof(PhotoRow.Captured),_=>nameof(PhotoRow.Imported)},sort.Descending?ListSortDirection.Descending:ListSortDirection.Ascending));
@@ -93,6 +94,6 @@ public partial class MainWindow
         }finally{fillingEditor=false;}
         if(!Selected.SequenceEqual(selected)){InvalidateDates();previousSelection=Selected;RenameRulesChanged(this,new RoutedEventArgs());}
         PhotoSortStatus.Text="当前比较器序列："+string.Join(" → ",settings.PhotoSort.Select(s=>s.Field+(s.Descending?" ↓":" ↑")));
-        if(IsLoaded)RefreshSelection();
+        SyncPhotoStrip();if(IsLoaded)RefreshSelection();
     }
 }

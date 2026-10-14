@@ -59,7 +59,7 @@ public partial class MainWindow
                 foreach(var tag in draft.Keys)if(baseline.Value(tag)!=next.Value(tag))throw new IOException("未完成草稿基准不适用；保留旧快照并待核对："+tag);
                 var dates=await VerifiedMetadataDates.CreateAsync(draft,request.Token);await next.SetDraftValidatedAsync(draft,dates,next.DraftRevision,request.Token);
                 await next.EnsureUnchangedAsync(request.Token);
-                bool wasSelected=Photos.SelectedItems.Contains(old);var replacement=old with{Document=next};int index=photos.IndexOf(old);
+                bool wasSelected=Photos.SelectedItems.Contains(old);var replacement=old.WithDocument(next);int index=photos.IndexOf(old);
                 fillingEditor=true;
                 try{photos[index]=replacement;if(wasSelected)Photos.SelectedItems.Add(replacement);InplaceHistory.Append(record with{Phase=phase});previousSelection=Selected;}
                 catch{photos[index]=old;if(wasSelected)Photos.SelectedItems.Add(old);throw;}

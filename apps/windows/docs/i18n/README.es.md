@@ -1,3 +1,5 @@
+> 2026-10-14 · R06a añade importación recursiva, grupos JPEG/RAW, preparación pausable, miniaturas según DPI y tira de fotos del mapa. Cada archivo conserva su origen y permisos. Pendiente de aceptación; límites en [IMPORT-THUMBNAILS](../IMPORT-THUMBNAILS.md)。
+
 > 2026-10-14 · R05 añade acciones de fecha ordenadas y copia compatible entre fuentes de cada foto, aplicación y deshacer en un lote y restauración de parámetros del último preset guardado. R04c aceptado; R05 pendiente. Se conservan los riesgos existentes. [Contract](../DATE-PRESETS.md).
 
 > El candidato R04c añade 21 campos EXIF numéricos, de enumeración, orientación y resolución, dos componentes IPTC de fecha/hora y dos tiempos del archivo original, solo en JPEG sin archivos auxiliares. Los tiempos Windows exigen precisión de 100 ns sin pérdida y no se pueden borrar; las copias de solo tiempo conservan los bytes. El guardado mixto y la restauración v2 verifican los atributos reales; v1 sigue protegido. R04b fue aceptado como entrega del agente Windows; R04c espera aceptación. Los riesgos anteriores permanecen. [R04c](../NUMERIC-TIME.md).

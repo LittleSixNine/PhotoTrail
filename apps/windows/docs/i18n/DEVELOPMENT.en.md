@@ -1,3 +1,7 @@
+## R06a directed validation
+
+Use the existing .NET10 WPF/ExifTool stack and UiChecks `--r06a-checks` / `--r06a-scale` with isolated short synthetic paths. Keep final EXE, final DLL, earlier builds and source-model evidence separate. Reuse the pinned DateHost. Report bounded enumeration, preparation, acceptance, first image, cold/hot loads, calls, concurrency, decoded-cache estimates and Dispatcher gaps; single runs are not medians.
+
 > 2026-10-14 R05: reuse pinned DateHost without Swift rebuild; isolated short-path UiChecks --r05-checks/--r05-restart/--r05-scale. Attribute assertions and final DLL/EXE identity are separate from early builds. One run per 1/20/100 scale, not medians. [Contract](../DATE-PRESETS.md).
 
 ## R04c focused validation

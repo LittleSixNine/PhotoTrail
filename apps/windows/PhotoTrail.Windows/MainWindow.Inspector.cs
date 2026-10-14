@@ -94,7 +94,7 @@ public partial class MainWindow
                         if(item.Next is null||item.Error.Length>0){item.Old.Document.InspectionError="重读失败，保留过期快照："+item.Error;failed++;continue;}
                         if(item.Old.Document.SidecarPath is null&&item.Next.SidecarPath is not null)addedSidecars++;
                         if(item.Old.Document.SidecarPath is not null&&item.Next.SidecarPath is null)removedSidecars++;
-                        var next=item.Old with{Document=item.Next};photos[photos.IndexOf(item.Old)]=next;replacements[item.Old]=next;refreshed++;
+                        var next=item.Old.WithDocument(item.Next);photos[photos.IndexOf(item.Old)]=next;replacements[item.Old]=next;refreshed++;
                     }
                     Photos.SelectedItems.Clear();foreach(var row in selected)Photos.SelectedItems.Add(replacements.GetValueOrDefault(row,row));previousSelection=Selected;
                 }finally{fillingEditor=false;}

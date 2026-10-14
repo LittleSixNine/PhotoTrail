@@ -11,6 +11,7 @@ namespace PhotoTrail.Windows;
 
 public partial class MainWindow : Window
 {
+    internal string[]? StartupPaths {get;init;}
     private readonly ObservableCollection<PhotoRow> photos = [];
     private readonly ObservableCollection<TrackRow> tracks = [];
     private CancellationTokenSource? mapUpdate;
@@ -35,7 +36,7 @@ public partial class MainWindow : Window
     private int photoPreviewRevision;
 
     private readonly string[] extensions = [".jpg", ".jpeg", ".png", ".heic", ".dng", ".tif", ".tiff", ".xmp", ".arw", ".nef", ".raf", ".cr2", ".cr3", ".rw2", ".orf", ".pef"];
-    public MainWindow() { InitializeComponent(); metadataBaseFont=FontSize; foreach(var field in Fields)fieldLabels[field.Tag]=field.Apply.Content.ToString()!.Replace(field.Tag,"").Trim(' ','·'); DatePlanChanged(this,new RoutedEventArgs()); Photos.ItemsSource = photos; TrackList.ItemsSource = tracks; ClipboardField.ItemsSource = Fields.Select(field => new { field.Tag, Name = fieldLabels[field.Tag]+" · "+field.Tag }).ToArray(); ClipboardField.SelectedIndex = 0; InitializePresetEditor();
+    public MainWindow() { InitializeComponent(); metadataBaseFont=FontSize; foreach(var field in Fields)fieldLabels[field.Tag]=field.Apply.Content.ToString()!.Replace(field.Tag,"").Trim(' ','·'); DatePlanChanged(this,new RoutedEventArgs()); Photos.ItemsSource = photos;PhotoStrip.ItemsSource=System.Windows.Data.CollectionViewSource.GetDefaultView(photos); TrackList.ItemsSource = tracks; ClipboardField.ItemsSource = Fields.Select(field => new { field.Tag, Name = fieldLabels[field.Tag]+" · "+field.Tag }).ToArray(); ClipboardField.SelectedIndex = 0; InitializePresetEditor();
         AddHandler(System.Windows.Controls.Primitives.ToggleButton.CheckedEvent,new RoutedEventHandler((s,e)=>{if(!fillingEditor)InvalidateDates();}));
         AddHandler(System.Windows.Controls.Primitives.ToggleButton.UncheckedEvent,new RoutedEventHandler((s,e)=>{if(!fillingEditor)InvalidateDates();}));
     }
@@ -133,7 +134,7 @@ public partial class MainWindow : Window
 
     private async void WindowLoaded(object sender, RoutedEventArgs e)
     {
-        var arguments = Environment.GetCommandLineArgs().Skip(1).ToArray();
+        var arguments = StartupPaths??Environment.GetCommandLineArgs().Skip(1).ToArray();
         OutputFolder.Text = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
         restoringTheme = true;
         try { ThemeChoice.SelectedIndex = ThemePreference.Read(themePreferencePath); ThemeStatus.Text = "已读取本机外观偏好；不改变Windows设置。"; }
@@ -145,9 +146,9 @@ public partial class MainWindow : Window
         LoadTrackHistory();LoadTrackSnapshots();
         try
         {
-            var files = arguments.Where(path => File.Exists(path) || Directory.Exists(path)).SelectMany(path => Directory.Exists(path) ? Directory.GetFiles(path) : new[] { path }).ToArray();
+            var files = arguments.Where(path=>!path.StartsWith("--",StringComparison.Ordinal)).ToArray();
             await ImportAsync(files.Where(path => !IsTrack(path)));
-            await ImportTracksAsync(files.Where(IsTrack));
+            await ImportTracksAsync(await LegacyTrackInputsAsync(files));
         }
         catch (Exception error) { Status.Text = "启动路径无法读取：" + error.Message; }
         if (arguments.Contains("--map")) WorkspaceTabs.SelectedIndex = 1;
@@ -282,7 +283,7 @@ public partial class MainWindow : Window
                 try
                 {
                     var document = await PhotoDocument.LoadAsync(Tool(), mappings[row.Document.FilePath],inspect:true);
-                    var replacement = new PhotoRow(document){Imported=row.Imported}; photos.Insert(index, replacement);
+                    var replacement = row.WithDocument(document); photos.Insert(index, replacement);
                     if (wasSelected) Photos.SelectedItems.Add(replacement);
                 }
                 catch (Exception) { failures++; }
@@ -537,7 +538,7 @@ public partial class MainWindow : Window
         var selected = Selected.ToHashSet(); var markers = new List<PhotoMarker>();
         for (var index = 0; index < photos.Count; index++)
             if (photos[index].Document.Position() is { } position) markers.Add(new(index, photos[index].Name, position, selected.Contains(photos[index])));
-        var focus = clipboardGpsPreview ? currentPreview : (TrackList.SelectedItem is null && Selected.Length == 1 ? Selected[0].Document.Position() : null);
+        var focus = stripSelectionChange?null:clipboardGpsPreview ? currentPreview : (TrackList.SelectedItem is null && Selected.Length == 1 ? Selected[0].Document.Position() : null);
         var cancellation = photoMapUpdate.Token;
         try
         {
@@ -569,65 +570,24 @@ public partial class MainWindow : Window
     }
     private async void ReadFolder(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFolderDialog { Title = "导入文件夹（仅当前层）" };
+        var dialog = new OpenFolderDialog { Title = "导入文件夹（按当前递归设置）" };
         if (dialog.ShowDialog(this) != true) return;
-        try { await ImportAsync(Directory.GetFiles(dialog.FolderName)); }
+        try { await ImportAsync([dialog.FolderName]); }
         catch (Exception error) { Status.Text = "文件夹无法读取：" + error.Message; }
     }
     private async void FilesDropped(object sender, DragEventArgs e)
     {
-        if (busy || !e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+        if (busy || importRunning || !e.Data.GetDataPresent(DataFormats.FileDrop)) return;
         try
         {
             var paths = (string[])e.Data.GetData(DataFormats.FileDrop);
-            var files = paths.SelectMany(path => Directory.Exists(path) ? Directory.GetFiles(path) : [path]).ToArray();
+            var files = paths;
             var pictures = files.Where(path => !IsTrack(path)).ToArray();
             await ImportAsync(pictures);
             if (pictures.Length > 0 && operation?.IsCancellationRequested == true) return;
-            await ImportTracksAsync(files.Where(IsTrack));
+            await ImportTracksAsync(await LegacyTrackInputsAsync(files));
         }
         catch (Exception error) { Status.Text = "拖入失败：" + error.Message; }
-    }
-    private async Task ImportAsync(IEnumerable<string> paths)
-    {
-        lastApply=null;
-        if (busy) return;
-        var files = paths.ToArray();
-        if (files.Length == 0 || !DiscardEditor()) return;
-        BeginOperation();
-        var added = 0; var skipped = 0; var failures = new List<string>(); var cancelled = false;
-        var importClock = System.Diagnostics.Stopwatch.StartNew();
-        long metadataRequests=Interlocked.Read(ref ExifToolClient.RequestCount),dateHostRequests=Interlocked.Read(ref DateAdapter.StartedProcesses);
-        try
-        {
-            var client = Tool();
-            var known = photos.Select(row => row.Document.FilePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var pending = new List<string>();
-            foreach (var path in files)
-            {
-                var full = Path.GetFullPath(path);
-                if (!extensions.Contains(Path.GetExtension(full), StringComparer.OrdinalIgnoreCase) || !known.Add(full)) { skipped++; continue; }
-                pending.Add(full);
-            }
-            foreach (var batch in pending.Chunk(32))
-            {
-                operation!.Token.ThrowIfCancellationRequested();
-                Status.Text = $"读取：{added + failures.Count}/{pending.Count}，当前批次{batch.Length}个文件…";
-                var readings = await PhotoDocument.LoadBatchAsync(client, batch, operation.Token,inspect:true);
-                foreach (var reading in readings)
-                    if (reading.Document is { } photo) { photos.Add(new(photo)); added++; }
-                    else failures.Add(Path.GetFileName(reading.FilePath) + "：" + reading.Error);
-                RefreshPhotoCount();
-            }
-        }
-        catch (OperationCanceledException) { cancelled = true; }
-        catch (Exception error) { failures.Add(error.Message); }
-        finally { EndOperation(); }
-        if (Photos.SelectedIndex < 0 && photos.Count > 0) Photos.SelectedIndex = 0;
-        _ = PostPhotosAsync();
-        importMilliseconds=importClock.Elapsed.TotalMilliseconds;importExifToolRequests=Interlocked.Read(ref ExifToolClient.RequestCount)-metadataRequests;importDateHostRequests=Interlocked.Read(ref DateAdapter.StartedProcesses)-dateHostRequests;
-        Status.Text = $"{(cancelled ? "导入已取消" : "导入完成")}：新增 {added}，跳过 {skipped}，失败 {failures.Count}。原文件未修改。用时{importClock.Elapsed.TotalSeconds:F1}秒。";
-        ShowFailures(failures);
     }
     private void PhotoSelected(object sender, SelectionChangedEventArgs e)
     {
@@ -639,7 +599,7 @@ public partial class MainWindow : Window
             fillingEditor = false; return;
         }
         rereadSequence++;InvalidateDates();previousSelection = Selected; RenameRulesChanged(this, new RoutedEventArgs());
-        RefreshSelection();
+        RefreshSelection();SyncPhotoStrip();
         RefreshMatchPhoto();
         _ = PostPhotosAsync();
     }
@@ -662,6 +622,7 @@ public partial class MainWindow : Window
     }
     private void RefreshPhotoRows()
     {
+        foreach(var row in photos)row.NotifyChanged();ThumbnailsChanged?.Invoke();SyncPhotoStrip();
         var selected = Selected;
         fillingEditor = true;
         try { System.Windows.Data.CollectionViewSource.GetDefaultView(photos).Refresh(); }
@@ -754,10 +715,7 @@ public partial class MainWindow : Window
             try
             {
                 var orientation = int.TryParse(photo.Value("IFD0:Orientation"),out var value) && value is >= 1 and <= 8 ? value : 1;
-                var client = photo.FileType == "DNG" ? Tool() : null;
-                preview = await Task.Run(async () => photo.FileType == "DNG"
-                    ? await PhotoPreview.LoadDngAsync(client!,photo.FilePath,photo.SourceHash,orientation,token)
-                    : PhotoPreview.Load(photo.FilePath,photo.FileType,photo.SourceHash,orientation),token);
+                preview = await LoadThumbnailAsync(photo,1024,System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX,true,token);
             }
             finally { photoPreviewGate.Release(); }
             if (!IsLoaded || token.IsCancellationRequested || revision != photoPreviewRevision) return;
@@ -973,7 +931,7 @@ public partial class MainWindow : Window
     private void BeginOperation()
     {
         InvalidateDates();
-        InvalidateBatchTrack();busy = true;RefreshTrackControls(); operation?.Dispose(); operation = new();
+        InvalidateBatchTrack();busy = true;if(importQueue is not null)importQueue.Paused=true;PhotoStrip.IsEnabled=false;RefreshTrackControls(); operation?.Dispose(); operation = new();
         PhotoSearch.IsEnabled = PhotoFilter.IsEnabled = PhotoSort.IsEnabled = false;
         ReadButton.IsEnabled = FolderButton.IsEnabled = OutputButton.IsEnabled = OutputFolder.IsEnabled = Photos.IsEnabled = false;
         TrackReadButton.IsEnabled = TrackList.IsEnabled = TrackRemoveButton.IsEnabled = MatchButton.IsEnabled = MapRetryButton.IsEnabled = false;
@@ -981,15 +939,16 @@ public partial class MainWindow : Window
     }
     private void EndOperation()
     {
-        busy = false;
+        busy = false;if(importQueue is not null)importQueue.Paused=importPaused;PhotoStrip.IsEnabled=true;
         PhotoSearch.IsEnabled = PhotoFilter.IsEnabled = PhotoSort.IsEnabled = true;
-        ReadButton.IsEnabled = FolderButton.IsEnabled = OutputButton.IsEnabled = OutputFolder.IsEnabled = Photos.IsEnabled = true;
+        ReadButton.IsEnabled = FolderButton.IsEnabled = !importRunning;OutputButton.IsEnabled = OutputFolder.IsEnabled = Photos.IsEnabled = true;
         TrackReadButton.IsEnabled = TrackList.IsEnabled = TrackRemoveButton.IsEnabled = MatchButton.IsEnabled = true; MapRetryButton.IsEnabled = !mapInitializing;
         RefreshSelection();RefreshTrackControls();
     }
-    private void CancelRead(object sender, RoutedEventArgs e) { batchTrackCancelTicks=System.Diagnostics.Stopwatch.GetTimestamp();InvalidateBatchTrack(); InvalidateTrackAdjustment();InvalidateDates();dependencyCheck?.Cancel(); operation?.Cancel(); Status.Text=busy?"正在取消任务…":"应用已取消或失效，草稿未改变。"; }
+    private void CancelRead(object sender, RoutedEventArgs e) { batchTrackCancelTicks=System.Diagnostics.Stopwatch.GetTimestamp();InvalidateBatchTrack(); InvalidateTrackAdjustment();InvalidateDates();dependencyCheck?.Cancel();importCancellation?.Cancel(); operation?.Cancel(); Status.Text=importRunning?"正在取消导入；已接纳照片与原草稿保留。":busy?"正在取消任务…":"应用已取消或失效，草稿未改变。"; }
     private void WindowClosing(object? sender, CancelEventArgs e)
     {
+        if(importRunning){importCancellation?.Cancel();e.Cancel=true;Status.Text="正在取消导入；安全结束后可关闭。";return;}
         if(batchTrackRequest is not null){batchTrackRequest.Cancel();e.Cancel=true;Status.Text="正在取消匹配任务；结束后可关闭。";return;}
         if(datePending>0){InvalidateDates();e.Cancel=true;Status.Text="正在取消日期任务；结束后可关闭。";return;}
         if (checkingEnvironment) { dependencyCheck?.Cancel(); e.Cancel = true; DependencyStatus.Text = "正在取消环境检查；结束后可关闭。"; return; }
@@ -1128,8 +1087,16 @@ public partial class MainWindow : Window
         public bool SourceUnavailable {get;set;}
         public string Name=>System.IO.Path.GetFileName(Path);
     }
-    private record PhotoRow(PhotoDocument Document)
+    private class PhotoRow(PhotoDocument Document) : INotifyPropertyChanged
     {
+        public PhotoDocument Document {get;}=Document;
+        public FileIdentity? PhysicalIdentity {get;init;}
+        public PhotoRow WithDocument(PhotoDocument document)=>new(document){Imported=Imported,PairEligible=PairEligible,DisplayGroup=DisplayGroup,PairStatus=PairStatus,PhysicalIdentity=ImportSource.Read(document.FilePath).Identity};
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void NotifyChanged()=>PropertyChanged?.Invoke(this,new PropertyChangedEventArgs(""));
+        public bool PairEligible {get;init;}
+        public PhotoDisplayGroup DisplayGroup {get;set;}=new(Interlocked.Read(ref nextPhotoOrder)+1,"");
+        public string PairStatus {get;set;}="独立来源";
         public long Imported {get;init;}=Interlocked.Increment(ref nextPhotoOrder);
         public (long Seconds,int Nanoseconds)? Captured {
             get=>Document.VerifiedCaptureDate?.SortProjection;

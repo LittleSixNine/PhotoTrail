@@ -85,7 +85,7 @@ public partial class MainWindow
                                 await next.EnsureUnchangedAsync(request.Token);SavePlan.Require(item,source:plan.Mode!=SaveMode.Inplace);
                                 if(result.RecordId is {} recordId){var record=InplaceHistory.Read(InplaceHistory.PathFor(recordId));await InplaceHistory.VerifyCurrent(record,record.NewHash!,record.NewIdentity!,request.Token);}
                                 if(sequence!=rereadSequence)throw new IOException("保存请求已失效。");
-                                var old=photos.Single(r=>ReferenceEquals(r.Document,item.Document));var replacement=old with{Document=next};bool selected=Photos.SelectedItems.Contains(old);
+                                var old=photos.Single(r=>ReferenceEquals(r.Document,item.Document));var replacement=old.WithDocument(next);bool selected=Photos.SelectedItems.Contains(old);
                                 fillingEditor=true;try{int index=photos.IndexOf(old);photos[index]=replacement;if(selected)Photos.SelectedItems.Add(replacement);try{if(result.RecordId is {} savedId)InplaceHistory.Append(InplaceHistory.Read(InplaceHistory.PathFor(savedId)) with{Phase="saved"});}catch{photos[index]=old;if(selected)Photos.SelectedItems.Add(old);throw;}previousSelection=Selected;}finally{fillingEditor=false;}
                                 result=result with{State="成功",Detail="真实来源与界面已接纳；本次字段更新基准，残余草稿及完整备份保留。"};
                             }catch(Exception error){result=result with{Document=null,State="结果未知",Detail="磁盘已经提交，但UI／日志接纳失败；旧草稿保留，禁止盲写："+error.Message};}
