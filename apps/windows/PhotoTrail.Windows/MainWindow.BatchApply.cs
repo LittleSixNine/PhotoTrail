@@ -17,7 +17,7 @@ public partial class MainWindow
     bool preserveBatchEditor;
     static bool SameDraft(IReadOnlyDictionary<string,string> a,IReadOnlyDictionary<string,string> b)=>a.Count==b.Count&&a.All(p=>b.TryGetValue(p.Key,out var value)&&value==p.Value);
     bool LastApplyCurrent()=>lastApply is {} batch&&batch.Rows.Select((row,i)=>photos.Contains(row)&&row.Document.DraftRevision==batch.Revisions[i]).All(x=>x);
-    Dictionary<string,string> ReadFieldInput()=>Fields.Where(f=>f.Apply.IsChecked==true).ToDictionary(f=>f.Tag,f=>f.Value.Text.Replace("\r\n","\n"));
+    Dictionary<string,string> ReadFieldInput()=>Fields.Where(f=>f.Apply.IsChecked==true).ToDictionary(f=>f.Tag,f=>MetadataIptc.Fields.ContainsKey(f.Tag)?f.Value.Text:f.Value.Text.Replace("\r\n","\n"));
     DatePageOptions ReadDateInput() {
         int Number(System.Windows.Controls.TextBox box)=>int.TryParse(box.Text,System.Globalization.NumberStyles.AllowLeadingSign,System.Globalization.CultureInfo.InvariantCulture,out var n)?n:throw new ArgumentException("调整量须为整数。");
         long Seconds(System.Windows.Controls.TextBox box)=>long.TryParse(box.Text,System.Globalization.NumberStyles.AllowLeadingSign,System.Globalization.CultureInfo.InvariantCulture,out var n)?n:throw new ArgumentException("秒数须为整数。");

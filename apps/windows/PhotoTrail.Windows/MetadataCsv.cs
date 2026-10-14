@@ -12,8 +12,8 @@ public sealed record CsvImport(IReadOnlyDictionary<string, IReadOnlyDictionary<s
 public static class MetadataCsv
 {
     public const int MaximumBytes = 8 * 1024 * 1024;
-    public static readonly string[] Tags = new[] {"XMP-dc:Creator", "XMP-dc:Title", "XMP-dc:Description", "XMP-dc:Subject", "XMP-exif:DateTimeOriginal", "XMP-photoshop:Country", "XMP-photoshop:State", "XMP-photoshop:City", "XMP-iptcCore:Location", "XMP-iptcCore:CountryCode", "XMP-dc:Rights", "XMP-xmp:Rating", "XMP-xmp:Label", "XMP-tiff:Make", "XMP-tiff:Model", "XMP-aux:Lens", "XMP-aux:LensSerialNumber", "XMP-exif:DateTimeDigitized", "XMP-xmp:CreateDate", "XMP-xmp:ModifyDate", "XMP-exif:ExposureTime", "XMP-exif:FNumber", "XMP-exif:ISO", "XMP-exif:FocalLength", "XMP-exif:ExposureCompensation", "XMP-exif:ExposureProgram", "XMP-exif:WhiteBalance"}.Concat(MetadataFields.ExifText).Concat(MetadataFields.DateGroups.Keys).ToArray();
-    private static bool IsList(string tag) => tag is "XMP-dc:Creator" or "XMP-dc:Subject";
+    public static readonly string[] Tags = new[] {"XMP-dc:Creator", "XMP-dc:Title", "XMP-dc:Description", "XMP-dc:Subject", "XMP-exif:DateTimeOriginal", "XMP-photoshop:Country", "XMP-photoshop:State", "XMP-photoshop:City", "XMP-iptcCore:Location", "XMP-iptcCore:CountryCode", "XMP-dc:Rights", "XMP-xmp:Rating", "XMP-xmp:Label", "XMP-tiff:Make", "XMP-tiff:Model", "XMP-aux:Lens", "XMP-aux:LensSerialNumber", "XMP-exif:DateTimeDigitized", "XMP-xmp:CreateDate", "XMP-xmp:ModifyDate", "XMP-exif:ExposureTime", "XMP-exif:FNumber", "XMP-exif:ISO", "XMP-exif:FocalLength", "XMP-exif:ExposureCompensation", "XMP-exif:ExposureProgram", "XMP-exif:WhiteBalance"}.Concat(MetadataFields.ExifText).Concat(MetadataFields.DateGroups.Keys).Concat(MetadataIptc.Fields.Keys).ToArray();
+    private static bool IsList(string tag) => MetadataFields.IsList(tag);
     public static string Identity(string path) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Path.GetFullPath(path)))).ToLowerInvariant();
     public static bool SafePath(string path) => path.Length is > 0 and <= 32767 && !path.Contains('\\') && !path.StartsWith('/') &&
         !path.Any(c => char.IsControl(c) || "*?[]:".Contains(c)) && path.Split('/').All(part => part is not ("" or "." or ".."));
@@ -127,7 +127,7 @@ public static class MetadataCsv
                     string canonical; string value;
                     if (IsList(tag))
                     {
-                        if (json.RootElement.ValueKind != JsonValueKind.Array || json.RootElement.GetArrayLength() > 256 || json.RootElement.EnumerateArray().Any(item => item.ValueKind != JsonValueKind.String)) throw new ArgumentException();
+                        if (json.RootElement.ValueKind != JsonValueKind.Array || MetadataIptc.Fields.ContainsKey(tag)&&json.RootElement.GetArrayLength()==0 || json.RootElement.GetArrayLength() > 256 || json.RootElement.EnumerateArray().Any(item => item.ValueKind != JsonValueKind.String)) throw new ArgumentException();
                         var items = json.RootElement.EnumerateArray().Select(item => item.GetString()!).ToArray();
                         canonical = JsonSerializer.Serialize(items);
                         if (original.Cells.GetValueOrDefault(tag) == canonical) continue;

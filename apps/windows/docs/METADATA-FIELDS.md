@@ -1,6 +1,6 @@
 # 元数据字段、来源与成组日期 · R04a
 
-R04a 是开发候选，等待用户验收。R03b 已由用户接受 Windows 代理交付；保留原风险和未验项目。固定产品参考为 Mac `73c0640bca4d1a2919aa3a466487a5cb20c7f28d`，固定日期组合仍为 `a0299e6f6c956f66ace2b85449b54db5e2eeeee4`／date-core-v2／Swift 6.4.0。
+R04a 已由用户接受 Windows 代理交付，当前 R04b 增量见 [IPTC 支持与编码](IPTC-FIELDS.md)。R03b 已由用户接受 Windows 代理交付；保留原风险和未验项目。固定产品参考为 Mac `73c0640bca4d1a2919aa3a466487a5cb20c7f28d`，固定日期组合仍为 `a0299e6f6c956f66ace2b85449b54db5e2eeeee4`／date-core-v2／Swift 6.4.0。
 
 ## 字段与输入
 
@@ -41,6 +41,6 @@ XMP Creator／Subject 使用列表，每行一项；一个元素内部有换行�
 
 ## 未开放与限制
 
-EXIF 数值／枚举、方向／分辨率、IPTC 写入／编码／时间及文件系统时间留后续批次；MakerNotes 和非白名单只读。现有五个 XMP 地区字段与 GPS 能力保留，不称为 IPTC。
+EXIF 数值／枚举、方向／分辨率、IPTC 时间及文件系统时间留 R04c；IPTC 十二项文字／列表与编码见本批支持表；MakerNotes 和非白名单只读。现有五个 XMP 地区字段与 GPS 能力保留，不称为 IPTC。
 
 GPS 清空回退缺口继续拒绝；TxF 不可用时安全拒绝，无未保护替换回退。原历史损坏／未知／未完成记录仍阻止盲写，不因新字段变为零事务。无 SDK 部署、许可 NOTICE、SwiftPM 14001 三门及真实断电／耗尽、广泛外部软件、并发 ACL、DPI／语言／辅助技术等原未验保留。R03b r2 的 3.82 秒 Dispatcher 间隔不改标为 R04a 实测；R04a 性能另附候选证据。

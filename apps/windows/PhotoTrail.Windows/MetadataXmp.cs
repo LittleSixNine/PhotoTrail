@@ -51,7 +51,7 @@ public static class MetadataXmp
         if(!Path.GetExtension(path).Equals(".xmp",StringComparison.OrdinalIgnoreCase))throw new ArgumentException("输出须为.xmp文件。");
         if(!Directory.Exists(folder))throw new DirectoryNotFoundException("输出文件夹不存在。");
         if(File.Exists(path))throw new IOException("目标已存在，不会覆盖。");
-        if(draft.Keys.Any(t=>!t.StartsWith("XMP-",StringComparison.Ordinal)))throw new ArgumentException("XMP交换不能携带EXIF草稿；请使用图内保存目标。");
+        if(draft.Keys.Any(t=>!t.StartsWith("XMP-",StringComparison.Ordinal)))throw new ArgumentException("XMP交换不能携带EXIF／IPTC草稿；请使用图内保存目标。");
         PhotoDocument.ValidateChanges(draft);dates.Require(draft);await photo.EnsureUnchangedAsync(cancellation);
         var temporary = Path.Combine(folder,".phototrail-xmp-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(temporary);
         var packet = Path.Combine(temporary,"packet.xmp");var savedFolder = Path.Combine(temporary,"saved");var saved = Path.Combine(savedFolder,"packet.xmp");

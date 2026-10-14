@@ -1,3 +1,5 @@
+> R04b development candidate adds twelve exact IPTC text/list fields for JPEG files without sidecars. UTF8 byte limits and explicit encoding are required; unknown-encoding settings are refused, and deletion must preserve remaining raw datasets. R04a was accepted; R04b awaits user acceptance. [Scope / 支持範圍](../IPTC-FIELDS.md).
+
 > 2026-10-14 · R04a development candidate: typed XMP lists and exact sources, JPEG EXIF text/device fields and three grouped dates. JPEG capture EXIF and sidecar XMP CreateDate drive existing date consumers; clearing does not fall back. R03b agent delivery accepted; R04a awaits acceptance. Existing deployment and filesystem limits remain. [Field support](../METADATA-FIELDS.md).
 
 ## 2026-10-13 · R03b

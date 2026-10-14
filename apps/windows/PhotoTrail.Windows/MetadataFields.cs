@@ -10,9 +10,10 @@ internal static class MetadataFields
         ["Composite:SubSecCreateDate"]=["ExifIFD:CreateDate","ExifIFD:SubSecTimeDigitized","ExifIFD:OffsetTimeDigitized"],
         ["Composite:SubSecModifyDate"]=["IFD0:ModifyDate","ExifIFD:SubSecTime","ExifIFD:OffsetTime"]
     };
-    internal static bool IsList(string tag)=>tag is "XMP-dc:Creator" or "XMP-dc:Subject";
+    internal static bool IsList(string tag)=>tag is "XMP-dc:Creator" or "XMP-dc:Subject" || MetadataIptc.Fields.TryGetValue(tag,out var field)&&field.List;
     internal static bool CanEdit(PhotoDocument doc,string tag) {
         if(!PhotoDocument.EditableTags.Contains(tag)||!doc.CanStage||doc.InspectionError.Length>0)return false;
+        if(MetadataIptc.Fields.TryGetValue(tag,out var iptc)&&(doc.Iptc is null||doc.Iptc.Error.Length>0||!iptc.List&&doc.Iptc.Records.Count(r=>r.Record==2&&r.Id==iptc.Dataset)>1))return false;
         var source=tag.StartsWith("XMP-",StringComparison.Ordinal)?doc.Sidecar??doc.Embedded:doc.Embedded;
         var targets=DateGroups.TryGetValue(tag,out var components)?components:[tag];
         if(targets.Any(t=>source.EnumerateObject().Count(v=>v.Name==t)>1))return false;
@@ -23,7 +24,8 @@ internal static class MetadataFields
     }
     internal static void Require(PhotoDocument doc,IReadOnlyDictionary<string,string> changes) {
         PhotoDocument.ValidateChanges(changes);
-        if(changes.Keys.Any(t=>!CanEdit(doc,t)))throw new ArgumentException("字段来源没有唯一且可读的写入资格；EXIF仅支持无旁车JPEG图内目标。");
+        if(changes.Keys.Any(MetadataIptc.Fields.ContainsKey)) (doc.Iptc??throw new ArgumentException("IPTC原始来源未读取，保留只读。")).Require(changes);
+        if(changes.Keys.Any(t=>!CanEdit(doc,t)))throw new ArgumentException("字段来源没有唯一且可读的写入资格；EXIF／IPTC仅支持无旁车JPEG图内目标。");
     }
     internal static string DateText(PhotoDocument doc,string tag) {
         if(doc.Draft.TryGetValue(tag,out var draft))return draft;

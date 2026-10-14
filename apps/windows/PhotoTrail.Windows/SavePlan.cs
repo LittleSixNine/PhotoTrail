@@ -38,7 +38,7 @@ internal sealed record SavePlan(SaveMode Mode,SaveScope Scope,SaveItem[] Items,s
         if(mode!=SaveMode.Inplace&&targets.Any(t=>File.Exists(t)||Directory.Exists(t)))throw new IOException("整批拒绝：目标已存在，不会覆盖。");
         return new(mode,scope,items.ToArray(),skipped.ToArray());
     }
-    internal string Summary=> $"模式：{(Mode==SaveMode.Copy?"副本":Mode==SaveMode.NewSidecar?"新建同目录XMP旁车":"原位保存（强制完整备份）")}\n照片：{Items.Length}；字段范围：{(Scope==SaveScope.All?"全部字段":Scope==SaveScope.Metadata?"元数据（非GPS）":"地图（整组GPS）")}\n新文件：{(Mode==SaveMode.Inplace?0:Items.Sum(i=>i.Companion is null?1:2))}\n"+string.Join("\n",Items.Select(i=>i.Target+(i.Companion is null?"":" + "+i.Companion)+$"（{i.Fields.Count}个技术字段：{string.Join(", ",i.Fields.Keys.Select(t=>MetadataFields.DateGroups.TryGetValue(t,out var parts)?t+" ["+string.Join(" + ",parts)+"]":t))}）"))+"\n"+string.Join("\n",Skipped);
+    internal string Summary=> $"模式：{(Mode==SaveMode.Copy?"副本":Mode==SaveMode.NewSidecar?"新建同目录XMP旁车":"原位保存（强制完整备份）")}\n照片：{Items.Length}；字段范围：{(Scope==SaveScope.All?"全部字段":Scope==SaveScope.Metadata?"元数据（非GPS）":"地图（整组GPS）")}\n新文件：{(Mode==SaveMode.Inplace?0:Items.Sum(i=>i.Companion is null?1:2))}\n"+string.Join("\n",Items.Select(i=>i.Target+(i.Companion is null?"":" + "+i.Companion)+$"（{i.Fields.Count}个技术字段：{string.Join(", ",i.Fields.Keys.Select(t=>MetadataFields.DateGroups.TryGetValue(t,out var parts)?t+" ["+string.Join(" + ",parts)+"]":t))}）"+(i.Document.Iptc?.PlanDescription(i.Fields)??"")))+"\n"+string.Join("\n",Skipped);
     internal static void Require(SaveItem item) {
         if(item.Document.DraftRevision!=item.Revision||item.Fields.Any(p=>!item.Document.Draft.TryGetValue(p.Key,out var value)||value!=p.Value))throw new InvalidOperationException("草稿revision已改变，计划失效。");
     }

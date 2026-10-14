@@ -1,3 +1,5 @@
+> O candidato R04b adiciona doze campos IPTC de texto/lista para JPEG sem arquivos auxiliares. Valida limites em bytes UTF8 e codificação explícita; recusa alterações com codificação desconhecida, e a exclusão deve preservar os dados restantes. R04a foi aceita; R04b aguarda aprovação. [Scope / 支持範圍](../IPTC-FIELDS.md).
+
 > 2026-10-14 · Candidato R04a: listas XMP, fontes exatas, texto/equipamento EXIF em JPEG e três grupos de datas. A data principal usa a captura EXIF do JPEG ou XMP CreateDate do arquivo auxiliar; ao apagar, não recorre a outra data. Entrega do agente R03b aceita; R04a aguarda aceitação. Limitações existentes mantidas. [Campos suportados](../METADATA-FIELDS.md).
 
 ## 2026-10-13 · R03b

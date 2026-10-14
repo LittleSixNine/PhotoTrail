@@ -133,6 +133,7 @@ public static class MetadataInspector
             foreach(var key in keys){if(!covered.Add(key))continue;Add(field.Section,field.Name,key.Role,key.Tag,common.Any(t=>Matches(t,key.Tag)));}
         }
         foreach(var key in all.Select(v=>(v.Role,v.Tag)).Distinct())if(covered.Add(key))Add("附加字段",Label(key.Tag),key.Role,key.Tag,common.Any(t=>Matches(t,key.Tag)));
+        if(docs.Count==1)for(int i=0;i<rows.Count;i++)if(rows[i].Tag.Contains("IPTC:",StringComparison.Ordinal))rows[i]=rows[i] with{State=rows[i].State+"；"+(docs[0].Iptc?.ReadState??"原始IPTC来源未读取")};
         return rows.ToArray();
         void Add(string section,string name,string role,string tag,bool isCommon) {
             var values=docs.Select(d=>d.Inspection?.FirstOrDefault(v=>v.Role==role&&v.Tag==tag)?.Value).ToArray();var present=values.Where(v=>v is not null).ToArray();

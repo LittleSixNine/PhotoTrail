@@ -67,7 +67,19 @@ public partial class MainWindow : Window
       ("ExifIFD:LensSerialNumber", ExifLensSerialApply, ExifLensSerialValue),
       ("Composite:SubSecDateTimeOriginal", ExifCaptureApply, ExifCaptureValue),
       ("Composite:SubSecCreateDate", ExifCreateApply, ExifCreateValue),
-      ("Composite:SubSecModifyDate", ExifModifyApply, ExifModifyValue) ];
+      ("Composite:SubSecModifyDate", ExifModifyApply, ExifModifyValue),
+      ("IPTC:By-line", IptcBylineApply, IptcBylineValue),
+      ("IPTC:By-lineTitle", IptcBylineTitleApply, IptcBylineTitleValue),
+      ("IPTC:Contact", IptcContactApply, IptcContactValue),
+      ("IPTC:Keywords", IptcKeywordsApply, IptcKeywordsValue),
+      ("IPTC:Headline", IptcHeadlineApply, IptcHeadlineValue),
+      ("IPTC:Caption-Abstract", IptcCaptionApply, IptcCaptionValue),
+      ("IPTC:ObjectName", IptcObjectNameApply, IptcObjectNameValue),
+      ("IPTC:City", IptcCityApply, IptcCityValue),
+      ("IPTC:Province-State", IptcProvinceApply, IptcProvinceValue),
+      ("IPTC:Sub-location", IptcLocationApply, IptcLocationValue),
+      ("IPTC:Country-PrimaryLocationName", IptcCountryApply, IptcCountryValue),
+      ("IPTC:Country-PrimaryLocationCode", IptcCountryCodeApply, IptcCountryCodeValue) ];
     private PhotoRow[] Selected => Photos.SelectedItems.Cast<PhotoRow>().ToArray();
 
     private readonly string themePreferencePath = Environment.GetEnvironmentVariable("PHOTOTRAIL_THEME_FILE") ?? ThemePreference.DefaultPath;
@@ -682,7 +694,8 @@ public partial class MainWindow : Window
             var allowed=selected.Length>0&&selected.All(p=>MetadataFields.CanEdit(p.Document,tag));
             apply.IsEnabled=value.IsEnabled=allowed;
             var values = selected.Select(p => p.Document.Value(tag)).Distinct().ToArray();
-            string source=tag.StartsWith("XMP-",StringComparison.Ordinal)?"XMP实际目标":"EXIF原图精确来源";
+            string source=tag.StartsWith("XMP-",StringComparison.Ordinal)?"XMP实际目标":MetadataIptc.Fields.ContainsKey(tag)?"IPTC图内来源；设置须明确UTF8，清除验证剩余原始字节":"EXIF原图精确来源";
+            if(MetadataIptc.Fields.ContainsKey(tag))source+=" · "+(selected.Any(p=>p.Document.Iptc?.Error.Length>0)?"原始数据集读取失败":selected.Any(p=>p.Document.Iptc is {} i&&!i.Empty&&!i.Utf8)?"编码缺失／非UTF8／冲突：设置拒绝，仅明确清除可验证":selected.All(p=>p.Document.Iptc?.Empty==true)?"无IPTC：首次设置建立UTF8声明":"明确UTF8");
             value.ToolTip=source+" · "+tag+" · "+(selected.Any(p=>p.Document.InspectionError.Length>0)?"读取失败／过期":values.Length>1?"混合值":values.FirstOrDefault()?.Length>0?"已读":"缺失")+(allowed?"":" · 只读");
             value.Text = values.Length == 1 ? values[0] : ""; apply.IsChecked = false;
         }

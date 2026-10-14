@@ -1,3 +1,5 @@
+> R04b 验证入口：UiChecks `--r04b-checks`／`--r04b-scale`，仅隔离获准临时副本、独立备份／历史。原始 IIM 记录及 Photoshop 资源保护不替代独立 ExifTool、像素、生产控件与最终 EXE 原生证据。日期宿主不重建，工具与运行库复用；[支持边界](IPTC-FIELDS.md)。
+
 ## 2026-10-13 · R03b
 
 R03b复用既有ExifTool／PhotoDocument／MetadataCopy及原日期宿主；无新增依赖。UiChecks增加 --inplace-checks、--inplace-scale、--inplace-fault-checks、--inplace-restart-checks；故障检查必须使用隔离副本构建，生产源没有注入入口。事务内同字节写取得NTFS隔离锁，句柄中重新验证身份／SHA，再MoveFileTransacted提交。TxF为微软不推荐且未来可能不可用的API；不可用时拒绝写回，没有关闭保护的回退。只支持已实测固定本地NTFS普通继承ACL；自定义ACL、ADS、硬链接、重解析点、网络卷、EFS／压缩／稀疏边界拒绝。并发ACL变化、真实断电／磁盘耗尽未验；不宣称跨日志与目标的断电原子性。备份及JSONL阶段记录Flush(true)，恢复先保留当前版本，实际回读与UI接纳后才完成。测试隔离环境使用PHOTOTRAIL_INPLACE_HISTORY；日用默认LocalAppData/PhotoTrail/Windows/InplaceHistory。1／20／100按原样候选记录备份／暂存／提交／回读／界面接纳／恢复阶段与请求数，不套用Mac并发常量。

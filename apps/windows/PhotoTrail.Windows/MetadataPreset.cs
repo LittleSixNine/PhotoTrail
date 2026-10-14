@@ -12,9 +12,9 @@ public sealed record MetadataPreset(string Name, IReadOnlyList<MetadataOperation
 {
     public const int MaximumBytes = 128 * 1024;
     public const int MaximumOperations = 27;
-    public static bool IsList(string tag) => tag is "XMP-dc:Creator" or "XMP-dc:Subject";
+    public static bool IsList(string tag) => MetadataFields.IsList(tag);
     public static bool IsText(string tag) => MetadataCsv.Tags.Contains(tag) && !IsList(tag) && PhotoDocument.NumericRange(tag) is null && !VerifiedMetadataDates.IsDate(tag) && tag is not ("XMP-xmp:Rating" or "XMP-iptcCore:CountryCode" or "XMP-exif:DateTimeOriginal" or "XMP-exif:DateTimeDigitized" or "XMP-xmp:CreateDate" or "XMP-xmp:ModifyDate");
-    public static MetadataPreset Create(string name, IReadOnlyDictionary<string,string> changes) => Create(name, changes.Select(p => new MetadataOperation(p.Key, p.Value.Length == 0 ? "remove" : p.Key == "XMP-dc:Creator" ? "replaceAuthors" : p.Key == "XMP-dc:Subject" ? "replaceKeywords" : "setText", p.Value)).ToArray());
+    public static MetadataPreset Create(string name, IReadOnlyDictionary<string,string> changes) => Create(name, changes.Select(p => new MetadataOperation(p.Key, p.Value.Length == 0 ? "remove" : IsList(p.Key)&&p.Key!="XMP-dc:Subject"&&p.Key!="IPTC:Keywords" ? "replaceAuthors" : p.Key is "XMP-dc:Subject" or "IPTC:Keywords" ? "replaceKeywords" : "setText", p.Value)).ToArray());
     public static MetadataPreset Create(string name, IReadOnlyList<MetadataOperation> operations)
     {
         name = name.Trim();
@@ -28,19 +28,19 @@ public sealed record MetadataPreset(string Name, IReadOnlyList<MetadataOperation
         if (!MetadataCsv.Tags.Contains(op.Tag)) throw new ArgumentException("预设含未支持字段。");
         if (op.Action == "remove") { if (op.Value.Length != 0) throw new ArgumentException("清除不接受参数。"); return op; }
         if (op.Action == "copy") {
-            if (!MetadataCsv.Tags.Contains(op.Value) || op.Tag == op.Value || op.Tag.StartsWith("XMP-",StringComparison.Ordinal)!=op.Value.StartsWith("XMP-",StringComparison.Ordinal) || IsList(op.Tag) != IsList(op.Value)) throw new ArgumentException("复制源和目标须为不同的已开放同类字段（文字／列表）；接收值仍须通过目标校验。");
+            if (!MetadataCsv.Tags.Contains(op.Value) || op.Tag == op.Value || (op.Tag.StartsWith("XMP-",StringComparison.Ordinal)?"XMP":MetadataIptc.Fields.ContainsKey(op.Tag)?"IPTC":"EXIF")!=(op.Value.StartsWith("XMP-",StringComparison.Ordinal)?"XMP":MetadataIptc.Fields.ContainsKey(op.Value)?"IPTC":"EXIF") || IsList(op.Tag) != IsList(op.Value)) throw new ArgumentException("复制源和目标须为不同的已开放同类字段（文字／列表）；接收值仍须通过目标校验。");
             return op;
         }
         bool list = op.Action is "replaceAuthors" or "fillMissingAuthors" or "replaceKeywords" or "appendKeywords" or "removeKeywords";
         bool allowed = op.Action switch {
             "setText" or "fillMissingText" => !IsList(op.Tag),
             "appendText" => IsText(op.Tag),
-            "replaceAuthors" or "fillMissingAuthors" => op.Tag == "XMP-dc:Creator",
-            "replaceKeywords" or "appendKeywords" or "removeKeywords" => op.Tag == "XMP-dc:Subject",
+            "replaceAuthors" or "fillMissingAuthors" => op.Tag is "XMP-dc:Creator" or "IPTC:By-line" or "IPTC:By-lineTitle" or "IPTC:Contact",
+            "replaceKeywords" or "appendKeywords" or "removeKeywords" => op.Tag is "XMP-dc:Subject" or "IPTC:Keywords",
             _ => false
         };
         if (!allowed) throw new ArgumentException("此预设动作／字段组合未支持（日期算法不在本批子集）；未载入任何操作。");
-        if (op.Value.Length == 0 && op.Action != "replaceKeywords") throw new ArgumentException("设置／补空／追加参数不能为空；清除请使用明确清除动作。");
+        if (op.Value.Length == 0 && (op.Action != "replaceKeywords" || MetadataIptc.Fields.ContainsKey(op.Tag))) throw new ArgumentException("设置／补空／追加参数不能为空；清除请使用明确清除动作。");
         if (list && op.Value.Length > 0) {
             var words = MetadataFields.List(op.Value);
             if (words.Length > 256 || words.Any(w => w.Length == 0 || w.Contains('\0'))) throw new ArgumentException("列表最多256项，每项不能为空或含控制字符。");
@@ -121,13 +121,13 @@ public sealed record MetadataPreset(string Name, IReadOnlyList<MetadataOperation
                 value = op.Action switch {
                     "remove" => null,
                     "appendText" => (current ?? "") + op.Value,
-                    "appendKeywords" => MetadataFields.FormatList(Words(current).Concat(Words(op.Value)).Distinct(StringComparer.Ordinal)),
+                    "appendKeywords" => MetadataFields.FormatList(op.Tag=="IPTC:Keywords"?Words(current).Concat(Words(op.Value)):Words(current).Concat(Words(op.Value)).Distinct(StringComparer.Ordinal)),
                     "removeKeywords" => MetadataFields.FormatList(Words(current).Where(w => !Words(op.Value).Contains(w,StringComparer.Ordinal))),
                     _ => op.Value
                 };
             }
             if (IsList(op.Tag) && value == "") value = null;
-            var checkedOp = string.IsNullOrEmpty(value) ? new MetadataOperation(op.Tag,"remove") : new MetadataOperation(op.Tag, IsList(op.Tag) ? op.Tag == "XMP-dc:Creator" ? "replaceAuthors" : "replaceKeywords" : "setText",value);
+            var checkedOp = string.IsNullOrEmpty(value) ? new MetadataOperation(op.Tag,"remove") : new MetadataOperation(op.Tag, IsList(op.Tag) ? op.Tag is "XMP-dc:Creator" or "IPTC:By-line" or "IPTC:By-lineTitle" or "IPTC:Contact" ? "replaceAuthors" : "replaceKeywords" : "setText",value);
             value = Validate(checkedOp).Value;
             if(value.Length>0 && PhotoDocument.NumericRange(op.Tag) is not null)value=PhotoDocument.CheckedNumber(op.Tag,value).ToString(System.Globalization.CultureInfo.InvariantCulture);
             if(photo.IsBatchSnapshot&&VerifiedMetadataDates.IsDate(op.Tag)&&value.Length>0)photo.DateCandidates.Add(new(op.Tag,value));

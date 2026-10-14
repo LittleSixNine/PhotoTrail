@@ -8,11 +8,11 @@ namespace PhotoTrail.Windows;
 public sealed class ExifToolClient(string executable, string? script = null)
 {
     internal static long RequestCount;
-    public async Task<string> RunAsync(IEnumerable<string> arguments, CancellationToken cancellation = default, TimeSpan? timeout = null, string? workingDirectory = null)
-        => new UTF8Encoding(false,true).GetString(await RunBytesAsync(arguments,cancellation,timeout,workingDirectory));
+    public async Task<string> RunAsync(IEnumerable<string> arguments, CancellationToken cancellation = default, TimeSpan? timeout = null, string? workingDirectory = null,bool rejectWarnings=false)
+        => new UTF8Encoding(false,true).GetString(await RunBytesAsync(arguments,cancellation,timeout,workingDirectory,rejectWarnings));
 
     public async Task<byte[]> RunBytesAsync(IEnumerable<string> arguments, CancellationToken cancellation = default,
-        TimeSpan? timeout = null, string? workingDirectory = null)
+        TimeSpan? timeout = null, string? workingDirectory = null,bool rejectWarnings=false)
     {
         cancellation.ThrowIfCancellationRequested();
         var argumentList = arguments.ToArray();
@@ -58,6 +58,7 @@ public sealed class ExifToolClient(string executable, string? script = null)
         }
         await stdout;
         var error = await stderr;
+        if(rejectWarnings&&error.Trim().Length>0)throw new IOException("IPTC工具警告，拒绝交付："+error.Trim());
         if (process.ExitCode != 0) throw new IOException($"元数据工具失败（{process.ExitCode}）：{error.Trim()}");
         return bytes.ToArray();
     }

@@ -36,7 +36,7 @@ public static class MetadataClipboard
     {
         var selected = tags.Distinct().ToArray();
         if ((selected.Length < 1 || selected.Length > MetadataCsv.Tags.Length) || selected.Any(tag => !MetadataCsv.Tags.Contains(tag))) throw new ArgumentException("请在编辑草稿页勾选支持的目标字段。");
-        var changes = selected.ToDictionary(tag => tag, _ => text.Replace("\r\n", "\n"));
+        var changes = selected.ToDictionary(tag => tag, tag => MetadataIptc.Fields.ContainsKey(tag)?text:text.Replace("\r\n", "\n"));
         PhotoDocument.ValidateChanges(changes);
         return changes;
     }
