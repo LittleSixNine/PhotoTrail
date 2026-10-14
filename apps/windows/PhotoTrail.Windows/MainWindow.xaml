@@ -169,6 +169,45 @@
            <TextBlock Text="复制源字段（每张照片自己的草稿及前一步值）"/><ComboBox x:Name="PresetSource" DisplayMemberPath="Name" SelectedValuePath="Tag" SelectionChanged="PresetEditorChanged" AutomationProperties.Name="预设复制源字段"/>
            <TextBlock Text="接收字段（可多选；排除源字段，按规范字段顺序展开）"/><ListBox x:Name="PresetRecipients" DisplayMemberPath="Name" SelectionMode="Multiple" Height="110" SelectionChanged="PresetEditorChanged" AutomationProperties.Name="预设复制接收字段"/>
           </StackPanel>
+          <StackPanel x:Name="PresetDateControls" Visibility="Collapsed">
+          <StackPanel x:Name="PresetDateShiftOptions">
+          <TextBlock Text="调整量（整数，可负；依次应用年、月、日、时、分、秒）" TextWrapping="Wrap"/>
+          <WrapPanel Margin="0,6">
+           <TextBlock Text="年" VerticalAlignment="Center"/><TextBox x:Name="PresetDateYears" Text="0" Width="50" Margin="4" AutomationProperties.Name="预设调整年" TextChanged="PresetEditorChanged"/>
+           <TextBlock Text="月" VerticalAlignment="Center"/><TextBox x:Name="PresetDateMonths" Text="0" Width="50" Margin="4" AutomationProperties.Name="预设调整月" TextChanged="PresetEditorChanged"/>
+           <TextBlock Text="日" VerticalAlignment="Center"/><TextBox x:Name="PresetDateDays" Text="0" Width="50" Margin="4" AutomationProperties.Name="预设调整日" TextChanged="PresetEditorChanged"/>
+           <TextBlock Text="时" VerticalAlignment="Center"/><TextBox x:Name="PresetDateHours" Text="0" Width="50" Margin="4" AutomationProperties.Name="预设调整小时" TextChanged="PresetEditorChanged"/>
+           <TextBlock Text="分" VerticalAlignment="Center"/><TextBox x:Name="PresetDateMinutes" Text="0" Width="50" Margin="4" AutomationProperties.Name="预设调整分钟" TextChanged="PresetEditorChanged"/>
+           <TextBlock Text="秒" VerticalAlignment="Center"/><TextBox x:Name="PresetDateSeconds" Text="0" Width="80" Margin="4" AutomationProperties.Name="预设调整秒" TextChanged="PresetEditorChanged"/>
+          </WrapPanel>
+          </StackPanel>
+          <StackPanel x:Name="PresetDateReplaceOptions" Visibility="Collapsed">
+          <TextBlock Text="组件替换（整数；留空保留，0只对时/分/秒有效；保留原小数秒和固定时区）" TextWrapping="Wrap"/>
+          <WrapPanel Margin="0,6">
+           <TextBlock Text="年" VerticalAlignment="Center"/><TextBox x:Name="PresetDateReplaceYear" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="预设替换年" TextChanged="PresetEditorChanged"/>
+           <TextBlock Text="月" VerticalAlignment="Center"/><TextBox x:Name="PresetDateReplaceMonth" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="预设替换月" TextChanged="PresetEditorChanged"/>
+           <TextBlock Text="日" VerticalAlignment="Center"/><TextBox x:Name="PresetDateReplaceDay" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="预设替换日" TextChanged="PresetEditorChanged"/>
+           <TextBlock Text="时" VerticalAlignment="Center"/><TextBox x:Name="PresetDateReplaceHour" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="预设替换时" TextChanged="PresetEditorChanged"/>
+           <TextBlock Text="分" VerticalAlignment="Center"/><TextBox x:Name="PresetDateReplaceMinute" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="预设替换分" TextChanged="PresetEditorChanged"/>
+           <TextBlock Text="秒" VerticalAlignment="Center"/><TextBox x:Name="PresetDateReplaceSecond" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="预设替换秒" TextChanged="PresetEditorChanged"/>
+          </WrapPanel>
+          </StackPanel>
+          <StackPanel x:Name="PresetDateStartOptions" Visibility="Collapsed">
+          <TextBlock Text="序列/分布起点（yyyy:MM:dd HH:mm:ss，可附小数秒及Z/±hh:mm）" TextWrapping="Wrap"/>
+          <TextBox x:Name="PresetDateStart" AutomationProperties.Name="预设日期序列起点" TextChanged="PresetEditorChanged" Margin="0,4"/>
+          </StackPanel>
+          <DockPanel x:Name="PresetDateSequenceOptions" Visibility="Collapsed" Margin="0,4"><TextBlock Text="序列间隔秒" DockPanel.Dock="Left" VerticalAlignment="Center"/><TextBox x:Name="PresetDateStep" Text="1" Width="100" HorizontalAlignment="Left" Margin="8,0" AutomationProperties.Name="预设日期序列间隔秒" TextChanged="PresetEditorChanged"/></DockPanel>
+          <StackPanel x:Name="PresetDateDistributionOptions" Visibility="Collapsed">
+          <TextBlock Text="分布终点（起止小数秒/时区须完全相同；按最近整秒分配，可出现相同时间；单张采用起点）" TextWrapping="Wrap"/>
+          <TextBox x:Name="PresetDateEnd" AutomationProperties.Name="预设日期分布终点" TextChanged="PresetEditorChanged" Margin="0,4"/>
+          </StackPanel>
+          <StackPanel x:Name="PresetDateFilenameOptions" Visibility="Collapsed">
+          <TextBlock Text="文件名日期正则（最多1024字；普通捕获组，不支持前后查找/反向引用）" TextWrapping="Wrap"/>
+          <TextBox x:Name="PresetDateFilenamePattern" Text="([0-9]{4})([0-9]{2})([0-9]{2})_([0-9]{2})([0-9]{2})([0-9]{2})" MaxLength="1024" AutomationProperties.Name="预设文件名日期正则" TextChanged="PresetEditorChanged" Margin="0,4"/>
+          <TextBlock Text="日期模板（$1等捕获组；不匹配/非法日期逐项跳过，不猜测当前时间或时区）" TextWrapping="Wrap"/>
+          <TextBox x:Name="PresetDateFilenameTemplate" Text="$1:$2:$3 $4:$5:$6" MaxLength="512" AutomationProperties.Name="预设文件名日期模板" TextChanged="PresetEditorChanged" Margin="0,4"/>
+          </StackPanel>
+          </StackPanel>
           <WrapPanel Margin="0,8"><Button Content="添加操作" Click="AddPresetOperation"/><Button Content="更新所选操作" Click="UpdatePresetOperation"/><Button Content="放弃未编排参数" Click="DiscardPresetInput"/><Button Content="从勾选字段编排" Click="PresetFromFields"/></WrapPanel>
           <WrapPanel><Button Content="保存操作链 JSON…" Click="SavePreset"/><Button Content="保存勾选字段 JSON…" Click="SaveFieldPreset"/></WrapPanel>
           <TextBlock Text="预设文件"/><DockPanel><Button Content="选择…" DockPanel.Dock="Right" Click="ChoosePreset"/><TextBox x:Name="PresetPath" AutomationProperties.Name="预设文件"/></DockPanel>

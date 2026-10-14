@@ -39,13 +39,13 @@ public static class MetadataPresetLibrary
         using var gate=Guard(path);try{if(!gate.WaitOne(TimeSpan.FromSeconds(10)))throw new IOException("其他实例正在写元数据预设库。");}catch(AbandonedMutexException){}
         try{var bytes=ReadBytes(path);if(bytes is null)return new(Array.AsReadOnly(Array.Empty<MetadataPresetEntry>()),null);return new(Array.AsReadOnly(Decode(new UTF8Encoding(false,true).GetString(bytes))),Hash(bytes));}finally{gate.ReleaseMutex();}
     }
-    static IEnumerable<KeyValuePair<string,string>> ChangedDateParameters(MetadataPresetLibrarySnapshot expected,IReadOnlyList<MetadataPresetEntry> entries)=>entries.Where(e=>expected.Entries.FirstOrDefault(old=>old.Id==e.Id)?.Preset.Operations.SequenceEqual(e.Preset.Operations)!=true).SelectMany(e=>e.Preset.DateParameters);
+    static IEnumerable<MetadataPreset> ChangedPresets(MetadataPresetLibrarySnapshot expected,IReadOnlyList<MetadataPresetEntry> entries)=>entries.Where(e=>expected.Entries.FirstOrDefault(old=>old.Id==e.Id)?.Preset.Operations.SequenceEqual(e.Preset.Operations)!=true).Select(e=>e.Preset);
     public static MetadataPresetLibrarySnapshot Save(string path,MetadataPresetLibrarySnapshot expected,IReadOnlyList<MetadataPresetEntry> entries){
-        if(ChangedDateParameters(expected,entries).Any())throw new InvalidOperationException("新日期参数须异步共享验证后保存；旧库原件保持。");
+        if(ChangedPresets(expected,entries).Any(p=>p.DateParameters.Any()||p.Operations.Any(op=>op.Date is not null)))throw new InvalidOperationException("新日期参数须异步共享验证后保存；旧库原件保持。");
         return SaveCore(path,expected,entries);
     }
     public static async Task<MetadataPresetLibrarySnapshot> SaveAsync(string path,MetadataPresetLibrarySnapshot expected,IReadOnlyList<MetadataPresetEntry> entries,CancellationToken token=default) {
-        var frozen=Validate(entries);_=await VerifiedMetadataDates.CreateAsync(ChangedDateParameters(expected,frozen),token);token.ThrowIfCancellationRequested();
+        var frozen=Validate(entries);foreach(var preset in ChangedPresets(expected,frozen))await preset.ValidateParametersAsync(token);token.ThrowIfCancellationRequested();
         return await Task.Run(()=>{token.ThrowIfCancellationRequested();return SaveCore(path,expected,frozen,token);},token);
     }
     static MetadataPresetLibrarySnapshot SaveCore(string path,MetadataPresetLibrarySnapshot expected,IReadOnlyList<MetadataPresetEntry> entries,CancellationToken cancellation=default){

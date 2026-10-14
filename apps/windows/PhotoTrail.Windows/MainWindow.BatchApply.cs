@@ -11,7 +11,7 @@ public partial class MainWindow
     internal DateAdapter? batchDateAdapter;
     internal volatile bool batchCalculationStarted;
     internal long batchCalculationTicks,batchFinishedTicks;
-    sealed record BatchDetails(int Missing=0,int FilenameMismatch=0,int FilenameInvalid=0,int CsvIdentity=0,int CsvUnknown=0,IReadOnlyList<Measurement>? Measurements=null,double InitialSourceMs=0,int CopyMissing=0,int OperationCount=0,int DateCandidates=0,double ProjectionHostMs=0,int ProjectionRequests=0);
+    sealed record BatchDetails(int Missing=0,int FilenameMismatch=0,int FilenameInvalid=0,int CsvIdentity=0,int CsvUnknown=0,IReadOnlyList<Measurement>? Measurements=null,double InitialSourceMs=0,int CopyMissing=0,int OperationCount=0,int DateCandidates=0,double ProjectionHostMs=0,int ProjectionRequests=0,double ParameterValidationMs=0);
     sealed record AppliedBatch(PhotoRow[] Rows,Dictionary<string,string>[] Before,long[] Revisions);
     AppliedBatch? lastApply;
     bool preserveBatchEditor;
@@ -23,7 +23,7 @@ public partial class MainWindow
         long Seconds(System.Windows.Controls.TextBox box)=>long.TryParse(box.Text,System.Globalization.NumberStyles.AllowLeadingSign,System.Globalization.CultureInfo.InvariantCulture,out var n)?n:throw new ArgumentException("秒数须为整数。");
         Dictionary<string,long> Components(){var values=new Dictionary<string,long>();foreach(var (key,box) in new[]{("year",DateReplaceYear),("month",DateReplaceMonth),("day",DateReplaceDay),("hour",DateReplaceHour),("minute",DateReplaceMinute),("second",DateReplaceSecond)})if(box.Text.Length>0)values[key]=Number(box);return values;}
         DatePageOptions options=DateMode.SelectedIndex switch {
-            0=>new(0,Number(DateYears),Number(DateMonths),Number(DateDays),Number(DateHours),Number(DateMinutes),Seconds(DateSeconds)),
+            0=>new(0,Seconds(DateYears),Seconds(DateMonths),Seconds(DateDays),Seconds(DateHours),Seconds(DateMinutes),Seconds(DateSeconds)),
             1=>new(1,Seconds:Seconds(DateStep),Start:DateStart.Text),2=>new(2,Components:Components()),
             3=>new(3,Start:DateStart.Text,End:DateEnd.Text),_=>new(4,Pattern:DateFilenamePattern.Text,Template:DateFilenameTemplate.Text)
         };
@@ -66,13 +66,13 @@ public partial class MainWindow
         }catch(Exception error){Status.Text="CSV未应用："+error.Message;}
     }
     async Task ApplyMetadataBatch(string label,Func<PhotoDocument[],int,CancellationToken,Task<BatchDetails>> calculate,Func<bool> inputCurrent,Func<CancellationToken,Task>? inputSource=null,string? inputPath=null) {
-        var selection=Selected;
+        var selection=Selected;var order=photos.ToArray();var sortState=PhotoSort.SelectedIndex;
         if(selection.Length is <1 or >3000||selection.Any(r=>!r.Document.CanStage)||selection.Select(r=>r.Document.SidecarPath??r.Document.FilePath).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=selection.Length)throw new InvalidOperationException("请选择1至3000个不同的可编辑文件。");
         var frozen=selection.Select(r=>r.Document.BatchSnapshot()).ToArray();var before=frozen.Select(d=>new Dictionary<string,string>(d.Draft)).ToArray();var revisions=frozen.Select(d=>d.DraftRevision).ToArray();
         BeginOperation();var request=operation!;dateRequest=request;int revision=dateRevision;datePending++;batchTimings.Clear();batchHostRequests=0;batchDateAdapter=null;batchCalculationStarted=false;batchCalculationTicks=batchFinishedTicks=0;
         var sourceGuards=new List<FileStream>();bool completed=false;
         bool Current()=>ReferenceEquals(operation,request)&&revision==dateRevision&&!request.IsCancellationRequested;
-        void ValidateState(){if(!Current()||!busy||renameRecoveryRequired||checkingEnvironment||!Selected.SequenceEqual(selection)||!inputCurrent()||selection.Select((r,i)=>r.Document.DraftRevision==revisions[i]&&r.Document.CanStage&&photos.Contains(r)&&((r.Document.SidecarPath is not null)==(!r.Document.FilePath.Equals(Path.ChangeExtension(r.Document.FilePath,".xmp"),StringComparison.OrdinalIgnoreCase)&&File.Exists(Path.ChangeExtension(r.Document.FilePath,".xmp"))))).Any(x=>!x))throw new InvalidOperationException("选择、参数、草稿或任务状态已改变，整批未应用。");}
+        void ValidateState(){if(selection.Any(r=>r.Document.Times is {} times&&times!=SourceTimes.Read(r.Document.FilePath)))throw new IOException("终态原图系统属性已改变，整批未应用。");if(frozen.Any(d=>d.Draft.Keys.Any(MetadataTimes.IsSystem)&&d.TimeZoneSnapshot!=MetadataTimes.Zone))throw new IOException("本机时区已改变，整批未应用。");if(!Current()||!busy||renameRecoveryRequired||checkingEnvironment||!Selected.SequenceEqual(selection)||!photos.SequenceEqual(order)||PhotoSort.SelectedIndex!=sortState||!inputCurrent()||selection.Select((r,i)=>r.Document.DraftRevision==revisions[i]&&r.Document.CanStage&&photos.Contains(r)&&((r.Document.SidecarPath is not null)==(!r.Document.FilePath.Equals(Path.ChangeExtension(r.Document.FilePath,".xmp"),StringComparison.OrdinalIgnoreCase)&&File.Exists(Path.ChangeExtension(r.Document.FilePath,".xmp"))))).Any(x=>!x))throw new InvalidOperationException("选择、参数、草稿或任务状态已改变，整批未应用。");}
         try {
             Status.Text="正在计算与校验"+label+"；可取消，尚未加入草稿。";
             var clock=Stopwatch.StartNew();var result=await Task.Run(async()=>{
@@ -80,10 +80,10 @@ public partial class MainWindow
                 if(label=="日期")return details;
                 var dates=await VerifiedMetadataDates.CreateAsync(frozen.SelectMany(d=>d.DateCandidates),request.Token,adapter=>{batchDateAdapter=adapter;adapter.CalculationStarted+=()=>{if(Current()){batchCalculationTicks=Stopwatch.GetTimestamp();batchCalculationStarted=true;}};});
                 foreach(var doc in frozen){foreach(var pair in doc.DateCandidates)dates.Require(new Dictionary<string,string>{{pair.Key,pair.Value}});doc.AcceptDateInputs(dates);}
-                return details with{Measurements=dates.Measurements,DateCandidates=dates.CandidateCount,ProjectionHostMs=dates.Measurements.Sum(m=>m.TotalMs),ProjectionRequests=dates.Measurements.Count};
+                return details with{Measurements=(details.Measurements??Array.Empty<Measurement>()).Concat(dates.Measurements).ToArray(),DateCandidates=dates.CandidateCount,ProjectionHostMs=dates.Measurements.Sum(m=>m.TotalMs),ProjectionRequests=dates.Measurements.Count};
             },request.Token);
             if(!Current())return;batchTimings["dateCandidates"]=result.DateCandidates;batchTimings["projectionHostMs"]=result.ProjectionHostMs;batchTimings["projectionRequests"]=result.ProjectionRequests;batchTimings["computeMs"]=clock.Elapsed.TotalMilliseconds;
-            batchHostRequests=result.Measurements?.Count??0;batchTimings["hostComputeMs"]=result.Measurements?.Sum(m=>m.ComputeMs)??0;batchTimings["hostTotalMs"]=result.Measurements?.Sum(m=>m.TotalMs)??0;batchTimings["initialSourceMs"]=result.InitialSourceMs;
+            batchHostRequests=result.Measurements?.Count??0;batchTimings["hostComputeMs"]=result.Measurements?.Sum(m=>m.ComputeMs)??0;batchTimings["hostTotalMs"]=result.Measurements?.Sum(m=>m.TotalMs)??0;batchTimings["initialSourceMs"]=result.InitialSourceMs;batchTimings["parameterValidationMs"]=result.ParameterValidationMs;
             if(!Current())return;ValidateState();Status.Text="正在复核全部来源，包括无变化及跳过项…";clock.Restart();
             await Task.Run(async()=>{foreach(var path in selection.SelectMany(r=>r.Document.SidecarPath is {} sidecar?new[]{r.Document.FilePath,sidecar}:new[]{r.Document.FilePath}).Concat(inputPath is null?Array.Empty<string>():new[]{inputPath}).Distinct(StringComparer.OrdinalIgnoreCase)){request.Token.ThrowIfCancellationRequested();sourceGuards.Add(new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read));}foreach(var row in selection){request.Token.ThrowIfCancellationRequested();await row.Document.EnsureUnchangedAsync(request.Token);}if(inputSource is not null)await inputSource(request.Token);},request.Token);
             if(!Current())return;
@@ -95,7 +95,7 @@ public partial class MainWindow
             batchTimings["commitMs"]=clock.Elapsed.TotalMilliseconds;
             clock.Restart();if(changed.Length>0){RefreshPhotoRows();RefreshMatchTime();ClearMatchMarker();_=PostPhotosAsync();}batchTimings["refreshMs"]=clock.Elapsed.TotalMilliseconds;
             string notice=$"{label}应用完成：修改{changed.Length}张，无变化{selection.Length-changed.Length}张；变化操作{items}项；缺失时间跳过{result.Missing}项，文件名不匹配{result.FilenameMismatch}项，文件名日期无效{result.FilenameInvalid}项；CSV身份跳过{result.CsvIdentity}行，忽略字段{result.CsvUnknown}列。原文件未修改；显式确认保存后才写文件。";
-            if(label=="预设")notice=$"预设应用完成：修改{changed.Length}张，无变化{selection.Length-changed.Length}张；操作链{result.OperationCount}条，净变化字段{items}项，复制源缺失跳过{result.CopyMissing}项。原文件未修改；显式确认保存后才写文件。";
+            if(label=="预设")notice=$"预设应用完成：修改{changed.Length}张，无变化{selection.Length-changed.Length}张；操作链{result.OperationCount}条，净变化字段{items}项，复制源缺失跳过{result.CopyMissing}项，缺失时间跳过{result.Missing}项，文件名不匹配{result.FilenameMismatch}项，文件名日期无效{result.FilenameInvalid}项。原文件未修改；显式确认保存后才写文件。";
             completed=true;Status.Text=notice;if(label=="预设")PresetPreview.Text=notice;if(label=="日期")DatePlanPreview.Text=notice;if(label=="CSV")CsvPreview.Text=notice;
         }
         catch(Exception error){if(Current())Status.Text=label+"未应用："+DateFailureText(error);}

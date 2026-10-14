@@ -1,3 +1,5 @@
+> 2026-10-14 · R05复用原DateHost38文件组合；不重建Swift、修改共享源或安装环境。新增UiChecks --r05-checks/--r05-restart/--r05-scale，使用隔离短路径合成材料、显式设置/历史目录，最终候选DLL/EXE与早期构建分别记录。单次1/20/100全链阶段及代表副本保存独立测量，不混旧性能。见[契约](DATE-PRESETS.md)。
+
 ## R04c 定向验证
 
 沿既有 .NET10／Release win-x64框架依赖构建，不重建固定Swift宿主。UiChecks使用生产WPF与同一生产程序集：`--r04c-checks`、`--r04c-restart`、`--r04c-scale`（PHOTOTRAIL_R02_COUNT=1／20／100）；断言与导入观察分列，最终候选与早期构建分别记录。所有输入、备份／历史、偏好和输出须隔离。

@@ -1,3 +1,5 @@
+> 2026-10-14 · R05 adiciona ações ordenadas de data e cópia compatível entre fontes da própria foto, uma aplicação/desfazer e restauração apenas dos parâmetros do último preset salvo. R04c aceito; R05 aguarda aceite. Riscos existentes permanecem. [Contract](../DATE-PRESETS.md).
+
 > O candidato R04c adiciona 21 campos EXIF numéricos, enumerações, orientação e resolução, dois componentes IPTC de data/hora e dois horários do arquivo original, somente para JPEG sem sidecar. Os horários Windows exigem precisão de 100 ns sem perda e não podem ser apagados. Cópias que alteram apenas horários preservam os bytes da imagem. Salvamento misto e restauração v2 verificam os atributos reais; a proteção v1 permanece. R04b foi aceito como resultado do agente Windows; R04c aguarda aceitação. Os riscos anteriores permanecem. [R04c](../NUMERIC-TIME.md).
 
 > O candidato R04b adiciona doze campos IPTC de texto/lista para JPEG sem arquivos auxiliares. Valida limites em bytes UTF8 e codificação explícita; recusa alterações com codificação desconhecida, e a exclusão deve preservar os dados restantes. R04a foi aceita; R04b aguarda aprovação. [Scope / 支持範圍](../IPTC-FIELDS.md).

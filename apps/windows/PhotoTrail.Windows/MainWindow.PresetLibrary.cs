@@ -11,6 +11,7 @@ public partial class MainWindow
     MetadataPreset? metadataPresetBaseline;
     bool fillingPresetLibrary;
     string presetLibraryError="";
+    bool restoreMetadataPresetPending;
     bool PresetChainDirty=>metadataPresetBaseline is null ? presetOperations.Count>0 : PresetName.Text!=metadataPresetBaseline.Name || !presetOperations.SequenceEqual(metadataPresetBaseline.Operations);
     MetadataPresetEntry SelectedSavedPreset()=>MetadataPresetList.SelectedItem as MetadataPresetEntry ?? throw new InvalidOperationException("请选择已保存预设。");
     void RefreshPresetLibraryControls(){
@@ -21,7 +22,7 @@ public partial class MainWindow
         PresetLibraryStatus.Text=presetLibraryError.Length>0?presetLibraryError:$"库中 {metadataPresets?.Entries.Count??0} 项；当前 {(currentMetadataPreset is null?"未保存预设":"已保存预设")}{(PresetChainDirty?" · 有未保存修改":"")}{(presetEditorDirty?" · 有未编排参数":"")} · {presetOperations.Count} 条操作。管理不会应用照片。";
     }
     void RefreshPresetList(){fillingPresetLibrary=true;try{MetadataPresetList.ItemsSource=metadataPresets?.Entries;MetadataPresetList.SelectedItem=metadataPresets?.Entries.FirstOrDefault(e=>e.Id==currentMetadataPreset);}finally{fillingPresetLibrary=false;}RefreshPresetLibraryControls();}
-    void LoadMetadataPresets(){try{metadataPresets=MetadataPresetLibrary.Open(MetadataPresetLibrary.DefaultPath);presetLibraryError="";}catch(Exception error){metadataPresets=null;presetLibraryError="库未载入，原件保留："+error.Message;}RefreshPresetList();}
+    void LoadMetadataPresets(){restoreMetadataPresetPending=true;try{metadataPresets=MetadataPresetLibrary.Open(MetadataPresetLibrary.DefaultPath);presetLibraryError="";}catch(Exception error){metadataPresets=null;presetLibraryError="库未载入，原件保留："+error.Message;}RefreshPresetList();}
     void LibraryAction(Action action){if(busy||renameRecoveryRequired)return;try{action();}catch(Exception error){presetLibraryError="库操作未完成；编辑及照片草稿保留："+error.Message;}RefreshPresetLibraryControls();}
     async Task LibraryActionAsync(Func<Task> action) {
         if(busy||renameRecoveryRequired)return;preserveBatchEditor=true;try{BeginOperation();}finally{preserveBatchEditor=false;}var request=operation!;dateRequest=request;datePending++;
@@ -36,7 +37,13 @@ public partial class MainWindow
         try{_=await VerifiedMetadataDates.CreateAsync(frozen,request.Token);request.Token.ThrowIfCancellationRequested();if(revision!=dateRevision)throw new InvalidOperationException("输入、选择或任务已改变。");}
         finally{if(owned){datePending--;if(ReferenceEquals(dateRequest,request))dateRequest=null;if(ReferenceEquals(operation,request)){preserveBatchEditor=true;try{EndOperation();}finally{preserveBatchEditor=false;}}}}
     }
-    async Task ValidatePresetAsync(MetadataPreset preset) { _=preset.Encode();await ValidateEditorDatesAsync(preset.DateParameters); }
+    async Task ValidatePresetAsync(MetadataPreset preset) {
+        _=preset.Encode();bool owned=!busy;
+        if(owned){preserveBatchEditor=true;try{BeginOperation();}finally{preserveBatchEditor=false;}dateRequest=operation;datePending++;}
+        var request=operation!;int revision=dateRevision;
+        try{await preset.ValidateParametersAsync(request.Token);request.Token.ThrowIfCancellationRequested();if(!ReferenceEquals(operation,request)||revision!=dateRevision)throw new InvalidOperationException("输入、选择或任务已改变。");}
+        finally{if(owned){datePending--;if(ReferenceEquals(dateRequest,request))dateRequest=null;if(ReferenceEquals(operation,request)){preserveBatchEditor=true;try{EndOperation();}finally{preserveBatchEditor=false;}}}}
+    }
     async Task PersistPresetsAsync(IReadOnlyList<MetadataPresetEntry> next) {
         var expected=metadataPresets??throw new InvalidOperationException("库未成功载入，请先重新读取。");
         var saved=await MetadataPresetLibrary.SaveAsync(MetadataPresetLibrary.DefaultPath,expected,next,operation?.Token??CancellationToken.None);
@@ -44,7 +51,15 @@ public partial class MainWindow
     }
     void PersistPresets(IReadOnlyList<MetadataPresetEntry> next){var saved=MetadataPresetLibrary.Save(MetadataPresetLibrary.DefaultPath,metadataPresets??throw new InvalidOperationException("库未成功载入，请先重新读取。"),next);metadataPresets=saved;presetLibraryError="";}
     MetadataPreset ReadEditedPreset(){RequirePresetInputSaved();return MetadataPreset.Create(PresetName.Text,presetOperations);}
-    void SetLibraryPreset(MetadataPresetEntry saved){currentMetadataPreset=saved.Id;metadataPresetBaseline=saved.Preset;SetPresetChain(saved.Preset);RefreshPresetList();}
+    void SetLibraryPreset(MetadataPresetEntry saved){currentMetadataPreset=saved.Id;metadataPresetBaseline=saved.Preset;SetPresetChain(saved.Preset);RefreshPresetList();if(settings.LastMetadataPreset!=saved.Id){settings=settings with{LastMetadataPreset=saved.Id};SaveSettings();}}
+    async void RestoreLastMetadataPreset() {
+        if(!IsLoaded||busy||!restoreMetadataPresetPending)return;restoreMetadataPresetPending=false;
+        if(settings.LastMetadataPreset is not {} id)return;
+        var saved=metadataPresets?.Entries.FirstOrDefault(e=>e.Id==id);
+        if(saved is null){presetLibraryError="最后已保存预设不可取得；未替换或改写记录。";RefreshPresetLibraryControls();return;}
+        if(presetOperations.Count>0||presetEditorDirty||currentMetadataPreset is not null)return;
+        await LibraryActionAsync(async()=>{await ValidatePresetAsync(saved.Preset);SetLibraryPreset(saved);PresetPreview.Text="已恢复最后已保存预设的参数；未应用草稿或写照片。";});
+    }
     void SetUnsavedPreset(MetadataPreset preset){currentMetadataPreset=null;metadataPresetBaseline=null;SetPresetChain(preset);RefreshPresetList();}
     async Task SaveNewPreset(){var preset=ReadEditedPreset();var entry=new MetadataPresetEntry(Guid.NewGuid(),preset);await PersistPresetsAsync(metadataPresets!.Entries.Append(entry).ToArray());SetLibraryPreset(entry);}
     async Task UpdateCurrentPreset(){var preset=ReadEditedPreset();var id=currentMetadataPreset??throw new InvalidOperationException("未选择已保存项，不能更新。");var next=metadataPresets!.Entries.ToArray();int index=Array.FindIndex(next,e=>e.Id==id);if(index<0)throw new InvalidOperationException("当前条目已不存在，请重新读取。");var entry=new MetadataPresetEntry(id,preset);next[index]=entry;await PersistPresetsAsync(next);SetLibraryPreset(entry);}

@@ -12,6 +12,8 @@ internal static class MetadataDate
         Regex expression;
         try { expression = new Regex(pattern, RegexOptions.CultureInvariant | RegexOptions.NonBacktracking, TimeSpan.FromMilliseconds(100)); }
         catch (NotSupportedException) { throw new ArgumentException("文件名正则不支持前后查找、反向引用等回溯结构；请使用普通捕获组。"); }
+        foreach(Match reference in Regex.Matches(template,@"\$(\d+)",RegexOptions.CultureInvariant))if(!expression.GetGroupNumbers().Contains(int.Parse(reference.Groups[1].Value,System.Globalization.CultureInfo.InvariantCulture)))throw new ArgumentException("日期模板引用未知捕获组。");
+        foreach(Match reference in Regex.Matches(template,@"\$\{([^}]+)\}",RegexOptions.CultureInvariant))if(!expression.GetGroupNames().Contains(reference.Groups[1].Value))throw new ArgumentException("日期模板引用未知命名捕获组。");
         return names.Select(name =>
         {
             var match = expression.Match(name);

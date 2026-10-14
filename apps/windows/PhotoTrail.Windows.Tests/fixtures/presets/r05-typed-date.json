@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "name": "ordered date test",
+  "operations": [
+    {
+      "tag": "XMP-xmp:CreateDate",
+      "action": {
+        "setText": {
+          "_0": "2024:01:01 01:02:03.123456789\u002B05:30"
+        }
+      }
+    },
+    {
+      "tag": "XMP-xmp:CreateDate",
+      "action": {
+        "offsetDate": {
+          "years": 0,
+          "months": 0,
+          "days": 0,
+          "hours": 0,
+          "minutes": 2,
+          "seconds": 0
+        }
+      }
+    },
+    {
+      "tag": "XMP-xmp:CreateDate",
+      "action": {
+        "dateComponent": {
+          "components": {
+            "hour": 7
+          }
+        }
+      }
+    },
+    {
+      "tag": "IFD0:Artist",
+      "action": {
+        "copy": {
+          "_0": "XMP-dc:Title-x-default"
+        }
+      }
+    }
+  ]
+}

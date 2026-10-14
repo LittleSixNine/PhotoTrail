@@ -151,6 +151,8 @@ public partial class MainWindow : Window
         }
         catch (Exception error) { Status.Text = "启动路径无法读取：" + error.Message; }
         if (arguments.Contains("--map")) WorkspaceTabs.SelectedIndex = 1;
+        await Dispatcher.InvokeAsync(()=>{},System.Windows.Threading.DispatcherPriority.ContextIdle);
+        RestoreLastMetadataPreset();
     }
     private CancellationTokenSource? dependencyCheck;
     private bool checkingEnvironment;

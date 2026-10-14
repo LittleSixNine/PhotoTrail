@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "name": "old v1",
+  "operations": [
+    {
+      "tag": "XMP-dc:Title-x-default",
+      "action": {
+        "setText": {
+          "_0": "old"
+        }
+      }
+    }
+  ]
+}

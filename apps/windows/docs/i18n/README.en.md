@@ -1,3 +1,5 @@
+> 2026-10-14 · R05 adds ordered date presets and compatible per-photo copying across metadata sources, with one atomic draft application/undo and parameter-only restoration of the last saved preset. R04c agent delivery accepted; R05 awaits acceptance. Existing deployment and protection risks remain. [Contract](../DATE-PRESETS.md).
+
 > R04c developer candidate adds 21 exact EXIF numeric, enum, orientation and resolution fields, two IPTC date/time components and two original-file timestamps, for JPEG without sidecars only. Windows timestamps require lossless 100ns precision and cannot be cleared; pure timestamp copies preserve image bytes. Mixed saves and v2 restoration verify actual properties; v1 protection remains. R04b was accepted as Windows agent delivery; R04c awaits user acceptance. Existing risks remain. [R04c](../NUMERIC-TIME.md).
 
 > R04b development candidate adds twelve exact IPTC text/list fields for JPEG files without sidecars. UTF8 byte limits and explicit encoding are required; unknown-encoding settings are refused, and deletion must preserve remaining raw datasets. R04a was accepted; R04b awaits user acceptance. [Scope / 支持範圍](../IPTC-FIELDS.md).
