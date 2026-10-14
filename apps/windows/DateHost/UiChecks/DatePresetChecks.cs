@@ -10,7 +10,7 @@ static partial class Program
  const string R05Date="XMP-xmp:CreateDate",R05Group="Composite:SubSecDateTimeOriginal";
  static MetadataOperation DateOp(string tag,string action,PresetDateArguments args)=>new(tag,action,Date:args);
  static MetadataPreset R05Plan(params MetadataOperation[] ops)=>MetadataPreset.Create("ordered date test",ops);
- static async Task R05Reject(Func<Task> action,string name) {bool refused=false;try{await action();}catch(Exception e)when(e is ArgumentException or InvalidOperationException or IOException or DateFailure or TimeZoneNotFoundException){refused=true;}Check(refused,name);}
+ static async Task R05Reject(Func<Task> action,string name) {bool refused=false;try{await action();}catch(Exception e)when(e is ArgumentException or InvalidOperationException or IOException or InvalidDataException or DateFailure or TimeZoneNotFoundException){refused=true;}Check(refused,name);}
  static async Task R05Checks() {
   var rows=await DateCoreRows(5);var client=InspectorTool();var jpeg=rows.Select(Doc).Single(d=>Path.GetFileName(d.FilePath)=="embedded.jpg");var paired=rows.Select(Doc).Single(d=>Path.GetFileName(d.FilePath)=="paired.jpg");
   var list=Control<ListBox>("Photos");void Select(PhotoDocument d){list.SelectedItems.Clear();list.SelectedItems.Add(rows.Single(r=>ReferenceEquals(Doc(r),d)));}

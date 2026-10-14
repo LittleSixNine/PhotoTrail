@@ -7,7 +7,7 @@ using Microsoft.VisualBasic.FileIO;
 namespace PhotoTrail.Windows;
 
 public sealed record CsvRecord(string Id, string RelativePath, IReadOnlyDictionary<string, string> Cells);
-public sealed record CsvImport(IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> Changes, IReadOnlyList<string> Warnings,int IdentitySkippedCount=0,int UnknownFieldCount=0);
+public sealed record CsvImport(IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> Changes, IReadOnlyList<string> Warnings,int IdentitySkippedCount=0,int UnknownFieldCount=0,int InvalidRowCount=0);
 
 public static class MetadataCsv
 {
@@ -67,7 +67,7 @@ public static class MetadataCsv
         return result.ToString();
     }
 
-    public static void WriteNew(string path, string text)
+    public static void WriteNew(string path, string text,CancellationToken cancellation=default)
     {
         if (Encoding.UTF8.GetByteCount(text) > MaximumBytes) throw new ArgumentException("CSV超过8MiB上限。");
         path = Path.GetFullPath(path);
@@ -79,6 +79,7 @@ public static class MetadataCsv
                 using var writer = new StreamWriter(stream, new UTF8Encoding(true, true), leaveOpen: true);
                 writer.Write(text); writer.Flush(); stream.Flush(true);
             }
+            cancellation.ThrowIfCancellationRequested();
             File.Move(temporary, path);
         }
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
@@ -90,6 +91,31 @@ public static class MetadataCsv
             records.Select(row => row.RelativePath).Distinct(StringComparer.OrdinalIgnoreCase).Count() != records.Count ||
             records.Any(row => row.Id.Length != 64 || row.Id.Any(c => !char.IsAsciiHexDigit(c)) || !SafePath(row.RelativePath)))
             throw new ArgumentException("CSV选择身份或路径无效。");
+    }
+
+    internal static async Task<CsvImport> ValidateRowsAsync(CsvImport input,IReadOnlyList<PhotoDocument> photos,CancellationToken cancellation)
+    {
+        var dates=input.Changes.Values.SelectMany(c=>c).Where(p=>VerifiedMetadataDates.IsDate(p.Key)&&p.Value.Length>0).Select(p=>p.Value).Distinct(StringComparer.Ordinal).ToArray();
+        var badDates=new HashSet<string>(StringComparer.Ordinal);
+        if(dates.Length>0)
+        {
+            var adapter=new DateAdapter(Path.Combine(AppContext.BaseDirectory,"DateHost","DateHost.exe"),DatePagePreview.Source);
+            var results=await adapter.ComputeAsync(dates.Select((text,index)=>new DateJob(new WireItem(index.ToString(System.Globalization.CultureInfo.InvariantCulture),"project",text))).ToArray(),0,()=>0,cancellation);
+            foreach(var result in results)if(result.Error is not null)badDates.Add(dates[int.Parse(result.Id,System.Globalization.CultureInfo.InvariantCulture)]);
+        }
+        var targets=photos.ToDictionary(p=>Identity(p.FilePath));var accepted=new Dictionary<string,IReadOnlyDictionary<string,string>>();var warnings=input.Warnings.ToList();int invalid=input.InvalidRowCount;
+        foreach(var (id,changes) in input.Changes)
+        {
+            cancellation.ThrowIfCancellationRequested();
+            try
+            {
+                MetadataFields.Require(targets[id],changes);
+                if(changes.Any(p=>VerifiedMetadataDates.IsDate(p.Key)&&badDates.Contains(p.Value)))throw new ArgumentException("共享日期拒绝本行。");
+                accepted.Add(id,changes);
+            }
+            catch(ArgumentException){invalid++;warnings.Add("一行因字段来源资格或共享日期无效而整行跳过，其他行独立校验。");}
+        }
+        return input with{Changes=accepted,Warnings=warnings.AsReadOnly(),InvalidRowCount=invalid};
     }
 
     public static CsvImport Load(string text, IReadOnlyList<CsvRecord> authorized)
@@ -107,9 +133,10 @@ public static class MetadataCsv
         var seen = new HashSet<string>(); var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var row in rows.Skip(1))
             if (row.Length != header.Length || !seen.Add(row[0]) || !paths.Add(row[1])) throw new InvalidDataException("CSV行长度或重复身份/路径无效。");
+        if(rows.Skip(1).Any(row=>!SafePath(row[1])))throw new InvalidDataException("CSV含越界或非法相对路径，整次拒绝。");
         var allowed = authorized.ToDictionary(row => row.Id); var warnings = new List<string>();
-        if (tags.Any(tag => !Tags.Contains(tag))) throw new InvalidDataException("CSV含未开放标签，整批拒绝。");
-        int identitySkipped=0;
+        foreach(var tag in tags.Where(tag=>!Tags.Contains(tag)))warnings.Add("未开放列已忽略："+tag);
+        int identitySkipped=0,invalidRows=0;
         var result = new Dictionary<string, IReadOnlyDictionary<string, string>>();
         for (var index = 1; index < rows.Count; index++)
         {
@@ -145,8 +172,8 @@ public static class MetadataCsv
                 PhotoDocument.ValidateChanges(changes);
                 if (changes.Count > 0) result[row[0]] = changes;
             }
-            catch (Exception error) when (error is JsonException or ArgumentException) { throw new InvalidDataException($"第{index + 1}行：字段值无效，整批未应用。",error); }
+            catch (Exception error) when (error is JsonException or ArgumentException) { invalidRows++;warnings.Add($"第{index + 1}行：字段值无效，整行已跳过（没有部分应用）。"); }
         }
-        return new(result, warnings.AsReadOnly(),identitySkipped,tags.Count(tag=>!Tags.Contains(tag)));
+        return new(result, warnings.AsReadOnly(),identitySkipped,tags.Count(tag=>!Tags.Contains(tag)),invalidRows);
     }
 }

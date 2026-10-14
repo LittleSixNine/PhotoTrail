@@ -270,14 +270,20 @@
        </TabItem>
        <TabItem Header="XMP交换">
         <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="10">
-         <TextBlock Text="导出一个文件的完整现有XMP包及当前草稿，不包含EXIF/IPTC到XMP的转换。缺少XMP时从空包及草稿生成。文件不覆盖，原文件不修改。" TextWrapping="Wrap"/>
-         <Button Content="导出完整XMP及草稿…" Click="ExportXmp" HorizontalAlignment="Left" Padding="10,6" Margin="0,8"/>
-         <TextBlock Text="导入XMP仅载入当前13个手填字段到编辑区，缺失字段不清除。GPS、其他语言及其他字段只提示未导入，不自动写照片。" TextWrapping="Wrap" Margin="0,8"/>
+         <TextBlock Text="磁盘快照不含未保存草稿；含草稿导出在隔离副本构造。两者保留其他XMP语言／字段，不把EXIF/IPTC/System转换到XMP，目标不覆盖。" TextWrapping="Wrap"/>
+         <Button Content="导出磁盘XMP快照…" Click="ExportDiskXmp" HorizontalAlignment="Left" Padding="10,6" Margin="0,8"/>
+         <Button Content="导出含草稿XMP…" Click="ExportXmp" HorizontalAlignment="Left" Padding="10,6" Margin="0,8"/>
+         <TextBlock Text="导入XMP仅载入CSV交换已开放的XMP精确字段到编辑区，缺失字段不清除。GPS、其他语言及其他字段只提示未导入，不自动写照片。" TextWrapping="Wrap" Margin="0,8"/>
          <DockPanel><Button Content="选择…" DockPanel.Dock="Right" Click="ChooseXmp" Padding="10,5" Margin="8,0,0,0"/><TextBox x:Name="XmpPath" AutomationProperties.Name="XMP字段来源"/></DockPanel>
          <Button Content="载入XMP字段到编辑区" Click="ImportXmp" HorizontalAlignment="Left" Padding="10,6" Margin="0,8"/>
-         <TextBlock Text="XMP上限8MiB，拒绝DTD/外部实体及非法字段，全部验证后才填入。核对勾选字段再加入草稿，最后保存副本。" TextWrapping="Wrap"/>
+         <TextBlock Text="XMP上限8MiB／64层，拒绝DTD/外部实体及非法字段，全部验证后才填入。核对勾选字段再加入草稿，最后保存副本。" TextWrapping="Wrap"/>
          <TextBlock x:Name="XmpPreview" Text="尚未载入。" TextWrapping="Wrap" Margin="0,10"/>
         </StackPanel></ScrollViewer>
+       </TabItem>
+       <TabItem x:Name="ComparisonTab" Header="比较与交换">
+        <DockPanel Margin="8"><TextBlock x:Name="ComparisonStatus" DockPanel.Dock="Top" TextWrapping="Wrap"/>
+         <DataGrid x:Name="ComparisonGrid" IsReadOnly="True" AutoGenerateColumns="True" CanUserAddRows="False" AutoGeneratingColumn="ComparisonColumn" EnableRowVirtualization="True" EnableColumnVirtualization="True"/>
+        </DockPanel>
        </TabItem>
        <TabItem x:Name="PhotoPreviewTab" Header="照片预览">
         <DockPanel Margin="8"><TextBlock x:Name="PhotoPreviewStatus" DockPanel.Dock="Bottom" Text="请选择单张照片。JPEG/PNG/TIFF用本机解码，RAW用合法内嵌JPEG；不改照片。" TextWrapping="Wrap" Margin="0,8,0,0"/><Image x:Name="PhotoPreviewImage" Stretch="Uniform" AutomationProperties.Name="所选照片预览"/></DockPanel>

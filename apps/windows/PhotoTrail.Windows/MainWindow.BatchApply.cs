@@ -11,7 +11,7 @@ public partial class MainWindow
     internal DateAdapter? batchDateAdapter;
     internal volatile bool batchCalculationStarted;
     internal long batchCalculationTicks,batchFinishedTicks;
-    sealed record BatchDetails(int Missing=0,int FilenameMismatch=0,int FilenameInvalid=0,int CsvIdentity=0,int CsvUnknown=0,IReadOnlyList<Measurement>? Measurements=null,double InitialSourceMs=0,int CopyMissing=0,int OperationCount=0,int DateCandidates=0,double ProjectionHostMs=0,int ProjectionRequests=0,double ParameterValidationMs=0);
+    sealed record BatchDetails(int Missing=0,int FilenameMismatch=0,int FilenameInvalid=0,int CsvIdentity=0,int CsvUnknown=0,IReadOnlyList<Measurement>? Measurements=null,double InitialSourceMs=0,int CopyMissing=0,int OperationCount=0,int DateCandidates=0,int CsvInvalid=0,double ProjectionHostMs=0,int ProjectionRequests=0,double ParameterValidationMs=0);
     sealed record AppliedBatch(PhotoRow[] Rows,Dictionary<string,string>[] Before,long[] Revisions);
     AppliedBatch? lastApply;
     bool preserveBatchEditor;
@@ -32,7 +32,7 @@ public partial class MainWindow
     private async void ApplyDates(object sender,RoutedEventArgs e) {
         if(busy||renameRecoveryRequired)return;
         try {
-            if(Fields.Any(f=>f.Apply.IsChecked==true))throw new InvalidOperationException("请先应用编辑区输入。");
+            if(InspectorHasInput())throw new InvalidOperationException("请先应用编辑区输入。");
             var options=ReadDateInput();string input=JsonSerializer.Serialize(options);
             await ApplyMetadataBatch("日期",async(docs,revision,token)=>{
                 var plan=await DatePagePreview.CalculateAsync(docs,options,revision,()=>Volatile.Read(ref dateRevision),token,()=>{if(revision==Volatile.Read(ref dateRevision)&&!token.IsCancellationRequested){batchCalculationTicks=Stopwatch.GetTimestamp();batchCalculationStarted=true;}},adapter=>{if(revision==Volatile.Read(ref dateRevision))batchDateAdapter=adapter;});
@@ -51,18 +51,18 @@ public partial class MainWindow
     private async void ApplyCsv(object sender,RoutedEventArgs e) {
         if(busy||renameRecoveryRequired)return;
         try {
-            if(Fields.Any(f=>f.Apply.IsChecked==true))throw new InvalidOperationException("请先应用编辑区输入。");
+            if(InspectorHasInput())throw new InvalidOperationException("请先应用编辑区输入。");
             string path=CsvPath.Text;string? sourceHash=null;
             await ApplyMetadataBatch("CSV",async(docs,_,token)=>{
                 using var guard=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read);
                 if(guard.Length>MetadataCsv.MaximumBytes)throw new InvalidDataException("CSV超过8MiB上限。");
                 sourceHash=await PhotoDocument.HashAsync(path,token);
                 using var reader=new StreamReader(guard,new System.Text.UTF8Encoding(false,true),true);
-                var result=MetadataCsv.Load(await reader.ReadToEndAsync(token),MetadataCsv.Snapshot(docs));
+                var result=await MetadataCsv.ValidateRowsAsync(MetadataCsv.Load(await reader.ReadToEndAsync(token),MetadataCsv.Snapshot(docs)),docs,token);
                 var targets=docs.ToDictionary(d=>MetadataCsv.Identity(d.FilePath));
                 foreach(var (id,changes) in result.Changes){token.ThrowIfCancellationRequested();targets[id].StageDraft(changes);}
-                return new(CsvIdentity:result.IdentitySkippedCount,CsvUnknown:result.UnknownFieldCount);
-            },()=>CsvPath.Text==path&&!Fields.Any(f=>f.Apply.IsChecked==true),async token=>{if(await PhotoDocument.HashAsync(path,token)!=sourceHash)throw new IOException("CSV来源已改变。");},inputPath:path);
+                return new(CsvIdentity:result.IdentitySkippedCount,CsvUnknown:result.UnknownFieldCount,CsvInvalid:result.InvalidRowCount);
+            },()=>CsvPath.Text==path&&!InspectorHasInput(),async token=>{if(await PhotoDocument.HashAsync(path,token)!=sourceHash)throw new IOException("CSV来源已改变。");},inputPath:path);
         }catch(Exception error){Status.Text="CSV未应用："+error.Message;}
     }
     async Task ApplyMetadataBatch(string label,Func<PhotoDocument[],int,CancellationToken,Task<BatchDetails>> calculate,Func<bool> inputCurrent,Func<CancellationToken,Task>? inputSource=null,string? inputPath=null) {
@@ -94,7 +94,7 @@ public partial class MainWindow
             CommitBatchDrafts(selection,before,drafts,changed,frozen);
             batchTimings["commitMs"]=clock.Elapsed.TotalMilliseconds;
             clock.Restart();if(changed.Length>0){RefreshPhotoRows();RefreshMatchTime();ClearMatchMarker();_=PostPhotosAsync();}batchTimings["refreshMs"]=clock.Elapsed.TotalMilliseconds;
-            string notice=$"{label}应用完成：修改{changed.Length}张，无变化{selection.Length-changed.Length}张；变化操作{items}项；缺失时间跳过{result.Missing}项，文件名不匹配{result.FilenameMismatch}项，文件名日期无效{result.FilenameInvalid}项；CSV身份跳过{result.CsvIdentity}行，忽略字段{result.CsvUnknown}列。原文件未修改；显式确认保存后才写文件。";
+            string notice=$"{label}应用完成：修改{changed.Length}张，无变化{selection.Length-changed.Length}张；变化操作{items}项；缺失时间跳过{result.Missing}项，文件名不匹配{result.FilenameMismatch}项，文件名日期无效{result.FilenameInvalid}项；CSV身份跳过{result.CsvIdentity}行，无效值跳过{result.CsvInvalid}行，忽略字段{result.CsvUnknown}列。原文件未修改；显式确认保存后才写文件。";
             if(label=="预设")notice=$"预设应用完成：修改{changed.Length}张，无变化{selection.Length-changed.Length}张；操作链{result.OperationCount}条，净变化字段{items}项，复制源缺失跳过{result.CopyMissing}项，缺失时间跳过{result.Missing}项，文件名不匹配{result.FilenameMismatch}项，文件名日期无效{result.FilenameInvalid}项。原文件未修改；显式确认保存后才写文件。";
             completed=true;Status.Text=notice;if(label=="预设")PresetPreview.Text=notice;if(label=="日期")DatePlanPreview.Text=notice;if(label=="CSV")CsvPreview.Text=notice;
         }

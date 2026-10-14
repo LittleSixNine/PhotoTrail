@@ -1,3 +1,5 @@
+R07定向验证：UiChecks `--r07-checks`（1/20/21/100比较、全部CSV应用／撤销、共享日期逐行拒绝、XMP与JPEG／旁车回读、真实来源失联重读）；Tests `--csv-checks`、`--xmp-checks`。所有输出用独立副本及隔离偏好。CSV路径越界按本批授权比Mac行跳过更严格，不能放松身份门；跨平台映射只有明确授权的合成试验，不是隐式互导。
+
 R06b定向验证：UiChecks `--r06b-checks`／`--r06b-scale`（1/20/100），Tests `--preview-checks`。使用独立合成副本、隔离偏好与历史；正式候选最终DLL和原生EXE结果分别记录。沿用固定DateHost，不重建Swift。
 
 ## R06a定向检查

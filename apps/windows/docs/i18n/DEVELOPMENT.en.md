@@ -1,3 +1,5 @@
+R07 directed checks: UiChecks `--r07-checks` (1/20/21/100 selection, full CSV apply/undo, per-row shared date validation, XMP/JPEG/sidecar readback and actual source loss/reread), Tests `--csv-checks` / `--xmp-checks`. Use isolated synthetic copies and settings. Unsafe CSV paths reject the whole input per this batch authorization; explicit synthetic identity rebasing is not implicit cross-platform import.
+
 R06b directed checks: UiChecks `--r06b-checks` / `--r06b-scale` (1/20/100), Tests `--preview-checks`, with isolated synthetic files and preferences. Report final DLL and native EXE evidence separately; reuse the pinned DateHost.
 
 ## R06a directed validation

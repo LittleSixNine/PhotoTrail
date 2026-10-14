@@ -44,18 +44,19 @@ static class CsvChecks
         Check(Load([id, record.RelativePath, "@clear", "[]"]).Changes[id].Values.All(value => value == ""), "explicit clear and empty list clear existing fields");
         Check(Load([id, record.RelativePath, JsonSerializer.Serialize("@clear"), ""]).Changes[id]["XMP-dc:Title"] == "@clear", "JSON clear token remains literal text");
         foreach (var invalid in new[] { "not JSON", "123", "null", "{}", "[1]" })
-            Reject(() => Load([id, record.RelativePath, invalid, JsonSerializer.Serialize(new[] { "changed" })]), "invalid scalar rejects batch: " + invalid);
+            Check(Load([id, record.RelativePath, invalid, JsonSerializer.Serialize(new[] { "changed" })]) is {Changes.Count:0,InvalidRowCount:1}, "invalid scalar skips whole row without partial list change: " + invalid);
         foreach (var invalid in new[] { "[1]", "null", "\"text\"", "[\"\"]", JsonSerializer.Serialize(Enumerable.Repeat("a", 257)) })
-            Reject(() => Load([id, record.RelativePath, JsonSerializer.Serialize("valid"), invalid]), "invalid list rejects batch");
+            Check(Load([id, record.RelativePath, JsonSerializer.Serialize("valid"), invalid]) is {Changes.Count:0,InvalidRowCount:1}, "invalid list skips whole row without partial scalar change");
         Check(MetadataFields.List(Load([id,record.RelativePath,"","[\"line\\ninside\"]"]).Changes[id]["XMP-dc:Creator"]).SequenceEqual(new[]{"line\ninside"}),"list embedded newline preserved");
         Check(Load([otherId, record.RelativePath, JsonSerializer.Serialize("changed"), ""]).Warnings.Count == 1, "unauthorized identity skipped");
-        foreach (var path in new[] { "../照片.jpg", "/照片.jpg", "旅途\\照片.jpg", "旅途//照片.jpg", "旅途/./照片.jpg", "C:/照片.jpg", "different.jpg" })
-            Check(Load([id, path, JsonSerializer.Serialize("changed"), ""]).Changes.Count == 0, "unsafe or mismatched relative path skipped");
+        foreach (var path in new[] { "../照片.jpg", "/照片.jpg", "旅途\\照片.jpg", "旅途//照片.jpg", "旅途/./照片.jpg", "C:/照片.jpg" })
+            Reject(()=>Load([id, path, JsonSerializer.Serialize("changed"), ""]), "unsafe relative path rejects entire input");
+        Check(Load([id,"different.jpg",JsonSerializer.Serialize("changed"),""]).IdentitySkippedCount==1,"safe unauthorized path skips row");
         Reject(() => Load([id, record.RelativePath, "", ""], [id, "second.jpg", "", ""]), "duplicate identity invalidates input");
         Reject(() => Load([id, record.RelativePath, "", ""], [otherId, record.RelativePath.ToUpperInvariant(), "", ""]), "case-folded duplicate path invalidates input");
         Reject(() => Load([id, record.RelativePath, ""]), "wrong row shape rejected");
         Reject(() => MetadataCsv.Load(Csv(["PhotoTrail CSV 1", "RelativePath", "XMP-dc:Title", "XMP-dc:Title-x-default"], [id, record.RelativePath, "", ""]), allowed), "duplicate effective alias rejected");
-        Reject(() => MetadataCsv.Load(Csv(["PhotoTrail CSV 1", "RelativePath", "unknown", "XMP-dc:Title-x-default"], [id, record.RelativePath, "anything", JsonSerializer.Serialize(title)]), allowed), "unknown column rejects the entire batch");
+        Check(MetadataCsv.Load(Csv(["PhotoTrail CSV 1", "RelativePath", "unknown", "XMP-dc:Title-x-default"], [id, record.RelativePath, "anything", JsonSerializer.Serialize(title)]), allowed) is {UnknownFieldCount:1,Changes.Count:1}, "unknown column ignored while known field remains valid");
         Reject(() => MetadataCsv.Load(MetadataCsv.Export(allowed, true), allowed), "display CSV cannot import");
         Reject(() => MetadataCsv.Load("\"PhotoTrail CSV 1\",\"RelativePath\"\r\n\"unterminated", allowed), "unterminated quoted CSV refused");
         Reject(() => MetadataCsv.Load(new string('a', MetadataCsv.MaximumBytes + 1), allowed), "oversized CSV refused");
@@ -72,7 +73,11 @@ static class CsvChecks
         var legacy = record with { Cells = new Dictionary<string,string> { ["XMP-dc:Creator"] = JsonSerializer.Serialize(new[] { "embedded\nnewline" }) } };
         Check(MetadataCsv.Load(MetadataCsv.Export([legacy]), [legacy]).Changes.Count == 0, "unchanged legacy list identity preserved without flattening");
         Check(MetadataCsv.Load(Csv(["PhotoTrail CSV 1", "RelativePath", "XMP-iptcCore:CountryCode"], [id, record.RelativePath, JsonSerializer.Serialize("CHN")]), allowed).Changes[id]["XMP-iptcCore:CountryCode"] == "CHN", "valid country code previews");
-        Reject(() => MetadataCsv.Load(Csv(["PhotoTrail CSV 1", "RelativePath", "XMP-iptcCore:CountryCode"], [id, record.RelativePath, JsonSerializer.Serialize("XX")]), allowed), "invalid country code rejects whole batch");
+        Check(MetadataCsv.Load(Csv(["PhotoTrail CSV 1", "RelativePath", "XMP-iptcCore:CountryCode"], [id, record.RelativePath, JsonSerializer.Serialize("XX")]), allowed) is {InvalidRowCount:1,Changes.Count:0}, "invalid country code skips whole row");
+        var second=record with{Id=otherId,RelativePath="second.jpg"};
+        var mixed=MetadataCsv.Load(Csv(header,[id,record.RelativePath,"null",JsonSerializer.Serialize(new[]{"bad partial"})],[otherId,second.RelativePath,JsonSerializer.Serialize("valid row"),""]),[record,second]);
+        Check(mixed.InvalidRowCount==1&&mixed.Changes.Count==1&&mixed.Changes.ContainsKey(otherId)&&!mixed.Changes.ContainsKey(id),"valid row survives invalid peer without half-row application");
+        foreach(var empty in new[]{"@clear","\"\"","null"})Check(MetadataCsv.Load(Csv(["PhotoTrail CSV 1","RelativePath","System:FileModifyDate"],[id,record.RelativePath,empty]),allowed) is {InvalidRowCount:1,Changes.Count:0},"System cannot clear with token/empty/null");
         Console.WriteLine($"CSV checks complete: {count}");
     }
 }

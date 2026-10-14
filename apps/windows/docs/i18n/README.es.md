@@ -1,3 +1,5 @@
+R07: la comparación muestra hasta 20 fotos, pero CSV opera sobre toda la selección congelada. Se separan valores del disco y borradores. Se ignoran columnas desconocidas y se omiten filas inválidas completas; identidades duplicadas, rutas inseguras y errores de estructura rechazan el archivo. XMP distingue instantánea del disco y exportación con borradores; no sobrescribe archivos ni remapea identidades entre plataformas automáticamente.
+
 R06b: vista previa nativa JPEG/PNG/TIFF y JPEG integrado en DNG. Quitar un grupo de la lista no cambia el disco y permite recuperar miembros y borradores. Los originales cambiados o ausentes quedan obsoletos y sin escritura; se rechazan identidades duplicadas. Otros RAW siguen sin verificar y HEIC no tiene vista previa.
 
 > 2026-10-14 · R06a añade importación recursiva, grupos JPEG/RAW, preparación pausable, miniaturas según DPI y tira de fotos del mapa. Cada archivo conserva su origen y permisos. Pendiente de aceptación; límites en [IMPORT-THUMBNAILS](../IMPORT-THUMBNAILS.md)。

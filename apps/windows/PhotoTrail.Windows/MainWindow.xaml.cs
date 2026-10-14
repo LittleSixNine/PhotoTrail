@@ -689,11 +689,12 @@ public partial class MainWindow : Window
         }
         RefreshInspector();
         fillingEditor = false;
+        RefreshComparison();
         _ = RefreshPhotoPreviewAsync();
     }
     private void PhotoPreviewTabChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (ReferenceEquals(e.Source,sender)) _ = RefreshPhotoPreviewAsync();
+        if (ReferenceEquals(e.Source,sender)) { RefreshComparison(); _ = RefreshPhotoPreviewAsync(); }
     }
     private async Task RefreshPhotoPreviewAsync()
     {
@@ -824,14 +825,21 @@ public partial class MainWindow : Window
         try
         {
             if(Selected.Length == 0 || Selected.Any(row=>!row.Document.CanStage))throw new InvalidOperationException("请先选择可编辑照片。");
-            if(Fields.Any(field=>field.Apply.IsChecked == true))throw new InvalidOperationException("请先将现有输入加入草稿或撤销输入。");
-            var path = XmpPath.Text; var selected = Selected; XmpImport result;
+            if(InspectorHasInput())throw new InvalidOperationException("请先将现有输入加入草稿或撤销输入。");
+            var path = XmpPath.Text; var selected = Selected;var frozen=selected.Select(r=>r.Document.BatchSnapshot()).ToArray(); XmpImport result;
             BeginOperation();
-            try { result = await Task.Run(()=>MetadataXmp.ImportAsync(Tool(),path,operation!.Token)); }
+            try {
+                using var source=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read);
+                var sourceHash=await PhotoDocument.HashAsync(path,operation!.Token);
+                result = await Task.Run(()=>MetadataXmp.ImportAsync(Tool(),path,operation!.Token));
+                foreach(var doc in frozen)await doc.EnsureUnchangedAsync(operation!.Token);
+                if(await PhotoDocument.HashAsync(path,operation!.Token)!=sourceHash||selected.Select((row,i)=>row.Document.DraftRevision!=frozen[i].DraftRevision).Any(changed=>changed))throw new IOException("XMP来源或目标草稿已改变，编辑区保持。");
+            }
             finally { EndOperation(); }
             if(path != XmpPath.Text || !Selected.SequenceEqual(selected))throw new InvalidOperationException("路径或选择已改变，请重新载入。");
             FillEditor(result.Changes);
-            XmpPreview.Text = string.Join("\n",result.Changes.Select(field=>field.Key+" → "+field.Value))+
+            var conflicts=selected.Sum(row=>result.Changes.Count(field=>row.Document.Value(field.Key).Length>0&&row.Document.Value(field.Key)!=field.Value));
+            XmpPreview.Text = $"目标{selected.Length}张；{conflicts}个已有字段值冲突，应用前核对替换；缺失字段保持。\n"+string.Join("\n",result.Changes.Select(field=>field.Key+" → "+field.Value))+
                 (result.IgnoredTags.Count == 0 ? "" : "\n未导入字段："+string.Join("、",result.IgnoredTags));
             if(XmpPreview.Text.Length > 65536)XmpPreview.Text = XmpPreview.Text[..65536]+"\n显示已截短；编辑区包含全部已验证字段。";
             Status.Text = "XMP已载入编辑区，缺失字段保持；请核对并加入草稿，尚未写照片。";
@@ -839,20 +847,23 @@ public partial class MainWindow : Window
         catch(OperationCanceledException){Status.Text="XMP载入已取消，编辑区未改变。";}
         catch(Exception error){Status.Text="XMP未载入："+error.Message;}
     }
-    private async void ExportXmp(object sender,RoutedEventArgs e)
+    private void ExportXmp(object sender,RoutedEventArgs e)=>ExportXmpSnapshot(true);
+    private void ExportDiskXmp(object sender,RoutedEventArgs e)=>ExportXmpSnapshot(false);
+    private async void ExportXmpSnapshot(bool includeDraft)
     {
         if(busy || renameRecoveryRequired)return;
         try
         {
             if(Selected.Length != 1)throw new InvalidOperationException("完整XMP导出请选择一个文件。");
             if(Fields.Any(field=>field.Apply.IsChecked == true))throw new InvalidOperationException("请先将输入加入草稿，再导出。");
-            var photo = Selected[0].Document;
-            var dialog = new SaveFileDialog { Title="导出完整XMP及草稿（不覆盖）",Filter="XMP|*.xmp",DefaultExt=".xmp",FileName=Path.GetFileNameWithoutExtension(photo.FilePath)+".xmp",OverwritePrompt=false };
+            var photo = Selected[0].Document.BatchSnapshot();
+            var dialog = new SaveFileDialog { Title=includeDraft?"导出含草稿XMP（不覆盖）":"导出磁盘XMP快照（不含草稿，不覆盖）",Filter="XMP|*.xmp",DefaultExt=".xmp",FileName=Path.GetFileNameWithoutExtension(photo.FilePath)+".xmp",OverwritePrompt=false };
             if(dialog.ShowDialog(this)!=true)return;
+            RequireExchangeOutput(dialog.FileName);
             BeginOperation();
-            try { await Task.Run(()=>MetadataXmp.ExportAsync(Tool(),photo,dialog.FileName,operation!.Token)); }
+            try { await Task.Run(()=>includeDraft?MetadataXmp.ExportAsync(Tool(),photo,dialog.FileName,operation!.Token):MetadataXmp.ExportDiskAsync(Tool(),photo,dialog.FileName,operation!.Token)); }
             finally { EndOperation(); }
-            Status.Text="XMP已导出，包含当前草稿；原文件和会话草稿保留。";
+            Status.Text=includeDraft?"含草稿XMP已导出；原文件和会话草稿保留。":"磁盘XMP快照已导出，不含未保存草稿；原文件和会话草稿保留。";
         }
         catch(OperationCanceledException){Status.Text="XMP导出已取消，未交付文件。";}
         catch(Exception error){Status.Text="XMP未导出："+error.Message;}
@@ -884,17 +895,27 @@ public partial class MainWindow : Window
     }
     private void ExportRoundtripCsv(object sender, RoutedEventArgs e) => ExportCsv(false);
     private void ExportDisplayCsv(object sender, RoutedEventArgs e) => ExportCsv(true);
-    private void ExportCsv(bool displayOnly)
+    private async void ExportCsv(bool displayOnly)
     {
         if (busy || renameRecoveryRequired) return;
         try
         {
-            if (Fields.Any(field => field.Apply.IsChecked == true)) throw new InvalidOperationException("请先将输入加入草稿。");
-            var text = MetadataCsv.Export(MetadataCsv.Snapshot(Selected.Select(row => row.Document).ToArray()), displayOnly);
+            if (InspectorHasInput()) throw new InvalidOperationException("请先将输入加入草稿。");
+            var selection=Selected;var frozen=selection.Select(r=>r.Document.BatchSnapshot()).ToArray();
+            var text = MetadataCsv.Export(MetadataCsv.Snapshot(frozen), displayOnly);
             var dialog = new SaveFileDialog { Title = "导出CSV（不覆盖）", Filter = "CSV|*.csv", DefaultExt = ".csv", FileName = displayOnly ? "PhotoTrail-display.csv" : "PhotoTrail.csv", OverwritePrompt = false };
             if (dialog.ShowDialog(this) != true) return;
-            MetadataCsv.WriteNew(dialog.FileName, text);
-            Status.Text = "CSV已导出；未修改照片。";
+            RequireExchangeOutput(dialog.FileName);
+            BeginOperation();var guards=new List<FileStream>();
+            try
+            {
+                foreach(var path in frozen.SelectMany(d=>d.SidecarPath is {} sidecar?new[]{d.FilePath,sidecar}:new[]{d.FilePath}).Distinct(StringComparer.OrdinalIgnoreCase))guards.Add(new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read));
+                foreach(var doc in frozen)await doc.EnsureUnchangedAsync(operation!.Token);
+                if(selection.Select((row,index)=>photos.Contains(row)&&row.Document.DraftRevision==frozen[index].DraftRevision).Any(ok=>!ok))throw new IOException("CSV冻结选择或草稿已改变。");
+                await Task.Run(()=>MetadataCsv.WriteNew(dialog.FileName,text,operation!.Token));
+                Status.Text=$"CSV已导出全部冻结{frozen.Length}张；未修改照片。";
+            }
+            finally{foreach(var guard in guards)guard.Dispose();EndOperation();}
         }
         catch (Exception error) { Status.Text = "CSV未导出：" + error.Message; }
     }

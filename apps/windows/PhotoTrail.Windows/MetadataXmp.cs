@@ -7,20 +7,23 @@ public static class MetadataXmp
 {
     public const int MaximumBytes = 8 * 1024 * 1024;
     private const string EmptyPacket = "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"><rdf:Description rdf:about=\"\"/></rdf:RDF></x:xmpmeta>";
-    private static void ValidateXml(string path)
+    private static IReadOnlyList<string> ValidateXml(string path)
     {
         using var input = new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read);
         if (input.Length is < 1 or > MaximumBytes) throw new InvalidDataException("XMP须为不超过8MiB的非空文件。");
         using var reader = XmlReader.Create(input,new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = MaximumBytes });
-        while(reader.Read()) { }
+        var known=new HashSet<string>(StringComparer.Ordinal){"", "adobe:ns:meta/", "http://www.w3.org/1999/02/22-rdf-syntax-ns#", "http://purl.org/dc/elements/1.1/", "http://ns.adobe.com/xap/1.0/", "http://ns.adobe.com/exif/1.0/", "http://ns.adobe.com/exif/1.0/aux/", "http://ns.adobe.com/tiff/1.0/", "http://ns.adobe.com/photoshop/1.0/", "http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/"};
+        var ignored=new HashSet<string>(StringComparer.Ordinal);
+        while(reader.Read()) { if(reader.Depth>64)throw new InvalidDataException("XMP结构超过64层上限。");if(reader.NodeType==XmlNodeType.Element&&!known.Contains(reader.NamespaceURI))ignored.Add("XML族已忽略："+reader.NamespaceURI); }
+        return ignored.Order(StringComparer.Ordinal).ToArray();
     }
     public static async Task<XmpImport> ImportAsync(ExifToolClient client,string path,CancellationToken cancellation = default)
     {
         if(!Path.GetExtension(path).Equals(".xmp",StringComparison.OrdinalIgnoreCase))throw new ArgumentException("请选择XMP文件。");
         using var guard = new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read);
-        ValidateXml(path); var document = await PhotoDocument.LoadAsync(client,path,cancellation);
+        var namespaces=ValidateXml(path); var document = await PhotoDocument.LoadAsync(client,path,cancellation);
         if(document.FileType != "XMP")throw new InvalidDataException("内容不是XMP。");
-        var changes = new Dictionary<string,string>(); var ignored = new List<string>();
+        var changes = new Dictionary<string,string>(); var ignored = namespaces.ToList();
         foreach(var field in document.Embedded.EnumerateObject().Where(field=>field.Name.StartsWith("XMP-")))
         {
             if(!MetadataCsv.Tags.Contains(field.Name)) { if(field.Name != "XMP-x:XMPToolkit")ignored.Add(field.Name); continue; }
@@ -45,6 +48,10 @@ public static class MetadataXmp
     {
         var draft=new Dictionary<string,string>(photo.Draft);var dates=await VerifiedMetadataDates.CreateAsync(draft,cancellation);
         await ExportValidatedAsync(client,photo,path,draft,dates,cancellation);
+    }
+    public static async Task ExportDiskAsync(ExifToolClient client,PhotoDocument photo,string path,CancellationToken cancellation=default) {
+        var empty=new Dictionary<string,string>();
+        await ExportValidatedAsync(client,photo,path,empty,await VerifiedMetadataDates.CreateAsync(empty,cancellation),cancellation);
     }
     internal static async Task ExportValidatedAsync(ExifToolClient client,PhotoDocument photo,string path,IReadOnlyDictionary<string,string> draft,VerifiedMetadataDates dates,CancellationToken cancellation) {
         path = Path.GetFullPath(path);var folder = Path.GetDirectoryName(path)!;
