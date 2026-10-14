@@ -82,6 +82,13 @@ public partial class MainWindow
             var imported=photos.FirstOrDefault(r=>r.Document.FilePath.Equals(path,StringComparison.OrdinalIgnoreCase));if(imported is not null&&hash!=imported.Document.SourceHash)throw new IOException("已导入照片在外部改变，请重新导入。");
             tags["File:FileCreateDate"]=file.CreationTimeUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ");tags["File:FileModifyDate"]=file.LastWriteTimeUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ");inputs.Add(new(path,tags,failed,file.Length,hash,metadata));
         }
+        inputs=inputs.Select(member=>{
+            var imported=photos.FirstOrDefault(row=>(row.Document.FilePath.Equals(member.Path,StringComparison.OrdinalIgnoreCase)||row.Document.SidecarPath?.Equals(member.Path,StringComparison.OrdinalIgnoreCase)==true))?.Document;
+            var external=inputs.FirstOrDefault(other=>other.Extension=="xmp"&&!other.Path.Equals(member.Path,StringComparison.OrdinalIgnoreCase)&&RenameGroup.Key(other.Path)==RenameGroup.Key(member.Path));
+            bool known=imported is not null||external is not null||member.Extension is "jpg" or "jpeg" or "xmp";
+            var capture=imported is not null?BatchTrackMatch.Capture(imported):member.Metadata is {} data?BatchTrackMatch.Capture(data,external?.Metadata,new Dictionary<string,string>()):null;
+            return member with{CaptureKnown=known,MainCapture=capture};
+        }).ToList();
         var groups=inputs.GroupBy(m=>RenameGroup.Key(m.Path),StringComparer.OrdinalIgnoreCase).Select(values=>{var members=values.ToArray();var id=members.Select(m=>renameIdentities.GetValueOrDefault(m.Path)).FirstOrDefault(v=>v is not null)??Guid.NewGuid().ToString("N");foreach(var member in members)renameIdentities[member.Path]=id;return new RenameGroup(id,members);}).ToArray();
         renameGroups=groups;manualRenameOrder=manualRenameOrder.Concat(groups.Select(g=>g.Id).Where(id=>!manualRenameOrder.Contains(id))).ToArray();
     }

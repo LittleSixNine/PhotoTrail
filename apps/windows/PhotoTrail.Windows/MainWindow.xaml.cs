@@ -53,7 +53,21 @@ public partial class MainWindow : Window
       ("XMP-exif:ExposureTime", ExposureTimeApply, ExposureTimeValue), ("XMP-exif:FNumber", FNumberApply, FNumberValue),
       ("XMP-exif:ISO", IsoApply, IsoValue), ("XMP-exif:FocalLength", FocalLengthApply, FocalLengthValue),
       ("XMP-exif:ExposureCompensation", ExposureBiasApply, ExposureBiasValue), ("XMP-exif:ExposureProgram", ExposureProgramApply, ExposureProgramValue),
-      ("XMP-exif:WhiteBalance", WhiteBalanceApply, WhiteBalanceValue) ];
+      ("XMP-exif:WhiteBalance", WhiteBalanceApply, WhiteBalanceValue),
+      ("IFD0:Artist", ExifArtistApply, ExifArtistValue),
+      ("IFD0:ImageDescription", ExifDescriptionApply, ExifDescriptionValue),
+      ("IFD0:Copyright", ExifCopyrightApply, ExifCopyrightValue),
+      ("IFD0:Software", ExifSoftwareApply, ExifSoftwareValue),
+      ("ExifIFD:UserComment", ExifCommentApply, ExifCommentValue),
+      ("IFD0:Make", ExifMakeApply, ExifMakeValue),
+      ("IFD0:Model", ExifModelApply, ExifModelValue),
+      ("ExifIFD:SerialNumber", ExifSerialApply, ExifSerialValue),
+      ("ExifIFD:LensMake", ExifLensMakeApply, ExifLensMakeValue),
+      ("ExifIFD:LensModel", ExifLensModelApply, ExifLensModelValue),
+      ("ExifIFD:LensSerialNumber", ExifLensSerialApply, ExifLensSerialValue),
+      ("Composite:SubSecDateTimeOriginal", ExifCaptureApply, ExifCaptureValue),
+      ("Composite:SubSecCreateDate", ExifCreateApply, ExifCreateValue),
+      ("Composite:SubSecModifyDate", ExifModifyApply, ExifModifyValue) ];
     private PhotoRow[] Selected => Photos.SelectedItems.Cast<PhotoRow>().ToArray();
 
     private readonly string themePreferencePath = Environment.GetEnvironmentVariable("PHOTOTRAIL_THEME_FILE") ?? ThemePreference.DefaultPath;
@@ -602,7 +616,7 @@ public partial class MainWindow : Window
         if (Selected.Length != 1) return;
         try
         {
-            if (Selected[0].Document.VerifiedDate("XMP-exif:DateTimeOriginal")?.Instant() is { } time) MatchTimeValue.Text = time.ToString("O");
+            if (Selected[0].Document.VerifiedCaptureDate?.Instant() is { } time) MatchTimeValue.Text = time.ToString("O");
         }
         catch (ArgumentException) { }
     }
@@ -653,7 +667,7 @@ public partial class MainWindow : Window
         DraftActions.IsEnabled = !busy && !renameRecoveryRequired;
         FieldApplyButton.IsEnabled=editable;ClearSelectedDraftButton.IsEnabled=editable;UndoLastApplyButton.IsEnabled=!busy&&!renameRecoveryRequired&&LastApplyCurrent();
         DatePlanApplyButton.IsEnabled=CsvApplyButton.IsEnabled=!busy&&editable;
-        DateMode.IsEnabled=CsvPath.IsEnabled=!busy;
+        DateTarget.IsEnabled=DateMode.IsEnabled=CsvPath.IsEnabled=!busy;
         foreach(var box in new[]{DateYears,DateMonths,DateDays,DateHours,DateMinutes,DateSeconds,DateStart,DateEnd,DateStep,DateReplaceYear,DateReplaceMonth,DateReplaceDay,DateReplaceHour,DateReplaceMinute,DateReplaceSecond,DateFilenamePattern,DateFilenameTemplate})box.IsEnabled=!busy;
         SaveButton.IsEnabled = !busy && !renameRecoveryRequired && selected.Any(p => p.Document.Draft.Count > 0);
         RemoveButton.IsEnabled = !busy && selected.Length > 0;
@@ -661,10 +675,15 @@ public partial class MainWindow : Window
             $"已选 {selected.Length} 张；{selected.Count(p => p.Document.Draft.Count > 0)} 张有草稿。" +
             (selected.Length == 1 ? (selected[0].Document.SidecarPath is null ? "XMP 来源：文件内嵌。" : "XMP 来源：同名旁车。") : "混合值显示为空；只应用勾选字段。") +
             (editable ? "" : "所选包含只读格式，暂不支持编辑。");
+        foreach(var field in Fields)field.Apply.IsEnabled=field.Value.IsEnabled=selected.Length>0&&selected.All(p=>MetadataFields.CanEdit(p.Document,field.Tag));
         if(busy||preserveBatchEditor){fillingEditor=false;return;}
         foreach (var (tag, apply, value) in Fields)
         {
+            var allowed=selected.Length>0&&selected.All(p=>MetadataFields.CanEdit(p.Document,tag));
+            apply.IsEnabled=value.IsEnabled=allowed;
             var values = selected.Select(p => p.Document.Value(tag)).Distinct().ToArray();
+            string source=tag.StartsWith("XMP-",StringComparison.Ordinal)?"XMP实际目标":"EXIF原图精确来源";
+            value.ToolTip=source+" · "+tag+" · "+(selected.Any(p=>p.Document.InspectionError.Length>0)?"读取失败／过期":values.Length>1?"混合值":values.FirstOrDefault()?.Length>0?"已读":"缺失")+(allowed?"":" · 只读");
             value.Text = values.Length == 1 ? values[0] : ""; apply.IsChecked = false;
         }
         RefreshInspector();
@@ -1072,7 +1091,7 @@ public partial class MainWindow : Window
     {
         public long Imported {get;init;}=Interlocked.Increment(ref nextPhotoOrder);
         public (long Seconds,int Nanoseconds)? Captured {
-            get=>Document.VerifiedDate(DatePagePreview.Field)?.SortProjection;
+            get=>Document.VerifiedCaptureDate?.SortProjection;
         }
         public string Name => Path.GetFileName(Document.FilePath);
         public string Summary => $"{Document.FileType} · {(Document.SidecarPath is null ? "内嵌" : "XMP旁车")} · 原标签{(Document.Inspection is null?"未知":Document.Inspection.Count(v=>v.Counted).ToString())}{(Document.InspectionError.Length>0?"（过期/失败）":"")} · {(Document.Draft.Count > 0 ? $"{MetadataInspector.PendingFields(Document)}项草稿" : "原始值")}";

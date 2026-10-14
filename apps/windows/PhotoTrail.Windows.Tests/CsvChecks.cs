@@ -45,8 +45,9 @@ static class CsvChecks
         Check(Load([id, record.RelativePath, JsonSerializer.Serialize("@clear"), ""]).Changes[id]["XMP-dc:Title"] == "@clear", "JSON clear token remains literal text");
         foreach (var invalid in new[] { "not JSON", "123", "null", "{}", "[1]" })
             Reject(() => Load([id, record.RelativePath, invalid, JsonSerializer.Serialize(new[] { "changed" })]), "invalid scalar rejects batch: " + invalid);
-        foreach (var invalid in new[] { "[1]", "null", "\"text\"", "[\"line\\ninside\"]", "[\"\"]", JsonSerializer.Serialize(Enumerable.Repeat("a", 257)) })
+        foreach (var invalid in new[] { "[1]", "null", "\"text\"", "[\"\"]", JsonSerializer.Serialize(Enumerable.Repeat("a", 257)) })
             Reject(() => Load([id, record.RelativePath, JsonSerializer.Serialize("valid"), invalid]), "invalid list rejects batch");
+        Check(MetadataFields.List(Load([id,record.RelativePath,"","[\"line\\ninside\"]"]).Changes[id]["XMP-dc:Creator"]).SequenceEqual(new[]{"line\ninside"}),"list embedded newline preserved");
         Check(Load([otherId, record.RelativePath, JsonSerializer.Serialize("changed"), ""]).Warnings.Count == 1, "unauthorized identity skipped");
         foreach (var path in new[] { "../照片.jpg", "/照片.jpg", "旅途\\照片.jpg", "旅途//照片.jpg", "旅途/./照片.jpg", "C:/照片.jpg", "different.jpg" })
             Check(Load([id, path, JsonSerializer.Serialize("changed"), ""]).Changes.Count == 0, "unsafe or mismatched relative path skipped");
@@ -54,7 +55,7 @@ static class CsvChecks
         Reject(() => Load([id, record.RelativePath, "", ""], [otherId, record.RelativePath.ToUpperInvariant(), "", ""]), "case-folded duplicate path invalidates input");
         Reject(() => Load([id, record.RelativePath, ""]), "wrong row shape rejected");
         Reject(() => MetadataCsv.Load(Csv(["PhotoTrail CSV 1", "RelativePath", "XMP-dc:Title", "XMP-dc:Title-x-default"], [id, record.RelativePath, "", ""]), allowed), "duplicate effective alias rejected");
-        Check(MetadataCsv.Load(Csv(["PhotoTrail CSV 1", "RelativePath", "unknown", "XMP-dc:Title-x-default"], [id, record.RelativePath, "anything", JsonSerializer.Serialize(title)]), allowed).Changes[id]["XMP-dc:Title"] == title, "unknown column ignored while supported column previews");
+        Reject(() => MetadataCsv.Load(Csv(["PhotoTrail CSV 1", "RelativePath", "unknown", "XMP-dc:Title-x-default"], [id, record.RelativePath, "anything", JsonSerializer.Serialize(title)]), allowed), "unknown column rejects the entire batch");
         Reject(() => MetadataCsv.Load(MetadataCsv.Export(allowed, true), allowed), "display CSV cannot import");
         Reject(() => MetadataCsv.Load("\"PhotoTrail CSV 1\",\"RelativePath\"\r\n\"unterminated", allowed), "unterminated quoted CSV refused");
         Reject(() => MetadataCsv.Load(new string('a', MetadataCsv.MaximumBytes + 1), allowed), "oversized CSV refused");

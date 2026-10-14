@@ -16,7 +16,7 @@ static partial class Program
   var originals=docs.SelectMany(d=>d.SidecarPath is {} side?new[]{d.FilePath,side}:new[]{d.FilePath}).Distinct().ToDictionary(p=>p,p=>File.ReadAllBytes(p));
   var pairedInitial=docs.Single(d=>Path.GetFileName(d.FilePath)=="paired.jpg");var importedSidecar=await PhotoDocument.LoadAsync(client,pairedInitial.SidecarPath!);pairedInitial.SetDraft(new Dictionary<string,string>{{"XMP-dc:Title","collision"}});PlanFailure(()=>SavePlan.Prepare([pairedInitial],SaveMode.Inplace,SaveScope.All,"",[pairedInitial,importedSidecar]),"imported-independent-sidecar-collision-even-without-draft");pairedInitial.ClearDraft();
   var pixels=await MetadataCopy.JpegPixelsAsync(docs.Single(d=>Path.GetFileName(d.FilePath)=="embedded.jpg").FilePath);
-  foreach(var doc in docs.Where(InplaceSave.Supported)){doc.SetDraft(new Dictionary<string,string>{{"XMP-dc:Title","R03b saved title"}});await doc.SetDraftAsync(new Dictionary<string,string>{{"XMP-exif:DateTimeOriginal","1600:01:02 03:04:05.123456789+05:30"}});}
+  foreach(var doc in docs.Where(InplaceSave.Supported)){doc.SetDraft(new Dictionary<string,string>{{"XMP-dc:Title","R03b saved title"}});await doc.SetDraftAsync(new Dictionary<string,string>{{doc.MainDateTag,"1600:01:02 03:04:05.123456789+05:30"}});}
   Control<ListBox>("Photos").SelectedItems.Clear();Action("PrepareSaveAll");var plan=(SavePlan)Field("preparedSave")!;
   Check(plan.Mode==SaveMode.Inplace&&plan.Items.Length==4,"all-library-empty-selection-four-qualified-inplace-targets");
   Check(plan.Items.Any(i=>i.Document.FileType=="DNG"&&i.Target==i.Document.SidecarPath)&&plan.Items.All(i=>i.Companion is null),"actual-XMP-target-and-single-backup-per-write");
@@ -28,7 +28,7 @@ static partial class Program
    Check(record.Phase=="saved"&&await PhotoDocument.HashAsync(record.Backup)==record.OriginalHash,"mandatory-actual-target-complete-byte-backup");
    Check(File.ReadAllBytes(record.Backup).SequenceEqual(originals[record.Target])&&await PhotoDocument.HashAsync(record.Target)==record.NewHash,"backup-original-and-independent-real-target-SHA");
    Check(result.Document!.Draft.Count==0&&result.Document.Value("XMP-dc:Title")=="R03b saved title","saved-baseline-and-net-draft-zero");
-   Check(result.Document.Value("XMP-exif:DateTimeOriginal")=="1600:01:02 03:04:05.123456789+05:30"&&result.Document.VerifiedDate("XMP-exif:DateTimeOriginal") is not null,"inplace-v2-original-text-nanoseconds-offset-proof");
+   Check(result.Document.Value(result.Document.MainDateTag)=="1600:01:02 03:04:05.123456789+05:30"&&result.Document.VerifiedCaptureDate is not null,"inplace-v2-original-text-nanoseconds-offset-proof");
    Check(InplaceNative.Inspect(record.Target).Security==record.Original.Security&&File.GetLastWriteTimeUtc(record.Target)==record.Original.Written,"saved-permissions-and-original-file-times");
    if(record.Photo!=record.Target)Check(File.ReadAllBytes(record.Photo).SequenceEqual(originals[record.Photo]),"sidecar-inplace-image-bytes-unchanged");
   }

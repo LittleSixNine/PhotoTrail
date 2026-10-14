@@ -10,7 +10,8 @@ public sealed record PhotoReadResult(string FilePath, PhotoDocument? Document, s
 
 public sealed class PhotoDocument
 {
-    public static readonly IReadOnlyList<string> EditableTags = Array.AsReadOnly(new[] { "XMP-dc:Creator", "XMP-dc:Title", "XMP-dc:Description", "XMP-dc:Subject", "XMP-exif:DateTimeOriginal", "XMP-exif:GPSLatitude", "XMP-exif:GPSLongitude", "XMP-exif:GPSAltitude", "XMP-exif:GPSAltitudeRef", "XMP-exif:GPSMapDatum", "XMP-exif:GPSProcessingMethod", "XMP-exif:GPSDateTime", "XMP-photoshop:Country", "XMP-photoshop:State", "XMP-photoshop:City", "XMP-iptcCore:Location", "XMP-iptcCore:CountryCode", "XMP-dc:Rights", "XMP-xmp:Rating", "XMP-xmp:Label", "XMP-tiff:Make", "XMP-tiff:Model", "XMP-aux:Lens", "XMP-aux:LensSerialNumber", "XMP-exif:DateTimeDigitized", "XMP-xmp:CreateDate", "XMP-xmp:ModifyDate", "XMP-exif:ExposureTime", "XMP-exif:FNumber", "XMP-exif:ISO", "XMP-exif:FocalLength", "XMP-exif:ExposureCompensation", "XMP-exif:ExposureProgram", "XMP-exif:WhiteBalance" });
+    public static readonly IReadOnlyList<string> EditableTags = Array.AsReadOnly(new[] { "XMP-dc:Creator", "XMP-dc:Title", "XMP-dc:Description", "XMP-dc:Subject", "XMP-exif:DateTimeOriginal", "XMP-exif:GPSLatitude", "XMP-exif:GPSLongitude", "XMP-exif:GPSAltitude", "XMP-exif:GPSAltitudeRef", "XMP-exif:GPSMapDatum", "XMP-exif:GPSProcessingMethod", "XMP-exif:GPSDateTime", "XMP-photoshop:Country", "XMP-photoshop:State", "XMP-photoshop:City", "XMP-iptcCore:Location", "XMP-iptcCore:CountryCode", "XMP-dc:Rights", "XMP-xmp:Rating", "XMP-xmp:Label", "XMP-tiff:Make", "XMP-tiff:Model", "XMP-aux:Lens", "XMP-aux:LensSerialNumber", "XMP-exif:DateTimeDigitized", "XMP-xmp:CreateDate", "XMP-xmp:ModifyDate", "XMP-exif:ExposureTime", "XMP-exif:FNumber", "XMP-exif:ISO", "XMP-exif:FocalLength", "XMP-exif:ExposureCompensation", "XMP-exif:ExposureProgram", "XMP-exif:WhiteBalance" }.Concat(MetadataFields.ExifText).Concat(MetadataFields.DateGroups.Keys).ToArray());
+    internal string MainDateTag => SidecarPath is not null || FileType=="XMP" || NewSidecarEditing ? "XMP-xmp:CreateDate" : FileType=="JPEG" ? "Composite:SubSecDateTimeOriginal" : "XMP-exif:DateTimeOriginal";
     public string FilePath { get; }
     public string? SidecarPath { get; }
     public JsonElement Embedded { get; }
@@ -65,6 +66,7 @@ public sealed class PhotoDocument
     internal bool CanStage => CanEdit || NewSidecarEditing && CanCreateSidecar;
     internal void SelectSidecarEditing(bool enabled) {
         if(NewSidecarEditing==enabled)return;
+        if(enabled&&Draft.Keys.Any(t=>!t.StartsWith("XMP-",StringComparison.Ordinal)))throw new InvalidOperationException("EXIF草稿绑定图内目标；不能切到新旁车。");
         if(!enabled && !CanEdit && Draft.Count>0)throw new InvalidOperationException("无旁车RAW草稿绑定新旁车；请先完成保存或明确放弃，不能改为图内副本。");
         NewSidecarEditing=enabled;ChangedDraft();
     }
@@ -168,8 +170,7 @@ public sealed class PhotoDocument
     public string Value(string tag)
     {
         if (draft.TryGetValue(tag, out var pending)) return pending;
-        var source = Sidecar ?? Embedded;
-        return source.TryGetProperty(tag, out var value) ? Text(value) : "";
+        return MetadataFields.Original(this,tag);
     }
 
     public void SetDraft(IReadOnlyDictionary<string, string> changes)
@@ -188,17 +189,17 @@ public sealed class PhotoDocument
     internal async Task SetDraftValidatedAsync(IReadOnlyDictionary<string,string> frozen,VerifiedMetadataDates dates,long revision,CancellationToken token) {
         await EnsureUnchangedAsync(token);
         if(revision!=DraftRevision)throw new InvalidOperationException("日期验证期间草稿已改变。");
-        dates.Require(frozen);
+        dates.Require(frozen);MetadataFields.Require(this,frozen);
         var next=new Dictionary<string,VerifiedPhotoDate?>(dateSnapshot);foreach(var pair in frozen.Where(p=>VerifiedMetadataDates.IsDate(p.Key)&&p.Value.Length>0))next[pair.Value]=VerifiedPhotoDate.FromValidation(pair.Value,dates);dateSnapshot=next;SetDraftValues(frozen);
     }
     void SetDraftValues(IReadOnlyDictionary<string,string> changes)
     {
         if (!CanStage) throw new InvalidOperationException("此格式目前仅支持读取；已有XMP旁车时可编辑旁车。");
-        ValidateChanges(changes);
+        MetadataFields.Require(this,changes);
         foreach (var (tag, value) in changes)
         {
-            var original = (Sidecar ?? Embedded).TryGetProperty(tag, out var field) ? Text(field) : "";
-            var normalized = value.Length > 0 && NumericRange(tag) is not null ? CheckedNumber(tag,value).ToString(CultureInfo.InvariantCulture) : value;
+            var original = MetadataFields.Original(this,tag);
+            var normalized = MetadataFields.IsList(tag) ? MetadataFields.FormatList(MetadataFields.List(value)) : value.Length > 0 && NumericRange(tag) is not null ? CheckedNumber(tag,value).ToString(CultureInfo.InvariantCulture) : value;
             // An explicit XMP coordinate clear must override the embedded GPS fallback in this session.
             var clearsEmbeddedGps=normalized.Length==0 && tag is ("XMP-exif:GPSLatitude" or "XMP-exif:GPSLongitude") && Embedded.TryGetProperty(tag.Replace("XMP-exif:","GPS:"),out _);
             if (normalized == original && !clearsEmbeddedGps) draft.Remove(tag); else draft[tag] = normalized;
@@ -208,17 +209,17 @@ public sealed class PhotoDocument
 
     internal static void ValidateDatePageShape(string tag,string value)
     {
-        if(tag!=DatePagePreview.Field || !EditableTags.Contains(tag) || value.Length is < 19 or > 128 || value.Any(char.IsControl))
+        if(!VerifiedMetadataDates.IsDate(tag) || !EditableTags.Contains(tag) || value.Length is < 19 or > 128 || value.Any(char.IsControl))
             throw new ArgumentException("日期字段或文字不在允许范围。");
         _=new UTF8Encoding(false,true).GetByteCount(value);
     }
     internal void ApplyDatePage(DatePagePreview preview)
     {
         // The capability checks this exact document, source value and draft revision; no general bypass flag.
-        var value=preview.ValueFor(this);var verified=VerifiedPhotoDate.FromPage(preview,this);
-        ValidateDatePageShape(DatePagePreview.Field,value);
-        var original=(Sidecar??Embedded).TryGetProperty(DatePagePreview.Field,out var field)?Text(field):"";
-        if(value==original)draft.Remove(DatePagePreview.Field);else draft[DatePagePreview.Field]=value;
+        var tag=preview.TargetFor(this);var value=preview.ValueFor(this);var verified=VerifiedPhotoDate.FromPage(preview,this);
+        ValidateDatePageShape(tag,value);MetadataFields.Require(this,new Dictionary<string,string>{{tag,value}});
+        var original=MetadataFields.Original(this,tag);
+        if(value==original)draft.Remove(tag);else draft[tag]=value;
         var next=new Dictionary<string,VerifiedPhotoDate?>(dateSnapshot);next[value]=verified;dateSnapshot=next;
         ChangedDraft();
     }
@@ -310,8 +311,8 @@ public sealed class PhotoDocument
             if (tag == "XMP-exif:GPSMapDatum" && value is not ("" or "WGS-84")) throw new ArgumentException("当前只写入WGS-84基准。");
             if (tag == "XMP-exif:GPSProcessingMethod" && value is not ("" or "GPS" or "MANUAL")) throw new ArgumentException("定位来源无效。");
             if (tag == "XMP-exif:GPSDateTime" && value.Length > 0) throw new ArgumentException("当前仅清除旧XMP定位时间，不从照片时间猜测GPS测量时间。");
-            if (tag is "XMP-dc:Creator" or "XMP-dc:Subject" && value.Split('\n').Length > 256) throw new ArgumentException("作者或关键词最多支持256项。");
-            if (value.Length != 0 && tag is "XMP-exif:DateTimeOriginal" or "XMP-exif:DateTimeDigitized" or "XMP-xmp:CreateDate" or "XMP-xmp:ModifyDate") { if(Encoding.UTF8.GetByteCount(value)>128)throw new ArgumentException("日期文字超过128字节边界。"); }
+            if (MetadataFields.IsList(tag) && MetadataFields.FormatList(MetadataFields.List(value)).Length > 8192) throw new ArgumentException("列表规范文字超过8192字符边界。");
+            if (value.Length != 0 && VerifiedMetadataDates.IsDate(tag)) { if(Encoding.UTF8.GetByteCount(value)>128)throw new ArgumentException("日期文字超过128字节边界。"); }
         }
     }
 
@@ -346,7 +347,8 @@ public static class MetadataCopy
         if (!photo.CanEdit || photo.Draft.Count == 0) throw new InvalidOperationException("没有可保存的草稿。");
         // Freeze only the requested fields; UI edits while saving cannot alter this operation.
         var changes=new Dictionary<string,string>(frozen);var revision=photo.DraftRevision;
-        PhotoDocument.ValidateChanges(changes);dates.Require(changes);
+        MetadataFields.Require(photo,changes);dates.Require(changes);
+        var writes=MetadataFields.WriteChanges(changes);
         if (!Directory.Exists(folder)) throw new DirectoryNotFoundException("输出文件夹不存在。");
         var output = Path.Combine(Path.GetFullPath(folder), Path.GetFileName(photo.FilePath));
         var sidecarOutput = photo.SidecarPath is null ? null : Path.ChangeExtension(output, ".xmp");
@@ -368,12 +370,13 @@ public static class MetadataCopy
                 (stagedSidecar is not null && photo.SidecarHash != await PhotoDocument.HashAsync(stagedSidecar,cancellation)))
                 throw new IOException("暂存副本与导入基线不一致，未写入元数据。");
             var writable = stagedSidecar ?? stagedImage;
-            var arguments = new List<string> { "-charset", "filename=UTF8", "-n", "-overwrite_original" };
-            foreach (var (tag, value) in changes)
+            var arguments = new List<string> { "-charset", "filename=UTF8", "-charset", "exif=UTF8", "-n", "-overwrite_original" };
+            if(writes.ContainsKey("ExifIFD:UserComment")) {arguments.Add("-api");arguments.Add("ExifUnicodeByteOrder=II");}
+            foreach (var (tag, value) in writes)
             {
                 var writeTag = PhotoDocument.WriteTag(tag);
                 var values = tag is "XMP-dc:Creator" or "XMP-dc:Subject"
-                    ? value.Split('\n').Where(s => s.Length > 0).Select(s => s.TrimEnd('\r')).ToArray() : [value];
+                    ? MetadataFields.List(value) : [value];
                 if (values.Length == 0 || value.Length == 0) arguments.Add("-" + writeTag + "=");
                 else foreach (var item in values)
                 {
@@ -386,9 +389,9 @@ public static class MetadataCopy
             arguments.Add("--"); arguments.Add(writable);
             await client.RunAsync(arguments, cancellation);
             var result = await client.ReadAsync(writable, cancellation);
-            foreach (var (tag, expected) in changes)
+            foreach (var (tag, expected) in writes)
             {
-                var actual = result.TryGetProperty(tag, out var value) ? PhotoDocument.Text(value) : "";
+                var actual = MetadataFields.Read(result,tag);
                 var numericGps = tag is "XMP-exif:GPSLatitude" or "XMP-exif:GPSLongitude" or "XMP-exif:GPSAltitude";
                 if (numericGps && expected.Length > 0)
                 {
@@ -402,15 +405,15 @@ public static class MetadataCopy
                     if (!double.TryParse(actual,NumberStyles.Float,CultureInfo.InvariantCulture,out var read) || !double.IsFinite(read) || Math.Abs(read-target) > Math.Max(1e-12,Math.Abs(target)*1e-9))
                         throw new InvalidDataException("曝光参数保存回读不一致："+tag);
                 }
-                else if (actual != expected.Replace("\r\n", "\n")) throw new InvalidDataException("保存后字段回读不一致：" + tag);
+                else if (MetadataFields.IsList(tag) ? !MetadataFields.List(actual).SequenceEqual(MetadataFields.List(expected)) : actual != expected.Replace("\r\n", "\n")) throw new InvalidDataException("保存后字段回读不一致：" + tag);
             }
             var before = photo.Sidecar ?? photo.Embedded;
             foreach (var field in before.EnumerateObject())
             {
-                if (changes.ContainsKey(field.Name) || field.Name.StartsWith("System:") || field.Name.StartsWith("File:") ||
+                if (writes.ContainsKey(field.Name) || field.Name.StartsWith("System:") || field.Name.StartsWith("File:") ||
                     field.Name.StartsWith("ExifTool:") || field.Name.StartsWith("Composite:") ||
                     // The extended-XMP packet digest necessarily changes when the packet is rebuilt.
-                    field.Name is "SourceFile" or "XMP-x:XMPToolkit" or "XMP-xmpNote:HasExtendedXMP") continue;
+                    field.Name is "SourceFile" or "XMP-x:XMPToolkit" or "XMP-xmpNote:HasExtendedXMP" || stagedSidecar is null && photo.FileType=="JPEG" && writes.Keys.Any(t=>!t.StartsWith("XMP-",StringComparison.Ordinal)) && field.Name=="IFD1:ThumbnailOffset") continue;
                 if (!result.TryGetProperty(field.Name, out var after) || after.GetRawText() != field.Value.GetRawText())
                     throw new InvalidDataException("非目标元数据发生变化：" + field.Name);
             }
@@ -420,6 +423,18 @@ public static class MetadataCopy
             }
             else if (photo.FileType == "JPEG")
             {
+                if(writes.Keys.Any(t=>!t.StartsWith("XMP-",StringComparison.Ordinal))) {
+                    var complete=await client.ReadInspectionAsync([photo.FilePath,stagedImage],cancellation);
+                    static string Canonical(string tag)=>tag.Split(':')[0]+":"+tag.Split(':')[^1];
+                    static bool Content(string name)=>name!="SourceFile"&&!(name.Split(':')[0] is "System" or "File" or "ExifTool" or "Composite")&&Canonical(name) is not("XMP-x:XMPToolkit" or "XMP-xmpNote:HasExtendedXMP" or "IFD1:ThumbnailOffset");
+                    var oldFields=complete[photo.FilePath].EnumerateObject().Where(f=>Content(f.Name)).GroupBy(f=>Canonical(f.Name));
+                    var newFields=complete[stagedImage].EnumerateObject().Where(f=>Content(f.Name)).GroupBy(f=>Canonical(f.Name)).ToDictionary(g=>g.Key,g=>g.Select(f=>f.Value.GetRawText()).Order(StringComparer.Ordinal).ToArray());
+                    foreach(var group in oldFields)if(!writes.ContainsKey(group.Key)&&(!newFields.TryGetValue(group.Key,out var values)||!group.Select(f=>f.Value.GetRawText()).Order(StringComparer.Ordinal).SequenceEqual(values)))throw new InvalidDataException("完整非目标来源实例改变："+group.Key);
+                    // EXIF rebuilding relocates the thumbnail; compare its actual payload instead of its pointer.
+                    var oldThumbnail=await client.RunBytesAsync(["-b","-ThumbnailImage","--",photo.FilePath],cancellation);
+                    var newThumbnail=await client.RunBytesAsync(["-b","-ThumbnailImage","--",stagedImage],cancellation);
+                    if(!oldThumbnail.SequenceEqual(newThumbnail))throw new InvalidDataException("EXIF缩略图载荷发生变化。");
+                }
                 if (await JpegPixelsAsync(photo.FilePath, cancellation) != await JpegPixelsAsync(stagedImage, cancellation))
                     throw new InvalidDataException("JPEG像素载荷发生变化。");
             }

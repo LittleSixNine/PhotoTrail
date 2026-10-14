@@ -1,6 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0-windows</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
  <ItemGroup>
+  <Compile Include="../PhotoTrail.Windows/MetadataFields.cs" Link="MetadataFields.cs" />
+  <Compile Include="../PhotoTrail.Windows/SavePlan.cs" Link="SavePlan.cs" />
+  <Compile Include="../PhotoTrail.Windows/InplaceSave.cs" Link="InplaceSave.cs" />
+  <Compile Include="../PhotoTrail.Windows/InplaceHistory.cs" Link="InplaceHistory.cs" />
+  <Compile Include="../PhotoTrail.Windows/InplaceNative.cs" Link="InplaceNative.cs" />
   <Compile Include="../PhotoTrail.Windows/MetadataInspector.cs" Link="MetadataInspector.cs" />
   <Compile Include="../PhotoTrail.Windows/SettingsPreference.cs" Link="SettingsPreference.cs" />
   <Compile Include="../PhotoTrail.Windows/ThemePreference.cs" Link="ThemePreference.cs" />

@@ -45,7 +45,7 @@ static partial class Program
    Check(embedded.Inspection!.Any(v=>v.IsCopy),"real-ExifTool-copy-identity-kept");
    InspectorSelect("paired.jpg");Control<ComboBox>("InspectorView").SelectedIndex=1;
    Check(InspectorRows().Any(r=>r.Tag=="原图 / IFD0:Make")&&InspectorRows().Any(r=>r.Tag.StartsWith("原图 / XMP-tiff:")&&r.Tag.EndsWith(":Make"))&&InspectorRows().Any(r=>r.Tag=="旁车XMP / XMP-tiff:Make"),"sidecar-does-not-hide-original-EXIF-or-XMP");
-   Check(InspectorRows().Where(r=>r.Tag.Contains(" / IFD0:")||r.Tag.Contains(":Copy")||r.Tag.Contains("XMP-acme:")).All(r=>!r.CanEdit),"family-copy-unknown-readonly");
+   Check(InspectorRows().Where(r=>r.Tag.Contains(":Copy")||r.Tag.Contains("XMP-acme:")).All(r=>!r.CanEdit),"family-copy-unknown-readonly");
    Control<ComboBox>("InspectorView").SelectedIndex=0;Input("MetadataSearch","acme");
    Check(InspectorRows().Any(r=>r.Tag.Contains("XMP-acme:")&&r.Tag.EndsWith(":Title")),"search-full-read-fields-while-common");
    var grid=Control<DataGrid>("MetadataGrid");grid.SelectedItem=InspectorRows().First(r=>r.Tag.Contains("XMP-acme:")&&r.Tag.EndsWith(":Title"));
@@ -93,8 +93,8 @@ static partial class Program
    Check(originals.All(d=>MetadataInspector.PendingFields(d)==1),"copy-success-preserves-original-session-draft-baseline");Action("UndoDraft");Check(originals.All(d=>MetadataInspector.PendingFields(d)==0),"explicit-clear-count-zero");
    // Actual date proofs and the affected production date sort/filter/matching invalidation.
    InspectorSelect("standalone.xmp");var old=Doc(InspectorSelected);SelectMetadataTab("重命名");Input("RenameRules","prefix|r02_");Action("RefreshRenameOrder");await RenameWait();
-   await client.RunAsync(["-overwrite_original","-XMP-exif:DateTimeOriginal=1970:01:01 00:00:00.000000001Z","--",old.FilePath]);await InspectorRefresh();
-   var modern=Doc(InspectorSelected);Check(modern.VerifiedDate("XMP-exif:DateTimeOriginal")!.SortProjection is {Seconds:0,Nanoseconds:1},"reread-v2-exact-second-nanosecond-proof");
+   await client.RunAsync(["-overwrite_original","-XMP-xmp:CreateDate=1970:01:01 00:00:00.000000001Z","--",old.FilePath]);await InspectorRefresh();
+   var modern=Doc(InspectorSelected);Check(modern.VerifiedCaptureDate!.SortProjection is {Seconds:0,Nanoseconds:1},"reread-v2-exact-second-nanosecond-proof");
    Control<ComboBox>("PhotoSort").SelectedIndex=2;Check(Path.GetFileName(Doc(list.Items[0]).FilePath)=="standalone.xmp","reread-photo-date-sort-updated");
    InspectorSelect("standalone.xmp");SelectMetadataTab("重命名");Input("RenameDateFrom","1970:01:01 00:00:00.000000001Z");Input("RenameDateTo","1970:01:01 00:00:00.000000001Z");Action("RefreshRenameOrder");await RenameWait();
    Check(GroupNames().SequenceEqual(new[]{"standalone.xmp"}),"reread-rename-date-inclusive-filter-updated");

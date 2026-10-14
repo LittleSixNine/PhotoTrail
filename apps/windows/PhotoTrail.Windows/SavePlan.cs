@@ -15,6 +15,7 @@ internal sealed record SavePlan(SaveMode Mode,SaveScope Scope,SaveItem[] Items,s
         var items=new List<SaveItem>();var skipped=new List<string>();
         foreach(var doc in documents) {
             var fields=doc.Draft.Where(p=>scope==SaveScope.All || IsGps(p.Key)==(scope==SaveScope.Map)).ToDictionary(p=>p.Key,p=>p.Value);
+            MetadataFields.Require(doc,fields);
             if(fields.Count==0){skipped.Add(Path.GetFileName(doc.FilePath)+"：本范围无净草稿");continue;}
             string? reason=mode==SaveMode.NewSidecar?!doc.CanCreateSidecar?"已有旁车／独立XMP／类型未验；使用副本路径":!doc.NewSidecarEditing?"尚未显式选择新旁车":null:!doc.CanEdit?"此格式无图内副本写入资格":null;
             if(mode is SaveMode.NewSidecar or SaveMode.Inplace&&fields.Any(p=>p.Key is "XMP-exif:GPSLatitude" or "XMP-exif:GPSLongitude" && p.Value.Length==0)&&doc.Embedded.TryGetProperty("GPS:GPSLatitude",out _))reason="清空XMP坐标不能证明屏蔽原图EXIF GPS；需产品契约确认，草稿保留";
@@ -37,7 +38,7 @@ internal sealed record SavePlan(SaveMode Mode,SaveScope Scope,SaveItem[] Items,s
         if(mode!=SaveMode.Inplace&&targets.Any(t=>File.Exists(t)||Directory.Exists(t)))throw new IOException("整批拒绝：目标已存在，不会覆盖。");
         return new(mode,scope,items.ToArray(),skipped.ToArray());
     }
-    internal string Summary=> $"模式：{(Mode==SaveMode.Copy?"副本":Mode==SaveMode.NewSidecar?"新建同目录XMP旁车":"原位保存（强制完整备份）")}\n照片：{Items.Length}；字段范围：{(Scope==SaveScope.All?"全部字段":Scope==SaveScope.Metadata?"元数据（非GPS）":"地图（整组GPS）")}\n新文件：{(Mode==SaveMode.Inplace?0:Items.Sum(i=>i.Companion is null?1:2))}\n"+string.Join("\n",Items.Select(i=>i.Target+(i.Companion is null?"":" + "+i.Companion)+$"（{i.Fields.Count}个技术字段：{string.Join(", ",i.Fields.Keys)}）"))+"\n"+string.Join("\n",Skipped);
+    internal string Summary=> $"模式：{(Mode==SaveMode.Copy?"副本":Mode==SaveMode.NewSidecar?"新建同目录XMP旁车":"原位保存（强制完整备份）")}\n照片：{Items.Length}；字段范围：{(Scope==SaveScope.All?"全部字段":Scope==SaveScope.Metadata?"元数据（非GPS）":"地图（整组GPS）")}\n新文件：{(Mode==SaveMode.Inplace?0:Items.Sum(i=>i.Companion is null?1:2))}\n"+string.Join("\n",Items.Select(i=>i.Target+(i.Companion is null?"":" + "+i.Companion)+$"（{i.Fields.Count}个技术字段：{string.Join(", ",i.Fields.Keys.Select(t=>MetadataFields.DateGroups.TryGetValue(t,out var parts)?t+" ["+string.Join(" + ",parts)+"]":t))}）"))+"\n"+string.Join("\n",Skipped);
     internal static void Require(SaveItem item) {
         if(item.Document.DraftRevision!=item.Revision||item.Fields.Any(p=>!item.Document.Draft.TryGetValue(p.Key,out var value)||value!=p.Value))throw new InvalidOperationException("草稿revision已改变，计划失效。");
     }

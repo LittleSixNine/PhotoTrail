@@ -22,11 +22,12 @@ public partial class MainWindow
         int Number(System.Windows.Controls.TextBox box)=>int.TryParse(box.Text,System.Globalization.NumberStyles.AllowLeadingSign,System.Globalization.CultureInfo.InvariantCulture,out var n)?n:throw new ArgumentException("调整量须为整数。");
         long Seconds(System.Windows.Controls.TextBox box)=>long.TryParse(box.Text,System.Globalization.NumberStyles.AllowLeadingSign,System.Globalization.CultureInfo.InvariantCulture,out var n)?n:throw new ArgumentException("秒数须为整数。");
         Dictionary<string,long> Components(){var values=new Dictionary<string,long>();foreach(var (key,box) in new[]{("year",DateReplaceYear),("month",DateReplaceMonth),("day",DateReplaceDay),("hour",DateReplaceHour),("minute",DateReplaceMinute),("second",DateReplaceSecond)})if(box.Text.Length>0)values[key]=Number(box);return values;}
-        return DateMode.SelectedIndex switch {
+        DatePageOptions options=DateMode.SelectedIndex switch {
             0=>new(0,Number(DateYears),Number(DateMonths),Number(DateDays),Number(DateHours),Number(DateMinutes),Seconds(DateSeconds)),
             1=>new(1,Seconds:Seconds(DateStep),Start:DateStart.Text),2=>new(2,Components:Components()),
             3=>new(3,Start:DateStart.Text,End:DateEnd.Text),_=>new(4,Pattern:DateFilenamePattern.Text,Template:DateFilenameTemplate.Text)
         };
+        return options with{Target=(DateTarget.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string};
     }
     private async void ApplyDates(object sender,RoutedEventArgs e) {
         if(busy||renameRecoveryRequired)return;

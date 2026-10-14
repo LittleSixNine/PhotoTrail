@@ -3,15 +3,15 @@ namespace PhotoTrail.Windows;
 
 internal sealed record DatePageOptions(int Mode, long Years = 0, long Months = 0, long Days = 0, long Hours = 0,
     long Minutes = 0, long Seconds = 0, Dictionary<string,long>? Components = null, string Start = "", string End = "",
-    string Pattern = "", string Template = "");
+    string Pattern = "", string Template = "", string? Target = null);
 
 // Only a successful pinned adapter call can construct this capability; no arbitrary date bypass switch.
 internal sealed class DatePagePreview
 {
-    internal const string Field = "XMP-exif:DateTimeOriginal";
     internal static readonly SourceIdentity Source = new("a0299e6f6c956f66ace2b85449b54db5e2eeeee4",
         "Packages/PhotoTrailDateCore/Sources/PhotoTrailDateCore/MetadataDateEdit.swift", "15e1f395ac379552b4c43892f6d70321e3c2f0fd6e0dc9d8ccadacc7bb607dc8");
     readonly PhotoDocument[] documents;
+    readonly string[] targets;
     readonly long[] drafts;
     readonly string[] before;
     readonly string?[] after;
@@ -27,8 +27,8 @@ internal sealed class DatePagePreview
     internal int MissingCount { get; }
     internal int UnchangedCount { get; }
     internal IReadOnlyList<Measurement> Measurements { get; }
-    DatePagePreview(PhotoDocument[] documents, long[] drafts, string[] before, string?[] after, IReadOnlyList<Measurement> measurements, int missing, int unchanged, bool strictDate)
-    { this.documents=documents; this.drafts=drafts; this.before=before; this.after=after; Measurements=measurements; MissingCount=missing; UnchangedCount=unchanged; this.strictDate=strictDate; }
+    DatePagePreview(PhotoDocument[] documents, string[] targets, long[] drafts, string[] before, string?[] after, IReadOnlyList<Measurement> measurements, int missing, int unchanged, bool strictDate)
+    { this.documents=documents;this.targets=targets; this.drafts=drafts; this.before=before; this.after=after; Measurements=measurements; MissingCount=missing; UnchangedCount=unchanged; this.strictDate=strictDate; }
     internal string SkippedText(int index) => before[index].Length==0 ? "缺失时间，已跳过" : "无变化，保留原草稿";
 
     internal static async Task<DatePagePreview> CreateAsync(IReadOnlyList<PhotoDocument> selection, DatePageOptions options,
@@ -45,11 +45,12 @@ internal sealed class DatePagePreview
     internal static async Task<DatePagePreview> CalculateAsync(IReadOnlyList<PhotoDocument> selection, DatePageOptions options,
         int revision, Func<int> currentRevision, CancellationToken token, Action? calculationStarted=null, Action<DateAdapter>? observeAdapter=null)
     {
-        var docs=selection.ToArray();
-        if(docs.Length is < 1 or > 3000 || docs.Distinct().Count()!=docs.Length || docs.Select(d=>d.SidecarPath??d.FilePath).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=docs.Length || docs.Any(d=>!d.CanStage))
+        var docs=selection.ToArray();var targets=docs.Select(d=>options.Target??d.MainDateTag).ToArray();
+        if(targets.Any(t=>!VerifiedMetadataDates.IsDate(t)))throw new ArgumentException("日期目标未开放。");
+        if(docs.Length is < 1 or > 3000 || docs.Distinct().Count()!=docs.Length || docs.Select(d=>d.SidecarPath??d.FilePath).Distinct(StringComparer.OrdinalIgnoreCase).Count()!=docs.Length || docs.Select((d,i)=>!MetadataFields.CanEdit(d,targets[i])).Any(x=>x))
             throw new InvalidOperationException("请选择1至3000个不同的可编辑文件。");
         var drafts=docs.Select(d=>d.DraftRevision).ToArray();
-        var before=docs.Select(d=>options.Mode is 0 or 2?OffsetValue(d):d.Value(Field)).ToArray();
+        var before=docs.Select((d,i)=>options.Mode is 0 or 2?OffsetValue(d,targets[i]):d.Value(targets[i])).ToArray();
         var adapter=new DateAdapter(Path.Combine(AppContext.BaseDirectory,"DateHost","DateHost.exe"),Source);
         if(calculationStarted is not null)adapter.CalculationStarted+=calculationStarted;
         observeAdapter?.Invoke(adapter);
@@ -102,25 +103,20 @@ internal sealed class DatePagePreview
             if(options.Mode is 0 or 2 && before[i].Length==0)missing++;
             else if(values[i] is not null && values[i]==before[i]) { values[i]=null; unchanged++; }
         }
-        var projection=await VerifiedMetadataDates.CreateAsync(values.Where(v=>v is not null).Select(v=>new KeyValuePair<string,string>(Field,v!)),token);
+        var projection=await VerifiedMetadataDates.CreateAsync(values.Select((v,i)=>new KeyValuePair<string,string>(targets[i],v??"")),token);
         token.ThrowIfCancellationRequested();if(revision!=currentRevision())throw new DateFailure("staleRevision");
-        var preview=new DatePagePreview(docs,drafts,before,values,adapter.Measurements.Concat(projection.Measurements).ToArray(),missing,unchanged,options.Mode is 0 or 2){Projections=projection};
+        var preview=new DatePagePreview(docs,targets,drafts,before,values,adapter.Measurements.Concat(projection.Measurements).ToArray(),missing,unchanged,options.Mode is 0 or 2){Projections=projection};
         if(options.Mode==4){preview.FilenameMismatchCount=extracted!.Count(v=>v is null);preview.FilenameInvalidCount=values.Count(v=>v is null)-preview.FilenameMismatchCount-unchanged;}
         preview.ValidateAll();return preview;
     }
-    static string OffsetValue(PhotoDocument document) {
-        if(document.Draft.TryGetValue(Field,out var pending))return pending;
-        if(!(document.Sidecar??document.Embedded).TryGetProperty(Field,out var value))return "";
-        if(value.ValueKind!=System.Text.Json.JsonValueKind.String || value.GetString()!.Length==0)
-            throw new ArgumentException("日期字段类型或日期值无效。");
-        return value.GetString()!;
-    }
+    static string OffsetValue(PhotoDocument document,string tag) => MetadataFields.DateText(document,tag);
+    internal string TargetFor(PhotoDocument document) {int i=Array.IndexOf(documents,document);if(i<0)throw new InvalidOperationException("照片不属于日期计划。");Current(i);return targets[i];}
     void Current(int i) {
-        if(consumed || !documents[i].CanStage || documents[i].DraftRevision!=drafts[i] || (strictDate?OffsetValue(documents[i]):documents[i].Value(Field))!=before[i])
+        if(consumed || !MetadataFields.CanEdit(documents[i],targets[i]) || documents[i].DraftRevision!=drafts[i] || (strictDate?OffsetValue(documents[i],targets[i]):documents[i].Value(targets[i]))!=before[i])
             throw new InvalidOperationException("照片或草稿状态已改变，请重新预览。");
     }
     internal void ValidateAll() {
-        for(int i=0;i<documents.Length;i++) { Current(i); if(after[i] is { } value) PhotoDocument.ValidateDatePageShape(Field,value); }
+        for(int i=0;i<documents.Length;i++) { Current(i); if(after[i] is { } value) PhotoDocument.ValidateDatePageShape(targets[i],value); }
     }
     internal string ValueFor(PhotoDocument document) {
         int index=Array.IndexOf(documents,document);

@@ -30,7 +30,7 @@ static class PresetChecks
         Reject(()=>MetadataPreset.Create("x",new Dictionary<string,string>{["GPS:GPSLatitude"]="0"}),"unapproved field refused");
         Reject(()=>MetadataPreset.Create("x",new Dictionary<string,string>{["XMP-iptcCore:CountryCode"]="US"}),"invalid country code refused");
         Reject(()=>MetadataPreset.Create("x",new Dictionary<string,string>{["XMP-dc:Creator"]="a\n\nb"}),"empty author item refused");
-        Reject(()=>MetadataPreset.Create("x",new Dictionary<string,string>{["XMP-dc:Creator"]="a\rb"}),"author carriage return refused");
+        var withReturn=MetadataPreset.Create("x",new Dictionary<string,string>{["XMP-dc:Creator"]="a\rb"});Check(MetadataFields.List(MetadataPreset.Decode(withReturn.Encode()).Operations[0].Value).SequenceEqual(new[]{"a\rb"}),"author element carriage return preserved");
         var keyword = MetadataPreset.Create("x",new Dictionary<string,string>{["XMP-dc:Subject"]="A\na\nA"});Check(keyword.Operations[0].Value=="A\na","keywords deduplicate exact text preserving order and case");
         var author = MetadataPreset.Create("x",new Dictionary<string,string>{["XMP-dc:Creator"]="A\nA"});Check(author.Operations[0].Value=="A\nA","author order and duplicates preserved");
         string Raw(string operations) => "{\"version\":1,\"name\":\"x\",\"operations\":"+operations+"}";
@@ -71,11 +71,11 @@ static class PresetChecks
         Plan(new MetadataOperation(keywords,"replaceKeywords","")).Apply(missing);check(missing.Value(keywords)=="","empty replacement keywords clears");
         var emptySource=Doc("{\"File:FileType\":\"JPEG\",\"XMP-dc:Description\":\"\",\"XMP-dc:Title\":\"old\"}");check(Plan(new MetadataOperation(title,"copy",description)).Apply(emptySource)==0&&emptySource.Value(title)=="","present empty scalar copy is not missing and clears target");
         var typed=Doc("{\"File:FileType\":\"JPEG\",\"XMP-dc:Title\":3}");reject(()=>Plan(new MetadataOperation(title,"fillMissingText","X")).Apply(typed),"wrong scalar type not missing");
-        var typedList=Doc("{\"File:FileType\":\"JPEG\",\"XMP-dc:Creator\":\"not list\"}");reject(()=>Plan(new MetadataOperation(author,"fillMissingAuthors","X")).Apply(typedList),"wrong author type not missing");
+        var typedList=Doc("{\"File:FileType\":\"JPEG\",\"XMP-dc:Creator\":\"not list\"}");Plan(new MetadataOperation(author,"fillMissingAuthors","X")).Apply(typedList);check(typedList.Value(author)=="not list","single scalar author is one element, not missing");
         var failed=Doc("{\"File:FileType\":\"JPEG\",\"ExifTool:Error\":\"failure\"}");reject(()=>Plan(new MetadataOperation(title,"fillMissingText","X")).Apply(failed),"read error not missing");
         var huge=Doc("{\"File:FileType\":\"JPEG\",\"XMP-dc:Description\":\""+new string('x',257)+"\"}");reject(()=>Plan(new MetadataOperation(title,"setText","first"),new MetadataOperation("XMP-photoshop:City","copy",description)).Apply(huge),"copy target overflow rejects all steps");check(huge.Draft.Count==0,"model failure leaves complete draft untouched");
         foreach(var restricted in new[]{"XMP-exif:DateTimeOriginal","XMP-xmp:Rating","XMP-exif:ISO","XMP-exif:ExposureProgram","XMP-exif:WhiteBalance","XMP-iptcCore:CountryCode"})reject(()=>Plan(new MetadataOperation(restricted,"appendText","1")),"restricted append rejected "+restricted);
-        foreach(var bad in new[]{"a\n\nb","a\rb","a\tb","a\0b"})reject(()=>Plan(new MetadataOperation(author,"replaceAuthors",bad)),"bad list item rejected");
+        foreach(var bad in new[]{"a\n\nb","a\0b"})reject(()=>Plan(new MetadataOperation(author,"replaceAuthors",bad)),"bad list item rejected");
         reject(()=>Plan(new MetadataOperation(title,"copy",author)),"incompatible copy types rejected");reject(()=>Plan(new MetadataOperation(title,"copy",title)),"copy excludes self");
         reject(()=>Plan(new MetadataOperation(title,"appendText","")),"empty append rejected");reject(()=>Plan(new MetadataOperation(title,"setText",new string('x',8193))),"scalar length bound");
         reject(()=>Plan(Enumerable.Repeat(new MetadataOperation(title,"remove"),28).ToArray()),"operation limit counts repeated targets");

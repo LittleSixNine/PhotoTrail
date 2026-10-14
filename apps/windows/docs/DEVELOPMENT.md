@@ -207,3 +207,7 @@ ComputeCancelChecks复用真实标记与两个被动观测点，改用现有直�
 R01b已实现上述范围并定向验证，待用户验收；历史投影未完成。无SDK环境部署未验、运行库再分发许可不足、Windows SwiftPM包测试失败仍保留，候选不是正式分发包。不增加计算型日期预设、EXIF/IPTC或文件时间写入。
 
 验证：模型 --date-checks、--rename-order-checks；真实生产WPF --r01b-entry-checks、--r01b-protection-checks、--r01b-library-checks、--r01b-rename-checks、--r01b-fault-checks、--r01b-scale-checks，日期页 --date-core-copy-checks，迟到 --batch-late-checks（PHOTOTRAIL_R01B_LATE=1检查新入口）；ComputeCancelChecks --auto --r01b-csv使用两处被动阶段观测。原样候选DLL与专用检查构建归属必须分开。
+
+## R04a 字段与日期验证入口
+
+`DateHost/UiChecks` 新增 `--r04a-checks` 与 `--r04a-scale`；使用现有生产WPF控件和独立合成目录，须设置全部本机偏好及原位／改名历史环境变量到测试目录。规模入口读取 `PHOTOTRAIL_R02_COUNT` 为1、20、100，记录编辑／投影、代表JPEG副本、ExifTool／DateHost请求和最大Dispatcher间隔。ExifTool读取使用JSONQ和明确UTF-8，不把数字形序列号转换成数值；EXIF布局改变需比较缩略图实际载荷。三组日期实际九标签逐项回读；冻结摘要列出组件。测试失败快照与完整日志留来源机，不进入Git。固定共享源及DateHost38文件组合不变，不安装SDK或修改全局环境。

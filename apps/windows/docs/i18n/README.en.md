@@ -1,3 +1,5 @@
+> 2026-10-14 · R04a development candidate: typed XMP lists and exact sources, JPEG EXIF text/device fields and three grouped dates. JPEG capture EXIF and sidecar XMP CreateDate drive existing date consumers; clearing does not fall back. R03b agent delivery accepted; R04a awaits acceptance. Existing deployment and filesystem limits remain. [Field support](../METADATA-FIELDS.md).
+
 ## 2026-10-13 · R03b
 
 R03b adds explicit in-place saving with mandatory, unique byte backups, real-target readback, persistent recovery records and restore by a reviewed record. Copy remains the default; Ctrl+S still saves selected copies and retains drafts. Only verified local NTFS JPEG, paired JPEG/DNG XMP and standalone XMP are enabled. Unknown outcomes keep files, backups and drafts and block blind writes, reread rebinding and rename. Custom ACLs, links, alternate streams and unsupported filesystems are refused. GPS clearing with EXIF fallback and the SDK/NOTICE/SwiftPM deployment limits remain open. R03a agent delivery was accepted; R03b requires separate acceptance. [Details](../SAVE-TARGETS.md).

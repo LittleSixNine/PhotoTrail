@@ -10,7 +10,7 @@ internal sealed class VerifiedMetadataDates
     internal IReadOnlyList<Measurement> Measurements { get; }
     internal int CandidateCount { get; }
     private VerifiedMetadataDates(IReadOnlyDictionary<string,DateProjection> accepted,IReadOnlyList<Measurement> measurements,int count) { this.accepted=accepted;Measurements=measurements;CandidateCount=count; }
-    internal static bool IsDate(string tag)=>tag is "XMP-exif:DateTimeOriginal" or "XMP-exif:DateTimeDigitized" or "XMP-xmp:CreateDate" or "XMP-xmp:ModifyDate";
+    internal static bool IsDate(string tag)=>MetadataFields.DateGroups.ContainsKey(tag)||tag is "XMP-exif:DateTimeOriginal" or "XMP-exif:DateTimeDigitized" or "XMP-xmp:CreateDate" or "XMP-xmp:ModifyDate";
     internal void Require(IReadOnlyDictionary<string,string> changes) {
         foreach(var (tag,value) in changes)if(IsDate(tag)&&value.Length>0&&!accepted.ContainsKey(value))throw new InvalidOperationException("日期不属于本次共享验证结果。");
     }

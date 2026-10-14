@@ -33,7 +33,7 @@ static class ClipboardChecks
         var prepared=MetadataClipboard.Prepare(literal,new[]{"XMP-dc:Title","XMP-dc:Description","XMP-dc:Title"});Check(prepared.Count==2 && prepared.Values.All(value=>value==literal.Replace("\r\n","\n")),"paste is literal and targets deduplicate");
         Check(MetadataClipboard.Prepare("",new[]{"XMP-dc:Title"})["XMP-dc:Title"]=="","explicit empty text can clear target");
         foreach(var tags in new[]{Array.Empty<string>(),new[]{"EXIF:Artist"},new[]{"XMP-exif:GPSLatitude"}})Reject(()=>MetadataClipboard.Prepare("0",tags),"unselected or unapproved target refused");
-        foreach(var text in new[]{"invalid date","2023:02:29 00:00:00","2026:01:01 00:00:00+15:00"})Reject(()=>MetadataClipboard.Prepare(text,new[]{"XMP-dc:Title","XMP-exif:DateTimeOriginal"}),"invalid date refuses whole target set");
+        foreach(var text in new[]{"invalid date","2023:02:29 00:00:00","2026:01:01 00:00:00+15:00"})Reject(()=>VerifiedMetadataDates.CreateAsync(MetadataClipboard.Prepare(text,new[]{"XMP-dc:Title","XMP-exif:DateTimeOriginal"})).GetAwaiter().GetResult(),"invalid date refuses whole target set");
         Reject(()=>MetadataClipboard.Prepare("US",new[]{"XMP-dc:Title","XMP-iptcCore:CountryCode"}),"invalid country code refuses all targets");
         Reject(()=>MetadataClipboard.Prepare("x\ny",new[]{"XMP-dc:Title","XMP-photoshop:City"}),"region newline refuses all targets");
         Reject(()=>MetadataClipboard.Prepare(new string('a',8193),new[]{"XMP-dc:Title"}),"oversized literal refused");

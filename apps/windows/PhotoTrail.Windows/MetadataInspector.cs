@@ -17,7 +17,7 @@ public sealed record InspectorValue(string Role,string Tag,string Value)
 public sealed record InspectorRow(string Section,string Name,string Tag,string Value,string State,bool IsCommon,bool CanEdit=false,string? EditTag=null)
 {
     public string FamilyTag {get {int colon=Tag.LastIndexOf(':');return colon>=0?Tag[..colon]:Tag;}}
-    public string Permission=>CanEdit?"使用既有XMP编辑入口":"只读";
+    public string Permission=>CanEdit?"编辑精确来源字段":"只读";
 }
 public static class MetadataInspector
 {
@@ -129,7 +129,7 @@ public static class MetadataInspector
         var fields=Standard.Concat(Configurable.Concat(common).Distinct(StringComparer.Ordinal).Where(t=>!Standard.Any(f=>f.Tag==t)).Select(t=>new InspectorField("附加字段",t)));
         foreach(var field in fields) {
             var keys=all.Where(v=>Matches(field.Tag,v.Tag)).Select(v=>(v.Role,v.Tag)).Distinct().ToArray();
-            if(keys.Length==0){rows.Add(new(field.Section,field.Name,field.Tag,"",field.Tag=="File:MDItemUserTags"?"平台例外：Finder标签本体":docs.Any(d=>d.InspectionError.Length>0)?"读取失败／过期":docs.Any(d=>d.Inspection is null)?"未读":"缺失",common.Contains(field.Tag)));continue;}
+            if(keys.Length==0){rows.Add(new(field.Section,field.Name,field.Tag,"",field.Tag=="File:MDItemUserTags"?"平台例外：Finder标签本体":docs.Any(d=>d.InspectionError.Length>0)?"读取失败／过期":docs.Any(d=>d.Inspection is null)?"未读":"缺失",common.Contains(field.Tag),docs.Count==1&&MetadataFields.CanEdit(docs[0],field.Tag)&&!SavePlan.IsGps(field.Tag),docs.Count==1&&MetadataFields.CanEdit(docs[0],field.Tag)?field.Tag:null));continue;}
             foreach(var key in keys){if(!covered.Add(key))continue;Add(field.Section,field.Name,key.Role,key.Tag,common.Any(t=>Matches(t,key.Tag)));}
         }
         foreach(var key in all.Select(v=>(v.Role,v.Tag)).Distinct())if(covered.Add(key))Add("附加字段",Label(key.Tag),key.Role,key.Tag,common.Any(t=>Matches(t,key.Tag)));
@@ -140,7 +140,7 @@ public static class MetadataInspector
             bool mixed=present.Length!=docs.Count||present.Distinct(StringComparer.Ordinal).Count()>1;
             string value=mixed?$"混合值（{present.Length}/{docs.Count}已读）":present.FirstOrDefault()??"";
             if(state=="已读"&&value.Length==0)state="空值";
-            bool writable=docs.Count==1&&docs[0].CanStage&&tag.Split(':').Length==2&&PhotoDocument.EditableTags.Contains(tag)&&!tag.Contains(":GPS",StringComparison.Ordinal)&&role==(docs[0].SidecarPath is not null?"旁车XMP":docs[0].FileType=="XMP"?"独立XMP":"原图");
+            bool writable=docs.Count==1&&MetadataFields.CanEdit(docs[0],tag)&&tag.Split(':').Length==2&&PhotoDocument.EditableTags.Contains(tag)&&!tag.Contains(":GPS",StringComparison.Ordinal)&&role==(docs[0].SidecarPath is not null?"旁车XMP":docs[0].FileType=="XMP"?"独立XMP":"原图");
             rows.Add(new(section,name,role+" / "+tag,value,state,isCommon,writable,writable?tag:null));
         }
     }

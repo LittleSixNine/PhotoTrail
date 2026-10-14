@@ -12,7 +12,7 @@ public sealed record CsvImport(IReadOnlyDictionary<string, IReadOnlyDictionary<s
 public static class MetadataCsv
 {
     public const int MaximumBytes = 8 * 1024 * 1024;
-    public static readonly string[] Tags = ["XMP-dc:Creator", "XMP-dc:Title", "XMP-dc:Description", "XMP-dc:Subject", "XMP-exif:DateTimeOriginal", "XMP-photoshop:Country", "XMP-photoshop:State", "XMP-photoshop:City", "XMP-iptcCore:Location", "XMP-iptcCore:CountryCode", "XMP-dc:Rights", "XMP-xmp:Rating", "XMP-xmp:Label", "XMP-tiff:Make", "XMP-tiff:Model", "XMP-aux:Lens", "XMP-aux:LensSerialNumber", "XMP-exif:DateTimeDigitized", "XMP-xmp:CreateDate", "XMP-xmp:ModifyDate", "XMP-exif:ExposureTime", "XMP-exif:FNumber", "XMP-exif:ISO", "XMP-exif:FocalLength", "XMP-exif:ExposureCompensation", "XMP-exif:ExposureProgram", "XMP-exif:WhiteBalance"];
+    public static readonly string[] Tags = new[] {"XMP-dc:Creator", "XMP-dc:Title", "XMP-dc:Description", "XMP-dc:Subject", "XMP-exif:DateTimeOriginal", "XMP-photoshop:Country", "XMP-photoshop:State", "XMP-photoshop:City", "XMP-iptcCore:Location", "XMP-iptcCore:CountryCode", "XMP-dc:Rights", "XMP-xmp:Rating", "XMP-xmp:Label", "XMP-tiff:Make", "XMP-tiff:Model", "XMP-aux:Lens", "XMP-aux:LensSerialNumber", "XMP-exif:DateTimeDigitized", "XMP-xmp:CreateDate", "XMP-xmp:ModifyDate", "XMP-exif:ExposureTime", "XMP-exif:FNumber", "XMP-exif:ISO", "XMP-exif:FocalLength", "XMP-exif:ExposureCompensation", "XMP-exif:ExposureProgram", "XMP-exif:WhiteBalance"}.Concat(MetadataFields.ExifText).Concat(MetadataFields.DateGroups.Keys).ToArray();
     private static bool IsList(string tag) => tag is "XMP-dc:Creator" or "XMP-dc:Subject";
     public static string Identity(string path) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Path.GetFullPath(path)))).ToLowerInvariant();
     public static bool SafePath(string path) => path.Length is > 0 and <= 32767 && !path.Contains('\\') && !path.StartsWith('/') &&
@@ -32,7 +32,8 @@ public static class MetadataCsv
             foreach (var tag in Tags)
             {
                 if (photo.Draft.TryGetValue(tag, out var draft))
-                    cells[tag] = IsList(tag) ? JsonSerializer.Serialize(draft.Split('\n').Where(value => value.Length > 0).ToArray()) : JsonSerializer.Serialize(draft);
+                    cells[tag] = IsList(tag) ? JsonSerializer.Serialize(MetadataFields.List(draft)) : JsonSerializer.Serialize(draft);
+                else if(MetadataFields.DateGroups.ContainsKey(tag)) {var text=photo.Value(tag);if(text.Length>0)cells[tag]=JsonSerializer.Serialize(text);}
                 else if ((photo.Sidecar ?? photo.Embedded).TryGetProperty(tag, out var value)) {
                     bool numeric=tag=="XMP-xmp:Rating"||PhotoDocument.NumericRange(tag) is not null;
                     if(IsList(tag)?value.ValueKind!=JsonValueKind.String&&(value.ValueKind!=JsonValueKind.Array||value.EnumerateArray().Any(v=>v.ValueKind!=JsonValueKind.String)):value.ValueKind!=JsonValueKind.String&&!(numeric&&value.ValueKind==JsonValueKind.Number))throw new InvalidDataException("CSV来源字段类型无效："+tag);
@@ -107,7 +108,7 @@ public static class MetadataCsv
         foreach (var row in rows.Skip(1))
             if (row.Length != header.Length || !seen.Add(row[0]) || !paths.Add(row[1])) throw new InvalidDataException("CSV行长度或重复身份/路径无效。");
         var allowed = authorized.ToDictionary(row => row.Id); var warnings = new List<string>();
-        if (tags.Any(tag => !Tags.Contains(tag))) warnings.Add("未知或当前不支持的字段已忽略。");
+        if (tags.Any(tag => !Tags.Contains(tag))) throw new InvalidDataException("CSV含未开放标签，整批拒绝。");
         int identitySkipped=0;
         var result = new Dictionary<string, IReadOnlyDictionary<string, string>>();
         for (var index = 1; index < rows.Count; index++)
@@ -130,8 +131,8 @@ public static class MetadataCsv
                         var items = json.RootElement.EnumerateArray().Select(item => item.GetString()!).ToArray();
                         canonical = JsonSerializer.Serialize(items);
                         if (original.Cells.GetValueOrDefault(tag) == canonical) continue;
-                        if (items.Any(item => item.Length == 0 || item.Contains('\r') || item.Contains('\n'))) throw new ArgumentException();
-                        value = string.Join("\n", items);
+                        if (items.Any(item => item.Length == 0)) throw new ArgumentException();
+                        value = MetadataFields.FormatList(items);
                     }
                     else
                     {

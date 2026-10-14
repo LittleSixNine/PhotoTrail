@@ -14,16 +14,18 @@ internal static class BatchTrackMatch
         if((value.ValueKind!=JsonValueKind.String && !(numeric && value.ValueKind==JsonValueKind.Number)) || value.ToString().Length==0)throw new ArgumentException("字段格式或类型错误："+tag);
         return value.ToString();
     }
-    internal static string? Capture(PhotoDocument document)=>Capture(document.Embedded,document.Sidecar,document.Draft);
-    internal static string? Capture(JsonElement embedded,JsonElement? sidecar,IReadOnlyDictionary<string,string> draft) {
-        const string tag="XMP-exif:DateTimeOriginal";
-        if(draft.TryGetValue(tag,out var pending))return pending.Length==0?null:pending;
-        var xmp=Read(sidecar??embedded,tag);if(xmp is not null)return xmp;
-        var raw=Read(embedded,"Composite:SubSecDateTimeOriginal");if(raw is not null)return raw;
-        raw=Read(embedded,"ExifIFD:DateTimeOriginal");if(raw is null)return null;
-        var fraction=Read(embedded,"ExifIFD:SubSecTimeOriginal");var offset=Read(embedded,"ExifIFD:OffsetTimeOriginal");
-        return raw+(fraction is null?"":"."+fraction)+(offset??"");
+    internal static string? Capture(PhotoDocument document) {
+        if(document.SidecarPath is null&&document.FileType is not("JPEG" or "XMP")&&!document.NewSidecarEditing)return Capture(document.Embedded,null,document.Draft);
+        var text=MetadataFields.DateText(document,document.MainDateTag);return text.Length==0?null:text;
     }
+    internal static string? Capture(JsonElement embedded,JsonElement? sidecar,IReadOnlyDictionary<string,string> draft) {
+        string tag=sidecar is not null||embedded.TryGetProperty("File:FileType",out var xmpType)&&xmpType.ToString()=="XMP"?"XMP-xmp:CreateDate":embedded.TryGetProperty("File:FileType",out var type)&&type.ToString()=="JPEG"?"Composite:SubSecDateTimeOriginal":"XMP-exif:DateTimeOriginal";
+        if(draft.TryGetValue(tag,out var pending))return pending.Length==0?null:pending;
+        var text=MetadataFields.Read(sidecar??embedded,tag);
+        if(sidecar is null&&tag=="XMP-exif:DateTimeOriginal"&&text.Length==0)text=MetadataFields.Read(embedded,"Composite:SubSecDateTimeOriginal");
+        return text.Length==0?null:text;
+    }
+
     internal static string Location(PhotoDocument document) {
         string? Value(string tag)=>document.Draft.TryGetValue(tag,out var value)?value:Read(document.Sidecar??document.Embedded,tag,true);
         var latitude=Value("XMP-exif:GPSLatitude");var longitude=Value("XMP-exif:GPSLongitude");var datum=Value("XMP-exif:GPSMapDatum");

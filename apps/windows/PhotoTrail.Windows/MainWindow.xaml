@@ -7,7 +7,7 @@
  <DockPanel Margin="16">
   <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
    <TextBlock Text="PhotoTrail" FontSize="26" FontWeight="SemiBold" />
-   <TextBlock Text="Windows 开发测试版 · XMP副本／地图与地区／可恢复重命名／CSV" Margin="0,4,0,10" />
+   <TextBlock Text="Windows 开发测试版 · 精确来源字段／成组日期／备份恢复／地图／重命名" Margin="0,4,0,10" />
    <WrapPanel>
     <Button x:Name="ReadButton" Content="导入照片" ToolTip="导入照片 · Ctrl+O" AutomationProperties.AcceleratorKey="Ctrl+O" Padding="12,6" Click="ReadPhoto" />
     <Button x:Name="FolderButton" Content="导入文件夹" ToolTip="导入文件夹 · Ctrl+Shift+O" AutomationProperties.AcceleratorKey="Ctrl+Shift+O" Padding="12,6" Margin="8,0,0,0" Click="ReadFolder" />
@@ -49,19 +49,34 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto">
          <StackPanel x:Name="Editor" Margin="10" IsEnabled="False">
           <TextBlock Text="只应用勾选字段。勾选并留空会清除该字段；混合值不自动应用。" TextWrapping="Wrap" Margin="0,0,0,10"/>
-          <CheckBox x:Name="AuthorApply" Content="作者 · 每行一项"/><TextBox x:Name="AuthorValue" AutomationProperties.Name="作者" AcceptsReturn="True" MinHeight="42" TextChanged="EditorChanged" Margin="0,4,0,10"/>
+          <CheckBox x:Name="AuthorApply" Content="作者 · 每行一项；项内换行用JSON字符串数组"/><TextBox x:Name="AuthorValue" AutomationProperties.Name="作者" AcceptsReturn="True" MinHeight="42" TextChanged="EditorChanged" Margin="0,4,0,10"/>
           <CheckBox x:Name="TitleApply" Content="标题 · x-default"/><TextBox x:Name="TitleValue" AutomationProperties.Name="标题" TextChanged="EditorChanged" Margin="0,4,0,10"/>
           <CheckBox x:Name="DescriptionApply" Content="说明 · x-default"/><TextBox x:Name="DescriptionValue" AutomationProperties.Name="说明" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="64" TextChanged="EditorChanged" Margin="0,4,0,10"/>
-          <CheckBox x:Name="KeywordsApply" Content="关键词 · 每行一项"/><TextBox x:Name="KeywordsValue" AutomationProperties.Name="关键词" AcceptsReturn="True" MinHeight="42" TextChanged="EditorChanged" Margin="0,4,0,10"/>
+          <CheckBox x:Name="KeywordsApply" Content="关键词 · 每行一项；项内换行用JSON字符串数组"/><TextBox x:Name="KeywordsValue" AutomationProperties.Name="关键词" AcceptsReturn="True" MinHeight="42" TextChanged="EditorChanged" Margin="0,4,0,10"/>
           <CheckBox x:Name="RightsApply" Content="版权 · x-default"/><TextBox x:Name="RightsValue" AutomationProperties.Name="版权" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="42" TextChanged="EditorChanged" Margin="0,4,0,10"/>
-          <CheckBox x:Name="RatingApply" Content="评分 · 0至5，-1拒绝，留空清除"/><TextBox x:Name="RatingValue" AutomationProperties.Name="评分" MaxLength="2" TextChanged="EditorChanged" Margin="0,4,0,10"/>
+          <CheckBox x:Name="RatingApply" Content="评分 · 0至5，-1拒绝，留空清除"/><TextBox x:Name="RatingValue" AutomationProperties.Name="评分" MaxLength="2" TextChanged="EditorChanged" Visibility="Collapsed"/><ComboBox IsEditable="True" IsEnabled="{Binding ElementName=RatingValue, Path=IsEnabled}" Text="{Binding ElementName=RatingValue, Path=Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,10" AutomationProperties.Name="Rating枚举选择或原始值"><ComboBoxItem Content=""/><ComboBoxItem Content="-1"/><ComboBoxItem Content="0"/><ComboBoxItem Content="1"/><ComboBoxItem Content="2"/><ComboBoxItem Content="3"/><ComboBoxItem Content="4"/><ComboBoxItem Content="5"/></ComboBox>
           <CheckBox x:Name="LabelApply" Content="标签 · 自定义文字"/><TextBox x:Name="LabelValue" AutomationProperties.Name="标签" MaxLength="256" TextChanged="EditorChanged" Margin="0,4,0,10"/>
           <CheckBox x:Name="DateApply" Content="XMP 拍摄时间"/><TextBox x:Name="DateValue" AutomationProperties.Name="拍摄时间" TextChanged="EditorChanged" Margin="0,4,0,4"/>
           <TextBlock Text="格式：yyyy:MM:dd HH:mm:ss，可附小数秒及Z/±hh:mm；不改 EXIF / IPTC。" TextWrapping="Wrap" Margin="0,0,0,10"/>
           <CheckBox x:Name="DigitizedApply" Content="XMP 数字化时间"/><TextBox x:Name="DigitizedValue" AutomationProperties.Name="数字化时间 · XMP" TextChanged="EditorChanged" Margin="0,4,0,10"/>
           <CheckBox x:Name="CreateDateApply" Content="XMP 创建时间"/><TextBox x:Name="CreateDateValue" AutomationProperties.Name="创建时间 · XMP" TextChanged="EditorChanged" Margin="0,4,0,10"/>
           <CheckBox x:Name="ModifyDateApply" Content="XMP 修改时间"/><TextBox x:Name="ModifyDateValue" AutomationProperties.Name="修改时间 · XMP" TextChanged="EditorChanged" Margin="0,4,0,10"/>
-          <TextBlock Text="以上时间分别勾选；批量日期只调整拍摄时间，不自动同步其他日期或文件时间。" TextWrapping="Wrap" Margin="0,0,0,10"/>
+          <TextBlock Text="四个XMP日期独立。旁车主时间为XMP创建时间；无旁车JPEG主时间为下方成组EXIF拍摄时间。" TextWrapping="Wrap" Margin="0,0,0,10"/>
+          <TextBlock Text="EXIF 精确来源 · 仅无旁车JPEG；与XMP同义字段独立" TextWrapping="Wrap"/>
+          <CheckBox x:Name="ExifArtistApply" Content="EXIF 作者 · IFD0:Artist"/><TextBox x:Name="ExifArtistValue" AutomationProperties.Name="EXIF 作者" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10"/>
+          <CheckBox x:Name="ExifDescriptionApply" Content="EXIF 说明 · IFD0:ImageDescription"/><TextBox x:Name="ExifDescriptionValue" AutomationProperties.Name="EXIF 说明" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10"/>
+          <CheckBox x:Name="ExifCopyrightApply" Content="EXIF 版权 · IFD0:Copyright"/><TextBox x:Name="ExifCopyrightValue" AutomationProperties.Name="EXIF 版权" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10"/>
+          <CheckBox x:Name="ExifSoftwareApply" Content="EXIF 软件 · IFD0:Software"/><TextBox x:Name="ExifSoftwareValue" AutomationProperties.Name="EXIF 软件" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10"/>
+          <CheckBox x:Name="ExifCommentApply" Content="EXIF 用户备注 · ExifIFD:UserComment"/><TextBox x:Name="ExifCommentValue" AutomationProperties.Name="EXIF 用户备注" AcceptsReturn="true" TextChanged="EditorChanged" Margin="0,4,0,10"/>
+          <CheckBox x:Name="ExifMakeApply" Content="EXIF 制造商 · IFD0:Make"/><TextBox x:Name="ExifMakeValue" AutomationProperties.Name="EXIF 制造商" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10"/>
+          <CheckBox x:Name="ExifModelApply" Content="EXIF 型号 · IFD0:Model"/><TextBox x:Name="ExifModelValue" AutomationProperties.Name="EXIF 型号" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10"/>
+          <CheckBox x:Name="ExifSerialApply" Content="EXIF 机身序列号 · ExifIFD:SerialNumber"/><TextBox x:Name="ExifSerialValue" AutomationProperties.Name="EXIF 机身序列号" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10"/>
+          <CheckBox x:Name="ExifLensMakeApply" Content="EXIF 镜头制造商 · ExifIFD:LensMake"/><TextBox x:Name="ExifLensMakeValue" AutomationProperties.Name="EXIF 镜头制造商" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10"/>
+          <CheckBox x:Name="ExifLensModelApply" Content="EXIF 镜头型号 · ExifIFD:LensModel"/><TextBox x:Name="ExifLensModelValue" AutomationProperties.Name="EXIF 镜头型号" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10"/>
+          <CheckBox x:Name="ExifLensSerialApply" Content="EXIF 镜头序列号 · ExifIFD:LensSerialNumber"/><TextBox x:Name="ExifLensSerialValue" AutomationProperties.Name="EXIF 镜头序列号" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10"/>
+          <CheckBox x:Name="ExifCaptureApply" Content="EXIF 拍摄时间 · 主时间／亚秒／偏移成组 · Composite:SubSecDateTimeOriginal"/><TextBox x:Name="ExifCaptureValue" AutomationProperties.Name="EXIF 拍摄时间 · 主时间／亚秒／偏移成组" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10"/>
+          <CheckBox x:Name="ExifCreateApply" Content="EXIF 数字化时间 · 成组 · Composite:SubSecCreateDate"/><TextBox x:Name="ExifCreateValue" AutomationProperties.Name="EXIF 数字化时间 · 成组" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10"/>
+          <CheckBox x:Name="ExifModifyApply" Content="EXIF 修改时间 · 成组 · Composite:SubSecModifyDate"/><TextBox x:Name="ExifModifyValue" AutomationProperties.Name="EXIF 修改时间 · 成组" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10"/>
           <CheckBox x:Name="CountryApply" Content="国家 · 手填"/><TextBox x:Name="CountryValue" AutomationProperties.Name="国家" MaxLength="256" TextChanged="EditorChanged" Margin="0,4,0,10"/>
           <CheckBox x:Name="StateApply" Content="省／州 · 手填"/><TextBox x:Name="StateValue" AutomationProperties.Name="省／州" MaxLength="256" TextChanged="EditorChanged" Margin="0,4,0,10"/>
           <CheckBox x:Name="CityApply" Content="城市 · 手填"/><TextBox x:Name="CityValue" AutomationProperties.Name="城市" MaxLength="256" TextChanged="EditorChanged" Margin="0,4,0,10"/>
@@ -78,8 +93,8 @@
           <CheckBox x:Name="IsoApply" Content="ISO · 整数1至1000000"/><TextBox x:Name="IsoValue" AutomationProperties.Name="ISO · XMP" TextChanged="EditorChanged" Margin="0,4,0,10"/>
           <CheckBox x:Name="FocalLengthApply" Content="焦距 · mm · 0.1至10000"/><TextBox x:Name="FocalLengthValue" AutomationProperties.Name="焦距 · XMP" TextChanged="EditorChanged" Margin="0,4,0,10"/>
           <CheckBox x:Name="ExposureBiasApply" Content="曝光补偿 · EV · -100至100"/><TextBox x:Name="ExposureBiasValue" AutomationProperties.Name="曝光补偿 · XMP" TextChanged="EditorChanged" Margin="0,4,0,10"/>
-          <CheckBox x:Name="ExposureProgramApply" Content="曝光程序 · 整数0至8"/><TextBox x:Name="ExposureProgramValue" AutomationProperties.Name="曝光程序 · XMP" TextChanged="EditorChanged" Margin="0,4,0,10"/>
-          <CheckBox x:Name="WhiteBalanceApply" Content="白平衡 · 0自动／1手动"/><TextBox x:Name="WhiteBalanceValue" AutomationProperties.Name="白平衡 · XMP" TextChanged="EditorChanged" Margin="0,4,0,10"/>
+          <CheckBox x:Name="ExposureProgramApply" Content="曝光程序 · 整数0至8"/><TextBox x:Name="ExposureProgramValue" AutomationProperties.Name="曝光程序 · XMP" TextChanged="EditorChanged" Visibility="Collapsed"/><ComboBox IsEditable="True" IsEnabled="{Binding ElementName=ExposureProgramValue, Path=IsEnabled}" Text="{Binding ElementName=ExposureProgramValue, Path=Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,10" AutomationProperties.Name="ExposureProgram枚举选择或原始值"><ComboBoxItem Content=""/><ComboBoxItem Content="0"/><ComboBoxItem Content="1"/><ComboBoxItem Content="2"/><ComboBoxItem Content="3"/><ComboBoxItem Content="4"/><ComboBoxItem Content="5"/><ComboBoxItem Content="6"/><ComboBoxItem Content="7"/><ComboBoxItem Content="8"/></ComboBox>
+          <CheckBox x:Name="WhiteBalanceApply" Content="白平衡 · 0自动／1手动"/><TextBox x:Name="WhiteBalanceValue" AutomationProperties.Name="白平衡 · XMP" TextChanged="EditorChanged" Visibility="Collapsed"/><ComboBox IsEditable="True" IsEnabled="{Binding ElementName=WhiteBalanceValue, Path=IsEnabled}" Text="{Binding ElementName=WhiteBalanceValue, Path=Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,10" AutomationProperties.Name="WhiteBalance枚举选择或原始值"><ComboBoxItem Content=""/><ComboBoxItem Content="0"/><ComboBoxItem Content="1"/></ComboBox>
          </StackPanel>
         </ScrollViewer>
         </DockPanel>
@@ -110,7 +125,7 @@
           <WrapPanel><Button Content="上移" Click="MovePresetUp"/><Button Content="下移" Click="MovePresetDown"/><Button Content="删除所选操作" Click="DeletePresetOperation"/><Button Content="清空操作链" Click="ClearPresetOperations"/></WrapPanel>
           <TextBlock Text="目标字段"/><ComboBox x:Name="PresetTarget" DisplayMemberPath="Name" SelectedValuePath="Tag" SelectionChanged="PresetEditorChanged" AutomationProperties.Name="预设目标字段"/>
           <TextBlock Text="动作"/><ComboBox x:Name="PresetAction" DisplayMemberPath="Name" SelectedValuePath="Action" SelectionChanged="PresetActionChanged" AutomationProperties.Name="预设动作"/>
-          <TextBlock Text="参数（列表每行一项；清除不使用参数）"/><TextBox x:Name="PresetValue" AcceptsReturn="True" Height="60" VerticalScrollBarVisibility="Auto" MaxLength="8192" TextChanged="PresetEditorChanged" AutomationProperties.Name="预设动作参数"/>
+          <TextBlock Text="参数（列表每行一项；项内换行用JSON字符串数组；清除不使用参数）"/><TextBox x:Name="PresetValue" AcceptsReturn="True" Height="60" VerticalScrollBarVisibility="Auto" MaxLength="8192" TextChanged="PresetEditorChanged" AutomationProperties.Name="预设动作参数"/>
           <StackPanel x:Name="PresetCopyControls" Visibility="Collapsed">
            <TextBlock Text="复制源字段（每张照片自己的草稿及前一步值）"/><ComboBox x:Name="PresetSource" DisplayMemberPath="Name" SelectedValuePath="Tag" SelectionChanged="PresetEditorChanged" AutomationProperties.Name="预设复制源字段"/>
            <TextBlock Text="接收字段（可多选；排除源字段，按规范字段顺序展开）"/><ListBox x:Name="PresetRecipients" DisplayMemberPath="Name" SelectionMode="Multiple" Height="110" SelectionChanged="PresetEditorChanged" AutomationProperties.Name="预设复制接收字段"/>
@@ -126,7 +141,8 @@
        </TabItem>
        <TabItem Header="批量日期">
         <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="10">
-          <TextBlock Text="仅调整所选XMP拍摄时间；不改EXIF、IPTC、文件系统时间。当前草稿作为起点。" TextWrapping="Wrap"/>
+          <TextBlock Text="调整所选主时间：无旁车JPEG为成组EXIF拍摄时间，旁车／独立XMP为XMP创建时间。其他日期独立，不改IPTC或文件时间。" TextWrapping="Wrap"/>
+          <TextBlock Text="日期目标"/><ComboBox x:Name="DateTarget" SelectedIndex="0" SelectionChanged="DatePlanChanged" AutomationProperties.Name="日期操作精确目标"><ComboBoxItem Content="主时间（按实际来源）"/><ComboBoxItem Tag="Composite:SubSecDateTimeOriginal" Content="Composite:SubSecDateTimeOriginal"/><ComboBoxItem Tag="Composite:SubSecCreateDate" Content="Composite:SubSecCreateDate"/><ComboBoxItem Tag="Composite:SubSecModifyDate" Content="Composite:SubSecModifyDate"/><ComboBoxItem Tag="XMP-exif:DateTimeOriginal" Content="XMP-exif:DateTimeOriginal"/><ComboBoxItem Tag="XMP-exif:DateTimeDigitized" Content="XMP-exif:DateTimeDigitized"/><ComboBoxItem Tag="XMP-xmp:CreateDate" Content="XMP-xmp:CreateDate"/><ComboBoxItem Tag="XMP-xmp:ModifyDate" Content="XMP-xmp:ModifyDate"/></ComboBox>
           <ComboBox x:Name="DateMode" SelectedIndex="0" SelectionChanged="DatePlanChanged" AutomationProperties.Name="日期操作" Margin="0,8"><ComboBoxItem Content="调整各自日期"/><ComboBoxItem Content="按当前选择顺序设置序列"/><ComboBoxItem Content="替换指定日期组件"/><ComboBoxItem Content="按当前选择顺序均匀分布"/><ComboBoxItem Content="从文件名捕获日期"/></ComboBox>
           <StackPanel x:Name="DateShiftOptions">
           <TextBlock Text="调整量（整数，可负；依次应用年、月、日、时、分、秒）" TextWrapping="Wrap"/>

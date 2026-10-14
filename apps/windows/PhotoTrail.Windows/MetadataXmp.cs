@@ -27,8 +27,8 @@ public static class MetadataXmp
             if(field.Name is "XMP-dc:Creator" or "XMP-dc:Subject")
             {
                 var words = field.Value.ValueKind == JsonValueKind.Array ? field.Value.EnumerateArray().ToArray() : new[] { field.Value };
-                if(words.Any(word=>word.ValueKind != JsonValueKind.String || word.GetString()!.Length == 0 || word.GetString()!.Contains('\r') || word.GetString()!.Contains('\n')))throw new InvalidDataException("XMP列表含不能安全填入编辑区的项。");
-                changes.Add(field.Name,string.Join("\n",words.Select(word=>word.GetString())));
+                if(words.Any(word=>word.ValueKind != JsonValueKind.String || word.GetString()!.Length == 0))throw new InvalidDataException("XMP列表含不能安全填入编辑区的项。");
+                changes.Add(field.Name,MetadataFields.FormatList(words.Select(word=>word.GetString()!)));
             }
             else
             {
@@ -51,6 +51,7 @@ public static class MetadataXmp
         if(!Path.GetExtension(path).Equals(".xmp",StringComparison.OrdinalIgnoreCase))throw new ArgumentException("输出须为.xmp文件。");
         if(!Directory.Exists(folder))throw new DirectoryNotFoundException("输出文件夹不存在。");
         if(File.Exists(path))throw new IOException("目标已存在，不会覆盖。");
+        if(draft.Keys.Any(t=>!t.StartsWith("XMP-",StringComparison.Ordinal)))throw new ArgumentException("XMP交换不能携带EXIF草稿；请使用图内保存目标。");
         PhotoDocument.ValidateChanges(draft);dates.Require(draft);await photo.EnsureUnchangedAsync(cancellation);
         var temporary = Path.Combine(folder,".phototrail-xmp-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(temporary);
         var packet = Path.Combine(temporary,"packet.xmp");var savedFolder = Path.Combine(temporary,"saved");var saved = Path.Combine(savedFolder,"packet.xmp");

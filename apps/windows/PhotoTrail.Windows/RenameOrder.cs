@@ -33,7 +33,10 @@ public sealed record RenameInput(string Path,IReadOnlyDictionary<string,string> 
         if(raw is null||!DateTimeOffset.TryParse(raw,CultureInfo.InvariantCulture,DateTimeStyles.None,out var time))return null;
         return (time.UtcTicks-DateTime.UnixEpoch.Ticks)/(decimal)TimeSpan.TicksPerSecond;
     }
+    internal bool CaptureKnown {get;init;}
+    internal string? MainCapture {get;init;}
     internal IEnumerable<string> ShootingTexts() {
+        if(CaptureKnown){if(MainCapture is not null)yield return BridgeDate(MainCapture);yield break;}
         foreach(var key in new[]{"Composite:SubSecDateTimeOriginal","Composite:DateTimeOriginal","ExifIFD:DateTimeOriginal","XMP-exif:DateTimeOriginal","ExifIFD:CreateDate","QuickTime:CreationDate","QuickTime:DateTimeOriginal","QuickTime:ContentCreateDate","QuickTime:CreateDate","QuickTime:MediaCreateDate","ID3:Date","XMP-xmp:CreateDate"}) {
             var raw=Tag(key);if(raw is null)continue;bool digitized=key.EndsWith(":CreateDate",StringComparison.Ordinal);
             var fraction=Tag(digitized?"SubSecTimeDigitized":"SubSecTimeOriginal");var offset=Tag(digitized?"OffsetTimeDigitized":"OffsetTimeOriginal");

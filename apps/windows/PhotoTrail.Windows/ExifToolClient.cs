@@ -67,7 +67,7 @@ public sealed class ExifToolClient(string executable, string? script = null)
         if (files.Count is < 1 or > 64) throw new ArgumentException("批量读取限1至64个物理文件。");
         var paths = files.Select(Path.GetFullPath).ToArray(); var expected = paths.ToHashSet(StringComparer.OrdinalIgnoreCase);
         if (expected.Count != paths.Length || paths.Any(path => !File.Exists(path))) throw new ArgumentException("批量文件重复或不存在。");
-        var arguments = new[] { "-charset", "filename=UTF8", "-j", "-G1", "-a", "-s", "-n", "--" }.Concat(paths);
+        var arguments = new[] { "-charset", "filename=UTF8", "-charset", "exif=UTF8", "-api", "StructFormat=JSONQ", "-j", "-G1", "-a", "-s", "-n", "--" }.Concat(paths);
         var output = await RunAsync(arguments, cancellation);
         using var document = JsonDocument.Parse(output);
         if (document.RootElement.ValueKind != JsonValueKind.Array || document.RootElement.GetArrayLength() != paths.Length) throw new InvalidDataException("批量读取数量不一致。");
@@ -84,7 +84,7 @@ public sealed class ExifToolClient(string executable, string? script = null)
     public async Task<JsonElement> ReadAsync(string file, CancellationToken cancellation = default)
     {
         if (!File.Exists(file)) throw new FileNotFoundException("照片不存在。", file);
-        var output = await RunAsync(["-charset", "filename=UTF8", "-j", "-G1", "-a", "-s", "-n", "--", Path.GetFullPath(file)], cancellation);
+        var output = await RunAsync(["-charset", "filename=UTF8", "-charset", "exif=UTF8", "-api", "StructFormat=JSONQ", "-j", "-G1", "-a", "-s", "-n", "--", Path.GetFullPath(file)], cancellation);
         using var document = JsonDocument.Parse(output);
         if (document.RootElement.ValueKind != JsonValueKind.Array || document.RootElement.GetArrayLength() != 1)
             throw new InvalidDataException("元数据返回格式不正确。");
@@ -101,7 +101,7 @@ public sealed class ExifToolClient(string executable, string? script = null)
         if(files.Count is <1 or >64)throw new ArgumentException("展示批次限1至64个物理文件。");
         var paths=files.Select(Path.GetFullPath).ToArray();var expected=paths.ToHashSet(StringComparer.OrdinalIgnoreCase);
         if(expected.Count!=files.Count||paths.Any(p=>!File.Exists(p)))throw new ArgumentException("展示文件重复或不存在。");
-        var output=await RunAsync(new[]{"-charset","filename=UTF8","-j","-G1:4","-a","-u","-s","-n","--"}.Concat(expected),token);
+        var output=await RunAsync(new[]{"-charset","filename=UTF8","-charset","exif=UTF8","-api","StructFormat=JSONQ","-j","-G1:4","-a","-u","-s","-n","--"}.Concat(expected),token);
         using var json=JsonDocument.Parse(output);var result=new Dictionary<string,JsonElement>(StringComparer.OrdinalIgnoreCase);
         if(json.RootElement.ValueKind!=JsonValueKind.Array)throw new InvalidDataException("完整来源格式无效。");
         foreach(var item in json.RootElement.EnumerateArray()) {

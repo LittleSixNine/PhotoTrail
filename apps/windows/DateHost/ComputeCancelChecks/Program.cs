@@ -79,7 +79,7 @@ static class Program
   var data=Path.Combine(ComputeCancelProbe.Folder,"data");Directory.CreateDirectory(data);collection.Clear();docs=new PhotoDocument[3000];
   for(int i=0;i<docs.Length;i++){var path=Path.Combine(data,$"sample-{i:D4}.xmp");File.Copy(first.FilePath,path);docs[i]=(PhotoDocument)ctor.Invoke([path,null,first.Embedded,null,first.SourceHash,null]);collection.Add(Activator.CreateInstance(rowType,docs[i])!);}
   docs[100].SetDraft(new Dictionary<string,string>{{"XMP-dc:Title","existing synthetic title"}});
-  await docs[1].SetDraftAsync(new Dictionary<string,string>{{DatePagePreview.Field,"2026:01:01 00:00:00.123Z"}});
+  await docs[1].SetDraftAsync(new Dictionary<string,string>{{docs[1].MainDateTag,"2026:01:01 00:00:00.123Z"}});
   draftSnapshot=Drafts();list.SelectAll();var dateTab=DatesTab(window)!;((TabControl)LogicalTreeHelper.GetParent(dateTab)).SelectedItem=dateTab;Control<ComboBox>("DateMode").SelectedIndex=0;
   foreach(var name in new[]{"DateYears","DateMonths","DateDays","DateHours","DateMinutes","DateSeconds"})Control<TextBox>(name).Text="1";
   if(sharedEntry){
@@ -97,7 +97,7 @@ static class Program
    ComputeCancelProbe.Record("canceled-request-settled",new{draftsPreserved=true});
    Control<TextBox>("DateSeconds").Text="2";apply.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
    limit.Restart();while((bool)Field("busy")!&&limit.Elapsed<TimeSpan.FromSeconds(45))await Task.Delay(10);
-   Check(!(bool)Field("busy")!&&(sharedEntry?docs.Select((d,i)=>d.Value("XMP-exif:DateTimeDigitized")=="2024:01:01 00:00:00."+i.ToString("D9")+"-00:00").All(x=>x):docs[0].Value(DatePagePreview.Field)=="2025:02:02 01:01:02.123456789-00:00"&&docs.All(d=>d.Draft.ContainsKey(DatePagePreview.Field))),"new-direct-request-after-cancel-correct");
+   Check(!(bool)Field("busy")!&&(sharedEntry?docs.Select((d,i)=>d.Value("XMP-exif:DateTimeDigitized")=="2024:01:01 00:00:00."+i.ToString("D9")+"-00:00").All(x=>x):docs[0].Value(docs[0].MainDateTag)=="2025:02:02 01:01:02.123456789-00:00"&&docs.All(d=>d.Draft.ContainsKey(d.MainDateTag))),"new-direct-request-after-cancel-correct");
    typeof(MainWindow).GetMethod("UndoLastApply",BindingFlags.NonPublic|BindingFlags.Instance)!.Invoke(window,[window,new RoutedEventArgs()]);
    Check(Drafts()==draftSnapshot,"new-complete-undo-restores-earlier-drafts");
    foreach(var doc in docs)await doc.EnsureUnchangedAsync();Check(true,"all-3000-synthetic-sources-unchanged");

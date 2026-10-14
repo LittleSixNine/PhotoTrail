@@ -110,7 +110,7 @@ static partial class Program
   // Real WPF editor and explicit summary/cancel/execute flow.
   list.SelectedItem=rows.Single(r=>Doc(r).FilePath==raw);Check(!Control<Button>("FieldApplyButton").IsEnabled,"default-RAW-editor-readonly");
   Control<ComboBox>("SaveModeChoice").SelectedIndex=1;Check(Control<Button>("FieldApplyButton").IsEnabled,"explicit-sidecar-mode-opens-existing-whitelist-editor");
-  EditedFields(new Dictionary<string,string>{{"XMP-dc:Title","WPF saved title"},{"XMP-exif:DateTimeOriginal","1700:02:03 04:05:06.987654321-03:30"}});await Apply("ApplyDraft");await Idle();
+  EditedFields(new Dictionary<string,string>{{"XMP-dc:Title","WPF saved title"},{"XMP-xmp:CreateDate","1700:02:03 04:05:06.987654321-03:30"}});await Apply("ApplyDraft");await Idle();
   var rawDoc=Doc(list.SelectedItem!);Check(rawDoc.Draft.Count==2,"WPF-RAW-staging-title-date");
   Control<ComboBox>("SaveModeChoice").SelectedIndex=0;Check(Control<ComboBox>("SaveModeChoice").SelectedIndex==1&&rawDoc.Draft.Count==2,"RAW-existing-draft-cannot-silently-retarget-copy");
   Action("PrepareSaveAll");Check(Control<TextBox>("SaveSummary").Text.Contains(Path.ChangeExtension(raw,".xmp"))&&!File.Exists(Path.ChangeExtension(raw,".xmp")),"summary-lists-real-target-without-creating");
@@ -121,7 +121,7 @@ static partial class Program
   Check(Status.Contains("成功1")&&File.Exists(Path.ChangeExtension(raw,".xmp")),"production-execute-real-sidecar");
   var newRaw=list.Items.Cast<object>().Select(Doc).Single(d=>d.FilePath==raw);Check(newRaw.SidecarPath is not null&&newRaw.Draft.Count==0,"production-adopts-source-clears-confirmed-fields-count");
   Check(Field("lastApply") is null&&Field("trackBatch") is null,"source-change-invalidates-undo-and-track-plan");
-  Check(newRaw.VerifiedDate("XMP-exif:DateTimeOriginal") is not null,"new-main-date-v2-read-proof");
+  Check(newRaw.VerifiedCaptureDate is not null,"new-main-date-v2-read-proof");
   Control<ComboBox>("PhotoSort").SelectedIndex=2;var first=Doc(list.Items[0]);Check(first.FilePath==raw,"source-adoption-v2-main-date-sort");
   list.SelectedItem=list.Items.Cast<object>().Single(r=>Doc(r).FilePath==raw);SelectMetadataTab("重命名");Input("RenameDateFrom","1700-01-01");Input("RenameDateTo","1700-12-31");Action("RefreshRenameOrder");await RenameWait();Check(Groups().Length>=1,"source-adoption-v2-rename-date-filter");Input("RenameDateFrom","");Input("RenameDateTo","");
   SelectMetadataTab("元数据");var mixedRow=list.Items.Cast<object>().Single(r=>Doc(r).FilePath==raw);list.SelectedItem=mixedRow;var mixed=Doc(mixedRow);
