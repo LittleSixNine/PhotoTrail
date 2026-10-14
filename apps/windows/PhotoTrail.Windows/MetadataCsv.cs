@@ -12,7 +12,7 @@ public sealed record CsvImport(IReadOnlyDictionary<string, IReadOnlyDictionary<s
 public static class MetadataCsv
 {
     public const int MaximumBytes = 8 * 1024 * 1024;
-    public static readonly string[] Tags = new[] {"XMP-dc:Creator", "XMP-dc:Title", "XMP-dc:Description", "XMP-dc:Subject", "XMP-exif:DateTimeOriginal", "XMP-photoshop:Country", "XMP-photoshop:State", "XMP-photoshop:City", "XMP-iptcCore:Location", "XMP-iptcCore:CountryCode", "XMP-dc:Rights", "XMP-xmp:Rating", "XMP-xmp:Label", "XMP-tiff:Make", "XMP-tiff:Model", "XMP-aux:Lens", "XMP-aux:LensSerialNumber", "XMP-exif:DateTimeDigitized", "XMP-xmp:CreateDate", "XMP-xmp:ModifyDate", "XMP-exif:ExposureTime", "XMP-exif:FNumber", "XMP-exif:ISO", "XMP-exif:FocalLength", "XMP-exif:ExposureCompensation", "XMP-exif:ExposureProgram", "XMP-exif:WhiteBalance"}.Concat(MetadataFields.ExifText).Concat(MetadataFields.DateGroups.Keys).Concat(MetadataIptc.Fields.Keys).ToArray();
+    public static readonly string[] Tags = new[] {"XMP-dc:Creator", "XMP-dc:Title", "XMP-dc:Description", "XMP-dc:Subject", "XMP-exif:DateTimeOriginal", "XMP-photoshop:Country", "XMP-photoshop:State", "XMP-photoshop:City", "XMP-iptcCore:Location", "XMP-iptcCore:CountryCode", "XMP-dc:Rights", "XMP-xmp:Rating", "XMP-xmp:Label", "XMP-tiff:Make", "XMP-tiff:Model", "XMP-aux:Lens", "XMP-aux:LensSerialNumber", "XMP-exif:DateTimeDigitized", "XMP-xmp:CreateDate", "XMP-xmp:ModifyDate", "XMP-exif:ExposureTime", "XMP-exif:FNumber", "XMP-exif:ISO", "XMP-exif:FocalLength", "XMP-exif:ExposureCompensation", "XMP-exif:ExposureProgram", "XMP-exif:WhiteBalance"}.Concat(MetadataFields.ExifText).Concat(MetadataFields.DateGroups.Keys).Concat(MetadataIptc.Fields.Keys).Concat(MetadataFields.ExifNumeric.Keys).Concat(MetadataTimes.Fields).ToArray();
     private static bool IsList(string tag) => MetadataFields.IsList(tag);
     public static string Identity(string path) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Path.GetFullPath(path)))).ToLowerInvariant();
     public static bool SafePath(string path) => path.Length is > 0 and <= 32767 && !path.Contains('\\') && !path.StartsWith('/') &&
@@ -33,8 +33,8 @@ public static class MetadataCsv
             {
                 if (photo.Draft.TryGetValue(tag, out var draft))
                     cells[tag] = IsList(tag) ? JsonSerializer.Serialize(MetadataFields.List(draft)) : JsonSerializer.Serialize(draft);
-                else if(MetadataFields.DateGroups.ContainsKey(tag)) {var text=photo.Value(tag);if(text.Length>0)cells[tag]=JsonSerializer.Serialize(text);}
-                else if ((photo.Sidecar ?? photo.Embedded).TryGetProperty(tag, out var value)) {
+                else if(MetadataFields.DateGroups.ContainsKey(tag)||MetadataTimes.IsSystem(tag)) {var text=photo.Value(tag);if(text.Length>0)cells[tag]=JsonSerializer.Serialize(text);}
+                else if ((tag.StartsWith("XMP-",StringComparison.Ordinal)?photo.Sidecar??photo.Embedded:photo.Embedded).TryGetProperty(tag, out var value)) {
                     bool numeric=tag=="XMP-xmp:Rating"||PhotoDocument.NumericRange(tag) is not null;
                     if(IsList(tag)?value.ValueKind!=JsonValueKind.String&&(value.ValueKind!=JsonValueKind.Array||value.EnumerateArray().Any(v=>v.ValueKind!=JsonValueKind.String)):value.ValueKind!=JsonValueKind.String&&!(numeric&&value.ValueKind==JsonValueKind.Number))throw new InvalidDataException("CSV来源字段类型无效："+tag);
                     cells[tag] = IsList(tag) ? JsonSerializer.Serialize(value.ValueKind == JsonValueKind.Array ? value.EnumerateArray().Select(item => item.ToString()).ToArray() : new[] { value.ToString() }) : JsonSerializer.Serialize(value.ToString());
@@ -122,7 +122,7 @@ public static class MetadataCsv
                 {
                     var tag = tags[column]; var cell = row[column + 2];
                     if (!Tags.Contains(tag) || cell.Length == 0) continue;
-                    if (cell == "@clear") { if (original.Cells.TryGetValue(tag, out var before) && before is not ("\"\"" or "[]")) changes[tag] = ""; continue; }
+                    if (cell == "@clear") { if(MetadataTimes.IsSystem(tag))throw new ArgumentException("文件时间不可清除。"); if (original.Cells.TryGetValue(tag, out var before) && before is not ("\"\"" or "[]")) changes[tag] = ""; continue; }
                     using var json = JsonDocument.Parse(cell);
                     string canonical; string value;
                     if (IsList(tag))

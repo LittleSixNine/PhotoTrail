@@ -19,7 +19,7 @@ public partial class MainWindow
     }
     void ShowInplaceRecord(object sender,RoutedEventArgs e) {
         reviewedRecovery=null;if(busy||InplaceRecords.SelectedItem is not RecoveryRow row)return;
-        try{var r=InplaceHistory.Read(InplaceHistory.PathFor(row.Record.Id));SaveSummary.Text=$"恢复／核对记录：{r.Id}\n阶段：{r.Phase}\n目标：{r.Target}\n备份：{r.Backup}\n原SHA：{r.OriginalHash}\n保存后SHA：{r.NewHash??"unknown"}\n恢复：保留当前版本；仅按身份及已知SHA覆盖。外部变化／缺失／损坏拒绝。\n{r.Detail}";reviewedRecovery=r.Id;}
+        try{var r=InplaceHistory.Read(InplaceHistory.PathFor(row.Record.Id));SaveSummary.Text=$"恢复／核对记录：{r.Id}\n版本：{r.Version}；原创建／修改：{r.Original.Created:O}／{r.Original.Written:O}；保存后：{r.SavedProperties?.Created:O}／{r.SavedProperties?.Written:O}\n阶段：{r.Phase}\n目标：{r.Target}\n备份：{r.Backup}\n原SHA：{r.OriginalHash}\n保存后SHA：{r.NewHash??"unknown"}\n恢复：保留当前版本；仅按身份及已知SHA覆盖。外部变化／缺失／损坏拒绝。\n{r.Detail}";reviewedRecovery=r.Id;}
         catch(Exception error){InplaceStatus.Text="记录不能核对："+error.Message;}
     }
     async void RestoreInplaceRecord(object sender,RoutedEventArgs e)=>await ResolveInplace(true);

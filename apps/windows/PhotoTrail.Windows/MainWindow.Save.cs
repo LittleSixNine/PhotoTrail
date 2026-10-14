@@ -82,7 +82,7 @@ public partial class MainWindow
                             try {
                                 using var sourceGuard=new FileStream(next.FilePath,FileMode.Open,FileAccess.Read,FileShare.Read);
                                 using var sidecarGuard=next.SidecarPath is null?null:new FileStream(next.SidecarPath,FileMode.Open,FileAccess.Read,FileShare.Read);
-                                await next.EnsureUnchangedAsync(request.Token);SavePlan.Require(item);
+                                await next.EnsureUnchangedAsync(request.Token);SavePlan.Require(item,source:plan.Mode!=SaveMode.Inplace);
                                 if(result.RecordId is {} recordId){var record=InplaceHistory.Read(InplaceHistory.PathFor(recordId));await InplaceHistory.VerifyCurrent(record,record.NewHash!,record.NewIdentity!,request.Token);}
                                 if(sequence!=rereadSequence)throw new IOException("保存请求已失效。");
                                 var old=photos.Single(r=>ReferenceEquals(r.Document,item.Document));var replacement=old with{Document=next};bool selected=Photos.SelectedItems.Contains(old);

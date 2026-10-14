@@ -10,7 +10,7 @@ public sealed record PhotoReadResult(string FilePath, PhotoDocument? Document, s
 
 public sealed class PhotoDocument
 {
-    public static readonly IReadOnlyList<string> EditableTags = Array.AsReadOnly(new[] { "XMP-dc:Creator", "XMP-dc:Title", "XMP-dc:Description", "XMP-dc:Subject", "XMP-exif:DateTimeOriginal", "XMP-exif:GPSLatitude", "XMP-exif:GPSLongitude", "XMP-exif:GPSAltitude", "XMP-exif:GPSAltitudeRef", "XMP-exif:GPSMapDatum", "XMP-exif:GPSProcessingMethod", "XMP-exif:GPSDateTime", "XMP-photoshop:Country", "XMP-photoshop:State", "XMP-photoshop:City", "XMP-iptcCore:Location", "XMP-iptcCore:CountryCode", "XMP-dc:Rights", "XMP-xmp:Rating", "XMP-xmp:Label", "XMP-tiff:Make", "XMP-tiff:Model", "XMP-aux:Lens", "XMP-aux:LensSerialNumber", "XMP-exif:DateTimeDigitized", "XMP-xmp:CreateDate", "XMP-xmp:ModifyDate", "XMP-exif:ExposureTime", "XMP-exif:FNumber", "XMP-exif:ISO", "XMP-exif:FocalLength", "XMP-exif:ExposureCompensation", "XMP-exif:ExposureProgram", "XMP-exif:WhiteBalance" }.Concat(MetadataFields.ExifText).Concat(MetadataFields.DateGroups.Keys).Concat(MetadataIptc.Fields.Keys).ToArray());
+    public static readonly IReadOnlyList<string> EditableTags = Array.AsReadOnly(new[] { "XMP-dc:Creator", "XMP-dc:Title", "XMP-dc:Description", "XMP-dc:Subject", "XMP-exif:DateTimeOriginal", "XMP-exif:GPSLatitude", "XMP-exif:GPSLongitude", "XMP-exif:GPSAltitude", "XMP-exif:GPSAltitudeRef", "XMP-exif:GPSMapDatum", "XMP-exif:GPSProcessingMethod", "XMP-exif:GPSDateTime", "XMP-photoshop:Country", "XMP-photoshop:State", "XMP-photoshop:City", "XMP-iptcCore:Location", "XMP-iptcCore:CountryCode", "XMP-dc:Rights", "XMP-xmp:Rating", "XMP-xmp:Label", "XMP-tiff:Make", "XMP-tiff:Model", "XMP-aux:Lens", "XMP-aux:LensSerialNumber", "XMP-exif:DateTimeDigitized", "XMP-xmp:CreateDate", "XMP-xmp:ModifyDate", "XMP-exif:ExposureTime", "XMP-exif:FNumber", "XMP-exif:ISO", "XMP-exif:FocalLength", "XMP-exif:ExposureCompensation", "XMP-exif:ExposureProgram", "XMP-exif:WhiteBalance" }.Concat(MetadataFields.ExifText).Concat(MetadataFields.DateGroups.Keys).Concat(MetadataIptc.Fields.Keys).Concat(MetadataFields.ExifNumeric.Keys).Concat(MetadataTimes.Fields).ToArray());
     internal string MainDateTag => SidecarPath is not null || FileType=="XMP" || NewSidecarEditing ? "XMP-xmp:CreateDate" : FileType=="JPEG" ? "Composite:SubSecDateTimeOriginal" : "XMP-exif:DateTimeOriginal";
     public string FilePath { get; }
     public string? SidecarPath { get; }
@@ -19,6 +19,8 @@ public sealed class PhotoDocument
     public string SourceHash { get; }
     public InspectorValue[]? Inspection {get;internal set;}
     public string InspectionError {get;internal set;}="";
+    internal SourceTimes? Times {get;private set;}
+    internal string TimeZoneSnapshot {get;private set;}=MetadataTimes.Zone;
     internal MetadataIptc? Iptc {get;private set;}
     public string? SidecarHash { get; }
     private readonly Dictionary<string, string> draft = [];
@@ -54,7 +56,7 @@ public sealed class PhotoDocument
     internal PhotoDocument BatchSnapshot() {
         var copy=new PhotoDocument(FilePath,SidecarPath,Embedded,Sidecar,SourceHash,SidecarHash);
         foreach(var pair in draft)copy.draft.Add(pair.Key,pair.Value);
-        copy.Iptc=Iptc;copy.Inspection=Inspection;copy.InspectionError=InspectionError;copy.DraftRevision=DraftRevision;copy.dateSnapshot=dateSnapshot;copy.DateReadFailure=DateReadFailure;copy.detachedBatch=true;copy.NewSidecarEditing=NewSidecarEditing;return copy;
+        copy.Times=Times;copy.TimeZoneSnapshot=TimeZoneSnapshot;copy.Iptc=Iptc;copy.Inspection=Inspection;copy.InspectionError=InspectionError;copy.DraftRevision=DraftRevision;copy.dateSnapshot=dateSnapshot;copy.DateReadFailure=DateReadFailure;copy.detachedBatch=true;copy.NewSidecarEditing=NewSidecarEditing;return copy;
     }
     internal void ReplaceDraft(IReadOnlyDictionary<string,string> state) { draft.Clear();foreach(var pair in state)draft.Add(pair.Key,pair.Value); }
     internal void NotifyDraftChanged()=>ChangedDraft();
@@ -103,6 +105,7 @@ public sealed class PhotoDocument
         if (paired != (sidecar is not null) || hash != await HashAsync(file, cancellation) || (sidecar is not null && sidecarHash != await HashAsync(sidecar, cancellation)))
             throw new IOException("读取期间文件或旁车关系已改变，请重新导入。");
         var doc=new PhotoDocument(file, sidecar, metadata, external, hash, sidecarHash);
+        doc.Times=SourceTimes.Read(file);
         if(doc.FileType=="JPEG"){doc.Iptc=await MetadataIptc.ReadAsync(file,cancellation);doc.Iptc.CheckDecodedSource(metadata);}
         await doc.EnsureUnchangedAsync(cancellation);return doc;
     }
@@ -164,7 +167,7 @@ public sealed class PhotoDocument
                     var entries=MetadataInspector.Parse(metadata[doc.FilePath],doc.FileType=="XMP"?"独立XMP":"原图").ToList();
                     entries.Add(new(doc.FileType=="XMP"?"独立XMP":"原图","File:FilePath",doc.FilePath));
                     if(doc.SidecarPath is not null){entries.AddRange(MetadataInspector.Parse(metadata[doc.SidecarPath],"旁车XMP"));entries.Add(new("旁车XMP","File:FilePath",doc.SidecarPath));}
-                    await doc.EnsureUnchangedAsync(token);doc.Inspection=entries.ToArray();doc.InspectionError="";
+                    await doc.EnsureUnchangedAsync(token);doc.Inspection=entries.Where(v=>!(MetadataTimes.IsSystem(v.Canonical)&&v.Role== (doc.FileType=="XMP"?"独立XMP":"原图"))).Concat(doc.Times is null?Array.Empty<InspectorValue>():MetadataTimes.Fields.Select(t=>new InspectorValue(doc.FileType=="XMP"?"独立XMP":"原图",t,doc.Times.Value(t)))).ToArray();doc.InspectionError="";
                 }catch(OperationCanceledException){throw;}catch(Exception e)when(e is IOException or InvalidDataException or JsonException or UnauthorizedAccessException){doc.InspectionError="完整来源读取失败："+e.Message;}
             }
         }catch(OperationCanceledException){throw;}catch(Exception e)when(e is IOException or InvalidDataException or JsonException or TimeoutException or UnauthorizedAccessException){foreach(var doc in docs)doc.InspectionError="完整来源读取失败："+e.Message;}
@@ -202,7 +205,7 @@ public sealed class PhotoDocument
         foreach (var (tag, value) in changes)
         {
             var original = MetadataFields.Original(this,tag);
-            var normalized = MetadataFields.IsList(tag) ? MetadataFields.FormatList(MetadataFields.List(value)) : value.Length > 0 && NumericRange(tag) is not null ? CheckedNumber(tag,value).ToString(CultureInfo.InvariantCulture) : value;
+            var normalized = MetadataFields.IsList(tag) ? MetadataFields.FormatList(MetadataFields.List(value)) : value.Length > 0 && NumericRange(tag) is not null ? CheckedNumber(tag,value).ToString(CultureInfo.InvariantCulture) : MetadataTimes.Normalize(tag,value);
             // An explicit XMP coordinate clear must override the embedded GPS fallback in this session.
             var clearsEmbeddedGps=normalized.Length==0 && tag is ("XMP-exif:GPSLatitude" or "XMP-exif:GPSLongitude") && Embedded.TryGetProperty(tag.Replace("XMP-exif:","GPS:"),out _);
             if (normalized == original && !clearsEmbeddedGps) draft.Remove(tag); else draft[tag] = normalized;
@@ -266,7 +269,7 @@ public sealed class PhotoDocument
     public static string WriteTag(string tag) => tag is "XMP-dc:Title" or "XMP-dc:Description" or "XMP-dc:Rights" ? tag+"-x-default" : tag;
     public static string BaseTag(string tag) => tag is "XMP-dc:Title-x-default" or "XMP-dc:Description-x-default" or "XMP-dc:Rights-x-default" ? tag[..^10] : tag;
 
-    public static (double Minimum, double Maximum, bool Integer)? NumericRange(string tag) => tag switch
+    public static (double Minimum, double Maximum, bool Integer)? NumericRange(string tag) => MetadataFields.ExifNumeric.TryGetValue(tag,out var exif)?exif:tag switch
     {
         "XMP-exif:ExposureTime" => (0.000001,86400,false), "XMP-exif:FNumber" => (0.1,128,false),
         "XMP-exif:ISO" => (1,1000000,true), "XMP-exif:FocalLength" => (0.1,10000,false),
@@ -276,6 +279,7 @@ public sealed class PhotoDocument
     public static double CheckedNumber(string tag,string text)
     {
         var range = NumericRange(tag) ?? throw new ArgumentException("字段不是可编辑曝光参数。");
+        if(MetadataFields.ExifNumeric.ContainsKey(tag)&&range.Integer&&text.Contains('/'))throw new ArgumentException("EXIF整数标签不接受分数。");
         var parts = text.Split('/');
         if (parts.Length is < 1 or > 2 || !double.TryParse(parts[0],NumberStyles.Float,CultureInfo.InvariantCulture,out var number) || !double.IsFinite(number))
             throw new ArgumentException("曝光参数使用有限数值或分数。");
@@ -287,6 +291,7 @@ public sealed class PhotoDocument
         }
         if (!double.IsFinite(number) || number < range.Minimum || number > range.Maximum || range.Integer && Math.Truncate(number) != number)
             throw new ArgumentException("曝光参数超出字段范围或须为整数："+tag);
+        if(tag=="ExifIFD:ColorSpace"&&number is not(1 or 65535)||tag=="ExifIFD:MeteringMode"&&number is not(0 or 1 or 2 or 3 or 4 or 5 or 6 or 255))throw new ArgumentException("EXIF枚举不在明确白名单："+tag);
         return number;
     }
 
@@ -296,7 +301,7 @@ public sealed class PhotoDocument
         {
             if (!EditableTags.Contains(tag) || value.Length > 8192 || value.Contains('\0')) throw new ArgumentException("字段或值不在允许范围。");
             _ = new UTF8Encoding(false,true).GetByteCount(value);
-            MetadataIptc.Validate(tag,value);
+            MetadataTimes.Validate(tag,value);MetadataIptc.Validate(tag,value);
             if (value.Length > 0 && NumericRange(tag) is not null) _ = CheckedNumber(tag,value);
             if (tag == "XMP-xmp:Rating" && value is not ("" or "-1" or "0" or "1" or "2" or "3" or "4" or "5")) throw new ArgumentException("评分使用0至5的整数，-1表示拒绝；留空清除。");
             if (tag == "XMP-xmp:Label" && (value.Length > 256 || value.Any(char.IsControl))) throw new ArgumentException("标签最多256字且不可含控制字符。");
@@ -325,6 +330,8 @@ public sealed class PhotoDocument
 
     public async Task EnsureUnchangedAsync(CancellationToken cancellation = default)
     {
+        if(Times is not null&&Times!=SourceTimes.Read(FilePath))throw new IOException("原图创建／修改时间已改变，来源版本失效。");
+        if(Draft.Keys.Any(MetadataTimes.IsSystem)&&TimeZoneSnapshot!=MetadataTimes.Zone)throw new IOException("本机时区已改变；文件时间计划失效。");
         var candidate = Path.ChangeExtension(FilePath,".xmp");
         if (SourceHash != await HashAsync(FilePath,cancellation) ||
             (SidecarPath is not null && SidecarHash != await HashAsync(SidecarPath,cancellation)) ||
@@ -352,7 +359,7 @@ public static class MetadataCopy
         // Freeze only the requested fields; UI edits while saving cannot alter this operation.
         var changes=new Dictionary<string,string>(frozen);var revision=photo.DraftRevision;
         MetadataFields.Require(photo,changes);dates.Require(changes);
-        var writes=MetadataFields.WriteChanges(changes);
+        var writes=MetadataFields.WriteChanges(changes).Where(p=>!MetadataTimes.IsSystem(p.Key)).ToDictionary(p=>p.Key,p=>p.Value);
         if (!Directory.Exists(folder)) throw new DirectoryNotFoundException("输出文件夹不存在。");
         var output = Path.Combine(Path.GetFullPath(folder), Path.GetFileName(photo.FilePath));
         var sidecarOutput = photo.SidecarPath is null ? null : Path.ChangeExtension(output, ".xmp");
@@ -399,7 +406,7 @@ public static class MetadataCopy
                 }
             }
             arguments.Add("--"); arguments.Add(writable);
-            await client.RunAsync(arguments, cancellation,rejectWarnings:iptc);
+            if(writes.Count>0)await client.RunAsync(arguments, cancellation,rejectWarnings:iptc||changes.Keys.Any(MetadataFields.ExifNumeric.ContainsKey));
             if(iptc)photo.Iptc!.Verify(await MetadataIptc.ReadAsync(stagedImage,cancellation),changes);
             var result = await client.ReadAsync(writable, cancellation);
             foreach (var (tag, expected) in writes)
@@ -415,7 +422,7 @@ public static class MetadataCopy
                 else if (PhotoDocument.NumericRange(tag) is not null && expected.Length > 0)
                 {
                     var target = PhotoDocument.CheckedNumber(tag,expected);
-                    if (!double.TryParse(actual,NumberStyles.Float,CultureInfo.InvariantCulture,out var read) || !double.IsFinite(read) || Math.Abs(read-target) > Math.Max(1e-12,Math.Abs(target)*1e-9))
+                    if (!double.TryParse(actual,NumberStyles.Float,CultureInfo.InvariantCulture,out var read) || !double.IsFinite(read) || Math.Abs(read-target) > Math.Max(1e-12,Math.Abs(target)*(MetadataFields.IsApex(tag)?1e-6:1e-9)))
                         throw new InvalidDataException("曝光参数保存回读不一致："+tag);
                 }
                 else if (MetadataFields.IsList(tag) ? !MetadataFields.List(actual).SequenceEqual(MetadataFields.List(expected)) : actual != (MetadataIptc.Fields.ContainsKey(tag)?expected:expected.Replace("\r\n", "\n"))) throw new InvalidDataException("保存后字段回读不一致：" + tag);
@@ -437,6 +444,7 @@ public static class MetadataCopy
             }
             else if (photo.FileType == "JPEG")
             {
+                if(!iptc&&await JpegApp13Async(photo.FilePath,cancellation)!=await JpegApp13Async(stagedImage,cancellation))throw new InvalidDataException("非目标APP13原始载荷改变，拒绝交付。");
                 if(writes.Keys.Any(t=>!t.StartsWith("XMP-",StringComparison.Ordinal))) {
                     var complete=await client.ReadInspectionAsync([photo.FilePath,stagedImage],cancellation);
                     static string Canonical(string tag)=>tag.Split(':')[0]+":"+tag.Split(':')[^1];
@@ -452,17 +460,19 @@ public static class MetadataCopy
                 if (await JpegPixelsAsync(photo.FilePath, cancellation) != await JpegPixelsAsync(stagedImage, cancellation))
                     throw new InvalidDataException("JPEG像素载荷发生变化。");
             }
+            if(changes.Keys.Any(MetadataTimes.IsSystem))MetadataTimes.Apply(stagedImage,changes,photo.Times??throw new IOException("系统时间来源缺失。"));
             await photo.EnsureUnchangedAsync(cancellation);
             if(photo.DraftRevision!=revision)throw new InvalidOperationException("保存期间草稿revision已改变，副本未交付。");
             verifiedImageHash = await PhotoDocument.HashAsync(stagedImage, cancellation);
             cancellation.ThrowIfCancellationRequested();
             File.Move(stagedImage, output); movedImage = true;
             if (stagedSidecar is not null) File.Move(stagedSidecar, sidecarOutput!);
+            if(changes.Keys.Any(MetadataTimes.IsSystem))MetadataTimes.Require(output,changes,photo.Times!);
             return output;
         }
         catch
         {
-            if (inplaceRecord is null && movedImage && File.Exists(output) && verifiedImageHash == await PhotoDocument.HashAsync(output)) File.Delete(output);
+            if (inplaceRecord is null && !changes.Keys.Any(MetadataTimes.IsSystem) && movedImage && File.Exists(output) && verifiedImageHash == await PhotoDocument.HashAsync(output)) File.Delete(output);
             throw;
         }
         finally
@@ -480,18 +490,23 @@ public static class MetadataCopy
         await input.CopyToAsync(output, cancellation);
     }
 
-    public static async Task<string> JpegPixelsAsync(string file, CancellationToken cancellation = default)
+    public static Task<string> JpegPixelsAsync(string file, CancellationToken cancellation = default)=>JpegPayloadAsync(file,false,cancellation);
+    internal static Task<string> JpegApp13Async(string file,CancellationToken cancellation)=>JpegPayloadAsync(file,true,cancellation);
+    static async Task<string> JpegPayloadAsync(string file,bool app13,CancellationToken cancellation)
     {
         var bytes = await File.ReadAllBytesAsync(file, cancellation);
         if (bytes.Length < 4 || bytes[0] != 0xff || bytes[1] != 0xd8) throw new InvalidDataException("JPEG结构无效。");
+        using var hash=IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         for (var index = 2; index + 3 < bytes.Length;)
         {
             if (bytes[index] != 0xff) throw new InvalidDataException("JPEG段边界无效。");
             while (index + 1 < bytes.Length && bytes[index + 1] == 0xff) index++;
             if (index + 3 >= bytes.Length) break;
-            if (bytes[index + 1] == 0xda) return Convert.ToHexString(SHA256.HashData(bytes.AsSpan(index)));
+            // Post-scan APP13 is already protected by the unchanged complete scan payload.
+            if (bytes[index + 1] == 0xda) return Convert.ToHexString(app13?hash.GetHashAndReset():SHA256.HashData(bytes.AsSpan(index)));
             var length = (bytes[index + 2] << 8) + bytes[index + 3];
             if (length < 2 || index + 2 + length > bytes.Length) throw new InvalidDataException("JPEG段长度无效。");
+            if(app13&&bytes[index+1]==0xed)hash.AppendData(bytes.AsSpan(index,length+2));
             index += length + 2;
         }
         throw new InvalidDataException("JPEG缺少像素扫描段。");

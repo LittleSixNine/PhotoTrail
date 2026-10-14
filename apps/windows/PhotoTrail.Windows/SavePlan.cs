@@ -6,7 +6,7 @@ namespace PhotoTrail.Windows;
 
 internal enum SaveMode { Copy, NewSidecar, Inplace }
 internal enum SaveScope { All, Metadata, Map }
-internal sealed record SaveItem(PhotoDocument Document,long Revision,IReadOnlyDictionary<string,string> Fields,string Target,string? Companion);
+internal sealed record SaveItem(PhotoDocument Document,long Revision,IReadOnlyDictionary<string,string> Fields,string Target,string? Companion,string? TimeZone=null,SourceTimes? Times=null);
 internal sealed record SidecarResult(string Path,string? Hash,PhotoDocument? Document,string State,string Detail,string? RecordId=null,Dictionary<string,double>? Timings=null);
 internal sealed record SavePlan(SaveMode Mode,SaveScope Scope,SaveItem[] Items,string[] Skipped)
 {
@@ -27,7 +27,8 @@ internal sealed record SavePlan(SaveMode Mode,SaveScope Scope,SaveItem[] Items,s
             if(reason is not null){skipped.Add(Path.GetFileName(doc.FilePath)+"：拒绝，"+reason);continue;}
             string target=mode==SaveMode.Inplace?doc.SidecarPath??doc.FilePath:mode==SaveMode.NewSidecar?Path.ChangeExtension(doc.FilePath,".xmp"):Path.Combine(Path.GetFullPath(output),Path.GetFileName(doc.FilePath));
             var companion=mode==SaveMode.Copy&&doc.SidecarPath is not null?Path.ChangeExtension(target,".xmp"):null;
-            items.Add(new(doc,doc.DraftRevision,fields,target,companion));
+            if(fields.Keys.Any(MetadataTimes.IsSystem)&&doc.Times!=SourceTimes.Read(doc.FilePath))throw new IOException("文件时间来源已改变，计划未准备。");
+            items.Add(new(doc,doc.DraftRevision,fields,target,companion,fields.Keys.Any(MetadataTimes.IsSystem)?MetadataTimes.Zone:null,doc.Times));
         }
         var targets=items.SelectMany(i=>i.Companion is null?new[]{i.Target}:new[]{i.Target,i.Companion}).ToArray();
         var keys=targets.Select(SavePaths.Canonical).ToArray();
@@ -38,8 +39,9 @@ internal sealed record SavePlan(SaveMode Mode,SaveScope Scope,SaveItem[] Items,s
         if(mode!=SaveMode.Inplace&&targets.Any(t=>File.Exists(t)||Directory.Exists(t)))throw new IOException("整批拒绝：目标已存在，不会覆盖。");
         return new(mode,scope,items.ToArray(),skipped.ToArray());
     }
-    internal string Summary=> $"模式：{(Mode==SaveMode.Copy?"副本":Mode==SaveMode.NewSidecar?"新建同目录XMP旁车":"原位保存（强制完整备份）")}\n照片：{Items.Length}；字段范围：{(Scope==SaveScope.All?"全部字段":Scope==SaveScope.Metadata?"元数据（非GPS）":"地图（整组GPS）")}\n新文件：{(Mode==SaveMode.Inplace?0:Items.Sum(i=>i.Companion is null?1:2))}\n"+string.Join("\n",Items.Select(i=>i.Target+(i.Companion is null?"":" + "+i.Companion)+$"（{i.Fields.Count}个技术字段：{string.Join(", ",i.Fields.Keys.Select(t=>MetadataFields.DateGroups.TryGetValue(t,out var parts)?t+" ["+string.Join(" + ",parts)+"]":t))}）"+(i.Document.Iptc?.PlanDescription(i.Fields)??"")))+"\n"+string.Join("\n",Skipped);
-    internal static void Require(SaveItem item) {
+    internal string Summary=> $"模式：{(Mode==SaveMode.Copy?"副本":Mode==SaveMode.NewSidecar?"新建同目录XMP旁车":"原位保存（强制完整备份）")}\n照片：{Items.Length}；字段范围：{(Scope==SaveScope.All?"全部字段":Scope==SaveScope.Metadata?"元数据（非GPS）":"地图（整组GPS）")}\n新文件：{(Mode==SaveMode.Inplace?0:Items.Sum(i=>i.Companion is null?1:2))}\n"+string.Join("\n",Items.Select(i=>i.Target+(i.Companion is null?"":" + "+i.Companion)+$"（{i.Fields.Count}个技术字段：{string.Join(", ",i.Fields.Keys.Select(t=>MetadataFields.DateGroups.TryGetValue(t,out var parts)?t+" ["+string.Join(" + ",parts)+"]":t))}）"+(i.Document.Iptc?.PlanDescription(i.Fields)??"")+(i.TimeZone is null?"":"；原图系统时间；冻结时区="+TimeZoneInfo.FromSerializedString(i.TimeZone).Id+"；Windows精度100ns，无损设置="+string.Join(",",i.Fields.Where(p=>MetadataTimes.IsSystem(p.Key)).Select(p=>p.Key+"="+p.Value)))))+"\n"+string.Join("\n",Skipped);
+    internal static void Require(SaveItem item,bool source=true) {
+        if(item.TimeZone is not null&&(item.TimeZone!=MetadataTimes.Zone||source&&item.Times!=SourceTimes.Read(item.Document.FilePath)))throw new IOException("文件属性或本机时区改变，冻结计划失效。");
         if(item.Document.DraftRevision!=item.Revision||item.Fields.Any(p=>!item.Document.Draft.TryGetValue(p.Key,out var value)||value!=p.Value))throw new InvalidOperationException("草稿revision已改变，计划失效。");
     }
     internal static async Task<SidecarResult> CreateAsync(ExifToolClient client,SaveItem item,VerifiedMetadataDates proof,CancellationToken token) {

@@ -20,7 +20,7 @@ static partial class Program
   string[] words=["one, two","中文\nsecond line","日本語","[literal]"];
   string listText=MetadataFields.FormatList(words);Check(MetadataFields.List(listText).SequenceEqual(words),"list-elements-comma-newline-Unicode-boundaries");
   R04Refusal(()=>PhotoDocument.ValidateChanges(new Dictionary<string,string>{{"XMP-dc:Creator","[null]"}}),"null-list-rejected");
-  R04Refusal(()=>PhotoDocument.ValidateChanges(new Dictionary<string,string>{{"ExifIFD:ISO","100"}}),"R04b-numeric-EXIF-not-open");
+  R04Refusal(()=>PhotoDocument.ValidateChanges(new Dictionary<string,string>{{"ExifIFD:ISO","65536"}}),"R04c-EXIF-ISO-upper-bound");
   foreach(var bad in new[]{"2026:02:30 00:00:00","2026:01:01 24:00:00","2026:01:01 00:00:00+25:00"}) {
    var rev=jpeg.DraftRevision;try{await jpeg.SetDraftAsync(new Dictionary<string,string>{{jpeg.MainDateTag,bad}});throw new Exception("accepted invalid date");}catch(ArgumentException){}
    Check(jpeg.DraftRevision==rev,"invalid-grouped-date-keeps-revision");

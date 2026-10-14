@@ -19,7 +19,7 @@ internal static class InplaceSave
         string id=Guid.NewGuid().ToString("N"),folder=Path.Combine(Path.GetFullPath(backupRoot),id),stage=Path.Combine(Path.GetDirectoryName(item.Target)!,".phototrail-inplace-"+id);
         SavePaths.CreateOwnedDirectory(folder);
         using var ownBackup=SavePaths.LockParents(Path.Combine(folder,"boundary"),true);
-        var record=new InplaceRecord(1,id,photo.FilePath,item.Target,SavePaths.Canonical(item.Target),Path.GetFullPath(backupRoot),Path.Combine(folder,Path.GetFileName(item.Target)+".backup"),stage,original,properties,item.Revision,new(item.Fields),"prepared",SourceHash:photo.SourceHash,SourceIdentity:InplaceNative.Inspect(photo.FilePath).Identity);
+        var record=new InplaceRecord(item.Fields.Keys.Any(MetadataTimes.IsSystem)?2:1,id,photo.FilePath,item.Target,SavePaths.Canonical(item.Target),Path.GetFullPath(backupRoot),Path.Combine(folder,Path.GetFileName(item.Target)+".backup"),stage,original,properties,item.Revision,new(item.Fields),"prepared",SourceHash:photo.SourceHash,SourceIdentity:InplaceNative.Inspect(photo.FilePath).Identity);
         InplaceHistory.Append(record,true);bool commitAttempted=false;var clock=Stopwatch.StartNew();var timings=new Dictionary<string,double>();
         try {
             await InplaceNative.CopyDurable(item.Target,record.Backup,token);InplaceNative.ApplyProperties(record.Backup,properties);InplaceNative.Flush(record.Backup);
@@ -30,24 +30,25 @@ internal static class InplaceSave
             using var ownStage=SavePaths.LockParents(Path.Combine(stage,"boundary"),true);
             await MetadataCopy.SaveValidatedAsync(client,photo,stage,item.Fields,dates,token,id);
             string writable=Path.Combine(stage,Path.GetFileName(item.Target));
-            InplaceNative.ApplyProperties(writable,properties);InplaceNative.Flush(writable);
+            var requested=MetadataTimes.Requested(properties,item.Fields);
+            InplaceNative.ApplyProperties(writable,requested);InplaceNative.Flush(writable);
             string hash=await PhotoDocument.HashAsync(writable,token);var newIdentity=InplaceNative.Inspect(writable).Identity;
-            record=record with{Phase="staged",NewHash=hash,NewIdentity=newIdentity};InplaceHistory.Append(record);timings["stageMs"]=clock.Elapsed.TotalMilliseconds;clock.Restart();
+            record=record with{Phase="staged",NewHash=hash,NewIdentity=newIdentity,SavedProperties=record.Version==2?requested with{Identity=newIdentity}:null};InplaceHistory.Append(record);timings["stageMs"]=clock.Elapsed.TotalMilliseconds;clock.Restart();
             await photo.EnsureUnchangedAsync(token);SavePlan.Require(item);await InplaceHistory.VerifyCurrent(record,original,properties.Identity,token);token.ThrowIfCancellationRequested();
             targetGuard.Dispose();
             using var replacement=new InplaceNative.Replacement(item.Target,properties,original);
             record=record with{Phase="committing"};InplaceHistory.Append(record);commitAttempted=true;
-            replacement.Commit(writable,item.Target,properties with{Identity=newIdentity},hash);timings["commitMs"]=clock.Elapsed.TotalMilliseconds;clock.Restart();
+            replacement.Commit(writable,item.Target,requested with{Identity=newIdentity},hash);timings["commitMs"]=clock.Elapsed.TotalMilliseconds;clock.Restart();
             token.ThrowIfCancellationRequested();
             // Exact staged-byte equality plus independent real-source reads verifies both target and non-target contents.
             await InplaceHistory.VerifyCurrent(record,hash,newIdentity,token);
             var next=await PhotoDocument.LoadAsync(client,photo.FilePath,token,inspect:true);
             if(next.InspectionError.Length>0||(photo.SidecarPath is not null&&next.SourceHash!=photo.SourceHash)||next.SidecarPath!=photo.SidecarPath||InplaceNative.Inspect(item.Target).Security!=properties.Security)throw new IOException("真实来源、原图字节或权限未确认。");
-            foreach(var field in item.Fields){string value=next.Value(field.Key);bool numeric=field.Key is "XMP-exif:GPSLatitude" or "XMP-exif:GPSLongitude" or "XMP-exif:GPSAltitude"||PhotoDocument.NumericRange(field.Key) is not null;bool equal=numeric&&field.Value.Length>0?double.TryParse(value,NumberStyles.Float,CultureInfo.InvariantCulture,out var read)&&double.TryParse(field.Value,NumberStyles.Float,CultureInfo.InvariantCulture,out var expected)&&double.IsFinite(read)&&double.IsFinite(expected)&&Math.Abs(read-expected)<=0.00000001:MetadataFields.IsList(field.Key)?MetadataFields.List(value).SequenceEqual(MetadataFields.List(field.Value)):VerifiedMetadataDates.IsDate(field.Key)?value.Replace("Z","+00:00")==field.Value.Replace("Z","+00:00"):value==field.Value;if(!equal)throw new IOException("真实目标字段回读不一致："+field.Key);}
+            foreach(var field in item.Fields)if(!MetadataFields.Matches(field.Key,next.Value(field.Key),field.Value))throw new IOException("真实目标字段回读不一致："+field.Key);
             var residual=photo.Draft.Where(p=>!item.Fields.ContainsKey(p.Key)).ToDictionary(p=>p.Key,p=>p.Value);
             var before=photo.BatchSnapshot();before.ReplaceDraft(new Dictionary<string,string>());
             foreach(var tag in residual.Keys)if(before.Value(tag)!=next.Value(tag))throw new IOException("残余草稿的原基准改变；保留草稿并禁止盲写："+tag);
-            await next.SetDraftValidatedAsync(residual,dates,next.DraftRevision,token);await next.EnsureUnchangedAsync(token);SavePlan.Require(item);
+            await next.SetDraftValidatedAsync(residual,dates,next.DraftRevision,token);await next.EnsureUnchangedAsync(token);SavePlan.Require(item,source:false);
             record=record with{Phase="readback"};InplaceHistory.Append(record);timings["readbackMs"]=clock.Elapsed.TotalMilliseconds;
             return new(item.Target,hash,next,"待接纳","真实目标已独立核验；备份及记录保留，尚待界面确认。",id,timings);
         }catch(Exception error) {

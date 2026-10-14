@@ -13,7 +13,7 @@ public sealed record MetadataPreset(string Name, IReadOnlyList<MetadataOperation
     public const int MaximumBytes = 128 * 1024;
     public const int MaximumOperations = 27;
     public static bool IsList(string tag) => MetadataFields.IsList(tag);
-    public static bool IsText(string tag) => MetadataCsv.Tags.Contains(tag) && !IsList(tag) && PhotoDocument.NumericRange(tag) is null && !VerifiedMetadataDates.IsDate(tag) && tag is not ("XMP-xmp:Rating" or "XMP-iptcCore:CountryCode" or "XMP-exif:DateTimeOriginal" or "XMP-exif:DateTimeDigitized" or "XMP-xmp:CreateDate" or "XMP-xmp:ModifyDate");
+    public static bool IsText(string tag) => MetadataCsv.Tags.Contains(tag) && !IsList(tag) && PhotoDocument.NumericRange(tag) is null && !VerifiedMetadataDates.IsDate(tag) && !MetadataTimes.IsSystem(tag) && !MetadataTimes.IsPartial(tag) && tag is not ("XMP-xmp:Rating" or "XMP-iptcCore:CountryCode" or "XMP-exif:DateTimeOriginal" or "XMP-exif:DateTimeDigitized" or "XMP-xmp:CreateDate" or "XMP-xmp:ModifyDate");
     public static MetadataPreset Create(string name, IReadOnlyDictionary<string,string> changes) => Create(name, changes.Select(p => new MetadataOperation(p.Key, p.Value.Length == 0 ? "remove" : IsList(p.Key)&&p.Key!="XMP-dc:Subject"&&p.Key!="IPTC:Keywords" ? "replaceAuthors" : p.Key is "XMP-dc:Subject" or "IPTC:Keywords" ? "replaceKeywords" : "setText", p.Value)).ToArray());
     public static MetadataPreset Create(string name, IReadOnlyList<MetadataOperation> operations)
     {
@@ -26,8 +26,9 @@ public sealed record MetadataPreset(string Name, IReadOnlyList<MetadataOperation
     public static MetadataOperation Validate(MetadataOperation op)
     {
         if (!MetadataCsv.Tags.Contains(op.Tag)) throw new ArgumentException("预设含未支持字段。");
-        if (op.Action == "remove") { if (op.Value.Length != 0) throw new ArgumentException("清除不接受参数。"); return op; }
-        if (op.Action == "copy") {
+        if (op.Action == "remove") { if (op.Value.Length != 0||MetadataTimes.IsSystem(op.Tag)) throw new ArgumentException("清除不接受参数；系统时间不可清除。"); return op; }
+        if((MetadataTimes.IsSystem(op.Tag)||MetadataTimes.IsPartial(op.Tag)||MetadataFields.ExifNumeric.ContainsKey(op.Tag))&&op.Action is not("setText" or "remove"))throw new ArgumentException("R04c仅开放固定值设置／允许的清除，不新增复制或计算动作。");
+        if (op.Action == "copy") { if(MetadataTimes.IsSystem(op.Value)||MetadataTimes.IsPartial(op.Value)||MetadataFields.ExifNumeric.ContainsKey(op.Value))throw new ArgumentException("本批新目标不新增复制动作。");
             if (!MetadataCsv.Tags.Contains(op.Value) || op.Tag == op.Value || (op.Tag.StartsWith("XMP-",StringComparison.Ordinal)?"XMP":MetadataIptc.Fields.ContainsKey(op.Tag)?"IPTC":"EXIF")!=(op.Value.StartsWith("XMP-",StringComparison.Ordinal)?"XMP":MetadataIptc.Fields.ContainsKey(op.Value)?"IPTC":"EXIF") || IsList(op.Tag) != IsList(op.Value)) throw new ArgumentException("复制源和目标须为不同的已开放同类字段（文字／列表）；接收值仍须通过目标校验。");
             return op;
         }
@@ -116,7 +117,7 @@ public sealed record MetadataPreset(string Name, IReadOnlyList<MetadataOperation
             cancellation.ThrowIfCancellationRequested(); string? value;
             if (op.Action == "copy") { _ = Current(op.Tag); value = Current(op.Value); if (value is null) { skipped++; continue; } }
             else {
-                var current = op.Action=="remove"?null:Current(op.Tag);
+                var current = op.Action=="remove"||op.Action=="setText"&&(MetadataTimes.IsSystem(op.Tag)||MetadataTimes.IsPartial(op.Tag)||MetadataFields.ExifNumeric.ContainsKey(op.Tag))?null:Current(op.Tag);
                 if (op.Action is "fillMissingText" or "fillMissingAuthors" && current is not null) continue;
                 value = op.Action switch {
                     "remove" => null,
@@ -144,8 +145,8 @@ public sealed record MetadataPreset(string Name, IReadOnlyList<MetadataOperation
     {
         CheckReadSource(photo);
         if (photo.Draft.TryGetValue(tag,out var pending)) return pending.Length == 0 ? null : pending;
-        if(MetadataFields.DateGroups.ContainsKey(tag)){var date=photo.Value(tag);return date.Length==0?null:date;}
-        var metadata = photo.Sidecar ?? photo.Embedded;
+        if(MetadataFields.DateGroups.ContainsKey(tag)||MetadataTimes.IsSystem(tag)){var date=photo.Value(tag);return date.Length==0?null:date;}
+        var metadata = tag.StartsWith("XMP-",StringComparison.Ordinal)?photo.Sidecar??photo.Embedded:photo.Embedded;
         if (!metadata.TryGetProperty(tag,out var item)) return null;
         if (IsList(tag)) {
             if (item.ValueKind != JsonValueKind.String && (item.ValueKind != JsonValueKind.Array || item.EnumerateArray().Any(w => w.ValueKind != JsonValueKind.String || w.GetString()!.Length == 0 || w.GetString()!.Contains('\0')))) throw new ArgumentException("来源列表类型无效，不能视为缺失。");

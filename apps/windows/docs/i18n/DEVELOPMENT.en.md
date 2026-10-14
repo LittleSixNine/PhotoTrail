@@ -1,3 +1,7 @@
+## R04c focused validation
+
+Use the existing .NET 10 Release win-x64 framework-dependent build and pinned Swift host. UiChecks runs production WPF: --r04c-checks, --r04c-restart and --r04c-scale (1/20/100). Count assertions separately from import observations and distinguish final candidate from early builds. Isolate all synthetic inputs, preferences, history, backups and outputs. The attribute-readback-fault.py wrapper requires existing Python and explicit PHOTOTRAIL_R04C_TEST_PYTHON, PHOTOTRAIL_R04C_FAULT_TOOL, PHOTOTRAIL_R04C_FAULT_TARGET and PHOTOTRAIL_R04C_FAULT_MARKER; it changes only the owned synthetic target after commit, then invokes the real existing ExifTool. Never point it at user photos or historical materials. Restart reuses the same inputs/history. Verify actual FILETIME, raw APEX/IIM, unchanged pixels, source attributes, mixed and time-only restore, v1 compatibility and affected regressions. SDK-free deployment, notices and SwiftPM 14001 remain open. [Contract](../NUMERIC-TIME.md).
+
 > R04b checks: UiChecks `--r04b-checks` / `--r04b-scale`, using isolated approved temporary copies and history only. Preserve raw IIM records and Photoshop resources; verify final EXE controls, ExifTool readback and pixels separately. Reuse the pinned date host and runtime. [Scope](../IPTC-FIELDS.md).
 
 ## 2026-10-13 · R03b

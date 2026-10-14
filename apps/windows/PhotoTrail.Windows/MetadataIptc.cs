@@ -10,7 +10,7 @@ internal sealed class MetadataIptc
         ["IPTC:By-line"]=(80,32,true),["IPTC:By-lineTitle"]=(85,32,true),["IPTC:Contact"]=(118,128,true),["IPTC:Keywords"]=(25,64,true),
         ["IPTC:Headline"]=(105,256,false),["IPTC:Caption-Abstract"]=(120,2000,false),["IPTC:ObjectName"]=(5,64,false),
         ["IPTC:City"]=(90,32,false),["IPTC:Province-State"]=(95,32,false),["IPTC:Sub-location"]=(92,32,false),
-        ["IPTC:Country-PrimaryLocationName"]=(101,64,false),["IPTC:Country-PrimaryLocationCode"]=(100,3,false)
+        ["IPTC:Country-PrimaryLocationName"]=(101,64,false),["IPTC:Country-PrimaryLocationCode"]=(100,3,false),["IPTC:DateCreated"]=(55,10,false),["IPTC:TimeCreated"]=(60,14,false)
     };
     internal sealed record Dataset(int Record,int Id,byte[] Value,byte[] Raw);
     internal readonly List<Dataset> Records=[];
@@ -78,7 +78,7 @@ internal sealed class MetadataIptc
     }
     internal static void Validate(string tag,string value) {
         if(value.Length==0||!Fields.TryGetValue(tag,out var field))return;
-        var values=field.List?MetadataFields.List(value):[value];
+        var values=field.List?MetadataFields.List(value):[MetadataTimes.Normalize(tag,value)];
         if(values.Length==0)throw new ArgumentException("IPTC设置列表须非空；清除请使用明确清除。");
         foreach(var text in values) {
             int bytes=new UTF8Encoding(false,true).GetByteCount(text);
@@ -89,11 +89,12 @@ internal sealed class MetadataIptc
     internal void Verify(MetadataIptc after,IReadOnlyDictionary<string,string> changes) {
         Require(changes);if(after.Error.Length>0)throw new InvalidDataException(after.Error);
         // APP13 layout can move ExifTool's absolute thumbnail offset without changing any EXIF bytes.
-        if(changes.Keys.All(t=>t.StartsWith("XMP-",StringComparison.Ordinal)||Fields.ContainsKey(t))&&!exifBlocks.Select(Convert.ToHexString).SequenceEqual(after.exifBlocks.Select(Convert.ToHexString)))throw new InvalidDataException("IPTC修改改变了非目标EXIF APP1原始载荷，拒绝交付。");
+        if(changes.Keys.All(t=>t.StartsWith("XMP-",StringComparison.Ordinal)||MetadataTimes.IsSystem(t)||Fields.ContainsKey(t))&&!exifBlocks.Select(Convert.ToHexString).SequenceEqual(after.exifBlocks.Select(Convert.ToHexString)))throw new InvalidDataException("IPTC修改改变了非目标EXIF APP1原始载荷，拒绝交付。");
         bool first=Empty&&changes.Any(p=>Fields.ContainsKey(p.Key)&&p.Value.Length>0);
         if(first&&!after.Utf8)throw new InvalidDataException("新IPTC的标准UTF8声明回读不一致。");
         foreach(var (tag,text) in changes.Where(p=>Fields.ContainsKey(p.Key))) {
-            var field=Fields[tag];var expected=text.Length==0?Array.Empty<string>():field.List?MetadataFields.List(text):[text];
+            var field=Fields[tag];var expected=text.Length==0?Array.Empty<string>():field.List?MetadataFields.List(text):[MetadataTimes.Normalize(tag,text)];
+            if(MetadataTimes.IsPartial(tag))expected=expected.Select(v=>v.Replace(":","")).ToArray();
             var actual=after.Records.Where(r=>r.Record==2&&r.Id==field.Dataset).Select(r=>Convert.ToHexString(r.Value));
             if(!actual.SequenceEqual(expected.Select(v=>Convert.ToHexString(new UTF8Encoding(false,true).GetBytes(v)))))throw new InvalidDataException("IPTC目标原始字节／列表顺序回读不一致："+tag);
         }

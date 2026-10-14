@@ -1,3 +1,11 @@
+## R04c 定向验证
+
+沿既有 .NET10／Release win-x64框架依赖构建，不重建固定Swift宿主。UiChecks使用生产WPF与同一生产程序集：`--r04c-checks`、`--r04c-restart`、`--r04c-scale`（PHOTOTRAIL_R02_COUNT=1／20／100）；断言与导入观察分列，最终候选与早期构建分别记录。所有输入、备份／历史、偏好和输出须隔离。
+
+故障验证只用于合成JPEG：设置PHOTOTRAIL_R04C_TEST_PYTHON为已有Python，PHOTOTRAIL_R04C_FAULT_TOOL指向UiChecks/attribute-readback-fault.py，PHOTOTRAIL_R04C_FAULT_TARGET及PHOTOTRAIL_R04C_FAULT_MARKER分别为本测试目标／唯一标记，PHOTOTRAIL_EXIFTOOL为现有完整工具。包装器仅在本夹具提交到2023-01-01 UTC后故意改修改时间10秒，再实际调用工具；验证真实属性回读不匹配的unknown与重启保护。不得设置为用户照片、旧备份或日用实例。重启沿原测试目录且不重建输入／清理记录。
+
+[WindowsFILETIME精度／零值哨兵／v1与v2契约](NUMERIC-TIME.md)；API及历法边界、APEX底层与实际IIM字节、取消、副本／原位／恢复、属性外部变化、CSV／剪贴板／固定预设和受影响回归分别核验。无SDK部署／许可NOTICE／SwiftPM14001仍未闭合。
+
 > R04b 验证入口：UiChecks `--r04b-checks`／`--r04b-scale`，仅隔离获准临时副本、独立备份／历史。原始 IIM 记录及 Photoshop 资源保护不替代独立 ExifTool、像素、生产控件与最终 EXE 原生证据。日期宿主不重建，工具与运行库复用；[支持边界](IPTC-FIELDS.md)。
 
 ## 2026-10-13 · R03b

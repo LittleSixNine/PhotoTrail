@@ -10,6 +10,26 @@ internal static class MetadataFields
         ["Composite:SubSecCreateDate"]=["ExifIFD:CreateDate","ExifIFD:SubSecTimeDigitized","ExifIFD:OffsetTimeDigitized"],
         ["Composite:SubSecModifyDate"]=["IFD0:ModifyDate","ExifIFD:SubSecTime","ExifIFD:OffsetTime"]
     };
+    internal static readonly Dictionary<string,(double Minimum,double Maximum,bool Integer)> ExifNumeric=new() {
+        ["ExifIFD:ExposureTime"]=(.000001,86400,false),["ExifIFD:ShutterSpeedValue"]=(.000001,86400,false),
+        ["ExifIFD:FNumber"]=(.1,128,false),["ExifIFD:ApertureValue"]=(1,128,false),["ExifIFD:MaxApertureValue"]=(1,128,false),
+        ["ExifIFD:ISO"]=(1,65535,true),["ExifIFD:FocalLength"]=(.1,10000,false),["ExifIFD:FocalLengthIn35mmFormat"]=(0,65535,true),
+        ["ExifIFD:ExposureCompensation"]=(-100,100,false),["ExifIFD:Flash"]=(0,127,true),["ExifIFD:ColorSpace"]=(1,65535,true),
+        ["ExifIFD:ExposureMode"]=(0,2,true),["ExifIFD:ExposureProgram"]=(0,8,true),["ExifIFD:MeteringMode"]=(0,255,true),
+        ["ExifIFD:WhiteBalance"]=(0,1,true),["ExifIFD:Saturation"]=(0,2,true),["ExifIFD:Sharpness"]=(0,2,true),
+        ["IFD0:Orientation"]=(1,8,true),["IFD0:XResolution"]=(.000001,1000000,false),["IFD0:YResolution"]=(.000001,1000000,false),["IFD0:ResolutionUnit"]=(1,3,true)
+    };
+    internal static bool IsApex(string tag)=>tag is "ExifIFD:ShutterSpeedValue" or "ExifIFD:ApertureValue" or "ExifIFD:MaxApertureValue";
+    internal static bool Matches(string tag,string actual,string expected) {
+        if(MetadataTimes.IsSystem(tag))return MetadataTimes.Parse(actual)==MetadataTimes.Parse(expected);
+        if(tag is "XMP-exif:GPSLatitude" or "XMP-exif:GPSLongitude" or "XMP-exif:GPSAltitude"&&expected.Length>0)
+            return double.TryParse(actual,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out var gps)&&double.TryParse(expected,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out var targetGps)&&double.IsFinite(gps)&&double.IsFinite(targetGps)&&Math.Abs(gps-targetGps)<=1e-8;
+        if(PhotoDocument.NumericRange(tag) is not null&&expected.Length>0) {
+            var target=PhotoDocument.CheckedNumber(tag,expected);
+            return double.TryParse(actual,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out var value)&&double.IsFinite(value)&&Math.Abs(value-target)<=Math.Max(1e-12,Math.Abs(target)*(IsApex(tag)?1e-6:1e-9));
+        }
+        return IsList(tag)?List(actual).SequenceEqual(List(expected)):VerifiedMetadataDates.IsDate(tag)?actual.Replace("Z","+00:00")==expected.Replace("Z","+00:00"):actual==expected;
+    }
     internal static bool IsList(string tag)=>tag is "XMP-dc:Creator" or "XMP-dc:Subject" || MetadataIptc.Fields.TryGetValue(tag,out var field)&&field.List;
     internal static bool CanEdit(PhotoDocument doc,string tag) {
         if(!PhotoDocument.EditableTags.Contains(tag)||!doc.CanStage||doc.InspectionError.Length>0)return false;
@@ -35,7 +55,7 @@ internal static class MetadataFields
         if(value.ValueKind!=JsonValueKind.String||value.GetString()!.Length==0)throw new ArgumentException("日期来源类型或空值非法；不能当作缺失。");
         return Read(source,tag);
     }
-    internal static string Original(PhotoDocument doc,string tag)=>Read(tag.StartsWith("XMP-",StringComparison.Ordinal)?doc.Sidecar??doc.Embedded:doc.Embedded,tag);
+    internal static string Original(PhotoDocument doc,string tag)=>MetadataTimes.IsSystem(tag)?doc.Times?.Value(tag)??"":Read(tag.StartsWith("XMP-",StringComparison.Ordinal)?doc.Sidecar??doc.Embedded:doc.Embedded,tag);
     internal static string Read(JsonElement source,string tag) {
         if(source.TryGetProperty(tag,out var value)) {
             if(!IsList(tag))return PhotoDocument.Text(value);
@@ -67,7 +87,7 @@ internal static class MetadataFields
     internal static Dictionary<string,string> WriteChanges(IReadOnlyDictionary<string,string> changes) {
         var result=new Dictionary<string,string>();
         foreach(var (tag,text) in changes) {
-            if(!DateGroups.TryGetValue(tag,out var parts)){result.Add(tag,text);continue;}
+            if(!DateGroups.TryGetValue(tag,out var parts)){result.Add(tag,MetadataTimes.Normalize(tag,text));continue;}
             if(text.Length==0){foreach(var part in parts)result.Add(part,"");continue;}
             // Calendar validity and exact text are proved by the pinned Swift host before writing.
             var match=Regex.Match(text,@"^(\d{4}:\d{2}:\d{2} \d{2}:\d{2}:\d{2})(?:\.(\d+))?(Z|[+-]\d{2}:\d{2})?$");

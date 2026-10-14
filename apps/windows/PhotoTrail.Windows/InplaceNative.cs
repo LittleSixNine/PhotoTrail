@@ -39,13 +39,13 @@ internal static class InplaceNative
         RequireSingleStream(path);
         var security=new FileInfo(path).GetAccessControl(AccessControlSections.Access|AccessControlSections.Owner|AccessControlSections.Group);
         if(security.GetAccessRules(true,false,typeof(System.Security.Principal.SecurityIdentifier)).Count>0)throw new IOException("自定义显式ACL目标未验证；保守拒绝原位操作。");
-        return new(new(i.Volume,i.High,i.Low),attributes,File.GetCreationTimeUtc(path),File.GetLastWriteTimeUtc(path),Security(path),File.GetLastAccessTimeUtc(path));
+        return new(new(i.Volume,i.High,i.Low),attributes,SourceTimes.FromFileTime(i.Created),SourceTimes.FromFileTime(i.Written),Security(path),SourceTimes.FromFileTime(i.Accessed));
     }
     internal static void ApplyProperties(string path,FileProperties properties) {
         var security=new FileSecurity();security.SetSecurityDescriptorSddlForm(properties.Security,AccessControlSections.Access|AccessControlSections.Owner|AccessControlSections.Group);
         new FileInfo(path).SetAccessControl(security);
         File.SetLastAccessTimeUtc(path,properties.Accessed);File.SetCreationTimeUtc(path,properties.Created);File.SetLastWriteTimeUtc(path,properties.Written);File.SetAttributes(path,properties.Attributes);
-        if(Inspect(path).Security!=properties.Security)throw new IOException("暂存权限与原目标不一致，拒绝提交。");
+        if(Inspect(path).Security!=properties.Security||SourceTimes.Read(path)!=new SourceTimes(properties.Created,properties.Written))throw new IOException("暂存权限与原目标不一致，拒绝提交。");
     }
     internal sealed class Replacement:IDisposable {
         readonly SafeFileHandle transaction;readonly string security;bool committed;
@@ -63,6 +63,8 @@ internal static class InplaceNative
             using var file=new FileStream(handle,FileAccess.ReadWrite);
             if(!GetFileInformationByHandle(handle,out var identity)||identity.Links!=1||(identity.Attributes&(uint)FileAttributes.ReparsePoint)!=0||properties.Identity!=new FileIdentity(identity.Volume,identity.High,identity.Low))throw new IOException("文件身份已改变。");
             RequireSingleStream(path);
+            long Stamp(System.Runtime.InteropServices.ComTypes.FILETIME time)=>((long)(uint)time.dwHighDateTime<<32)|(uint)time.dwLowDateTime;
+            if(Stamp(identity.Created)!=properties.Created.ToFileTimeUtc()||Stamp(identity.Written)!=properties.Written.ToFileTimeUtc()||identity.Attributes!=(uint)properties.Attributes)throw new IOException("事务句柄的创建／修改时间或属性改变，拒绝提交。");
             // The same-byte transactional write keeps the isolation lock after this handle closes.
             int first=file.ReadByte();if(first<0)throw new IOException("空目标拒绝。");file.Position=0;file.WriteByte((byte)first);file.Flush(true);file.Position=0;
             if(Convert.ToHexString(SHA256.HashData(file))!=hash||Security(path)!=security)throw new IOException("文件SHA或权限已改变，拒绝提交。");

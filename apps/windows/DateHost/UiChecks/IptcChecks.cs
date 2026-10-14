@@ -26,7 +26,7 @@ static partial class Program
   var original=jpeg.SourceHash;var pixels=await MetadataCopy.JpegPixelsAsync(jpeg.FilePath);Check(jpeg.Iptc!.Empty,"true-absent-IPTC-raw-source");
   var list=Control<ListBox>("Photos");list.SelectedItems.Clear();list.SelectedItems.Add(rows.Single(r=>ReferenceEquals(Doc(r),jpeg)));
   Check(Control<CheckBox>("IptcHeadlineApply").IsEnabled,"production-IPTC-editor-JPEG-enabled");
-  foreach(var pair in MetadataIptc.Fields) {
+  foreach(var pair in MetadataIptc.Fields.Where(p=>!MetadataTimes.IsPartial(p.Key))) {
    var (tag,f)=pair;string text=tag.EndsWith("Code")?"cHn":new string('a',f.Limit);var value=f.List?MetadataFields.FormatList([text]):text;
    PhotoDocument.ValidateChanges(new Dictionary<string,string>{{tag,value}});Check(true,"UTF8-exact-limit-"+tag);
    R04Refusal(()=>PhotoDocument.ValidateChanges(new Dictionary<string,string>{{tag,text+"a"}}),"UTF8-over-one-byte-"+tag);
@@ -41,7 +41,7 @@ static partial class Program
   R04Refusal(()=>PhotoDocument.ValidateChanges(new Dictionary<string,string>{{"IPTC:Keywords","[\"a\",\"\"]"}}),"empty-list-element-reject");
   R04Refusal(()=>PhotoDocument.ValidateChanges(new Dictionary<string,string>{{"IPTC:Keywords","[]"}}),"empty-IPTC-list-setting-not-implicit-clear");
   R04Refusal(()=>PhotoDocument.ValidateChanges(new Dictionary<string,string>{{"IPTC:Keywords",JsonSerializer.Serialize(Enumerable.Repeat("a",257))}}),"list-resource-limit-257");
-  var changes=MetadataIptc.Fields.Keys.ToDictionary(t=>t,t=>t.EndsWith("Code")?"cHn":MetadataFields.IsList(t)?MetadataFields.FormatList(["中文,日本é😀","second,element","line1\nline2"]):"中文 日本 é😀 e\u0301\nline");
+  var changes=MetadataIptc.Fields.Keys.Where(t=>!MetadataTimes.IsPartial(t)).ToDictionary(t=>t,t=>t.EndsWith("Code")?"cHn":MetadataFields.IsList(t)?MetadataFields.FormatList(["中文,日本é😀","second,element","line1\nline2"]):"中文 日本 é😀 e\u0301\nline");
   jpeg.SetDraft(changes);try{await MetadataXmp.ExportAsync(client,jpeg,Path.Combine(folder,"IPTC-rejected.xmp"));throw new Exception("IPTC exported as XMP");}catch(ArgumentException){}Check(!File.Exists(Path.Combine(folder,"IPTC-rejected.xmp")),"IPTC-draft-XMP-export-refused-no-file");var target=Path.Combine(folder,"copies");Directory.CreateDirectory(target);
   var output=await MetadataCopy.SaveAsync(client,jpeg,target);var saved=await PhotoDocument.LoadAsync(client,output,inspect:true);
   Check(saved.Iptc!.Utf8,"new-IPTC-standard-UTF8-declaration");
@@ -55,7 +55,7 @@ static partial class Program
   R04Refusal(()=>MetadataPreset.Create("invalid",new Dictionary<string,string>{{"IPTC:City",new string('a',33)}}),"IPTC-preset-over-byte-limit-atomic");
   R04Refusal(()=>MetadataPreset.Validate(new("IPTC:Headline","copy","IFD0:Artist")),"no-new-cross-source-IPTC-EXIF-copy");
   Check(MetadataClipboard.Prepare(changes["IPTC:Keywords"],["IPTC:Keywords"])["IPTC:Keywords"]==changes["IPTC:Keywords"],"IPTC-clipboard-list-boundaries");
-  saved.SetDraft(MetadataIptc.Fields.Keys.ToDictionary(t=>t,_=>""));var clearFolder=Path.Combine(folder,"cleared");Directory.CreateDirectory(clearFolder);var cleared=await PhotoDocument.LoadAsync(client,await MetadataCopy.SaveAsync(client,saved,clearFolder));
+  saved.SetDraft(MetadataIptc.Fields.Keys.Where(t=>!MetadataTimes.IsPartial(t)).ToDictionary(t=>t,_=>""));var clearFolder=Path.Combine(folder,"cleared");Directory.CreateDirectory(clearFolder);var cleared=await PhotoDocument.LoadAsync(client,await MetadataCopy.SaveAsync(client,saved,clearFolder));
   foreach(var tag in changes.Keys)Check(cleared.Value(tag)=="","real-clear-exact-"+tag);Check(cleared.Iptc!.Utf8,"clear-keeps-declaration");
   var utf8=Iim(1,90,[27,37,71]);var version=Iim(2,0,[0,4]);
   var cases=new Dictionary<string,byte[][]>{["record-version-only"]=[version],["ASCII-undeclared"]=[version,Iim(2,105,"ASCII"u8.ToArray())],["nonASCII-undeclared"]=[version,Iim(2,90,[0xe9,0xe0])],["other-declaration"]=[Iim(1,90,[27,37,47,65]),version],["conflict-declarations"]=[utf8,Iim(1,90,[27,37,47,65]),version]};

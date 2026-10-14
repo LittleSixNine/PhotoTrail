@@ -31,6 +31,7 @@ public partial class MainWindow : Window
     private readonly SemaphoreSlim photoPreviewGate = new(1,1);
     private CancellationTokenSource? photoPreviewRequest;
     private PhotoDocument? previewDocument;
+    private string previewOrientation="";
     private int photoPreviewRevision;
 
     private readonly string[] extensions = [".jpg", ".jpeg", ".png", ".heic", ".dng", ".tif", ".tiff", ".xmp", ".arw", ".nef", ".raf", ".cr2", ".cr3", ".rw2", ".orf", ".pef"];
@@ -79,7 +80,32 @@ public partial class MainWindow : Window
       ("IPTC:Province-State", IptcProvinceApply, IptcProvinceValue),
       ("IPTC:Sub-location", IptcLocationApply, IptcLocationValue),
       ("IPTC:Country-PrimaryLocationName", IptcCountryApply, IptcCountryValue),
-      ("IPTC:Country-PrimaryLocationCode", IptcCountryCodeApply, IptcCountryCodeValue) ];
+      ("IPTC:Country-PrimaryLocationCode", IptcCountryCodeApply, IptcCountryCodeValue),
+      ("ExifIFD:ExposureTime", ExifExposureTimeApply, ExifExposureTimeValue),
+      ("ExifIFD:ShutterSpeedValue", ExifShutterApply, ExifShutterValue),
+      ("ExifIFD:FNumber", ExifFNumberApply, ExifFNumberValue),
+      ("ExifIFD:ApertureValue", ExifApertureApply, ExifApertureValue),
+      ("ExifIFD:MaxApertureValue", ExifMaxApertureApply, ExifMaxApertureValue),
+      ("ExifIFD:ISO", ExifIsoApply, ExifIsoValue),
+      ("ExifIFD:FocalLength", ExifFocalApply, ExifFocalValue),
+      ("ExifIFD:FocalLengthIn35mmFormat", ExifFocal35Apply, ExifFocal35Value),
+      ("ExifIFD:ExposureCompensation", ExifBiasApply, ExifBiasValue),
+      ("ExifIFD:Flash", ExifFlashApply, ExifFlashValue),
+      ("ExifIFD:ColorSpace", ExifColorApply, ExifColorValue),
+      ("ExifIFD:ExposureMode", ExifModeApply, ExifModeValue),
+      ("ExifIFD:ExposureProgram", ExifProgramApply, ExifProgramValue),
+      ("ExifIFD:MeteringMode", ExifMeterApply, ExifMeterValue),
+      ("ExifIFD:WhiteBalance", ExifWhiteApply, ExifWhiteValue),
+      ("ExifIFD:Saturation", ExifSaturationApply, ExifSaturationValue),
+      ("ExifIFD:Sharpness", ExifSharpnessApply, ExifSharpnessValue),
+      ("IFD0:Orientation", ExifOrientationApply, ExifOrientationValue),
+      ("IFD0:XResolution", ExifXResApply, ExifXResValue),
+      ("IFD0:YResolution", ExifYResApply, ExifYResValue),
+      ("IFD0:ResolutionUnit", ExifResUnitApply, ExifResUnitValue),
+      ("IPTC:DateCreated", IptcDateApply, IptcDateValue),
+      ("IPTC:TimeCreated", IptcTimeApply, IptcTimeValue),
+      ("System:FileCreateDate", SystemCreateApply, SystemCreateValue),
+      ("System:FileModifyDate", SystemModifyApply, SystemModifyValue) ];
     private PhotoRow[] Selected => Photos.SelectedItems.Cast<PhotoRow>().ToArray();
 
     private readonly string themePreferencePath = Environment.GetEnvironmentVariable("PHOTOTRAIL_THEME_FILE") ?? ThemePreference.DefaultPath;
@@ -711,12 +737,12 @@ public partial class MainWindow : Window
     {
         if (!IsLoaded || PhotoPreviewTab is null) return;
         var photo = Selected.Length == 1 ? Selected[0].Document : null;
-        if (ReferenceEquals(photo,previewDocument)) return;
+        if (ReferenceEquals(photo,previewDocument)&&previewOrientation==photo?.Value("IFD0:Orientation")) return;
         photoPreviewRequest?.Cancel(); photoPreviewRequest?.Dispose(); photoPreviewRequest = null; photoPreviewRevision++;
         PhotoPreviewImage.Source = null; previewDocument = null;
         if (photo is null) { PhotoPreviewStatus.Text = "请选择一张JPEG/PNG/DNG照片进行预览。"; return; }
         if (!PhotoPreviewTab.IsSelected) return;
-        previewDocument = photo; var revision = photoPreviewRevision;
+        previewDocument = photo;previewOrientation=photo.Value("IFD0:Orientation"); var revision = photoPreviewRevision;
         photoPreviewRequest = new(); var token = photoPreviewRequest.Token;
         PhotoPreviewStatus.Text = "正在读取本机预览…";
         try
@@ -725,7 +751,7 @@ public partial class MainWindow : Window
             System.Windows.Media.Imaging.BitmapSource preview;
             try
             {
-                var orientation = photo.Embedded.TryGetProperty("IFD0:Orientation",out var field) && int.TryParse(field.ToString(),out var value) && value is >= 1 and <= 8 ? value : 1;
+                var orientation = int.TryParse(photo.Value("IFD0:Orientation"),out var value) && value is >= 1 and <= 8 ? value : 1;
                 var client = photo.FileType == "DNG" ? Tool() : null;
                 preview = await Task.Run(async () => photo.FileType == "DNG"
                     ? await PhotoPreview.LoadDngAsync(client!,photo.FilePath,photo.SourceHash,orientation,token)
