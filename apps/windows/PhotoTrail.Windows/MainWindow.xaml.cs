@@ -458,7 +458,7 @@ public partial class MainWindow : Window
         TrackInfo.Text = row is null ? "未选择轨迹。" : $"{row.Name}：{row.Data.Segments.Count}段，{row.Data.Segments.Sum(s => s.Count)}点；其中{row.Data.Segments.Sum(s => s.Count(p => p.Time is not null))}点有时间。";
         MatchResult.Text = "轨迹已切换；请重新预览匹配。尚未写入GPS。";
         ClearMatchMarker();
-        RefreshTrackControls();RefreshTrackWorkspaceStatus();await PostTrackAsync();if(!busy)await SaveCurrentTrackWorkspaceAsync();
+        RefreshTrackControls();RefreshTrackWorkspaceStatus();if(!busy)await SaveCurrentTrackWorkspaceAsync();await PostTrackAsync();
     }
     private async void RemoveTrack(object sender, RoutedEventArgs e)
     {
