@@ -15,12 +15,13 @@
     <Setter Property="Margin" Value="3" />
    </Style>
    <Style x:Key="M1.Navigation" TargetType="RadioButton">
+    <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Window}}" />
     <Setter Property="Padding" Value="10,7" />
     <Setter Property="Margin" Value="1" />
     <Setter Property="Template">
      <Setter.Value>
       <ControlTemplate TargetType="RadioButton">
-       <Border x:Name="NavBorder" CornerRadius="7" Padding="{TemplateBinding Padding}" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+       <Border x:Name="NavBorder" CornerRadius="7" Padding="{TemplateBinding Padding}" Background="Transparent">
         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
        </Border>
        <ControlTemplate.Triggers>
@@ -99,7 +100,7 @@
       <ColumnDefinition Width="*" MinWidth="280" />
      </Grid.ColumnDefinitions>
      <DockPanel>
-      <DockPanel x:Name="M1PhotoSidebar" DockPanel.Dock="Right" Width="190" Visibility="Collapsed" Margin="5,0" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+      <DockPanel x:Name="M1PhotoSidebar" DockPanel.Dock="Right" Width="190" Visibility="Collapsed" Margin="5,0" Background="Transparent">
        <TextBlock DockPanel.Dock="Top" Text="{DynamicResource M1.PhotoActions}" FontWeight="SemiBold" Margin="10" />
        <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel x:Name="M1PhotoActions" Margin="8">
@@ -173,6 +174,11 @@
            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
            <Setter Property="MinHeight" Value="48" />
            <Setter Property="ToolTip" Value="{Binding Summary}" />
+           <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+             <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" />
+            </Trigger>
+           </Style.Triggers>
           </Style>
          </ListView.ItemContainerStyle>
          <ListView.GroupStyle>
