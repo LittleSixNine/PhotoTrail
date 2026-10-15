@@ -349,7 +349,7 @@
       <Button x:Name="RecentTrackReadButton" Content="重新读取所选历史" Click="ReadRecentTrack" Padding="10,5"/>
       <TextBlock x:Name="TrackHistoryStatus" Text="历史仅保存本机路径，不自动加载轨迹。" TextWrapping="Wrap" Margin="8,0" VerticalAlignment="Center"/>
      </WrapPanel>
-     <ScrollViewer DockPanel.Dock="Bottom" MaxHeight="280" VerticalScrollBarVisibility="Auto"><StackPanel Margin="8">
+     <StackPanel Margin="8">
       <TextBlock x:Name="TrackInfo" Text="支持GPX／KML／KMZ；轨迹留在本机，仅显示和匹配预览。" TextWrapping="Wrap"/>
       <Expander Header="所选照片批量轨迹匹配" IsExpanded="True" Margin="0,5">
        <StackPanel>
@@ -373,7 +373,7 @@
       <Button Content="Google查询预览位置（联网）" Click="LookupPlace" HorizontalAlignment="Left" Padding="10,5" Margin="0,4,0,0"/>
       <TextBlock x:Name="PlacePreview" Text="地区查询只预览；Google Maps结果不自动写入照片。" TextWrapping="Wrap" Margin="0,4,0,0"/>
       <Button x:Name="GpsDraftButton" Content="将预览位置加入所选照片的 GPS 草稿" Click="AddGpsDraft" IsEnabled="False" HorizontalAlignment="Left" Padding="10,5" Margin="0,6,0,0"/>
-     </StackPanel></ScrollViewer>
+     </StackPanel>
      </StackPanel></ScrollViewer><DockPanel Grid.Row="2"><StackPanel DockPanel.Dock="Top"><Button Content="回到当前" Click="ReturnToCurrent" HorizontalAlignment="Left" AutomationProperties.Name="仅滚动到当前照片，不改变选择或地图视野"/><TextBlock x:Name="PhotoStripStatus" Text="照片条与元数据列表共用筛选、排序和选择；每个成员保持独立来源。" TextWrapping="Wrap"/></StackPanel><ListBox x:Name="PhotoStrip" Height="126" SelectionMode="Extended" SelectionChanged="StripSelected" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True" VirtualizingPanel.VirtualizationMode="Recycling" AutomationProperties.Name="地图照片条"><ListBox.GroupStyle><GroupStyle><GroupStyle.Panel><ItemsPanelTemplate><VirtualizingStackPanel Orientation="Horizontal"/></ItemsPanelTemplate></GroupStyle.Panel><GroupStyle.HeaderTemplate><DataTemplate><TextBlock Text="{Binding Name.Label}" FontSize="10"/></DataTemplate></GroupStyle.HeaderTemplate></GroupStyle></ListBox.GroupStyle><ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ListBox.ItemsPanel><ListBox.ItemTemplate><DataTemplate><StackPanel Width="160"><local:PhotoThumbnail Document="{Binding Document}" Strip="True" Width="160" Height="92" AutomationProperties.Name="地图照片条缩略图"/><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding Summary}" FontSize="10" TextTrimming="CharacterEllipsis"/></StackPanel></DataTemplate></ListBox.ItemTemplate></ListBox></DockPanel><wv:WebView2 Grid.Row="1" x:Name="MapView" Loaded="MapLoaded" />
     </Grid>
    </TabItem>
