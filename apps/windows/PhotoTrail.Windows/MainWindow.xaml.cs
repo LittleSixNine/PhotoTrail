@@ -140,7 +140,7 @@ public partial class MainWindow : Window
         try { ThemeChoice.SelectedIndex = ThemePreference.Read(themePreferencePath); ThemeStatus.Text = "已读取本机外观偏好；不改变Windows设置。"; }
         catch (Exception) { ThemeStatus.Text = "本机外观偏好不可读取，暂跟随系统；已有配置未覆盖。"; }
         finally { restoringTheme = false; }
-        LoadSettings();LoadInplaceRecords();LoadMetadataPresets();
+        LoadSettings();LoadInplaceRecords();LoadMetadataPresets();LoadMapWorkspace();
         RefreshGoogleKeyStatus();
         LoadLatestRenameJournal();LoadRenameSchemes();
         LoadTrackHistory();LoadTrackSnapshots();
@@ -479,7 +479,7 @@ public partial class MainWindow : Window
             var payload = data is not null ? await Task.Run(()=>TrackMapPayload.Compare(row!.Data,data,row.Name,cancellation),cancellation) : row?.MapPayload ?? await Task.Run(() => TrackMapPayload.Build(row?.Data, row?.Name ?? "", cancellation), cancellation);
             if(data is null&&row is not null&&revision==mapRevision)row.MapPayload=payload;
             if (revision == mapRevision && !cancellation.IsCancellationRequested)
-            { MapView.CoreWebView2.PostWebMessageAsJson(fit?payload:payload.Replace("\"type\":\"tracks\"","\"type\":\"tracks-no-fit\"")); PostPreview(); }
+            { MapView.CoreWebView2.PostWebMessageAsJson(fit&&!userMapMoved?payload:payload.Replace("\"type\":\"tracks\"","\"type\":\"tracks-no-fit\"")); PostPreview(); }
         }
         catch (OperationCanceledException) { }
         catch (Exception error) { if(revision==mapRevision)TrackInfo.Text = "轨迹显示失败：" + error.Message; }
@@ -537,8 +537,8 @@ public partial class MainWindow : Window
         if (!mapReady) return;
         var selected = Selected.ToHashSet(); var markers = new List<PhotoMarker>();
         for (var index = 0; index < photos.Count; index++)
-            if (photos[index].Document.Position() is { } position) markers.Add(new(index, photos[index].Name, position, selected.Contains(photos[index])));
-        var focus = stripSelectionChange?null:clipboardGpsPreview ? currentPreview : (TrackList.SelectedItem is null && Selected.Length == 1 ? Selected[0].Document.Position() : null);
+            if ((mapWorkspace?.State.SelectedOnly!=true||selected.Contains(photos[index]))&&photos[index].Document.Position() is { } position) markers.Add(new(index, photos[index].Name, position, selected.Contains(photos[index])));
+        var focus = stripSelectionChange||userMapMoved?null:clipboardGpsPreview ? currentPreview : (TrackList.SelectedItem is null && Selected.Length == 1 ? Selected[0].Document.Position() : null);
         var cancellation = photoMapUpdate.Token;
         try
         {
@@ -975,7 +975,7 @@ public partial class MainWindow : Window
     }
     private void SuspendMap()
     {
-        ClearPlacePreview(); mapReady = false; mapRevision++; photoRevision++;
+        ClearPlacePreview();mapViewEpoch++; mapReady = false; mapRevision++; photoRevision++;
         mapUpdate?.Cancel(); photoMapUpdate?.Cancel();
     }
     private void RetryMap(object sender, RoutedEventArgs e)
@@ -1038,6 +1038,7 @@ public partial class MainWindow : Window
                 MapView.CoreWebView2.WebMessageReceived += (_, args) =>
                 {
                     if (args.Source != currentMapPage) return;
+                    if(ReceiveMapWorkspace(args.Source,args.WebMessageAsJson))return;
                     if (MapMessage.IsGoogleBootstrap(args.Source, args.WebMessageAsJson))
                     {
                         try
@@ -1060,7 +1061,7 @@ public partial class MainWindow : Window
                         if (!busy) Status.Text = "地图加载失败；检查网络后点击重载地图。照片和草稿保留。";
                         return;
                     }
-                    if (MapMessage.IsReady(args.Source, args.WebMessageAsJson)) { mapReady = true; _ = PostTrackAsync(); _ = PostPhotosAsync(); }
+                    if (MapMessage.IsReady(args.Source, args.WebMessageAsJson)) { mapReady = true;PostMapSettings(true); _ = PostTrackAsync(false); _ = PostPhotosAsync();if(mapWorkspace?.State.StartWithDevice==true)LocateDevice(this,new RoutedEventArgs()); }
                     if (busy || !mapReady) return;
                     if (MapMessage.TryPhoto(args.Source, args.WebMessageAsJson, out var id, out var revision) && revision == photoRevision && id < photos.Count)
                     {

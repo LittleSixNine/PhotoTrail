@@ -1,3 +1,5 @@
+R09a: favoritos manuais offline e preferências do mapa. A prévia não aplica GPS; serviço e localização real não verificados.
+
 R08b: sequências avançadas, contadores persistentes e sufixos de conflito por grupo. A conversão de Mac aceita um subconjunto explícito.
 
 R07: a comparação mostra até 20 fotos, mas CSV usa toda a seleção congelada. Valores do disco e rascunhos são separados. Colunas desconhecidas são ignoradas e linhas inválidas são descartadas por inteiro; IDs duplicados, caminhos inseguros e erros de estrutura rejeitam o arquivo. XMP separa instantâneas do disco e exportações com rascunhos; não sobrescreve arquivos nem remapeia IDs entre plataformas automaticamente.

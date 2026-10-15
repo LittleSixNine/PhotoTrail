@@ -1,3 +1,5 @@
+R09a checks: SourceTests `--r09a-map-checks`; UiChecks `--r09a-checks`; `node PhotoTrail.Windows.Tests/map-workspace-checks.cjs` executes actual map scripts with local API mocks, no service. Isolate PHOTOTRAIL_MAP_WORKSPACE and all existing test preferences.
+
 R08b：SourceTests `--r08b-sequence-checks`、UiChecks `--r08b-checks`；后者使用生产窗口及隔离计数/方案。候选检查必须绑定最终发布DLL，原生EXE另行观察。
 
 ## R08b 高级序列与方案（2026-10-15）

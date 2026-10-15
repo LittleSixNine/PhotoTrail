@@ -1,3 +1,5 @@
+R09a: offline manual favorites and map display preferences. Preview does not apply GPS. Live service and device location remain unverified.
+
 R08b: advanced sequences, persistent counters and grouped conflict suffixes. Mac preset conversion supports an explicit subset; unknown execution never reuses counters.
 
 R07: comparison displays up to 20 photos while freezing the whole selection, with exact fields/sources and disk/effective draft values in separate columns. CSV export/apply uses every frozen target; unknown columns are ignored and invalid rows are skipped atomically. Duplicate identities, unsafe paths and malformed structure reject the whole input; System times cannot be cleared. Disk XMP snapshots and draft-inclusive exports are separate. XMP import preserves missing fields and reports conflicts/ignored families (8 MiB, 64 levels, no DTD or external entities). Exports never overwrite sources or existing files; cross-platform path identities are not remapped automatically.
