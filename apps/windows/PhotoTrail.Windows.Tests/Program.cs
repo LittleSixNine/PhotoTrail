@@ -44,6 +44,7 @@ if (args.FirstOrDefault() == "--rename-bulk-checks") { await RenameBulkChecks.Ru
 if (args.FirstOrDefault() == "--rename-execution-checks") { await RenameExecutionChecks.RunAsync(); return; }
 if (args.FirstOrDefault() == "--rename-preset-checks") { RenamePresetChecks.Run(); return; }
 if (args.FirstOrDefault() == "--rename-order-checks") { await RenameOrderChecks.RunAsync(); return; }
+if(args.FirstOrDefault()=="--r10-gpx-checks"){await PhotoGpxChecks.RunAsync();return;}
 if(args.FirstOrDefault()=="--r09b-location-checks"){await LocationAdoptionChecks.RunAsync();return;}
 if(args.FirstOrDefault()=="--r09a-map-checks"){MapWorkspaceChecks.Run();return;}
 if(args.FirstOrDefault()=="--r08b-sequence-checks"){await RenameSequenceChecks.RunAsync();return;}

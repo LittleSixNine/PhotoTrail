@@ -1,3 +1,5 @@
+R10: visibilidade por trilha e recuperação do espaço de trabalho. Gere GPX das fotos selecionadas e salve, releia e adicione explicitamente. Datas sem fuso e referenciais desconhecidos são ignorados com motivo; as fotos não são salvas.
+
 R09b: regiões manuais independentes com seleção congelada e substituição explícita. Persistência de resultados online bloqueada por licença.
 
 R09a: favoritos manuais offline e preferências do mapa. A prévia não aplica GPS; serviço e localização real não verificados.

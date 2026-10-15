@@ -46,8 +46,10 @@ public static class TrackAdjustment
     }
     public static bool Equal(TrackData first,TrackData second)=>first.Segments.Count==second.Segments.Count&&first.Segments.Zip(second.Segments).All(pair=>pair.First.SequenceEqual(pair.Second));
     public static bool SameCoordinates(TrackData first,TrackData second)=>first.Segments.Count==second.Segments.Count&&first.Segments.Zip(second.Segments).All(pair=>pair.First.Count==pair.Second.Count&&pair.First.Zip(pair.Second).All(p=>p.First.Longitude==p.Second.Longitude&&p.First.Latitude==p.Second.Latitude));
-    public static async Task ExportAsync(TrackData data,string source,string target,CancellationToken token=default)
+    public static async Task ExportAsync(TrackData data,string source,string target,CancellationToken token=default,Action? beforeDelivery=null,string? trackName=null,IReadOnlyList<string>? pointNames=null)
     {
+        const string ns="http://www.topografix.com/GPX/1/1";
+        if(pointNames is not null&&pointNames.Count!=data.Segments.Sum(s=>s.Count))throw new ArgumentException("GPX点名称数量不匹配。");
         source=Path.GetFullPath(source);target=Path.GetFullPath(target);
         if(source.Equals(target,StringComparison.OrdinalIgnoreCase)||File.Exists(target))throw new IOException("GPX另存不能覆盖源文件或已有目标。");
         if(!Path.GetExtension(target).Equals(".gpx",StringComparison.OrdinalIgnoreCase))throw new ArgumentException("导出目标须为新GPX文件。");
@@ -57,15 +59,15 @@ public static class TrackAdjustment
             await Task.Run(()=>{
                 using var output=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None);
                 using(var xml=XmlWriter.Create(output,new XmlWriterSettings{Encoding=new UTF8Encoding(false),Indent=true,CloseOutput=false})) {
-                    xml.WriteStartDocument();xml.WriteStartElement("gpx","http://www.topografix.com/GPX/1/1");xml.WriteAttributeString("version","1.1");xml.WriteAttributeString("creator","PhotoTrail Windows");xml.WriteStartElement("trk");
-                    foreach(var segment in data.Segments){xml.WriteStartElement("trkseg");foreach(var point in segment){token.ThrowIfCancellationRequested();xml.WriteStartElement("trkpt");xml.WriteAttributeString("lat",point.Latitude.ToString("R",CultureInfo.InvariantCulture));xml.WriteAttributeString("lon",point.Longitude.ToString("R",CultureInfo.InvariantCulture));if(point.Elevation is {} elevation)xml.WriteElementString("ele",elevation.ToString("R",CultureInfo.InvariantCulture));if(point.Time is {} time)xml.WriteElementString("time",time.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'",CultureInfo.InvariantCulture));xml.WriteEndElement();}xml.WriteEndElement();}
+                    xml.WriteStartDocument();xml.WriteStartElement("gpx","http://www.topografix.com/GPX/1/1");xml.WriteAttributeString("version","1.1");xml.WriteAttributeString("creator","PhotoTrail Windows");xml.WriteStartElement("trk",ns);if(trackName is not null)xml.WriteElementString("name",ns,trackName);int pointIndex=0;
+                    foreach(var segment in data.Segments){xml.WriteStartElement("trkseg",ns);foreach(var point in segment){token.ThrowIfCancellationRequested();xml.WriteStartElement("trkpt",ns);xml.WriteAttributeString("lat",point.Latitude.ToString("R",CultureInfo.InvariantCulture));xml.WriteAttributeString("lon",point.Longitude.ToString("R",CultureInfo.InvariantCulture));if(point.Elevation is {} elevation)xml.WriteElementString("ele",ns,elevation.ToString("R",CultureInfo.InvariantCulture));if(point.Time is {} time)xml.WriteElementString("time",ns,time.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff'Z'",CultureInfo.InvariantCulture));if(pointNames is not null)xml.WriteElementString("name",ns,pointNames[pointIndex++]);xml.WriteEndElement();}xml.WriteEndElement();}
                     xml.WriteEndElement();xml.WriteEndElement();xml.WriteEndDocument();
                 }
                 output.Flush(true);
             },token);
             var read=await Task.Run(()=>TrackReader.ReadGpx(temporary,token),token);
             if(!Equal(data,read))throw new IOException("GPX回读不一致，未交付目标文件。");
-            token.ThrowIfCancellationRequested();File.Move(temporary,target,overwrite:false);
+            token.ThrowIfCancellationRequested();beforeDelivery?.Invoke();token.ThrowIfCancellationRequested();File.Move(temporary,target,overwrite:false);
         }finally{if(File.Exists(temporary))File.Delete(temporary);}
     }
 }

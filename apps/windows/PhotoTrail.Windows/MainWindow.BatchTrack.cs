@@ -16,7 +16,7 @@ public partial class MainWindow
     internal long batchTrackStartedTicks,batchTrackEndedTicks,batchTrackCancelTicks;
     internal readonly Dictionary<string,double> batchTrackTimings=[];
     internal int batchTrackRequests;
-    TrackSnapshot[] ParticipatingTracks() => (BatchCurrentOnly.IsChecked==true ? tracks.Where(r=>ReferenceEquals(r,TrackList.SelectedItem)) : tracks).Where(r=>r.Data.Segments.Any(s=>s.Any(p=>p.Time is not null))).Select(r=>r.Snapshot).ToArray();
+    TrackSnapshot[] ParticipatingTracks() => (BatchCurrentOnly.IsChecked==true ? tracks.Where(r=>ReferenceEquals(r,TrackList.SelectedItem)) : tracks).Where(r=>!r.SourceUnavailable&&r.Data.Segments.Any(s=>s.Any(p=>p.Time is not null))).Select(r=>r.Snapshot).ToArray();
     void InvalidateBatchTrack() {
         batchTrackRevision++;batchTrackRequest?.Cancel();
         if(trackBatch is {} batch)foreach(var row in batch.Rows)row.Document.DraftChanged-=InvalidateBatchTrack;

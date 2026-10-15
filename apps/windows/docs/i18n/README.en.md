@@ -1,3 +1,5 @@
+R10: independent track visibility and workspace recovery. Generate GPX from selected photos, explicitly export/read back and add it to tracks. Missing offsets or unknown datums are skipped with reasons; generation does not save photos.
+
 R09b: independent manual regions use a frozen selection, fill gaps by default and require explicit overwrite. Online result persistence remains BLOCKED pending licensing.
 
 R09a: offline manual favorites and map display preferences. Preview does not apply GPS. Live service and device location remain unverified.

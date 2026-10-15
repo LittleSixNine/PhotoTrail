@@ -94,18 +94,18 @@ public static class TrackSnapshots
         using var guard=new FileStream(updated.Path,FileMode.Open,FileAccess.Read,FileShare.Read);
         if(Convert.ToHexString(await SHA256.HashDataAsync(guard,token))!=updated.SourceHash)throw new IOException("原轨迹已变化，请恢复原轨迹。");
         await Task.Run(()=>{
-            using var gate=new Mutex(false,"Local\\PhotoTrail.TrackAdjustments."+Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(System.IO.Path.GetFullPath(file).ToUpperInvariant()))));
-            bool acquired=false;
-            try {
-                try{acquired=gate.WaitOne(TimeSpan.FromSeconds(5));}catch(AbandonedMutexException){acquired=true;}
-                if(!acquired)throw new IOException("另一实例正在保存轨迹调整。");
+            var lockPath=System.IO.Path.GetFullPath(file)+".guard";Directory.CreateDirectory(System.IO.Path.GetDirectoryName(lockPath)!);
+            if(File.Exists(lockPath)&&(File.GetAttributes(lockPath)&FileAttributes.ReparsePoint)!=0)throw new IOException("轨迹缓存锁为链接，未写入。");
+            using var gate=new FileStream(lockPath,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None);
+            {
+
                 var existing=Read(file);var saved=existing.FirstOrDefault(r=>r.Path.Equals(updated.Path,StringComparison.OrdinalIgnoreCase));if(saved is not null&&(saved.SourceHash!=expected.SourceHash||!TrackAdjustment.Equal(saved.Data,expected.Data)))throw new IOException("调整状态已被另一实例改变，请重新读取。");
                 var records=existing.Where(r=>!r.Path.Equals(updated.Path,StringComparison.OrdinalIgnoreCase)).Append(updated).ToArray();
                 var bytes=JsonSerializer.SerializeToUtf8Bytes(new Archive(1,records));if(bytes.Length>MaximumBytes)throw new IOException("轨迹调整记录过大。");
                 string folder=System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(file))!;Directory.CreateDirectory(folder);string temporary=System.IO.Path.Combine(folder,".track-adjustment-"+Guid.NewGuid().ToString("N"));
                 try{using(var output=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){output.Write(bytes);output.Flush(true);}token.ThrowIfCancellationRequested();if(File.Exists(file))File.Replace(temporary,file,null);else File.Move(temporary,file);}
                 finally{if(File.Exists(temporary))File.Delete(temporary);}
-            }finally{if(acquired)gate.ReleaseMutex();}
+            }
         },token);
     }
 }

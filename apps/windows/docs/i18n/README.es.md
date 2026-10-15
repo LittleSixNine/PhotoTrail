@@ -1,3 +1,5 @@
+R10: visibilidad por pista y recuperación del espacio de trabajo. Genere GPX de las fotos seleccionadas y guarde, verifique y añada explícitamente. Se omiten fechas sin desfase y referencias desconocidas; no se guardan las fotos.
+
 R09b: regiones manuales independientes con selección congelada y sobrescritura explícita. La persistencia de resultados en línea sigue bloqueada por licencia.
 
 R09a: favoritos manuales sin conexión y preferencias del mapa. La vista previa no aplica GPS; servicio y ubicación real sin verificar.

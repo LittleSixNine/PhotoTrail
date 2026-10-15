@@ -1,3 +1,5 @@
+R10: SourceTests `--r10-gpx-checks`, affected regression `--track-adjustment-checks`, UiChecks `--r10-checks`. Isolate PHOTOTRAIL_TRACK_WORKSPACE, PHOTOTRAIL_MAP_WORKSPACE and all existing histories/preferences. UiChecks uses a local renderer substitute only in its output folder, restores it afterwards, and is not a live-map test. Bind final published DLL before final WPF acceptance; native EXE export/restart and source identity/property checks are separate. Never rebuild the pinned Swift DateHost. Track workspace stores metadata only, reusing validated adjustment snapshots; corrupt/conflicting records are preserved.
+
 R09b checks: SourceTests `--r09b-location-checks`, UiChecks `--r09b-checks`; manual synthetic values only, D06 online persistence BLOCKED. Tests use their own GPS and source guards; final EXE/copy readback is separate.
 
 R09a checks: SourceTests `--r09a-map-checks`; UiChecks `--r09a-checks`; `node PhotoTrail.Windows.Tests/map-workspace-checks.cjs` executes actual map scripts with local API mocks, no service. Isolate PHOTOTRAIL_MAP_WORKSPACE and all existing test preferences.
