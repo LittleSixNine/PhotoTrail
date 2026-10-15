@@ -667,15 +667,17 @@ public partial class MainWindow : Window
         DraftActions.IsEnabled = !busy && !renameRecoveryRequired;
         FieldApplyButton.IsEnabled=editable;ClearSelectedDraftButton.IsEnabled=editable;UndoLastApplyButton.IsEnabled=!busy&&!renameRecoveryRequired&&LastApplyCurrent();
         DatePlanApplyButton.IsEnabled=CsvApplyButton.IsEnabled=!busy&&editable;
+        if(dateEditorWindow is not null&&!dateEditorSelection.SequenceEqual(selected)){DatePlanApplyButton.IsEnabled=false;DatePlanPreview.Text=WText("SelectionChanged");}
         DateTarget.IsEnabled=DateMode.IsEnabled=CsvPath.IsEnabled=!busy;
         foreach(var box in new[]{DateYears,DateMonths,DateDays,DateHours,DateMinutes,DateSeconds,DateStart,DateEnd,DateStep,DateReplaceYear,DateReplaceMonth,DateReplaceDay,DateReplaceHour,DateReplaceMinute,DateReplaceSecond,DateFilenamePattern,DateFilenameTemplate})box.IsEnabled=!busy;
         SaveButton.IsEnabled = !busy && !renameRecoveryRequired && selected.Any(p => p.Document.Draft.Count > 0);
         RemoveButton.IsEnabled = !busy && !importRunning && !renameRecoveryRequired && selected.Length > 0;
         UndoRemoveButton.IsEnabled = !busy && !importRunning && !renameRecoveryRequired && removedPhotos.Count>0;
-        SelectionInfo.Text = selected.Length == 0 ? M1Text("EmptySelection") :
+        selectionSummaryText = selected.Length == 0 ? M1Text("EmptySelection") :
             M1Format("SelectedSummary",selected.Length,selected.Count(p=>p.Document.Draft.Count>0))+"\n"+
             M1Format("SourceSummary",selected.Count(p=>p.Document.SidecarPath is null&&p.Document.FileType!="XMP"),selected.Count(p=>p.Document.SidecarPath is not null||p.Document.FileType=="XMP"))+
             (selected.Length==1?"\n"+selected[0].Name:"")+(editable?"":"\n"+M1Text("ReadonlyReason"));
+        RefreshM2SelectionSummary();
         foreach(var field in Fields)field.Apply.IsEnabled=field.Value.IsEnabled=selected.Length>0&&selected.All(p=>MetadataFields.CanEdit(p.Document,field.Tag));
         if(busy||preserveBatchEditor){fillingEditor=false;return;}
         foreach (var (tag, apply, value) in Fields)
@@ -743,7 +745,7 @@ public partial class MainWindow : Window
         if (!InspectorHasInput()) return true;
         if (confirmingEditorDiscard) return false;
         confirmingEditorDiscard = true;
-        try { return MessageBox.Show(metadataWindow ?? this, "输入尚未加入草稿。放弃这次输入？", "PhotoTrail", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes; }
+        try { return MessageBox.Show(advancedWindow ?? metadataWindow ?? this, "输入尚未加入草稿。放弃这次输入？", "PhotoTrail", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes; }
         finally { confirmingEditorDiscard = false; }
     }
     private void CopyGpsClipboard(object sender, RoutedEventArgs e)
@@ -970,8 +972,8 @@ public partial class MainWindow : Window
         if(datePending>0){InvalidateDates();e.Cancel=true;Status.Text="正在取消日期任务；结束后可关闭。";return;}
         if (checkingEnvironment) { dependencyCheck?.Cancel(); e.Cancel = true; DependencyStatus.Text = "正在取消环境检查；结束后可关闭。"; return; }
         if (busy) { operation?.Cancel(); e.Cancel = true; Status.Text = "正在取消任务；结束后可关闭。"; return; }
-        if(presetEditorDirty||PresetChainDirty){
-            if(MessageBox.Show(this,"存在未编排参数或尚未保存入库的预设链。明确放弃预设编辑并继续退出？（不会自动写库）","未保存元数据预设",MessageBoxButton.YesNo,MessageBoxImage.Question,MessageBoxResult.No)!=MessageBoxResult.Yes){e.Cancel=true;return;}
+        if(presetEditorDirty||PresetChainDirty||invalidWorkflowCards.Count>0||dateEditorHasInput?.Invoke()==true){
+            if(MessageBox.Show(this,WText("ExitInput"),"PhotoTrail",MessageBoxButton.YesNo,MessageBoxImage.Question,MessageBoxResult.No)!=MessageBoxResult.Yes){e.Cancel=true;return;}
         }
         if (photos.Any(p => p.Document.Draft.Count > 0) || removedPhotos.Any(batch=>batch.Rows.Any(item=>item.Row.Document.Draft.Count>0)) || InspectorHasInput())
             e.Cancel = MessageBox.Show(this, "存在未撤销的草稿或未应用输入。放弃并退出？保存的副本仍保留。", "PhotoTrail", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes;

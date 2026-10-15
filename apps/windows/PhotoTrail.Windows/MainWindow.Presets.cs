@@ -22,7 +22,7 @@ public partial class MainWindow
         PresetTarget.SelectedIndex = PresetSource.SelectedIndex = 0;
         PresetAction.ItemsSource = new[] { ("setText","固定设置文字／日期／数字"),("remove","明确清除"),("fillMissingText","仅补确认缺失的标量"),("appendText","文字精确追加"),("replaceAuthors","替换作者列表"),("fillMissingAuthors","仅补缺失作者"),("replaceKeywords","替换关键词"),("appendKeywords","精确追加关键词"),("removeKeywords","精确移除关键词"),("copy","按照片自身字段复制"),("offsetDate","六组件时间偏移"),("dateComponent","修改时间中的指定部分"),("sequence","按固定间隔设置日期"),("distribute","范围内均匀分配日期"),("filenameDate","从每张照片文件名提取日期") }.Select(p => new { Action=p.Item1,Name=p.Item2 }).ToArray();
         PresetAction.SelectedIndex = 4; fillingPreset = false;
-        presetOperations.CollectionChanged += (_,_) => { InvalidateDates(); RefreshPresetLibraryControls(); };
+        presetOperations.CollectionChanged += (_,_) => { InvalidateDates(); RefreshPresetLibraryControls(); RebuildWorkflowCards(); };
     }
     void PresetInputChanged(object sender,TextChangedEventArgs e) { if (!fillingPreset) { InvalidateDates(); RefreshPresetLibraryControls(); } }
     void PresetEditorChanged(object sender,RoutedEventArgs e) { if (!fillingPreset && IsLoaded) { presetEditorDirty = true; InvalidateDates(); RefreshPresetLibraryControls(); } }
@@ -92,7 +92,7 @@ public partial class MainWindow
         var chain=presetOperations.ToList();chain.RemoveAt(index);chain.InsertRange(index,replacement);MetadataPreset.Create(PresetName.Text,chain);
         presetEditorDirty=false;presetOperations.RemoveAt(index);for(int i=0;i<replacement.Length;i++)presetOperations.Insert(index+i,replacement[i]);PresetOperations.SelectedIndex=index;
     });
-    void RequirePresetInputSaved(){if(presetEditorDirty)throw new InvalidOperationException("请先添加／更新或放弃未编排参数。");}
+    void RequirePresetInputSaved(){if(presetEditorDirty || invalidWorkflowCards.Count > 0)throw new InvalidOperationException("请先添加／更新或放弃未编排参数。");if(disabledWorkflowOperations.Count > 0)throw new InvalidOperationException(WText("DisabledExport"));}
     void MovePreset(int delta)=>ChangePreset(()=>{RequirePresetInputSaved();int index=PresetOperations.SelectedIndex;if(index>=0&&index+delta>=0&&index+delta<presetOperations.Count){presetOperations.Move(index,index+delta);PresetOperations.SelectedIndex=index+delta;}});
     void MovePresetUp(object sender,RoutedEventArgs e)=>MovePreset(-1);
     void MovePresetDown(object sender,RoutedEventArgs e)=>MovePreset(1);

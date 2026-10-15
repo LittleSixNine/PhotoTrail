@@ -78,7 +78,8 @@ static class PresetChecks
         foreach(var bad in new[]{"a\n\nb","a\0b"})reject(()=>Plan(new MetadataOperation(author,"replaceAuthors",bad)),"bad list item rejected");
         reject(()=>Plan(new MetadataOperation(title,"copy",author)),"incompatible copy types rejected");reject(()=>Plan(new MetadataOperation(title,"copy",title)),"copy excludes self");
         reject(()=>Plan(new MetadataOperation(title,"appendText","")),"empty append rejected");reject(()=>Plan(new MetadataOperation(title,"setText",new string('x',8193))),"scalar length bound");
-        reject(()=>Plan(Enumerable.Repeat(new MetadataOperation(title,"remove"),28).ToArray()),"operation limit counts repeated targets");
+        check(MetadataPreset.Decode(Plan(Enumerable.Repeat(new MetadataOperation(title,"remove"),MetadataPreset.MaximumOperations).ToArray()).Encode()).Operations.Count==MetadataPreset.MaximumOperations,"full-field-sized chain roundtrip within bounded operation count");
+        reject(()=>Plan(Enumerable.Repeat(new MetadataOperation(title,"remove"),MetadataPreset.MaximumOperations+1).ToArray()),"operation limit counts repeated targets");
         check(Plan(Enumerable.Repeat(new MetadataOperation(title,"remove"),27).ToArray()).Operations.Count==27,"operation bound inclusive");
         var round=Plan(new MetadataOperation(title,"setText","A"),new MetadataOperation(title,"appendText","B"),new MetadataOperation(title,"copy",description),new MetadataOperation(keywords,"replaceKeywords","A\na"));check(MetadataPreset.Decode(round.Encode()).Operations.SequenceEqual(round.Operations),"ordered repeated targets and copy roundtrip");
         foreach(var action in new[]{"offsetDate","sequence","distribute","filenameDate","calendarDays","unknown"})reject(()=>MetadataPreset.Decode("{\"version\":1,\"name\":\"x\",\"operations\":[{\"tag\":\"XMP-exif:DateTimeOriginal\",\"action\":{\""+action+"\":{\"_0\":\"x\"}}}]}"),"unsupported date/unknown action rejects entire JSON");

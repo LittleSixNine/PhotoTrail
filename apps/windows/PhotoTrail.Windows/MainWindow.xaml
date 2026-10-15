@@ -1,8 +1,9 @@
-<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:local="clr-namespace:PhotoTrail.Windows" xmlns:wv="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="PhotoTrail.Windows.MainWindow" ThemeMode="System" Title="PhotoTrail Windows · WIN-M1" Width="1193" Height="736" MinWidth="720" MinHeight="480" PreviewKeyDown="WindowKeyDown" Loaded="WindowLoaded" Closing="WindowClosing" Closed="WindowClosed" AllowDrop="True" Drop="FilesDropped" FontSize="13">
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:local="clr-namespace:PhotoTrail.Windows" xmlns:wv="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="PhotoTrail.Windows.MainWindow" ThemeMode="System" Title="PhotoTrail Windows · WIN-M2" Width="1193" Height="736" MinWidth="720" MinHeight="480" PreviewKeyDown="WindowKeyDown" Loaded="WindowLoaded" Closing="WindowClosing" Closed="WindowClosed" AllowDrop="True" Drop="FilesDropped" FontSize="13">
  <Window.Resources>
   <ResourceDictionary>
    <ResourceDictionary.MergedDictionaries>
     <ResourceDictionary Source="Resources/M1Strings.xaml" />
+    <ResourceDictionary Source="Resources/M2Strings.xaml" />
    </ResourceDictionary.MergedDictionaries>
    <Style TargetType="Button">
     <Setter Property="Padding" Value="9,5" />
@@ -93,13 +94,19 @@
     </ControlTemplate>
    </TabControl.Template>
    <TabItem Header="元数据编辑">
-    <Grid x:Name="M1MetadataLayout">
+    <Grid x:Name="M1MetadataLayout" SizeChanged="M2MetadataLayoutSized">
+     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
      <Grid.ColumnDefinitions>
       <ColumnDefinition Width="*" MinWidth="280" />
       <ColumnDefinition Width="6" />
       <ColumnDefinition Width="*" MinWidth="280" />
      </Grid.ColumnDefinitions>
-     <DockPanel>
+     <WrapPanel x:Name="M2NarrowNavigation" Grid.ColumnSpan="3" Margin="10,2" Visibility="Collapsed">
+      <RadioButton x:Name="M2NarrowPhotos" Content="{DynamicResource M2.PhotoPane}" Tag="photos" GroupName="NarrowMetadata" Style="{StaticResource M1.Navigation}" Checked="M2NarrowSelected"/>
+      <RadioButton x:Name="M2NarrowFields" Content="{DynamicResource M2.InspectorPane}" Tag="fields" GroupName="NarrowMetadata" Style="{StaticResource M1.Navigation}" Checked="M2NarrowSelected"/>
+      <TextBlock Text="{Binding ElementName=M1DraftCount,Path=Text}" FontSize="11" VerticalAlignment="Center" Margin="8,0"/>
+     </WrapPanel>
+     <DockPanel x:Name="M2PhotoPane" Grid.Row="1">
       <DockPanel x:Name="M1PhotoSidebar" DockPanel.Dock="Right" Width="190" Visibility="Collapsed" Margin="5,0" Background="Transparent">
        <TextBlock DockPanel.Dock="Top" Text="{DynamicResource M1.PhotoActions}" FontWeight="SemiBold" Margin="10" />
        <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -120,12 +127,13 @@
       </DockPanel>
       <DockPanel Margin="10,3,4,0">
        <StackPanel DockPanel.Dock="Top">
-        <Grid>
+        <Grid SizeChanged="M2PhotoSearchSized">
          <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*" />
           <ColumnDefinition Width="122" />
           <ColumnDefinition Width="112" />
          </Grid.ColumnDefinitions>
+         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
          <Grid x:Name="M1PhotoSearchBox">
           <TextBox x:Name="PhotoSearch" AutomationProperties.Name="{DynamicResource M1.PhotoSearch}" ToolTip="{DynamicResource M1.PhotoSearch}" TextChanged="PhotoViewChanged" MaxLength="256" Margin="0,3,5,3" />
           <TextBlock Text="{DynamicResource M1.PhotoSearch}" IsHitTestVisible="False" Opacity="0.55" Margin="9,0" VerticalAlignment="Center">
@@ -220,15 +228,16 @@
        </Grid>
       </DockPanel>
      </DockPanel>
-     <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeBehavior="PreviousAndNext" AutomationProperties.Name="{DynamicResource M1.Splitter}" />
-     <DockPanel Grid.Column="2" Margin="10,3,10,0">
+     <GridSplitter x:Name="M2MetadataSplitter" Grid.Row="1" Grid.Column="1" Width="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ResizeBehavior="PreviousAndNext" DragCompleted="M2SplitterDragged" AutomationProperties.Name="{DynamicResource M1.Splitter}" />
+     <DockPanel x:Name="M2InspectorPane" Grid.Row="1" Grid.Column="2" Margin="10,3,10,0">
       <StackPanel DockPanel.Dock="Top">
        <DockPanel Margin="0,4">
         <Button DockPanel.Dock="Right" Content="{DynamicResource M1.Batch}" Tag="字段预设" Click="M1OpenTool" />
+        <Button x:Name="M2DiagnosticDetails" DockPanel.Dock="Right" Content="{DynamicResource M2.Diagnostics}" FontSize="11" Padding="6,2" Click="M2ShowInspectorCounts" AutomationProperties.HelpText="{Binding ElementName=InspectorCounts,Path=Text}"/>
         <TextBlock Text="{DynamicResource M1.Metadata}" FontWeight="SemiBold" VerticalAlignment="Center" />
        </DockPanel>
        <TextBlock x:Name="SelectionInfo" TextWrapping="Wrap" Margin="0,0,0,3" />
-       <TextBlock x:Name="InspectorCounts" TextWrapping="Wrap" FontSize="11" AutomationProperties.Name="{Binding Text,RelativeSource={RelativeSource Self}}" />
+       <TextBlock x:Name="InspectorCounts" Visibility="Collapsed" AutomationProperties.Name="{Binding Text,RelativeSource={RelativeSource Self}}" />
        <TextBlock x:Name="InspectorStatus" TextWrapping="Wrap" />
        <WrapPanel Margin="0,7,0,4" x:Name="M1InspectorModes">
         <RadioButton x:Name="M1CommonFields" Content="{DynamicResource M1.Common}" Tag="0" GroupName="InspectorMode" IsChecked="True" Style="{StaticResource M1.Navigation}" Checked="M1InspectorModeSelected" />
@@ -284,7 +293,7 @@
            <DataTemplate>
             <StackPanel Margin="{DynamicResource M1.RowInset}">
              <TextBlock Text="{Binding Name}" TextWrapping="Wrap" />
-             <TextBlock Text="{Binding SourceLabel}" FontSize="{DynamicResource M1.SourceFontSize}" Opacity="0.68" TextWrapping="Wrap" />
+             <TextBlock Text="{Binding SourceLabel}" ToolTip="{Binding Tag}" FontSize="{DynamicResource M1.SourceFontSize}" Opacity="0.68" TextTrimming="CharacterEllipsis" />
             </StackPanel>
            </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
@@ -293,7 +302,10 @@
           <DataGridTemplateColumn.CellTemplate>
            <DataTemplate>
             <StackPanel Margin="{DynamicResource M1.RowInset}">
-             <TextBlock Text="{Binding DisplayValue}" TextWrapping="Wrap" />
+             <TextBlock Text="{Binding DisplayPrimary}" ToolTip="{Binding Value}" TextWrapping="Wrap">
+              <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding IsDate}" Value="True"><Setter Property="FontSize" Value="{DynamicResource M2.DateFontSize}"/><Setter Property="FontFamily" Value="Consolas"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+             </TextBlock>
+             <TextBlock Text="{Binding DisplayDateDetail}" FontSize="{DynamicResource M2.DateDetailFontSize}" Opacity="0.68" TextWrapping="Wrap"><TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding DisplayDateDetail}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
              <TextBlock Text="{Binding DisplayState}" Opacity="0.68" FontSize="{DynamicResource M1.SourceFontSize}" TextWrapping="Wrap" />
             </StackPanel>
            </DataTemplate>
@@ -302,7 +314,7 @@
          <DataGridTemplateColumn Width="40">
           <DataGridTemplateColumn.CellTemplate>
            <DataTemplate>
-            <Button Content="{Binding ActionLabel}" IsEnabled="{Binding CanEdit}" ToolTip="{Binding Permission}" AutomationProperties.Name="{Binding Permission}" Tag="{Binding}" Click="M1EditRow" Padding="5" />
+            <Button Content="{Binding ActionLabel}" IsEnabled="{Binding CanEdit}" ToolTip="{Binding Permission}" AutomationProperties.Name="{Binding ActionDescription}" Tag="{Binding}" Click="M1EditRow" Padding="4,1" MinHeight="24" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" />
            </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
          </DataGridTemplateColumn>

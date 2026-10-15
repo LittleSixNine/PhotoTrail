@@ -53,7 +53,7 @@ public partial class MainWindow
             M1InspectorGroup.SelectedItem=group is not null&&M1InspectorGroup.Items.Contains(group)?group:M1Text("AllGroups");
         } finally {changingM1Inspector=false;}
         MetadataGrid.ItemsSource=rows.Where(r=>(query.Length>0?r.Tag.Contains(query,StringComparison.OrdinalIgnoreCase)||r.Name.Contains(query,StringComparison.CurrentCultureIgnoreCase)||r.Value.Contains(query,StringComparison.OrdinalIgnoreCase):!settings.CommonOnly||r.IsCommon)&&
-            (settings.CommonOnly||M1InspectorGroup.SelectedItem as string==M1Text("AllGroups")||r.Section==M1InspectorGroup.SelectedItem as string)).Select(r=>r with{ShowFullTag=settings.FullTagNames,MissingLabel=M1Text("MissingValue"),DraftLabel=M1Text("Draft")}).ToArray();
+            (settings.CommonOnly||M1InspectorGroup.SelectedItem as string==M1Text("AllGroups")||r.Section==M1InspectorGroup.SelectedItem as string)).Select(r=>r with{ShowFullTag=settings.FullTagNames,MissingLabel=M1Text("MissingValue"),DraftLabel=M1Text("Draft"),DateFractionLabel=WText("Subseconds"),DateUnknownZoneLabel=WText("NoTimezone")}).ToArray();
         foreach(var row in MetadataGrid.Items.OfType<InspectorRow>())if(selectedTags.Contains(row.Tag))MetadataGrid.SelectedItems.Add(row);
         var view=CollectionViewSource.GetDefaultView(MetadataGrid.ItemsSource);view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(InspectorRow.Section)));
         InspectorCounts.Text="所选："+MetadataInspector.Counts(selected)+"\n全库："+MetadataInspector.Counts(photos.Select(r=>r.Document));
@@ -65,7 +65,7 @@ public partial class MainWindow
     bool InspectorHasInput()=>Fields.Any(f=>f.Apply.IsChecked==true||f.Value.Text!=editorBaseline.GetValueOrDefault(f.Tag,""));
     void EditInspectorField(object sender,RoutedEventArgs e)
     {
-        if(MetadataGrid.SelectedItems.OfType<InspectorRow>().FirstOrDefault(r=>r.CanEdit) is {} row) OpenM1Field(row);
+        OpenWorkflowFields(MetadataGrid.SelectedItems.OfType<InspectorRow>());
     }
     private async void RereadPhotos(object sender,RoutedEventArgs e)
     {

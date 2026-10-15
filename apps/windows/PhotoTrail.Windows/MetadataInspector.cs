@@ -17,7 +17,9 @@ public sealed record InspectorValue(string Role,string Tag,string Value)
 public sealed record InspectorRow(string Section,string Name,string Tag,string Value,string State,bool IsCommon,bool CanEdit=false,string? EditTag=null)
 {
     public string FamilyTag {get {int colon=Tag.LastIndexOf(':');return colon>=0?Tag[..colon]:Tag;}}
-    public string Permission=>CanEdit?"编辑精确来源字段":"只读";
+    public string ReadOnlyReason {get;init;}="";
+    public string Permission=>CanEdit?"编辑精确来源字段":ReadOnlyReason.Length>0?"只读："+ReadOnlyReason:"只读";
+    public string ActionDescription=>Permission+" · "+Tag;
     public bool ShowFullTag {get;init;}=true;
     public bool HasDraft {get;init;}
     public string SourceLabel=>ShowFullTag?Tag:FamilyTag;
@@ -26,6 +28,21 @@ public sealed record InspectorRow(string Section,string Name,string Tag,string V
     public string DisplayValue=>Value.Length==0?(State.Contains("未读")||State.Contains("失败")||State.Contains("过期")?State:MissingLabel):Value;
     public string DisplayState=>(HasDraft?"● "+DraftLabel+" · ":"")+State;
     public string ActionLabel=>CanEdit?"✎":"🔒";
+    string DisplayTag=>EditTag??Tag.Split(" / ",StringSplitOptions.None)[^1];
+    public bool IsDate=>VerifiedMetadataDates.IsDate(DisplayTag)||MetadataTimes.IsSystem(DisplayTag)||MetadataTimes.IsPartial(DisplayTag);
+    internal bool HasFullDateDisplay=>IsDate&&System.Text.RegularExpressions.Regex.IsMatch(Value,@"^\d{4}[:-]\d{2}[:-]\d{2}[ T]\d{2}:\d{2}:\d{2}(?:[.Z+\-]|$)",System.Text.RegularExpressions.RegexOptions.CultureInvariant,TimeSpan.FromMilliseconds(50));
+    public string? LocalDateDisplay {get;init;}
+    public string? LocalDateOffset {get;init;}
+    public string DateFractionLabel {get;init;}="亚秒";
+    public string DateUnknownZoneLabel {get;init;}="时区未记录";
+    public string DisplayPrimary=>LocalDateDisplay??(HasFullDateDisplay?Value[..10].Replace(':','-')+" "+Value.Substring(11,8):DisplayValue);
+    public string DisplayDateDetail { get {
+        if(!HasFullDateDisplay)return "";
+        int end=19;while(end<Value.Length&&(Value[end]=='.'||char.IsAsciiDigit(Value[end])))end++;
+        string fraction=Value[19..end],offset=LocalDateOffset??Value[end..];
+        string zone=offset.Length==0?DateUnknownZoneLabel:"UTC"+(offset=="Z"?"+00:00":offset);
+        return zone+(fraction.Length==0?"":" · "+DateFractionLabel+" 0"+fraction);
+    } }
 }
 public static class MetadataInspector
 {
@@ -143,13 +160,24 @@ public static class MetadataInspector
                 var current=docs.Select(d=>d.Value(field.Tag)).ToArray();
                 string value=!draft?"":current.Distinct(StringComparer.Ordinal).Count()==1?current[0]:$"混合值（{current.Count(v=>v.Length>0)}/{docs.Count}有值）";
                 string state=field.Tag=="File:MDItemUserTags"?"平台例外：Finder标签本体":docs.Any(d=>d.InspectionError.Length>0)?"读取失败／过期":docs.Any(d=>d.Inspection is null)?"未读":draft&&value.Length>0?(current.Distinct(StringComparer.Ordinal).Count()>1?"混合值":"已读"):"缺失";
-                rows.Add(new(field.Section,field.Name,field.Tag,value,state,common.Contains(field.Tag),editable,editable?field.Tag:null){HasDraft=draft});continue;
+                rows.Add(new(field.Section,field.Name,field.Tag,value,state,common.Contains(field.Tag),editable,editable?field.Tag:null){HasDraft=draft,ReadOnlyReason=editable?"":ReadonlyReason(field.Tag)});continue;
             }
             foreach(var key in keys){if(!covered.Add(key))continue;Add(field.Section,field.Name,key.Role,key.Tag,common.Any(t=>Matches(t,key.Tag)));}
         }
         foreach(var key in all.Select(v=>(v.Role,v.Tag)).Distinct())if(covered.Add(key))Add("附加字段",Label(key.Tag),key.Role,key.Tag,common.Any(t=>Matches(t,key.Tag)));
         if(docs.Count==1)for(int i=0;i<rows.Count;i++)if(rows[i].Tag.Contains("IPTC:",StringComparison.Ordinal))rows[i]=rows[i] with{State=rows[i].State+"；"+(docs[0].Iptc?.ReadState??"原始IPTC来源未读取")};
-        return rows.ToArray();
+        return rows.Select(row=>{
+            if(!row.HasFullDateDisplay)return row;
+            string tag=row.EditTag??row.Tag.Split(" / ",StringSplitOptions.None)[^1];
+            var verified=docs.Select(doc=>doc.VerifiedDate(tag)).FirstOrDefault(date=>date is not null&&date.Text==row.Value&&date.Projection.Kind=="instant");
+            if(verified is null)return row;
+            // Render only whole seconds from the cached shared proof; preserve every original subsecond digit separately.
+            try {
+                var instant=DateTimeOffset.FromUnixTimeSeconds(verified.Projection.Seconds);var offset=TimeZoneInfo.Local.GetUtcOffset(instant);
+                var local=instant.ToOffset(offset);
+                return row with{LocalDateDisplay=local.ToString("yyyy-MM-dd HH:mm:ss",System.Globalization.CultureInfo.InvariantCulture),LocalDateOffset=(offset.Ticks<0?"-":"+")+offset.Duration().ToString(@"hh\:mm",System.Globalization.CultureInfo.InvariantCulture)};
+            }catch(ArgumentException){return row;}
+        }).ToArray();
         void Add(string section,string name,string role,string tag,bool isCommon) {
             var values=docs.Select(d=>d.Inspection?.FirstOrDefault(v=>v.Role==role&&v.Tag==tag)?.Value).ToArray();var present=values.Where(v=>v is not null).ToArray();
             string state=docs.Any(d=>d.InspectionError.Length>0)?"过期快照／读取失败":docs.Any(d=>d.Inspection is null)?"未读":present.Length!=docs.Count||present.Distinct(StringComparer.Ordinal).Count()>1?"混合值":"已读";
@@ -164,8 +192,9 @@ public static class MetadataInspector
                 value=current.Distinct(StringComparer.Ordinal).Count()==1?current[0]:$"混合值（{current.Count(v=>v.Length>0)}/{docs.Count}有值）";
                 if(!docs.Any(d=>d.InspectionError.Length>0))state=current.Distinct(StringComparer.Ordinal).Count()>1?"混合值":value.Length==0?"缺失":"已读";
             }
-            rows.Add(new(section,name,role+" / "+tag,value,state,isCommon,writable,writable?tag:null){HasDraft=draft});
+            rows.Add(new(section,name,role+" / "+tag,value,state,isCommon,writable,writable?tag:null){HasDraft=draft,ReadOnlyReason=writable?"":!docs.All(TargetRole)?"该显示来源不是当前实际写入目标；不跨来源暗写":tag.Split(':').Length>2?"重复或Copy来源不能推断写入目标":ReadonlyReason(tag)});
         }
+        string ReadonlyReason(string tag)=>docs.Any(d=>d.InspectionError.Length>0)?"来源读取失败或过期，不能写入":tag=="File:MDItemUserTags"?"Finder标签本体属于Mac平台功能":tag.StartsWith("File:",StringComparison.Ordinal)||tag is "System:FileName" or "System:Directory"?"文件身份及路径只读；重命名使用独立工作区":tag.Contains(":GPS",StringComparison.Ordinal)?"定位由地图完整成组操作处理":!PhotoDocument.EditableTags.Contains(tag)?"此精确字段不在开放写入目录":"当前选择的格式、旁车关系、编码或精确来源不具备共同写入资格";
     }
     public static int PendingFields(PhotoDocument doc)=>doc.Draft.Keys.Count(t=>!t.StartsWith("XMP-exif:GPS",StringComparison.Ordinal))+(doc.Draft.Keys.Any(t=>t.StartsWith("XMP-exif:GPS",StringComparison.Ordinal))?1:0);
     public static string Counts(IEnumerable<PhotoDocument> photos)

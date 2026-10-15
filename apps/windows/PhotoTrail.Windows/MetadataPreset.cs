@@ -11,14 +11,14 @@ public sealed record MetadataOperation(string Tag, string Action, string Value =
 public sealed record MetadataPreset(string Name, IReadOnlyList<MetadataOperation> Operations)
 {
     public const int MaximumBytes = 128 * 1024;
-    public const int MaximumOperations = 27;
+    public const int MaximumOperations = 128;
     public static bool IsList(string tag) => MetadataFields.IsList(tag);
     public static bool IsText(string tag) => MetadataCsv.Tags.Contains(tag) && !IsList(tag) && PhotoDocument.NumericRange(tag) is null && !VerifiedMetadataDates.IsDate(tag) && !MetadataTimes.IsSystem(tag) && !MetadataTimes.IsPartial(tag) && tag is not ("XMP-xmp:Rating" or "XMP-iptcCore:CountryCode" or "XMP-exif:DateTimeOriginal" or "XMP-exif:DateTimeDigitized" or "XMP-xmp:CreateDate" or "XMP-xmp:ModifyDate");
     public static MetadataPreset Create(string name, IReadOnlyDictionary<string,string> changes) => Create(name, changes.Select(p => new MetadataOperation(p.Key, p.Value.Length == 0 ? "remove" : IsList(p.Key)&&p.Key!="XMP-dc:Subject"&&p.Key!="IPTC:Keywords" ? "replaceAuthors" : p.Key is "XMP-dc:Subject" or "IPTC:Keywords" ? "replaceKeywords" : "setText", p.Value)).ToArray());
     public static MetadataPreset Create(string name, IReadOnlyList<MetadataOperation> operations)
     {
         name = name.Trim();
-        if (name.Length is < 1 or > 80 || name.Any(char.IsControl) || operations.Count is < 1 or > MaximumOperations) throw new ArgumentException("预设名称须为1至80字，操作条目须为1至27条（重复目标也计数）。");
+        if (name.Length is < 1 or > 80 || name.Any(char.IsControl) || operations.Count is < 1 or > MaximumOperations) throw new ArgumentException($"预设名称须为1至80字，操作条目须为1至{MaximumOperations}条（重复目标也计数）。");
         _ = new UTF8Encoding(false,true).GetByteCount(name);
         var normalized = operations.Select(Validate).ToArray();
         return new(name, Array.AsReadOnly(normalized));
@@ -40,7 +40,7 @@ public sealed record MetadataPreset(string Name, IReadOnlyList<MetadataOperation
             "setText" or "fillMissingText" => !IsList(op.Tag),
             "appendText" => IsText(op.Tag),
             "replaceAuthors" or "fillMissingAuthors" => op.Tag is "XMP-dc:Creator" or "IPTC:By-line" or "IPTC:By-lineTitle" or "IPTC:Contact",
-            "replaceKeywords" or "appendKeywords" or "removeKeywords" => op.Tag is "XMP-dc:Subject" or "IPTC:Keywords",
+            "replaceKeywords" or "appendKeywords" or "removeKeywords" => IsList(op.Tag)&&op.Tag!="XMP-dc:Creator",
             _ => false
         };
         if (!allowed) throw new ArgumentException("此预设动作／字段组合未支持（日期动作须为已开放完整日期目标）；未载入任何操作。");
@@ -48,7 +48,7 @@ public sealed record MetadataPreset(string Name, IReadOnlyList<MetadataOperation
         if (list && op.Value.Length > 0) {
             var words = MetadataFields.List(op.Value);
             if (words.Length > 256 || words.Any(w => w.Length == 0 || w.Contains('\0'))) throw new ArgumentException("列表最多256项，每项不能为空或含控制字符。");
-            op = op with { Value = MetadataFields.FormatList(op.Tag == "XMP-dc:Subject"?words.Distinct(StringComparer.Ordinal):words) };
+            op = op with { Value = MetadataFields.FormatList(op.Action is "replaceKeywords" or "appendKeywords" or "removeKeywords"?words.Distinct(StringComparer.Ordinal):words) };
         }
         PhotoDocument.ValidateChanges(new Dictionary<string,string>{{op.Tag, op.Value}});
         return op;
@@ -73,7 +73,7 @@ public sealed record MetadataPreset(string Name, IReadOnlyList<MetadataOperation
             Members(root,"version","name","operations");
             if (!root.GetProperty("version").TryGetInt32(out var version) || version != 1 || root.GetProperty("name").ValueKind != JsonValueKind.String) throw new ArgumentException("预设版本或名称无效。");
             var array = root.GetProperty("operations");
-            if (array.ValueKind != JsonValueKind.Array || array.GetArrayLength() is < 1 or > MaximumOperations) throw new ArgumentException("预设须包含1至27条操作。");
+            if (array.ValueKind != JsonValueKind.Array || array.GetArrayLength() is < 1 or > MaximumOperations) throw new ArgumentException($"预设须包含1至{MaximumOperations}条操作。");
             var operations = new List<MetadataOperation>();
             foreach (var item in array.EnumerateArray()) {
                 Members(item,"tag","action");
@@ -160,7 +160,7 @@ public sealed record MetadataPreset(string Name, IReadOnlyList<MetadataOperation
                 value = op.Action switch {
                     "remove" => null,
                     "appendText" => (current ?? "") + op.Value,
-                    "appendKeywords" => MetadataFields.FormatList(op.Tag=="IPTC:Keywords"?Words(current).Concat(Words(op.Value)):Words(current).Concat(Words(op.Value)).Distinct(StringComparer.Ordinal)),
+                    "appendKeywords" => MetadataFields.FormatList(Words(current).Concat(Words(op.Value)).Distinct(StringComparer.Ordinal)),
                     "removeKeywords" => MetadataFields.FormatList(Words(current).Where(w => !Words(op.Value).Contains(w,StringComparer.Ordinal))),
                     _ => op.Value
                 };

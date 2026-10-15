@@ -42,6 +42,9 @@ public partial class MainWindow
         MetadataGrid.MinRowHeight=settings.MinimumRowHeight;
         MetadataGrid.Resources["M1.RowInset"]=new Thickness(8,settings.RowPadding,8,settings.RowPadding);
         MetadataGrid.Resources["M1.SourceFontSize"]=10+settings.FontDelta;
+        MetadataGrid.Resources["M2.DateFontSize"]=15+settings.FontDelta;
+        MetadataGrid.Resources["M2.DateDetailFontSize"]=11+settings.FontDelta;
+        if(metadataWindow is not null)metadataWindow.FontSize=metadataBaseFont+settings.FontDelta;
         var cells=new Style(typeof(DataGridCell));cells.Setters.Add(new Setter(Control.PaddingProperty,new Thickness(0)));MetadataGrid.CellStyle=cells;
         foreach(var column in MetadataGrid.Columns.OfType<DataGridTextColumn>()){var text=new Style(typeof(TextBlock));text.Setters.Add(new Setter(TextBlock.FontSizeProperty,metadataBaseFont+settings.FontDelta));text.Setters.Add(new Setter(TextBlock.PaddingProperty,new Thickness(4,settings.RowPadding,4,settings.RowPadding)));text.Setters.Add(new Setter(TextBlock.TextWrappingProperty,TextWrapping.Wrap));column.ElementStyle=text;}
         RefreshInspector();

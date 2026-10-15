@@ -57,8 +57,11 @@ static partial class Program
    var before=Doc(InspectorSelected);await InspectorRefresh();Check(ReferenceEquals(before,Doc(InspectorSelected))&&Status.Contains("未应用输入"),"reread-skips-unapplied-even-unchecked-input");
    Invoke("RefreshSelection");Control<ComboBox>("InspectorView").SelectedIndex=1;
    grid.SelectedItem=InspectorRows().Single(r=>r.Tag=="旁车XMP / XMP-dc:Title");Action("EditInspectorField");
-   await Responsive();Check(SettingsTab(window,"编辑草稿")!.IsSelected,"exact-existing-editor-navigation");Check(Control<TextBox>("TitleValue").IsKeyboardFocusWithin,"existing-editor-keyboard-focus");
-   EditedFields(new(){{"XMP-dc:Title","edited sidecar title"}});await Apply("ApplyDraft");
+   await Responsive();var cardEditor=(Window)Field("metadataWindow")!;
+   Check(cardEditor.IsVisible&&((StackPanel)Field("workflowCards")!).Children.Count==1,"exact-source-opens-current-operation-card");
+   var cardInput=M2Children(cardEditor).OfType<TextBox>().Single(t=>System.Windows.Automation.AutomationProperties.GetName(t)=="参数（列表每行一项）");
+   Check(cardInput.IsKeyboardFocusWithin,"operation-card-keyboard-focus");cardInput.Text="edited sidecar title";M2Invoke("ApplyWorkflow");await BatchWait();
+   M2Invoke("SetPresetChain",new MetadataPreset("新预设",Array.Empty<MetadataOperation>()));cardEditor.Close();
    Check(MetadataInspector.PendingFields(Doc(InspectorSelected))==1&&Control<TextBlock>("InspectorCounts").Text.Contains("净草稿字段1"),"edit-net-count-not-source-rows");
    var draft=Drafts([InspectorSelected]);await InspectorRefresh();Check(SameDrafts([InspectorSelected],draft)&&Status.Contains("有草稿"),"reread-skips-draft-keeps-source-baseline");
    var baseline=Doc(InspectorSelected);var sideBytes=File.ReadAllBytes(baseline.SidecarPath!);File.AppendAllText(baseline.SidecarPath!," ");

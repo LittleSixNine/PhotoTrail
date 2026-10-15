@@ -21,7 +21,7 @@ public partial class MainWindow
         UpdateMetadataPresetButton.IsEnabled=available&&currentMetadataPreset is not null;
         PresetLibraryStatus.Text=presetLibraryError.Length>0?presetLibraryError:$"库中 {metadataPresets?.Entries.Count??0} 项；当前 {(currentMetadataPreset is null?"未保存预设":"已保存预设")}{(PresetChainDirty?" · 有未保存修改":"")}{(presetEditorDirty?" · 有未编排参数":"")} · {presetOperations.Count} 条操作。管理不会应用照片。";
     }
-    void RefreshPresetList(){fillingPresetLibrary=true;try{MetadataPresetList.ItemsSource=metadataPresets?.Entries;MetadataPresetList.SelectedItem=metadataPresets?.Entries.FirstOrDefault(e=>e.Id==currentMetadataPreset);}finally{fillingPresetLibrary=false;}RefreshPresetLibraryControls();}
+    void RefreshPresetList(){fillingPresetLibrary=true;try{MetadataPresetList.ItemsSource=metadataPresets?.Entries;MetadataPresetList.SelectedItem=metadataPresets?.Entries.FirstOrDefault(e=>e.Id==currentMetadataPreset);FilterWorkflowPresets();}finally{fillingPresetLibrary=false;}RefreshPresetLibraryControls();}
     void LoadMetadataPresets(){restoreMetadataPresetPending=true;try{metadataPresets=MetadataPresetLibrary.Open(MetadataPresetLibrary.DefaultPath);presetLibraryError="";}catch(Exception error){metadataPresets=null;presetLibraryError="库未载入，原件保留："+error.Message;}RefreshPresetList();}
     void LibraryAction(Action action){if(busy||renameRecoveryRequired)return;try{action();}catch(Exception error){presetLibraryError="库操作未完成；编辑及照片草稿保留："+error.Message;}RefreshPresetLibraryControls();}
     async Task LibraryActionAsync(Func<Task> action) {

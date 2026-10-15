@@ -31,6 +31,7 @@ public partial class MainWindow
     }
     private async void ApplyDates(object sender,RoutedEventArgs e) {
         if(busy||renameRecoveryRequired)return;
+        if(dateEditorWindow is not null&&!dateEditorSelection.SequenceEqual(Selected)){Status.Text=WText("SelectionChanged");return;}
         try {
             if(InspectorHasInput())throw new InvalidOperationException("请先应用编辑区输入。");
             var options=ReadDateInput();string input=JsonSerializer.Serialize(options);

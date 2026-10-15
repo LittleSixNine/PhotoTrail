@@ -9,7 +9,7 @@ namespace PhotoTrail.Windows;
 
 public partial class MainWindow
 {
-    Window? metadataWindow, settingsWindow;
+    Window? metadataWindow, settingsWindow, advancedWindow;
     bool changingM1Inspector, metadataClosing;
     static string M1Label(string key) => Application.Current?.MainWindow?.TryFindResource("M1." + key) as string ?? key;
     string M1Text(string key) => (string)FindResource("M1." + key);
@@ -31,6 +31,9 @@ public partial class MainWindow
     void RefreshM1Shell()
     {
         if (M1DraftCount is null) return;
+        RefreshM2MetadataLayout();
+        if (workflowBody is not null) workflowBody.IsEnabled = !busy && !renameRecoveryRequired;
+        RefreshWorkflowContext();
         MetadataNavigation.IsChecked = WorkspaceTabs.SelectedIndex == 0;
         MapNavigation.IsChecked = WorkspaceTabs.SelectedIndex == 1;
         RenameNavigation.IsChecked = WorkspaceTabs.SelectedIndex == 2;
@@ -42,7 +45,8 @@ public partial class MainWindow
         M1DraftCount.Text = pending == 0 ? M1Text("NoDraft") : M1Format("DraftSummary", photos.Count(r => r.Document.Draft.Count > 0), pending);
         M1PhotoEmpty.Visibility = photos.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         M1InspectorEmpty.Visibility = Selected.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
-        foreach(var control in new FrameworkElement[]{SelectionInfo,InspectorCounts,InspectorStatus,M1InspectorModes,M1FieldSearchBox})control.Visibility=Selected.Length==0?Visibility.Collapsed:Visibility.Visible;
+        foreach(var control in new FrameworkElement[]{SelectionInfo,M2DiagnosticDetails,M1InspectorModes,M1FieldSearchBox})control.Visibility=Selected.Length==0?Visibility.Collapsed:Visibility.Visible;
+        InspectorStatus.Visibility=Selected.Length>0&&InspectorStatus.Text.Length>0?Visibility.Visible:Visibility.Collapsed;
         MetadataGrid.Visibility = Selected.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
         M1EditSelectedFields.IsEnabled = !busy && !renameRecoveryRequired && MetadataGrid.SelectedItems.OfType<InspectorRow>().Any(r => r.CanEdit);
         M1FieldSelectionCount.Text = M1Format("FieldSelectedCount", MetadataGrid.SelectedItems.Count);
@@ -73,11 +77,7 @@ public partial class MainWindow
     void M1EditRow(object sender, RoutedEventArgs e) { if (sender is Button { Tag: InspectorRow row }) OpenM1Field(row); }
     void OpenM1Field(InspectorRow row)
     {
-        if (busy || renameRecoveryRequired || !row.CanEdit || row.EditTag is not { } tag) return;
-        var field = Fields.FirstOrDefault(f => f.Tag == tag);
-        if (field.Value is null || !field.Value.IsEnabled) return;
-        OpenMetadataTool(MetadataToolsTabs.Items.OfType<TabItem>().First(t => Equals(t.Header, "编辑草稿")));
-        Dispatcher.BeginInvoke(() => { field.Value.BringIntoView(); field.Value.Focus(); }, System.Windows.Threading.DispatcherPriority.Loaded);
+        OpenWorkflowFields([row]);
     }
     void M1OpenTool(object sender, RoutedEventArgs e)
     {
@@ -87,7 +87,10 @@ public partial class MainWindow
     void OpenMetadataTool(TabItem tab)
     {
         if (busy || renameRecoveryRequired || metadataClosing) return;
-        if (metadataWindow is null)
+        int toolIndex = MetadataToolsTabs.Items.IndexOf(tab);
+        if (toolIndex == 3) { OpenWorkflowDates(tab); return; }
+        if (toolIndex is 0 or 2 or 5) { OpenWorkflow(toolIndex == 5); return; }
+        if (advancedWindow is null)
         {
             MetadataToolsParking.Children.Remove(MetadataToolsTabs);
             var panel = new DockPanel { Margin = new Thickness(12) };
@@ -97,20 +100,20 @@ public partial class MainWindow
             cancel.Click += (_, _) => {
                 if (metadataClosing) return;
                 if (busy) { CancelRead(this, new RoutedEventArgs()); return; }
-                RefreshSelection(); DatePlanPreview.Text = M1Text("EditorCancelled"); metadataWindow?.Close();
+                RefreshSelection(); DatePlanPreview.Text = M1Text("EditorCancelled"); advancedWindow?.Close();
             };
-            var close = new Button { Content = M1Text("Close") }; close.Click += (_, _) => { if (!metadataClosing) metadataWindow?.Close(); };
+            var close = new Button { Content = M1Text("Close") }; close.Click += (_, _) => { if (!metadataClosing) advancedWindow?.Close(); };
             buttons.Children.Add(cancel); buttons.Children.Add(close); DockPanel.SetDock(buttons, Dock.Right); footer.Children.Add(buttons);
             footer.Children.Add(new TextBlock { Text = M1Text("EditorSelection"), TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center });
             DockPanel.SetDock(footer, Dock.Bottom); panel.Children.Add(footer); panel.Children.Add(MetadataToolsTabs);
-            metadataWindow = new Window { Owner = this, Resources = Resources, Title = M1Text("ToolsTitle"), Width = 1000, Height = Math.Min(800, SystemParameters.WorkArea.Height), MinWidth = 600, MinHeight = 400, Content = panel, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+            advancedWindow = new Window { Owner = this, Resources = Resources, Title = M1Text("ToolsTitle"), Width = 1000, Height = Math.Min(800, SystemParameters.WorkArea.Height), MinWidth = 600, MinHeight = 400, Content = panel, WindowStartupLocation = WindowStartupLocation.CenterOwner };
 #pragma warning disable WPF0001
-            metadataWindow.ThemeMode = ThemeMode;
+            advancedWindow.ThemeMode = ThemeMode;
 #pragma warning restore WPF0001
             // Reparented controls no longer bubble through MainWindow; keep the original invalidation path.
-            metadataWindow.AddHandler(ToggleButton.CheckedEvent, new RoutedEventHandler((_, _) => { if (!fillingEditor) InvalidateDates(); }));
-            metadataWindow.AddHandler(ToggleButton.UncheckedEvent, new RoutedEventHandler((_, _) => { if (!fillingEditor) InvalidateDates(); }));
-            metadataWindow.Closing += (_, args) => {
+            advancedWindow.AddHandler(ToggleButton.CheckedEvent, new RoutedEventHandler((_, _) => { if (!fillingEditor) InvalidateDates(); }));
+            advancedWindow.AddHandler(ToggleButton.UncheckedEvent, new RoutedEventHandler((_, _) => { if (!fillingEditor) InvalidateDates(); }));
+            advancedWindow.Closing += (_, args) => {
                 metadataClosing = true;
                 try {
                     if (busy) { CancelRead(this, new RoutedEventArgs()); args.Cancel = true; Status.Text = M1Text("BusyEditor"); return; }
@@ -118,10 +121,10 @@ public partial class MainWindow
                     RefreshSelection();
                 } finally { metadataClosing = false; }
             };
-            metadataWindow.Closed += (_, _) => { panel.Children.Remove(MetadataToolsTabs); MetadataToolsParking.Children.Add(MetadataToolsTabs); metadataWindow = null; };
-            metadataWindow.Show();
+            advancedWindow.Closed += (_, _) => { panel.Children.Remove(MetadataToolsTabs); MetadataToolsParking.Children.Add(MetadataToolsTabs); advancedWindow = null; };
+            advancedWindow.Show();
         }
-        MetadataToolsTabs.SelectedItem = tab; metadataWindow.Activate();
+        MetadataToolsTabs.SelectedItem = tab; advancedWindow.Activate();
     }
     void M1OpenSettings(object sender, RoutedEventArgs e)
     {
