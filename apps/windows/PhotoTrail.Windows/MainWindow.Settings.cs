@@ -40,9 +40,11 @@ public partial class MainWindow
         if(PresetControls is not null){System.Windows.Documents.TextElement.SetFontSize(PresetControls,metadataBaseFont+settings.FontDelta);MetadataPresetList.Padding=new Thickness(4,settings.RowPadding,4,settings.RowPadding);PresetValue.Padding=new Thickness(4,settings.RowPadding,4,settings.RowPadding);}
         foreach(var(tag,apply,input)in Fields){apply.FontSize=input.FontSize=metadataBaseFont+settings.FontDelta;apply.Content=fieldLabels[tag]+" · "+SettingsPreference.TagLabel(tag,settings.FullTagNames);apply.ToolTip=input.ToolTip=tag;System.Windows.Automation.AutomationProperties.SetName(apply,fieldLabels[tag]+" · "+tag);System.Windows.Automation.AutomationProperties.SetHelpText(input,tag);input.Padding=new Thickness(4,settings.RowPadding,4,settings.RowPadding);input.MinHeight=settings.MinimumRowHeight;}
         MetadataGrid.MinRowHeight=settings.MinimumRowHeight;
+        MetadataGrid.Resources["M1.RowInset"]=new Thickness(8,settings.RowPadding,8,settings.RowPadding);
+        MetadataGrid.Resources["M1.SourceFontSize"]=10+settings.FontDelta;
         var cells=new Style(typeof(DataGridCell));cells.Setters.Add(new Setter(Control.PaddingProperty,new Thickness(0)));MetadataGrid.CellStyle=cells;
         foreach(var column in MetadataGrid.Columns.OfType<DataGridTextColumn>()){var text=new Style(typeof(TextBlock));text.Setters.Add(new Setter(TextBlock.FontSizeProperty,metadataBaseFont+settings.FontDelta));text.Setters.Add(new Setter(TextBlock.PaddingProperty,new Thickness(4,settings.RowPadding,4,settings.RowPadding)));text.Setters.Add(new Setter(TextBlock.TextWrappingProperty,TextWrapping.Wrap));column.ElementStyle=text;}
-        ((DataGridTextColumn)MetadataGrid.Columns[1]).Binding=new Binding(settings.FullTagNames?nameof(InspectorRow.Tag):nameof(InspectorRow.FamilyTag));
+        RefreshInspector();
     }
     private void ResetSettings(object sender,RoutedEventArgs e)
     {
@@ -61,7 +63,7 @@ public partial class MainWindow
         RefreshInspector();
     }
     private void CopyMetadataTag(object sender,RoutedEventArgs e){try{if(MetadataGrid.SelectedItem is InspectorRow row)Clipboard.SetText(row.Tag);}catch(Exception){Status.Text="完整标签未复制；剪贴板暂不可用，草稿保留。";}}
-    private void CopyMetadataRow(object sender,DataGridRowClipboardEventArgs e){if(e.Item is InspectorRow row)for(int i=0;i<e.ClipboardRowContent.Count;i++)if(e.ClipboardRowContent[i].Column==MetadataGrid.Columns[1])e.ClipboardRowContent[i]=new DataGridClipboardCellContent(row,MetadataGrid.Columns[1],row.Tag);}
+    private void CopyMetadataRow(object sender,DataGridRowClipboardEventArgs e){if(e.Item is InspectorRow row)for(int i=0;i<e.ClipboardRowContent.Count;i++)if(e.ClipboardRowContent[i].Column==MetadataGrid.Columns[0])e.ClipboardRowContent[i]=new DataGridClipboardCellContent(row,MetadataGrid.Columns[0],row.Tag);}
     sealed class PhotoDateComparer(SettingsPreference preference):System.Collections.IComparer
     {
         public int Compare(object? x,object? y) {

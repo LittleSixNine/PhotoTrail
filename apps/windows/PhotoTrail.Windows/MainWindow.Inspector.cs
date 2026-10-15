@@ -43,18 +43,29 @@ public partial class MainWindow
         if(MetadataGrid is null||InspectorCounts is null)return;
         var selected=Selected.Select(r=>r.Document).ToArray();string query=MetadataSearch.Text;
         var rows=MetadataInspector.Rows(selected,settings.CommonTags.ToHashSet(StringComparer.Ordinal));
-        MetadataGrid.ItemsSource=rows.Where(r=>(query.Length>0?r.Tag.Contains(query,StringComparison.OrdinalIgnoreCase)||r.Name.Contains(query,StringComparison.CurrentCultureIgnoreCase)||r.Value.Contains(query,StringComparison.OrdinalIgnoreCase):!settings.CommonOnly||r.IsCommon)).ToArray();
+        string? group=M1InspectorGroup.SelectedItem as string;
+        var selectedTags=MetadataGrid.SelectedItems.OfType<InspectorRow>().Select(r=>r.Tag).ToHashSet(StringComparer.Ordinal);
+        changingM1Inspector=true;
+        try {
+            M1CommonFields.IsChecked=settings.CommonOnly;M1FullFields.IsChecked=!settings.CommonOnly;
+            M1InspectorGroup.Visibility=settings.CommonOnly?Visibility.Collapsed:Visibility.Visible;
+            M1InspectorGroup.ItemsSource=new[]{M1Text("AllGroups")}.Concat(rows.Select(r=>r.Section).Distinct()).ToArray();
+            M1InspectorGroup.SelectedItem=group is not null&&M1InspectorGroup.Items.Contains(group)?group:M1Text("AllGroups");
+        } finally {changingM1Inspector=false;}
+        MetadataGrid.ItemsSource=rows.Where(r=>(query.Length>0?r.Tag.Contains(query,StringComparison.OrdinalIgnoreCase)||r.Name.Contains(query,StringComparison.CurrentCultureIgnoreCase)||r.Value.Contains(query,StringComparison.OrdinalIgnoreCase):!settings.CommonOnly||r.IsCommon)&&
+            (settings.CommonOnly||M1InspectorGroup.SelectedItem as string==M1Text("AllGroups")||r.Section==M1InspectorGroup.SelectedItem as string)).Select(r=>r with{ShowFullTag=settings.FullTagNames,MissingLabel=M1Text("MissingValue"),DraftLabel=M1Text("Draft")}).ToArray();
+        foreach(var row in MetadataGrid.Items.OfType<InspectorRow>())if(selectedTags.Contains(row.Tag))MetadataGrid.SelectedItems.Add(row);
         var view=CollectionViewSource.GetDefaultView(MetadataGrid.ItemsSource);view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(InspectorRow.Section)));
         InspectorCounts.Text="所选："+MetadataInspector.Counts(selected)+"\n全库："+MetadataInspector.Counts(photos.Select(r=>r.Document));
         InspectorStatus.Text=string.Join("\n",selected.Where(d=>d.InspectionError.Length>0).Select(d=>Path.GetFileName(d.FilePath)+"："+d.InspectionError));
+        RefreshM1Shell();
     }
-    bool InspectorHasInput()=>Fields.Any(f=>f.Apply.IsChecked==true||f.Value.Text!=(Selected.Select(r=>r.Document.Value(f.Tag)).Distinct().ToArray() is {Length:1} values?values[0]:""));
+    readonly Dictionary<string,string> editorBaseline=new(StringComparer.Ordinal);
+    void CaptureEditorBaseline(){editorBaseline.Clear();foreach(var field in Fields)editorBaseline[field.Tag]=field.Value.Text;}
+    bool InspectorHasInput()=>Fields.Any(f=>f.Apply.IsChecked==true||f.Value.Text!=editorBaseline.GetValueOrDefault(f.Tag,""));
     void EditInspectorField(object sender,RoutedEventArgs e)
     {
-        if(MetadataGrid.SelectedItem is not InspectorRow {CanEdit:true,EditTag:{} tag}||busy)return;
-        var field=Fields.FirstOrDefault(f=>f.Tag==tag);if(field.Value is null)return;
-        // Only navigate to the existing editor; preserve all uncommitted inputs and exact write authorization.
-        for(DependencyObject? parent=Editor;parent is not null;parent=LogicalTreeHelper.GetParent(parent))if(parent is TabItem item){item.IsSelected=true;break;}Dispatcher.BeginInvoke(()=>{field.Value.BringIntoView();field.Value.Focus();},System.Windows.Threading.DispatcherPriority.Loaded);
+        if(MetadataGrid.SelectedItems.OfType<InspectorRow>().FirstOrDefault(r=>r.CanEdit) is {} row) OpenM1Field(row);
     }
     private async void RereadPhotos(object sender,RoutedEventArgs e)
     {

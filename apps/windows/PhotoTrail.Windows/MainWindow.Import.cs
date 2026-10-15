@@ -50,6 +50,7 @@ public partial class MainWindow
     }
     void RefreshImportProgress()
     {
+        RefreshM1Shell();
         if(importQueue is not {} queue)return;queue.Paused=importPaused||busy;
         ImportProgress.Text=$"{(busy?"等待保存／应用安全节点":importPaused?"暂停等待项":queue.EnumerationComplete?"读取／接纳":"枚举中，总数未知")}：已发现{queue.Discovered}，当前读取{importReading}，已读{importRead}，已接纳{importAccepted}，等待{queue.Waiting.Length}，跳过{queue.Skipped}，目录失败{queue.DirectoryFailures}，文件失败{queue.FileFailures}。";
         var chosen=(ImportPending.SelectedItem as ImportSource)?.Path;ImportPending.ItemsSource=queue.Waiting;if(chosen is not null)ImportPending.SelectedItem=queue.Waiting.FirstOrDefault(s=>s.Path==chosen);

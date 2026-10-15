@@ -36,7 +36,7 @@ public partial class MainWindow : Window
     private int photoPreviewRevision;
 
     private readonly string[] extensions = [".jpg", ".jpeg", ".png", ".heic", ".dng", ".tif", ".tiff", ".xmp", ".arw", ".nef", ".raf", ".cr2", ".cr3", ".rw2", ".orf", ".pef"];
-    public MainWindow() { InitializeComponent(); metadataBaseFont=FontSize; foreach(var field in Fields)fieldLabels[field.Tag]=field.Apply.Content.ToString()!.Replace(field.Tag,"").Trim(' ','·'); DatePlanChanged(this,new RoutedEventArgs()); Photos.ItemsSource = photos;PhotoStrip.ItemsSource=System.Windows.Data.CollectionViewSource.GetDefaultView(photos); TrackList.ItemsSource = tracks;TrackDisplayRows.ItemsSource=tracks; ClipboardField.ItemsSource = Fields.Select(field => new { field.Tag, Name = fieldLabels[field.Tag]+" · "+field.Tag }).ToArray(); ClipboardField.SelectedIndex = 0; InitializePresetEditor();
+    public MainWindow() { InitializeComponent(); CaptureEditorBaseline(); metadataBaseFont=FontSize; foreach(var field in Fields)fieldLabels[field.Tag]=field.Apply.Content.ToString()!.Replace(field.Tag,"").Trim(' ','·'); DatePlanChanged(this,new RoutedEventArgs()); Photos.ItemsSource = photos;PhotoStrip.ItemsSource=System.Windows.Data.CollectionViewSource.GetDefaultView(photos); TrackList.ItemsSource = tracks;TrackDisplayRows.ItemsSource=tracks; ClipboardField.ItemsSource = Fields.Select(field => new { field.Tag, Name = fieldLabels[field.Tag]+" · "+field.Tag }).ToArray(); ClipboardField.SelectedIndex = 0; InitializePresetEditor();
         AddHandler(System.Windows.Controls.Primitives.ToggleButton.CheckedEvent,new RoutedEventHandler((s,e)=>{if(!fillingEditor)InvalidateDates();}));
         AddHandler(System.Windows.Controls.Primitives.ToggleButton.UncheckedEvent,new RoutedEventHandler((s,e)=>{if(!fillingEditor)InvalidateDates();}));
     }
@@ -116,6 +116,7 @@ public partial class MainWindow : Window
         if (!IsLoaded) return;
 #pragma warning disable WPF0001 // Native Fluent ThemeMode is experimental in the pinned .NET 10 SDK.
         ThemeMode = ThemeChoice.SelectedIndex switch { 1 => System.Windows.ThemeMode.Light, 2 => System.Windows.ThemeMode.Dark, _ => System.Windows.ThemeMode.System };
+        foreach (Window owned in OwnedWindows) owned.ThemeMode = ThemeMode;
 #pragma warning restore WPF0001
         if (restoringTheme) return;
         try { ThemePreference.Save(themePreferencePath,ThemeChoice.SelectedIndex); ThemeStatus.Text = "应用外观已保存为本机偏好，重启恢复；不改变Windows设置。"; }
@@ -160,7 +161,7 @@ public partial class MainWindow : Window
     private async void CheckDependencies(object sender, RoutedEventArgs e)
     {
         if (busy || checkingEnvironment) return;
-        checkingEnvironment = true; EnvironmentCheckButton.IsEnabled = false;
+        checkingEnvironment = true; EnvironmentCheckButton.IsEnabled = false; RefreshM1Shell();
         dependencyCheck?.Dispose(); dependencyCheck = new();
         try
         {
@@ -179,7 +180,7 @@ public partial class MainWindow : Window
             catch (Exception) { lines.Add("ExifTool不可用：请保留完整发行目录及随附文件。测试包应包含tools/exiftool/ExifTool.exe。"); }
             DependencyStatus.Text = string.Join("\n", lines);
         }
-        finally { checkingEnvironment = false; EnvironmentCheckButton.IsEnabled = true; }
+        finally { checkingEnvironment = false; EnvironmentCheckButton.IsEnabled = true; RefreshM1Shell(); }
     }
     private void RefreshGoogleKeyStatus() => GoogleKeyStatus.Text = File.Exists(GoogleKeyStore.DefaultPath) ? "已保存本机密钥；尚未联网验证，当前默认地图为OpenFreeMap。" : "尚未保存本机密钥；当前使用OpenFreeMap。";
     private void SaveGoogleKey(object sender, RoutedEventArgs e)
@@ -648,7 +649,7 @@ public partial class MainWindow : Window
         ApplyPhotoView();
         RefreshSelection(); Status.Text = "列表已更新；隐藏照片与草稿仍保留在会话中。";
     }
-    private void RefreshPhotoCount() => PhotoCount.Text = $"显示{Photos.Items.Count}／总计{photos.Count}；草稿{photos.Count(row => row.Document.Draft.Count > 0)}";
+    private void RefreshPhotoCount() { RefreshM1Shell(); PhotoCount.Text = $"显示{Photos.Items.Count}／总计{photos.Count}；草稿{photos.Count(row => row.Document.Draft.Count > 0)}"; }
     private void RefreshSelection()
     {
         fillingEditor = true;
@@ -671,10 +672,10 @@ public partial class MainWindow : Window
         SaveButton.IsEnabled = !busy && !renameRecoveryRequired && selected.Any(p => p.Document.Draft.Count > 0);
         RemoveButton.IsEnabled = !busy && !importRunning && !renameRecoveryRequired && selected.Length > 0;
         UndoRemoveButton.IsEnabled = !busy && !importRunning && !renameRecoveryRequired && removedPhotos.Count>0;
-        SelectionInfo.Text = selected.Length == 0 ? "请选择照片。Ctrl / Shift 可多选。" :
-            $"已选 {selected.Length} 张；{selected.Count(p => p.Document.Draft.Count > 0)} 张有草稿。" +
-            (selected.Length == 1 ? (selected[0].Document.SidecarPath is null ? "XMP 来源：文件内嵌。" : "XMP 来源：同名旁车。") : "混合值显示为空；只应用勾选字段。") +
-            (editable ? "" : "所选包含只读格式，暂不支持编辑。");
+        SelectionInfo.Text = selected.Length == 0 ? M1Text("EmptySelection") :
+            M1Format("SelectedSummary",selected.Length,selected.Count(p=>p.Document.Draft.Count>0))+"\n"+
+            M1Format("SourceSummary",selected.Count(p=>p.Document.SidecarPath is null&&p.Document.FileType!="XMP"),selected.Count(p=>p.Document.SidecarPath is not null||p.Document.FileType=="XMP"))+
+            (selected.Length==1?"\n"+selected[0].Name:"")+(editable?"":"\n"+M1Text("ReadonlyReason"));
         foreach(var field in Fields)field.Apply.IsEnabled=field.Value.IsEnabled=selected.Length>0&&selected.All(p=>MetadataFields.CanEdit(p.Document,field.Tag));
         if(busy||preserveBatchEditor){fillingEditor=false;return;}
         foreach (var (tag, apply, value) in Fields)
@@ -687,6 +688,7 @@ public partial class MainWindow : Window
             value.ToolTip=source+" · "+tag+" · "+(selected.Any(p=>p.Document.InspectionError.Length>0)?"读取失败／过期":values.Length>1?"混合值":values.FirstOrDefault()?.Length>0?"已读":"缺失")+(allowed?"":" · 只读");
             value.Text = values.Length == 1 ? values[0] : ""; apply.IsChecked = false;
         }
+        CaptureEditorBaseline();
         RefreshInspector();
         fillingEditor = false;
         RefreshComparison();
@@ -737,7 +739,7 @@ public partial class MainWindow : Window
     }
     private bool DiscardEditor()
     {
-        if (!Fields.Any(f => f.Apply.IsChecked == true)) return true;
+        if (!InspectorHasInput()) return true;
         return MessageBox.Show(this, "输入尚未加入草稿。放弃这次输入？", "PhotoTrail", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
     }
     private void CopyGpsClipboard(object sender, RoutedEventArgs e)
@@ -966,12 +968,13 @@ public partial class MainWindow : Window
         if(presetEditorDirty||PresetChainDirty){
             if(MessageBox.Show(this,"存在未编排参数或尚未保存入库的预设链。明确放弃预设编辑并继续退出？（不会自动写库）","未保存元数据预设",MessageBoxButton.YesNo,MessageBoxImage.Question,MessageBoxResult.No)!=MessageBoxResult.Yes){e.Cancel=true;return;}
         }
-        if (photos.Any(p => p.Document.Draft.Count > 0) || removedPhotos.Any(batch=>batch.Rows.Any(item=>item.Row.Document.Draft.Count>0)) || Fields.Any(f => f.Apply.IsChecked == true))
+        if (photos.Any(p => p.Document.Draft.Count > 0) || removedPhotos.Any(batch=>batch.Rows.Any(item=>item.Row.Document.Draft.Count>0)) || InspectorHasInput())
             e.Cancel = MessageBox.Show(this, "存在未撤销的草稿或未应用输入。放弃并退出？保存的副本仍保留。", "PhotoTrail", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes;
     }
     private void WindowClosed(object? sender, EventArgs e) { renameDateValidation?.Cancel(); trackMatchRevision++;InvalidateTrackAdjustment(); photoPreviewRequest?.Cancel(); photoPreviewRevision++; PhotoPreviewImage.Source = null; dependencyCheck?.Cancel(); operation?.Cancel(); renameRevision++; SuspendMap(); GoogleKeyInput.Clear(); MapView.Dispose(); }
     private void MapSelected(object sender, SelectionChangedEventArgs e)
     {
+        if (ReferenceEquals(e.Source, WorkspaceTabs) && IsLoaded) RefreshM1Shell();
         if (ReferenceEquals(e.Source, WorkspaceTabs) && IsLoaded && WorkspaceTabs.SelectedIndex == 1)
             MapLoaded(sender, e);
     }
@@ -1114,6 +1117,9 @@ public partial class MainWindow : Window
             get=>Document.VerifiedCaptureDate?.SortProjection;
         }
         public string Name => Path.GetFileName(Document.FilePath);
+        public string ReadState => M1Label(Document.InspectionError.Length>0?"ReadFailed":Document.Draft.Count>0?"Draft":!Document.CanStage?"ReadOnly":"Read");
+        public string OriginalTagCount => Document.Inspection is null?"未知":Document.Inspection.Count(v=>v.Counted).ToString();
+        public int DraftCount => MetadataInspector.PendingFields(Document);
         public string Summary => $"{Document.FileType} · {(Document.SidecarPath is null ? "内嵌" : "XMP旁车")} · 原标签{(Document.Inspection is null?"未知":Document.Inspection.Count(v=>v.Counted).ToString())}{(Document.InspectionError.Length>0?"（过期/失败）":"")} · {(Document.Draft.Count > 0 ? $"{MetadataInspector.PendingFields(Document)}项草稿" : "原始值")}";
     }
     private static long nextPhotoOrder;

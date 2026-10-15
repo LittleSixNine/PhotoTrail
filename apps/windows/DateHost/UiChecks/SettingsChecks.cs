@@ -13,8 +13,8 @@ using PhotoTrail.Windows;
 
 static partial class Program
 {
- static TabItem? SettingsTab(DependencyObject node,string header){if(node is TabItem item&&item.Header?.ToString()==header)return item;foreach(var child in LogicalTreeHelper.GetChildren(node).OfType<DependencyObject>())if(SettingsTab(child,header)is{} found)return found;return null;}
- static void SelectMetadataTab(string header){var tab=SettingsTab(window,header)!;((TabControl)LogicalTreeHelper.GetParent(tab)).SelectedItem=tab;}
+ static TabItem? SettingsTab(DependencyObject node,string header){if(ReferenceEquals(node,window))foreach(Window owned in window.OwnedWindows)if(SettingsTab(owned,header) is {} dialogTab)return dialogTab;if(node is TabItem item&&item.Header?.ToString()==header)return item;foreach(var child in LogicalTreeHelper.GetChildren(node).OfType<DependencyObject>())if(SettingsTab(child,header)is{} found)return found;return null;}
+ static void SelectMetadataTab(string header){if(header is "原始字段" or "元数据" or "元数据编辑"){Control<TabControl>("WorkspaceTabs").SelectedIndex=0;return;}var tab=SettingsTab(window,header)!;if(Control<TabControl>("MetadataToolsTabs").Items.Contains(tab))typeof(MainWindow).GetMethod("OpenMetadataTool",BindingFlags.NonPublic|BindingFlags.Instance)!.Invoke(window,[tab]);else ((TabControl)LogicalTreeHelper.GetParent(tab)).SelectedItem=tab;}
  static string[] RowNames()=>Control<ListBox>("Photos").Items.Cast<object>().Select(r=>Path.GetFileName(Doc(r).FilePath)).ToArray();
  static async Task RunSettings(bool restore)
  {

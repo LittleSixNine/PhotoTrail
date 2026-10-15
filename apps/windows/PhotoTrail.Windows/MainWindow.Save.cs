@@ -38,9 +38,9 @@ public partial class MainWindow
     }
     void PrepareSaveAll(object sender,RoutedEventArgs e)=>PrepareSave(photos.Select(r=>r.Document),ChosenSaveMode,SaveScope.All);
     void PrepareSaveWorkspace(object sender,RoutedEventArgs e) {
-        string workspace=(WorkspaceTabs.SelectedItem as TabItem)?.Header?.ToString()??"";
-        if(workspace is not ("地图" or "元数据")){Status.Text="当前工作区没有元数据保存范围；重命名不产生第三套草稿。请选元数据或地图，或使用全部待保存。";return;}
-        PrepareSave(photos.Select(r=>r.Document),ChosenSaveMode,workspace=="地图"?SaveScope.Map:SaveScope.Metadata);
+        int workspace=WorkspaceTabs.SelectedIndex;
+        if(workspace is not (0 or 1)){Status.Text="当前工作区没有元数据保存范围；重命名不产生第三套草稿。请选元数据或地图，或使用全部待保存。";return;}
+        PrepareSave(photos.Select(r=>r.Document),ChosenSaveMode,workspace==1?SaveScope.Map:SaveScope.Metadata);
     }
     void PrepareSave(IEnumerable<PhotoDocument> docs,SaveMode mode,SaveScope scope) {
         if(busy||renameRecoveryRequired)return;
@@ -50,9 +50,9 @@ public partial class MainWindow
             var plan=SavePlan.Prepare(docs.ToArray(),mode,scope,OutputFolder.Text,photos.Select(r=>r.Document));
             preparedSave=plan;preparedMode=SaveModeChoice.SelectedIndex;preparedOutput=OutputFolder.Text;preparedBackupText=BackupFolder.Text;preparedBackup=mode==SaveMode.Inplace?Path.GetFullPath(preparedBackupText):"";
             if(mode==SaveMode.Inplace&&!Directory.Exists(preparedBackup))throw new IOException("原位必须先选择可用的既有备份目录。");
-            SaveSummary.Text=plan.Summary+(mode==SaveMode.Inplace?$"\n强制备份：{preparedBackup}；本次{plan.Items.Length}份唯一完整字节备份。":"");WorkspaceTabs.SelectedIndex=0;SaveTargetTab.IsSelected=true;ExecuteSaveButton.IsEnabled=plan.Items.Length>0;
+            SaveSummary.Text=plan.Summary+(mode==SaveMode.Inplace?$"\n强制备份：{preparedBackup}；本次{plan.Items.Length}份唯一完整字节备份。":"");WorkspaceTabs.SelectedIndex=0;OpenMetadataTool(SaveTargetTab);ExecuteSaveButton.IsEnabled=plan.Items.Length>0;
             Status.Text="请核对冻结摘要；确认前不创建文件。";
-        }catch(Exception error){SaveSummary.Text=Status.Text="保存准备失败（未写入）："+error.Message;WorkspaceTabs.SelectedIndex=0;SaveTargetTab.IsSelected=true;}
+        }catch(Exception error){SaveSummary.Text=Status.Text="保存准备失败（未写入）："+error.Message;WorkspaceTabs.SelectedIndex=0;OpenMetadataTool(SaveTargetTab);}
     }
     void CancelSavePlan(object sender,RoutedEventArgs e) {
         if(busy){CancelRead(sender,e);return;}preparedSave=null;ExecuteSaveButton.IsEnabled=false;SaveSummary.Text+="\n计划已取消，未创建文件，草稿保留。";
