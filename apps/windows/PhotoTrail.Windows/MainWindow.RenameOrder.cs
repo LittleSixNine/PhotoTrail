@@ -16,7 +16,7 @@ public partial class MainWindow
     bool fillingRenameControls;
     Point renameDragStart;
     string[] renameDragIds=[];
-    RenameOrderSettings ReadRenameOrder()=>new(RenameOrderSettings.Sorts[RenameProcessingSort.SelectedIndex],RenameDescending.IsChecked==true,RenameMetadataTag.Text.Trim());
+    RenameOrderSettings ReadRenameOrder(){var settings=new RenameOrderSettings(RenameOrderSettings.Sorts[RenameProcessingSort.SelectedIndex],RenameDescending.IsChecked==true,RenameMetadataTag.Text.Trim()){Conflict=new[]{"stop","numbers","letters"}[RenameConflictChoice.SelectedIndex],ConflictDigits=int.TryParse(RenameConflictDigits.Text,out var digits)?digits:0,NumberSuffixFormat=new[]{"plain","underscore","dash","parentheses"}[RenameNumberSuffix.SelectedIndex],LetterSuffixFormat=new[]{"plain","underscore","dash","parentheses"}[RenameLetterSuffix.SelectedIndex],KeepFirst=RenameKeepFirst.IsChecked==true};return settings;}
     IReadOnlyDictionary<string,VerifiedPhotoDate?> renameDateResults=new Dictionary<string,VerifiedPhotoDate?>();
     CancellationTokenSource? renameDateValidation;
     static string RenameBoundText(string value)=>value.Trim().Length==10?value.Trim().Replace('-',':')+" 00:00:00":RenameInput.BridgeDate(value.Trim());
@@ -44,14 +44,23 @@ public partial class MainWindow
     async Task RenderRenameGroupsAsync(){
         renameDateValidation?.Cancel();renameDateValidation?.Dispose();renameDateValidation=CancellationTokenSource.CreateLinkedTokenSource(operation?.Token??CancellationToken.None);var request=renameDateValidation;
         RenamePreview.ItemsSource=null;await PrepareRenameDatesAsync(request.Token);
-        var included=IncludedRenameGroups();var rules=ReadRenameRules();var previews=new List<object>();
-        foreach(var (group,index) in included.Select((g,i)=>(g,i))) {
-            try{var steps=new List<string>();var name=RenameGroupName(group,rules,index,steps);foreach(var member in group.Members)previews.Add(new RenameFile(member.Path,Path.Combine(member.Directory,RenameMemberName(group,member,name)),""){Steps=string.Join(" → ",steps.Select((step,i)=>$"{i+1}: {step}"))});}
-            catch(Exception error)when(error is ArgumentException or IOException){foreach(var member in group.Members)previews.Add(new RenameNameIssue(member.Path,error.Message));}
-        }
-        RenameGroups.ItemsSource=included;RenamePreview.ItemsSource=previews;RenameViewChanged(this,new RoutedEventArgs());
+        var included=IncludedRenameGroups();var computed=ComputeRenameTargets(included,ReadRenameRules());
+        RenameGroups.ItemsSource=included;RenamePreview.ItemsSource=computed.Files;RenameViewChanged(this,new RoutedEventArgs());
         RenameOrderStatus.Text=$"完整组{renameGroups.Length}／参与{included.Length}／读取失败{renameGroups.SelectMany(g=>g.Members).Count(m=>m.MetadataFailed)}；参与组连续编号，查看不影响处理。";UpdateRenameButtons();
     }
+    (RenameFile[] Files,RenameCounterUse? Counters) ComputeRenameTargets(RenameGroup[] groups,IReadOnlyList<RenameRule> sourceRules) {
+        var snapshot=sourceRules.Any(r=>r.Enabled&&r.Counter>0)?RenameCounters.Read(RenameCounters.DefaultPath):null;
+        var rules=sourceRules.Select(r=>r.Enabled&&r.Counter>0?r with{Start=snapshot!.Values[r.Counter]}:r).ToArray();var ordinals=new Dictionary<(int Rule,string Directory),int>();var advances=new Dictionary<int,long>();var files=new List<RenameFile>();var ids=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
+        foreach(var (group,index) in groups.Select((g,i)=>(g,i))){
+            int Ordinal(int rule){var key=(rule,rules[rule].PerDirectory?group.Leader.Directory.ToUpperInvariant():"");int next=ordinals.GetValueOrDefault(key);ordinals[key]=checked(next+1);return next;}
+            void Completed(int rule,int ordinal,bool success){var value=rules[rule];if(value.Counter>0&&success){var next=checked(value.Start+checked(value.Step*(ordinal+1L)));advances[value.Counter]=Math.Max(advances.GetValueOrDefault(value.Counter,value.Start),next);}}
+            var steps=new List<string>();var name=RenamePlan.ApplyVerified(group.Leader.Name,rules,index,key=>RenameNameField(group,key),RenamePlan.UsesDates(rules)?RenameVerifiedDate(group):null,renameDateResults,steps,Ordinal,Completed);
+            foreach(var member in group.Members){ids[member.Path]=group.Id;files.Add(new(member.Path,Path.Combine(member.Directory,RenameMemberName(group,member,name)),""){Steps=string.Join(" → ",steps.Select((step,i)=>$"{i+1}: {step}"))});}
+        }
+        foreach(var rule in rules.Where(r=>r.Enabled&&r.Counter>0))advances.TryAdd(rule.Counter,rule.Start);
+        return(RenameConflicts.Resolve(files,ids,ReadRenameOrder()),snapshot is null?null:new(snapshot,advances));
+    }
+    private void ResetRenameCounters(object sender,RoutedEventArgs e){if(busy||renameRecoveryRequired)return;try{RenameCounters.Reset(RenameCounters.DefaultPath,ReadRenameRules());RenameRulesChanged(sender,e);RenameStatus.Text="所用计数槽位已明确重设为规则起点；未更名照片。";}catch(Exception error){RenameStatus.Text="计数未重设："+error.Message;}}
     string RenameGroupName(RenameGroup group,IReadOnlyList<RenameRule> rules,int index,List<string>? steps=null)=>RenamePlan.ApplyVerified(group.Leader.Name,rules,index,key=>RenameNameField(group,key),RenamePlan.UsesDates(rules)?RenameVerifiedDate(group):null,renameDateResults,steps);
     static string RenameMemberName(RenameGroup group,RenameInput member,string leaderName)=>member.Path==group.Leader.Path?leaderName:RenameTransform.Split(leaderName).Stem+RenameTransform.Split(member.Name).Extension;
     sealed record RenameNameIssue(string Source,string Reason) {public string OriginalName=>Path.GetFileName(Source);public string NewName=>"不可生成";public string Status=>Reason;}

@@ -62,8 +62,13 @@ public sealed record RenameGroup(string Id,IReadOnlyList<RenameInput> Members)
 }
 public sealed record RenameOrderSettings(string Sort="input",bool Descending=false,string? MetadataSortTag=null)
 {
+    public string Conflict { get; init; } = "stop";
+    public int ConflictDigits { get; init; } = 3;
+    public string NumberSuffixFormat { get; init; } = "underscore";
+    public string LetterSuffixFormat { get; init; } = "plain";
+    public bool KeepFirst { get; init; } = true;
     public static readonly string[] Sorts=["input","name","natural","shooting","created","modified","fileExtension","folder","size","make","model","city","rating","metadata","manual"];
-    public void Validate(){if(!Sorts.Contains(Sort)||MetadataSortTag?.Length>256||MetadataSortTag?.Any(char.IsControl)==true)throw new ArgumentException("排序设置无效。");}
+    public void Validate(){if(!Sorts.Contains(Sort)||MetadataSortTag?.Length>256||MetadataSortTag?.Any(char.IsControl)==true||Conflict is not("stop" or "numbers" or "letters")||ConflictDigits is <2 or >5||NumberSuffixFormat is not("plain" or "underscore" or "dash" or "parentheses")||LetterSuffixFormat is not("plain" or "underscore" or "dash" or "parentheses"))throw new ArgumentException("排序或碰撞参数无效。");}
 }
 public sealed record RenameInputFilter(string Query="",string Extension="",string Folder="",string Camera="",decimal? From=null,decimal? To=null,int Gps=0,string Tag="",int Presence=0)
 {

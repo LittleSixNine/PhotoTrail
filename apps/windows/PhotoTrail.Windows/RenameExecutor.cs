@@ -17,9 +17,10 @@ public static class RenameExecutor
     private record Entry(string Source,string Target,string Temporary,string Hash,FileProperties? Properties=null);
     private record Header(int Version,string Id,Entry[] Files);
     private record Step(int Index,int State);
-    public static async Task<RenameResult> ExecuteAsync(RenamePlan plan,string journalDirectory,CancellationToken cancellation=default,Action<int,int>? progress=null)
+    public static Task<RenameResult> ExecuteAsync(RenamePlan plan,string journalDirectory,CancellationToken cancellation=default,Action<int,int>? progress=null)=>plan.CounterUse is {} use?RenameCounters.ExecuteAsync(plan,use,RenameCounters.DefaultPath,journalDirectory,cancellation,progress):ExecuteCoreAsync(plan,journalDirectory,cancellation,progress,null);
+    internal static async Task<RenameResult> ExecuteCoreAsync(RenamePlan plan,string journalDirectory,CancellationToken cancellation,Action<int,int>? progress,string? reservation)
     {
-        InplaceHistory.RequireClear(plan.Files.SelectMany(f=>new[]{f.Source,f.Target}));
+        InplaceHistory.RequireClear(plan.Files.SelectMany(f=>new[]{f.Source,f.Target}),counterReservation:reservation);
         if(plan.Files.Count is < 1 or > 6000)throw new ArgumentException("计划为空或过大。");
         var sources=new HashSet<string>(StringComparer.OrdinalIgnoreCase);var targets=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach(var file in plan.Files)
@@ -127,14 +128,14 @@ public static class RenameExecutor
     }
     public static async Task<RenameResult> RestoreAsync(string journal,string journalDirectory,CancellationToken cancellation=default)
     {
-        var previous=ReadJournal(journal);var files=new List<RenameFile>();
+        var previous=ReadJournal(journal);using var counterGate=RenameCounters.GuardRestore(previous,out var reservation);var files=new List<RenameFile>();
         foreach(var outcome in previous.Files)
         {
             cancellation.ThrowIfCancellationRequested();
             if(!File.Exists(outcome.Current)||await PhotoDocument.HashAsync(outcome.Current,cancellation)!=outcome.Hash)throw new IOException("待恢复文件缺失或内容改变，未恢复。");
             if(outcome.Current!=outcome.Source){using var handle=WindowsRename.Open(outcome.Current);files.Add(new(outcome.Current,outcome.Source,outcome.Hash){Properties=WindowsRename.Properties(handle,outcome.Current)});}
         }
-        if(files.Count==0)return new(journal,[],true,null);
-        return await ExecuteAsync(new(Array.AsReadOnly(files.ToArray())),journalDirectory,cancellation);
+        var result=files.Count==0?new RenameResult(journal,[],true,null):await ExecuteCoreAsync(new(Array.AsReadOnly(files.ToArray())),journalDirectory,cancellation,null,reservation);
+        if(reservation is not null)await RenameCounters.ResolveAfterRestoreLockedAsync(reservation,result,cancellation);return result;
     }
 }

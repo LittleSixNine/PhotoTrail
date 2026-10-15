@@ -1,3 +1,5 @@
+R08b: sequências avançadas, contadores persistentes e sufixos de conflito por grupo. A conversão de Mac aceita um subconjunto explícito.
+
 R07: a comparação mostra até 20 fotos, mas CSV usa toda a seleção congelada. Valores do disco e rascunhos são separados. Colunas desconhecidas são ignoradas e linhas inválidas são descartadas por inteiro; IDs duplicados, caminhos inseguros e erros de estrutura rejeitam o arquivo. XMP separa instantâneas do disco e exportações com rascunhos; não sobrescreve arquivos nem remapeia IDs entre plataformas automaticamente.
 
 R06b: prévia nativa JPEG/PNG/TIFF e JPEG incorporado em DNG. Remover um grupo da lista preserva arquivos e permite desfazer com os rascunhos. Fontes alteradas ou ausentes ficam desatualizadas e sem escrita; identidades duplicadas são recusadas. Outros RAW não foram verificados; HEIC não tem prévia.

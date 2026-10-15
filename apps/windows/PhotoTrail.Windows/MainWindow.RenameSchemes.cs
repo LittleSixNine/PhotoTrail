@@ -12,7 +12,7 @@ public partial class MainWindow
     RenameScheme? renameSchemeBaseline;
     bool fillingSchemes,renameReadingPreview;
     bool RenameSchemeDirty=>renameSchemeBaseline is null||RenameSchemeName.Text!=renameSchemeBaseline.Name||RenameSchemeExample.Text!=renameSchemeBaseline.Example||RenameRules.Text!=renameSchemeBaseline.Rules||!SameSchemeOrder(ReadRenameOrder(),renameSchemeBaseline.Order);
-    static bool SameSchemeOrder(RenameOrderSettings first,RenameOrderSettings second)=>first.Sort==second.Sort&&first.Descending==second.Descending&&(first.MetadataSortTag??"")== (second.MetadataSortTag??"");
+    static bool SameSchemeOrder(RenameOrderSettings first,RenameOrderSettings second)=>(first with{MetadataSortTag=first.MetadataSortTag??""})==(second with{MetadataSortTag=second.MetadataSortTag??""});
     void LoadRenameSchemes() {
         try{renameSchemes=RenameSchemeLibrary.Open(RenameSchemeLibrary.DefaultPath);var state=renameSchemes.State;var scheme=state.Schemes.FirstOrDefault(s=>s.Id==state.LastId)??state.Schemes.FirstOrDefault();SetSchemeEditor(scheme);}
         catch(Exception error){renameSchemes=null;RenameSchemeStatus.Text="方案库不可读取；未初始化或覆盖："+error.Message;}
@@ -28,7 +28,7 @@ public partial class MainWindow
     }
     void SetSchemeEditor(RenameScheme? scheme) {
         fillingSchemes=fillingRenameControls=true;
-        try{currentRenameScheme=scheme?.Id;renameSchemeBaseline=scheme;RenameSchemeName.Text=scheme?.Name??"新方案";RenameSchemeExample.Text=scheme?.Example??"";RenameRules.Text=scheme?.Rules??"";var order=scheme?.Order??new RenameOrderSettings();RenameProcessingSort.SelectedIndex=Array.IndexOf(RenameOrderSettings.Sorts,order.Sort);RenameDescending.IsChecked=order.Descending;RenameMetadataTag.Text=order.MetadataSortTag??"";}
+        try{currentRenameScheme=scheme?.Id;renameSchemeBaseline=scheme;RenameSchemeName.Text=scheme?.Name??"新方案";RenameSchemeExample.Text=scheme?.Example??"";RenameRules.Text=scheme?.Rules??"";var order=scheme?.Order??new RenameOrderSettings(){Conflict="numbers"};RenameProcessingSort.SelectedIndex=Array.IndexOf(RenameOrderSettings.Sorts,order.Sort);RenameDescending.IsChecked=order.Descending;RenameMetadataTag.Text=order.MetadataSortTag??"";RenameConflictChoice.SelectedIndex=Array.IndexOf(new[]{"stop","numbers","letters"},order.Conflict);RenameConflictDigits.Text=order.ConflictDigits.ToString(System.Globalization.CultureInfo.InvariantCulture);RenameNumberSuffix.SelectedIndex=Array.IndexOf(new[]{"plain","underscore","dash","parentheses"},order.NumberSuffixFormat);RenameLetterSuffix.SelectedIndex=Array.IndexOf(new[]{"plain","underscore","dash","parentheses"},order.LetterSuffixFormat);RenameKeepFirst.IsChecked=order.KeepFirst;}
         finally{fillingSchemes=fillingRenameControls=false;}
         RefreshSchemeList();RenameRulesChanged(this,new RoutedEventArgs());
     }
@@ -75,12 +75,12 @@ public partial class MainWindow
     }
     private void SaveRenamePreset(object sender,RoutedEventArgs e) {
         if(busy||renameRecoveryRequired)return;
-        try{var scheme=EditedScheme(currentRenameScheme??Guid.NewGuid());var text=RenameSchemeLibrary.Export(scheme);var dialog=new SaveFileDialog{Title="导出Windows重命名方案（不覆盖）",Filter="Windows方案JSON|*.json",DefaultExt=".json",FileName="PhotoTrail-rename-scheme.json",OverwritePrompt=false};if(dialog.ShowDialog(this)!=true)return;MetadataCsv.WriteNew(dialog.FileName,text);RenameStatus.Text="方案JSON已导出，照片和执行计划未修改。";}
+        try{var scheme=EditedScheme(currentRenameScheme??Guid.NewGuid());var dialog=new SaveFileDialog{Title="导出重命名方案（不覆盖）",Filter="Windows v3方案|*.json|已映射Mac v1子集|*.json",DefaultExt=".json",FileName="PhotoTrail-rename-scheme.json",OverwritePrompt=false};if(dialog.ShowDialog(this)!=true)return;var text=dialog.FilterIndex==2?MacRenamePreset.Export(scheme):RenameSchemeLibrary.Export(scheme);MetadataCsv.WriteNew(dialog.FileName,text);RenameStatus.Text="方案JSON已导出；计数槽当前值不传到另一端，照片和执行计划未修改。";}
         catch(Exception error){RenameStatus.Text="方案未导出："+error.Message;}
     }
     private void LoadRenamePreset(object sender,RoutedEventArgs e) {
         if(busy||renameRecoveryRequired||renameSchemes is null)return;
-        try{var dialog=new OpenFileDialog{Title="导入Windows重命名方案／旧规则",Filter="JSON方案或旧规则|*.json",CheckFileExists=true};if(dialog.ShowDialog(this)!=true)return;using var file=new FileStream(dialog.FileName,FileMode.Open,FileAccess.Read,FileShare.Read);if(file.Length>RenameSchemeLibrary.MaximumBytes)throw new InvalidDataException("方案超过1MiB。");using var reader=new StreamReader(file,new UTF8Encoding(false,true),false);var imported=RenameSchemeLibrary.Import(reader.ReadToEnd(),Path.GetFileNameWithoutExtension(dialog.FileName));if(ResolveSchemeEdits()==MessageBoxResult.Cancel)return;imported=imported with{Name=RenameSchemeLibrary.UniqueName(imported.Name,renameSchemes.State.Schemes)};PersistSchemes(renameSchemes.State with{Schemes=renameSchemes.State.Schemes.Append(imported).ToArray(),LastId=imported.Id});SetSchemeEditor(imported);RenameStatus.Text="方案已作为独立身份导入；未执行重命名。";}
+        try{var dialog=new OpenFileDialog{Title="导入Windows方案／已映射Mac子集／旧规则",Filter="JSON方案或旧规则|*.json",CheckFileExists=true};if(dialog.ShowDialog(this)!=true)return;using var file=new FileStream(dialog.FileName,FileMode.Open,FileAccess.Read,FileShare.Read);if(file.Length>RenameSchemeLibrary.MaximumBytes)throw new InvalidDataException("方案超过1MiB。");using var reader=new StreamReader(file,new UTF8Encoding(false,true),false);var imported=RenameSchemeLibrary.Import(reader.ReadToEnd(),Path.GetFileNameWithoutExtension(dialog.FileName));if(ResolveSchemeEdits()==MessageBoxResult.Cancel)return;imported=imported with{Name=RenameSchemeLibrary.UniqueName(imported.Name,renameSchemes.State.Schemes)};PersistSchemes(renameSchemes.State with{Schemes=renameSchemes.State.Schemes.Append(imported).ToArray(),LastId=imported.Id});SetSchemeEditor(imported);RenameStatus.Text="方案已作为独立身份完整导入；Mac仅明确映射子集，当前计数值不复制，未执行重命名。";}
         catch(Exception error){RenameStatus.Text="方案未导入，编辑和旧库保留："+error.Message;}
     }
 }

@@ -39,7 +39,8 @@ internal static class InplaceHistory
         using var output=new FileStream(path,create?FileMode.CreateNew:FileMode.Append,FileAccess.Write,FileShare.Read);
         output.Write(JsonSerializer.SerializeToUtf8Bytes(record));output.WriteByte(10);output.Flush(true);
     }
-    internal static void RequireClear(IEnumerable<string> paths,string? except=null) {
+    internal static void RequireClear(IEnumerable<string> paths,string? except=null,string? counterReservation=null) {
+        paths=paths.ToArray();RenameCounters.RequireClear(paths,counterReservation);
         var records=ReadAll();var targets=paths.Select(SavePaths.Canonical).ToHashSet(StringComparer.OrdinalIgnoreCase);
         if(records.Any(r=>r.Id!=except&&Pending(r)&&(targets.Contains(r.Canonical)||targets.Contains(SavePaths.Canonical(r.Photo)))))throw new IOException("目标存在持久待核对／恢复记录；禁止盲写、重读重绑定或改名。");
     }

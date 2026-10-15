@@ -19,11 +19,14 @@ internal static class RenameTransform
         ["lower"]=28,["sentence"]=29,["title"]=30,["upper"]=31,["percent-decode"]=33,["camel-expand"]=34,
         ["remove-diacritics"]=35,["mac9-name"]=36,["windows-name"]=37,["truncate"]=38,["dos83-name"]=39,
         ["date-set"]=40,["date-begin"]=41,["date-end"]=42,["date-before"]=43,["date-after"]=44,["date-position"]=45,
+        ["number-set"]=46,["number-begin"]=47,["number-end"]=48,["number-before"]=49,["number-after"]=50,["number-position"]=51,["number-change"]=52,["number-remove"]=53,
+        ["roman-set"]=54,["roman-begin"]=55,["roman-end"]=56,["roman-before"]=57,["roman-after"]=58,["roman-position"]=59,
+        ["alphabet-set"]=60,["alphabet-begin"]=61,["alphabet-end"]=62,["alphabet-before"]=63,["alphabet-after"]=64,["alphabet-position"]=65,
         ["template-set"]=66,["template-begin"]=67,["template-end"]=68,["template-position"]=69,["template-before"]=70,["template-after"]=71,
         ["size-end"]=78,["size-begin"]=79,["size-set"]=80,["size-before"]=81,["size-after"]=82,["size-position"]=83,
         ["parent-begin"]=84,["parent-end"]=85,["parent-before"]=86,["parent-after"]=87,["parent-position"]=88,
         ["path-begin"]=89,["path-end"]=90,["path-before"]=91,["path-after"]=92,["path-position"]=93,
-        ["regex-replace"]=95,["regex-rearrange"]=96,["set"]=97,
+        ["name-list"]=94,["regex-replace"]=95,["regex-rearrange"]=96,["set"]=97,
         ["device-set"]=100,["device-begin"]=101,["device-end"]=102,["device-position"]=103,["device-before"]=104,["device-after"]=105,
         ["location-set"]=106,["location-begin"]=107,["location-end"]=108,["location-position"]=109,["location-before"]=110,["location-after"]=111
     };
@@ -39,16 +42,19 @@ internal static class RenameTransform
     }
     internal static bool NeedsDates(RenameRule r)=>Actions.TryGetValue(r.Action,out var n)&&(n is >=40 and <=45||n is >=66 and <=71&&new[]{"<ShootingDate","<CreationDate","<ModificationDate","<ModDate"}.Any(r.Text.Contains));
     internal static void Validate(RenameRule r) {
-        if(new[]{r.Kind,r.Action,r.Part,r.Occurrence,r.Text,r.Replacement,r.Anchor,r.Prefix,r.Suffix,r.DateSource,r.DateFormat,r.TimeZone}.Any(value=>value is null))throw new ArgumentException("规则文字字段不能为null。");
+        if(new[]{r.Kind,r.Action,r.Part,r.Occurrence,r.Text,r.Replacement,r.Anchor,r.Prefix,r.Suffix,r.DateSource,r.DateFormat,r.TimeZone,r.AlphabetStart,r.NumberOperation}.Any(value=>value is null))throw new ArgumentException("规则文字字段不能为null。");
         if(!Actions.TryGetValue(r.Action,out var n))throw new ArgumentException("不支持的命名动作："+r.Action);
-        if(r.Part is not("stem" or "entire" or "dottedExtension" or "extensionOnly")||r.Occurrence is not("all" or "first" or "last" or "nth")||r.MatchNumber<1||r.Position<0||r.Length<0||r.Position>4096||r.Length>4096||r.Start<0)throw new ArgumentException("匹配域、出现次数或字形簇位置无效。");
-        foreach(var value in new[]{r.Text,r.Replacement,r.Anchor,r.Prefix,r.Suffix,r.MetadataField??"",r.DateFormat}) {
-            if(value.Length>1024||value.Any(c=>char.IsControl(c)))throw new ArgumentException("参数过长或含控制字符。");
+        if(r.Part is not("stem" or "entire" or "dottedExtension" or "extensionOnly")||r.Occurrence is not("all" or "first" or "last" or "nth")||r.MatchNumber<1||r.Position<0||r.Length<0||r.Position>4096||r.Length>4096||n==27&&r.Start<0)throw new ArgumentException("匹配域、出现次数或字形簇位置无效。");
+        if(r.Padding is <0 or >32||r.AlphabetWidth is <1 or >32||r.Counter is <0 or >10||r.Counter>0&&(n is <46 or >51||r.Step<=0||r.Start<0)||r.NumberOperation is not("add" or "subtract" or "multiply" or "divide" or "set")||n==52&&r.NumberOperation=="divide"&&r.NumberValue==0)throw new ArgumentException("序列/计数器/运算参数无效；持续计数只支持向前非负数字规则。");
+        if(n is >=60 and <=65)_=AlphabetIndex(r.AlphabetStart);
+        foreach(var (value,multiline) in new[]{(r.Text,n==94),(r.Replacement,false),(r.Anchor,false),(r.Prefix,false),(r.Suffix,false),(r.MetadataField??"",false),(r.DateFormat,false)}) {
+            if(value.Length>(multiline?16384:1024)||value.Any(c=>char.IsControl(c)&&!(multiline&&c is '\n' or '\r' or '\t')))throw new ArgumentException("参数过长或含控制字符。");
             try{_=new UTF8Encoding(false,true).GetByteCount(value);}catch(EncoderFallbackException){throw new ArgumentException("参数Unicode无效。");}
         }
         if(r.DateSource is not("shooting" or "created" or "modified" or "now")||r.TimeZone.Length is <1 or >128||r.NightHour is <0 or >23)throw new ArgumentException("日期来源、时区或夜间归日参数无效。");
         if(r.TimeZone is not("source" or "local"))try{_=TimeZoneInfo.FindSystemTimeZoneById(r.TimeZone);}catch(Exception error)when(error is TimeZoneNotFoundException or InvalidTimeZoneException){throw new ArgumentException("平台不能解析命名时区。");}
         if(n is 95 or 96){_=Expression(r.Text,r.CaseSensitive);ValidateReplacement(r.Replacement);}
+        if(n==94)_=ListLines(r);
         if(n is >=40 and <=45)ValidateDateFormat(r.DateFormat);
     }
     internal static (string Stem,string Extension) Split(string name) {var dot=name.LastIndexOf('.');return dot<=0?(name,""):(name[..dot],name[dot..]);}
@@ -90,8 +96,8 @@ internal static class RenameTransform
             var changed=Transform(selected,r,index,metadata,date,dates);
             if(changed.Name.Length>4096)throw new ArgumentException("中间名称过长。");
             var result=r.Part switch{"entire"=>changed.Name,"dottedExtension"=>parts.Stem+changed.Name,"extensionOnly"=>parts.Stem+(changed.Name.Length==0?"":"."+changed.Name),_=>changed.Name+parts.Extension};
-            return(result,changed.Issue,r.SkipMissing&&changed.Issue is "missingDate" or "missingTag");
-        }catch(RegexMatchTimeoutException){throw new ArgumentException("正则超过100ms；未生成名称。");}
+            return(result,changed.Issue,r.SkipMissing&&changed.Issue is "missingDate" or "missingTag" or "listMismatch");
+        }catch(RegexMatchTimeoutException){throw new ArgumentException("正则超过100ms；未生成名称。");}catch(OverflowException error){throw new ArgumentException("编号或数值运算超出64位范围。",error);}
     }
     static (string Name,string? Issue) Transform(string name,RenameRule r,int index,Func<string,string?>? metadata,VerifiedPhotoDate? date,IReadOnlyDictionary<string,VerifiedPhotoDate?>? dates) {
         int action=Actions[r.Action];string? content;int mode;
@@ -110,7 +116,7 @@ internal static class RenameTransform
             case 26:case 27:
                 if(r.Position>chars.Length||r.Length>chars.Length-r.Position)throw new ArgumentException("字形簇范围越界。");
                 content=string.Concat(chars.Skip(r.Position).Take(r.Length));var remaining=chars.Take(r.Position).Concat(chars.Skip(r.Position+r.Length)).ToArray();
-                if(action==26)return(string.Concat(remaining),null);if(r.Start>remaining.Length)throw new ArgumentException("移动目标字形簇位置越界。");return(string.Concat(remaining.Take(r.Start))+content+string.Concat(remaining.Skip(r.Start)),null);
+                if(action==26)return(string.Concat(remaining),null);if(r.Start>remaining.Length)throw new ArgumentException("移动目标字形簇位置越界。");return(string.Concat(remaining.Take((int)r.Start))+content+string.Concat(remaining.Skip((int)r.Start)),null);
             case 28:return(name.ToLowerInvariant(),null);
             case 29:return(chars.Length==0?"":chars[0].ToUpperInvariant()+string.Concat(chars.Skip(1)).ToLowerInvariant(),null);
             case 30:return(CultureInfo.InvariantCulture.TextInfo.ToTitleCase(name.ToLowerInvariant()),null);
@@ -129,19 +135,34 @@ internal static class RenameTransform
             case 38:return(string.Concat(chars.Take(r.Length)),null);
             case 39:
                 var p=Split(name);string Dos(string s,int length)=>string.Concat(s.ToUpperInvariant().Where(c=>char.IsAsciiLetterOrDigit(c)||"_$~!#%&-{}()@'`".Contains(c)).Take(length));var ext=Dos(p.Extension.TrimStart('.'),3);return(Dos(p.Stem,8)+(ext.Length==0?"":"."+ext),null);
+            case 52:case 53:
+                return(Replace(name,Matches(name,@"\d+",r,true),m=>{
+                    if(action==53)return "";if(!long.TryParse(m.Value,NumberStyles.None,CultureInfo.InvariantCulture,out var number))throw new ArgumentException("已有数字不能完整解析为64位整数。");
+                    var result=r.NumberOperation switch{"add"=>checked(number+r.NumberValue),"subtract"=>checked(number-r.NumberValue),"multiply"=>checked(number*r.NumberValue),"divide"=>checked(number/r.NumberValue),"set"=>r.NumberValue,_=>throw new ArgumentException("数值运算未知。")};
+                    return Padded(result,Math.Max(r.Padding,Characters(m.Value).Length));
+                }),null);
+            case 94:
+                var lines=ListLines(r);if(lines.Any(l=>l.Contains('\t'))){bool paths=Path.IsPathFullyQualified(lines[0].Split('\t')[0]);var current=metadata?.Invoke(paths?"FilePath":"FileName");if(current is null)return(name,"listMismatch");var matchesList=lines.Select(l=>l.Split('\t')).Where(row=>string.Equals(row[0],current,r.CaseSensitive?StringComparison.Ordinal:StringComparison.OrdinalIgnoreCase)).ToArray();if(matchesList.Length>1)throw new ArgumentException("命名列表重复匹配。");return matchesList.Length==1?(matchesList[0][1],null):(name,"listMismatch");}
+                return index<lines.Length?(lines[index],null):(name,"listMismatch");
             case 95:case 96:
                 var matches=Matches(name,r.Text,r with{Occurrence="all"},true);
                 if(action==96){var match=matches.FirstOrDefault();if(match is null||r.FullMatch&&(match.Index!=0||match.Length!=name.Length))return(name,"excluded");return(Replacement(r.Replacement,match),null);}
                 return(Replace(name,matches,m=>Replacement(r.Replacement,m)),null);
             case 97:return(r.Text,null);
         }
-        if(action is >=40 and <=45){content=FormatDate(r,metadata,date,dates);mode=action-40;if(content is null)return(name,"missingDate");}
+        if(action is >=46 and <=65){var initial=action>=60?AlphabetIndex(r.AlphabetStart):r.Start;var number=checked(initial+checked(r.Step*index));content=action>=60?Alphabet(number):action>=54?Roman(number):Padded(number,r.Padding);if(action>=60){content=new string('A',Math.Max(0,r.AlphabetWidth-content.Length))+content;if(r.AlphabetStart==r.AlphabetStart.ToLowerInvariant())content=content.ToLowerInvariant();}else if(action>=54&&!r.CaseSensitive)content=content.ToLowerInvariant();content=r.Prefix+content+r.Suffix;mode=action>=60?action-60:action>=54?action-54:action-46;}
+        else if(action is >=40 and <=45){content=FormatDate(r,metadata,date,dates);mode=action-40;if(content is null)return(name,"missingDate");}
         else if(action is >=66 and <=71){content=Template(r.Text,r,metadata,date,dates);mode=new[]{0,1,2,5,3,4}[action-66];if(content is null)return(name,"missingTag");}
         else if(action is >=78 and <=83){var width=metadata?.Invoke("ImageWidth");var height=metadata?.Invoke("ImageHeight");if(width is null||height is null)return(name,"missingTag");if(!int.TryParse(width,NumberStyles.None,CultureInfo.InvariantCulture,out var w)||!int.TryParse(height,NumberStyles.None,CultureInfo.InvariantCulture,out var h)||w<1||h<1)throw new ArgumentException("尺寸快照不是合法正整数。");content=r.Prefix+width+(r.Text.Length==0?"x":r.Text)+height+r.Suffix;mode=new[]{2,1,0,3,4,5}[action-78];}
         else if(action is >=84 and <=93){content=metadata?.Invoke(action<=88?"ParentFolderName":"FilePath");if(content is null)return(name,"missingTag");if(action>=89){var dir=Path.GetDirectoryName(content)!;var components=dir[Path.GetPathRoot(dir)!.Length..].Split(Path.DirectorySeparatorChar,StringSplitOptions.RemoveEmptyEntries).Reverse().ToArray();if(r.Position>=components.Length||r.Length==0||r.SkipMissing&&components.Length-r.Position<r.Length)return(name,"missingTag");content=string.Join(r.Text.Length==0?"_":r.Text,components.Skip(r.Position).Take(r.Length).Reverse());}content=r.Prefix+content+r.Suffix;mode=action<=88?action-83:action-88;}
         else{content=metadata?.Invoke(r.MetadataField??(action<106?"CameraModel":"IPTCCity"));if(content is null)return(name,"missingTag");content=r.Prefix+content+r.Suffix;mode=new[]{0,1,2,5,3,4}[(action-100)%6];}
         return Insert(content,name,mode,r);
     }
+    internal static string Padded(long number,int width){var value=number.ToString(CultureInfo.InvariantCulture);var digits=value.TrimStart('-');return(number<0?"-":"")+new string('0',Math.Max(0,width-digits.Length))+digits;}
+    internal static long AlphabetIndex(string value){if(value.Length is <1 or >7||value.Any(c=>!char.IsAsciiLetter(c)))throw new ArgumentException("字母起点须A至Z组合且在1至十亿范围。");long result=0;foreach(var c in value.ToUpperInvariant())result=checked(result*26+c-'A'+1);if(result>1_000_000_000)throw new ArgumentException("字母编号超过十亿。");return result;}
+    internal static string Alphabet(long number){if(number is <1 or >1_000_000_000)throw new ArgumentException("字母编号须1至十亿。");var result="";while(number>0){number--;result=(char)('A'+number%26)+result;number/=26;}return result;}
+    internal static string Roman(long number){if(number is <1 or >3999)throw new ArgumentException("罗马编号须1至3999。");var result=new StringBuilder();foreach(var (value,letters) in new[]{(1000,"M"),(900,"CM"),(500,"D"),(400,"CD"),(100,"C"),(90,"XC"),(50,"L"),(40,"XL"),(10,"X"),(9,"IX"),(5,"V"),(4,"IV"),(1,"I")})while(number>=value){result.Append(letters);number-=value;}return result.ToString();}
+    static string[] ListLines(RenameRule r){var lines=r.Text.Split(new[]{'\r','\n'},StringSplitOptions.RemoveEmptyEntries);if(lines.Length>1000)throw new ArgumentException("命名列表超过1000项。");if(lines.Any(l=>l.Contains('\t'))){if(lines.Any(l=>l.Split('\t').Length!=2))throw new ArgumentException("列表映射必须全部两列。");bool paths=Path.IsPathFullyQualified(lines[0].Split('\t')[0]);if(lines.Any(l=>Path.IsPathFullyQualified(l.Split('\t')[0])!=paths)||lines.Select(l=>l.Split('\t')[0]).Distinct(r.CaseSensitive?StringComparer.Ordinal:StringComparer.OrdinalIgnoreCase).Count()!=lines.Length)throw new ArgumentException("命名列表混用路径/文件名或重复来源。");}return lines;}
     static string Replacement(string template,Match match) {
         var output=new StringBuilder();char run='\0',next='\0';
         void Append(string text){if(run=='U')text=text.ToUpperInvariant();if(run=='L')text=text.ToLowerInvariant();if(text.Length>0&&next!='\0'){var chars=Characters(text);text=(next=='u'?chars[0].ToUpperInvariant():chars[0].ToLowerInvariant())+string.Concat(chars.Skip(1));next='\0';}output.Append(text);}
@@ -168,7 +189,7 @@ internal static class RenameTransform
                     // Native timezone formatting is bounded to modern, representable instants; the shared core proves the date first.
                     if(proof.InstantLimitation is not null||string.CompareOrdinal(text[..10],"1582:10:15")<0)continue;
                     var zone=variant.TimeZone=="local"?TimeZoneInfo.Local:TimeZoneInfo.FindSystemTimeZoneById(variant.TimeZone);
-                    var wall=TimeZoneInfo.ConvertTime(proof.Instant()!.Value,zone);var offset=wall.Offset;
+                    var instant=proof.Instant()!.Value;var wall=TimeZoneInfo.ConvertTime(instant,zone);if(wall.UtcTicks!=instant.UtcTicks)continue;var offset=wall.Offset;
                     text=wall.ToString("yyyy:MM:dd HH:mm:ss",CultureInfo.InvariantCulture)+proof.Fraction+(offset==TimeSpan.Zero?"Z":(offset<TimeSpan.Zero?"-":"+")+offset.Duration().ToString(@"hh\:mm",CultureInfo.InvariantCulture));
                 }
                 adapted[DateKey(raw,variant)]=text;

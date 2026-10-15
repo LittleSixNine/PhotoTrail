@@ -10,7 +10,7 @@ static class RenamePresetChecks
         Check(RenamePlan.Apply("旧.jpg",RenamePlan.ParseRules(preset.Rules),1)=="旅行_新0005.jpg");
         Check(!RenameRulesPreset.Decode(RenameRulesPreset.Encode("upper\nsuffix|_ok",false)).SortByName);
         Check(RenamePlan.ParseRules("\n\r\n").Count==0);
-        foreach(var json in new[]{"{","[]","{}","{\"version\":2,\"rules\":\"upper\",\"sortByName\":false}","{\"version\":1,\"rules\":3,\"sortByName\":false}","{\"version\":1,\"rules\":\"upper\",\"sortByName\":\"false\"}","{\"version\":1,\"rules\":\"upper\",\"sortByName\":false,\"extra\":0}","{\"version\":1,\"rules\":\"upper\",\"rules\":\"lower\",\"sortByName\":false}"})Reject(json);
+        foreach(var json in new[]{"{","[]","{}","{\"version\":99,\"rules\":\"upper\",\"sortByName\":false}","{\"version\":1,\"rules\":3,\"sortByName\":false}","{\"version\":1,\"rules\":\"upper\",\"sortByName\":\"false\"}","{\"version\":1,\"rules\":\"upper\",\"sortByName\":false,\"extra\":0}","{\"version\":1,\"rules\":\"upper\",\"rules\":\"lower\",\"sortByName\":false}"})Reject(json);
         foreach(var rules in new[]{"序号|0|0|3","replace||x","unknown","upper|extra","set|CON","prefix|../","prefix|"+new string('x',257),string.Join("\n",Enumerable.Repeat("upper",65)),"prefix|a\t"})
         {try{RenameRulesPreset.Encode(rules,false);throw new Exception("Invalid rules accepted");}catch(ArgumentException){count++;}}
         Reject(new string(' ',RenameRulesPreset.MaximumBytes+1));

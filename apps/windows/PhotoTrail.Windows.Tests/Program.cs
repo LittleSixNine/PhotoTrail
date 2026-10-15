@@ -44,6 +44,7 @@ if (args.FirstOrDefault() == "--rename-bulk-checks") { await RenameBulkChecks.Ru
 if (args.FirstOrDefault() == "--rename-execution-checks") { await RenameExecutionChecks.RunAsync(); return; }
 if (args.FirstOrDefault() == "--rename-preset-checks") { RenamePresetChecks.Run(); return; }
 if (args.FirstOrDefault() == "--rename-order-checks") { await RenameOrderChecks.RunAsync(); return; }
+if(args.FirstOrDefault()=="--r08b-sequence-checks"){await RenameSequenceChecks.RunAsync();return;}
 if(args.FirstOrDefault()=="--r08a-rule-checks"){await RenameRuleChecks.RunAsync();return;}
 if (args.FirstOrDefault() == "--rename-checks") { await RenameChecks.RunAsync(); return; }
 if (args.FirstOrDefault() == "--google-checks") { GoogleChecks.Run(); return; }
