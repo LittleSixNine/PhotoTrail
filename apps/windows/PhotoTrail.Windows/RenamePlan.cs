@@ -31,7 +31,10 @@ public record RenameRule(string Kind, string Text = "", string Replacement = "",
     public long NumberValue { get; init; } = 1;
     public bool PerDirectory { get; init; }
     public int Counter { get; init; }
+    public bool FilterAny { get; init; }
+    public RenameFilterCondition[] Filters { get; init; } = [new("name","contains","")];
 }
+public sealed record RenameFilterCondition(string Field,string Comparison,string Value);
 public record RenameFile(string Source, string Target, string Hash)
 {
     internal FileProperties? Properties { get; init; }
@@ -50,7 +53,7 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool Explic
         foreach (var line in text.Split('\n').Where(value => value.Trim().Length > 0))
         {
             if (line.TrimStart().StartsWith('{')) {
-                result.Add(RenameTransform.Parse(line));
+                result.Add(ParseSerializedRule(line));
                 if(result.Count>64)throw new ArgumentException("规则最多64条。");
                 continue;
             }
@@ -66,6 +69,26 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool Explic
         }
         var counters=result.Where(r=>r.Enabled&&r.Counter>0).Select(r=>r.Counter).ToArray();if(counters.Distinct().Count()!=counters.Length)throw new ArgumentException("同一方案不能重复使用持续计数槽位。");
         return result;
+    }
+    sealed record LegacyEditorRule(string Kind,string Text="",string Replacement="",long Start=1,long Step=1,int Padding=3,bool Enabled=true);
+    // Typed cards retain legacy rule kinds exactly; new actions still use the existing strict action decoder.
+    static RenameRule ParseSerializedRule(string text) {
+        try {
+        using var json=System.Text.Json.JsonDocument.Parse(text,new(){MaxDepth=4});
+        if(json.RootElement.ValueKind!=System.Text.Json.JsonValueKind.Object||json.RootElement.EnumerateObject().Select(p=>p.Name).Distinct(StringComparer.Ordinal).Count()!=json.RootElement.EnumerateObject().Count())throw new ArgumentException("参数规则字段重复或类型错误。");
+        if(!json.RootElement.TryGetProperty("Kind",out var kind)||kind.ValueKind!=System.Text.Json.JsonValueKind.String)throw new ArgumentException("参数规则Kind缺失。");
+        if(kind.GetString()=="action")return RenameTransform.Parse(text);
+        var legacy=System.Text.Json.JsonSerializer.Deserialize<LegacyEditorRule>(text,new System.Text.Json.JsonSerializerOptions{UnmappedMemberHandling=System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow,MaxDepth=4})??throw new ArgumentException("旧规则缺失。");
+        if(legacy.Kind is not("prefix" or "suffix" or "set" or "replace" or "upper" or "lower" or "sequence" or "sequence-prefix" or "date-set" or "date-prefix" or "city-prefix" or "model-suffix")||legacy.Text is null||legacy.Replacement is null)throw new ArgumentException("旧规则类型或参数无效。");
+        if(legacy.Text.Length>256||legacy.Replacement.Length>256||legacy.Text.Any(char.IsControl)||legacy.Replacement.Any(char.IsControl)||legacy.Kind is "sequence" or "sequence-prefix"&&(legacy.Start<0||legacy.Step<=0||legacy.Padding is <1 or >9)||legacy.Kind=="replace"&&legacy.Text.Length==0)throw new ArgumentException("旧规则参数无效。");
+        _=new UTF8Encoding(false,true).GetByteCount(legacy.Text);_=new UTF8Encoding(false,true).GetByteCount(legacy.Replacement);
+        return new(legacy.Kind,legacy.Text,legacy.Replacement,legacy.Start,legacy.Step,legacy.Padding){Enabled=legacy.Enabled};
+        }catch(System.Text.Json.JsonException error){throw new ArgumentException("参数规则JSON无效："+error.Message);}
+    }
+    internal static string EncodeEditorRules(IEnumerable<RenameRule> rules)=>string.Join("\n",rules.Select(r=>r.Kind=="action"?EncodeAction(r):System.Text.Json.JsonSerializer.Serialize(new LegacyEditorRule(r.Kind,r.Text,r.Replacement,r.Start,r.Step,r.Padding,r.Enabled))));
+    static string EncodeAction(RenameRule rule) {
+        var data=System.Text.Json.JsonSerializer.SerializeToElement(rule);var defaults=System.Text.Json.JsonSerializer.SerializeToElement(new RenameRule("action"));
+        return System.Text.Json.JsonSerializer.Serialize(data.EnumerateObject().Where(p=>p.Name is "Kind" or "Action"||p.Value.GetRawText()!=defaults.GetProperty(p.Name).GetRawText()).ToDictionary(p=>p.Name,p=>p.Value));
     }
     public static bool ValidName(string name)
     {
@@ -88,9 +111,11 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool Explic
     internal static string ApplyVerified(string name,IReadOnlyList<RenameRule> rules,int index,Func<string,string?>? metadata,VerifiedPhotoDate? date,IReadOnlyDictionary<string,VerifiedPhotoDate?>? dates=null,List<string>? steps=null,Func<int,int>? ordinal=null,Action<int,int,bool>? completed=null)
     {
         if (rules.Count > 64 || index < 0) throw new ArgumentException("规则数量或序号无效。");
-        var original=name;
+        var original=name;bool included=true;
         foreach (var (rule,ruleIndex) in rules.Select((r,i)=>(r,i)).Where(p=>p.r.Enabled))
         {
+            if(rule.Kind=="action"&&rule.Action=="filter-following") { included=RenameTransform.MatchesFilter(original,rule,metadata,date,dates);steps?.Add(name+(included?"":" [excluded]"));continue; }
+            if(!included){steps?.Add(name+" [excluded]");continue;}
             int itemIndex=ordinal?.Invoke(ruleIndex)??index;
             if(rule.Kind=="action") {
                 var transformed=RenameTransform.Apply(name,rule,itemIndex,metadata,date,dates);
@@ -128,7 +153,7 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool Explic
     internal static bool UsesDates(IReadOnlyList<RenameRule> rules)=>rules.Any(r=>r.Enabled&&(r.Kind is "date-set" or "date-prefix"||r.Kind=="action"&&RenameTransform.NeedsDates(r)));
     internal static bool UsesMetadata(IReadOnlyList<RenameRule> rules)=>rules.Any(r=>r.Kind is "date-set" or "date-prefix" or "city-prefix" or "model-suffix"||r.Kind=="action");
     internal static bool UsesNewRules(IReadOnlyList<RenameRule> rules)=>UsesMetadata(rules)||rules.Any(r=>r.Kind=="sequence-prefix");
-    internal static bool RequiresV3(IReadOnlyList<RenameRule> rules)=>rules.Any(r=>r.Counter>0||r.PerDirectory||r.Kind=="action"&&RenameTransform.Actions.TryGetValue(r.Action,out var n)&&(n is >=46 and <=65||n==94));
+    internal static bool RequiresV3(IReadOnlyList<RenameRule> rules)=>rules.Any(r=>r.Counter>0||r.PerDirectory||!r.Enabled||r.Action=="filter-following"||r.Kind=="action"&&RenameTransform.Actions.TryGetValue(r.Action,out var n)&&(n is >=46 and <=65||n==94));
     internal static void ValidateRules(string text) {
         _=new UTF8Encoding(false,true).GetByteCount(text);var rules=ParseRules(text);
         if(!UsesNewRules(rules)){_=Apply("sample.jpg",rules,0);return;}

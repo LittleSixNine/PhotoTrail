@@ -27,7 +27,7 @@ internal static class RenameTransform
         ["parent-begin"]=84,["parent-end"]=85,["parent-before"]=86,["parent-after"]=87,["parent-position"]=88,
         ["path-begin"]=89,["path-end"]=90,["path-before"]=91,["path-after"]=92,["path-position"]=93,
         ["name-list"]=94,["regex-replace"]=95,["regex-rearrange"]=96,["set"]=97,
-        ["device-set"]=100,["device-begin"]=101,["device-end"]=102,["device-position"]=103,["device-before"]=104,["device-after"]=105,
+        ["filter-following"]=98,["device-set"]=100,["device-begin"]=101,["device-end"]=102,["device-position"]=103,["device-before"]=104,["device-after"]=105,
         ["location-set"]=106,["location-begin"]=107,["location-end"]=108,["location-position"]=109,["location-before"]=110,["location-after"]=111
     };
     static readonly JsonSerializerOptions Options = new() { UnmappedMemberHandling=JsonUnmappedMemberHandling.Disallow, MaxDepth=4 };
@@ -40,7 +40,7 @@ internal static class RenameTransform
             Validate(rule);return rule;
         } catch(JsonException error) {throw new ArgumentException("参数规则JSON无效："+error.Message);}
     }
-    internal static bool NeedsDates(RenameRule r)=>Actions.TryGetValue(r.Action,out var n)&&(n is >=40 and <=45||n is >=66 and <=71&&new[]{"<ShootingDate","<CreationDate","<ModificationDate","<ModDate"}.Any(r.Text.Contains));
+    internal static bool NeedsDates(RenameRule r)=>Actions.TryGetValue(r.Action,out var n)&&(n is >=40 and <=45||n==98&&r.Filters.Any(f=>f.Field=="shootingDate")||n is >=66 and <=71&&new[]{"<ShootingDate","<CreationDate","<ModificationDate","<ModDate"}.Any(r.Text.Contains));
     internal static void Validate(RenameRule r) {
         if(new[]{r.Kind,r.Action,r.Part,r.Occurrence,r.Text,r.Replacement,r.Anchor,r.Prefix,r.Suffix,r.DateSource,r.DateFormat,r.TimeZone,r.AlphabetStart,r.NumberOperation}.Any(value=>value is null))throw new ArgumentException("规则文字字段不能为null。");
         if(!Actions.TryGetValue(r.Action,out var n))throw new ArgumentException("不支持的命名动作："+r.Action);
@@ -53,6 +53,8 @@ internal static class RenameTransform
         }
         if(r.DateSource is not("shooting" or "created" or "modified" or "now")||r.TimeZone.Length is <1 or >128||r.NightHour is <0 or >23)throw new ArgumentException("日期来源、时区或夜间归日参数无效。");
         if(r.TimeZone is not("source" or "local"))try{_=TimeZoneInfo.FindSystemTimeZoneById(r.TimeZone);}catch(Exception error)when(error is TimeZoneNotFoundException or InvalidTimeZoneException){throw new ArgumentException("平台不能解析命名时区。");}
+        if(r.Filters is null||r.Filters.Length is <1 or >32||r.Filters.Any(f=>f is null||f.Field is not("name" or "fileExtension" or "shootingDate" or "comment")||f.Comparison is not("contains" or "notContains" or "equals" or "notEquals" or "starts" or "ends" or "before" or "after" or "exists" or "missing")||f.Value is null||f.Value.Length>1024||f.Value.Any(char.IsControl)))throw new ArgumentException("筛选条件数量、字段、比较或参数无效。");
+        foreach(var condition in r.Filters)try{_=new UTF8Encoding(false,true).GetByteCount(condition.Value);}catch(EncoderFallbackException){throw new ArgumentException("筛选参数Unicode无效。");}
         if(n is 95 or 96){_=Expression(r.Text,r.CaseSensitive);ValidateReplacement(r.Replacement);}
         if(n==94)_=ListLines(r);
         if(n is >=40 and <=45)ValidateDateFormat(r.DateFormat);
@@ -203,6 +205,16 @@ internal static class RenameTransform
             var verified=await VerifiedPhotoDate.InspectAsync(adapted.Values,token);foreach(var (key,text) in adapted)dates[key]=verified.GetValueOrDefault(text);
         }
         return dates;
+    }
+    internal static bool MatchesFilter(string original,RenameRule rule,Func<string,string?>? metadata,VerifiedPhotoDate? date,IReadOnlyDictionary<string,VerifiedPhotoDate?>? dates) {
+        Validate(rule);
+        string Key(string text)=>rule.CaseSensitive?text:text.Normalize(NormalizationForm.FormC).ToLowerInvariant();
+        bool Match(RenameFilterCondition condition) {
+            string? value=condition.Field switch{"name"=>original,"fileExtension"=>Split(original).Extension.TrimStart('.'),"comment"=>metadata?.Invoke("ImageUserComment"),_=>FormatDate(rule with{DateSource="shooting",DateFormat="yyyy-MM-dd HH:mm:ss"},metadata,date,dates)};
+            if(condition.Comparison=="exists")return !string.IsNullOrEmpty(value);if(condition.Comparison=="missing")return string.IsNullOrEmpty(value);if(value is null)return false;
+            var actual=Key(value);var expected=Key(condition.Value);return condition.Comparison switch{"contains"=>actual.Contains(expected,StringComparison.Ordinal),"notContains"=>!actual.Contains(expected,StringComparison.Ordinal),"equals"=>actual==expected,"notEquals"=>actual!=expected,"starts"=>actual.StartsWith(expected,StringComparison.Ordinal),"ends"=>actual.EndsWith(expected,StringComparison.Ordinal),"before"=>string.CompareOrdinal(actual,expected)<0,"after"=>string.CompareOrdinal(actual,expected)>0,_=>false};
+        }
+        return rule.FilterAny?rule.Filters.Any(Match):rule.Filters.All(Match);
     }
     static string? FormatDate(RenameRule r,Func<string,string?>? metadata,VerifiedPhotoDate? date,IReadOnlyDictionary<string,VerifiedPhotoDate?>? dates) {
         var raw=metadata?.Invoke(r.DateSource=="created"?"File:FileCreateDate":r.DateSource=="modified"?"File:FileModifyDate":r.DateSource=="now"?"PhotoTrail:RenameReferenceDate":"captured");if(raw is null)return null;raw=RenameInput.BridgeDate(raw);

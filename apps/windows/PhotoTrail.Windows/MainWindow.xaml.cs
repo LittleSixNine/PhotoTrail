@@ -143,7 +143,7 @@ public partial class MainWindow : Window
         finally { restoringTheme = false; }
         LoadSettings();LoadInplaceRecords();LoadMetadataPresets();LoadMapWorkspace();
         RefreshGoogleKeyStatus();
-        LoadLatestRenameJournal();LoadRenameSchemes();
+        LoadLatestRenameJournal();LoadRenameSchemes();InitializeM3Rename();
         LoadTrackHistory();await LoadTrackSnapshotsAsync();
         try
         {
@@ -259,7 +259,7 @@ public partial class MainWindow : Window
         if (RestoreRenameButton is not null) RestoreRenameButton.IsEnabled = !busy;
         if (RenameRules is not null) RenameRules.IsEnabled = !busy;
         if(RenameProcessingControls is not null)RenameProcessingControls.IsEnabled=!busy; if(RenameGroups is not null)RenameGroups.IsEnabled=!busy; if(RenameUndoOrder is not null)RenameUndoOrder.IsEnabled=CanMoveRenameGroups&&renameOrderUndo is not null;
-        RefreshSchemeControls();
+        M3RefreshEnabled();RefreshSchemeControls();
         if (RenamePresetSaveButton is not null) RenamePresetSaveButton.IsEnabled = !busy && !renameRecoveryRequired;
         if (RenamePresetLoadButton is not null) RenamePresetLoadButton.IsEnabled = !busy && !renameRecoveryRequired;
         if (RenameJournalPath is not null) RenameJournalPath.IsEnabled = !busy;
@@ -335,10 +335,11 @@ public partial class MainWindow : Window
         catch (OperationCanceledException) { RenameStatus.Text = "恢复准备已取消，未移动文件。"; }
         catch (Exception error) { RenameStatus.Text = "未开始恢复：" + error.Message; }
     }
-    private IReadOnlyList<RenameRule> ReadRenameRules() => RenamePlan.ParseRules(RenameRules.Text);
+    private IReadOnlyList<RenameRule> ReadRenameRules() { M3EnsureValid();return RenamePlan.ParseRules(RenameRules.Text); }
     private async void RenameRulesChanged(object sender, RoutedEventArgs e)
     {
         if (RenameRules is null || RenamePreview is null || RenameStatus is null || RenameProcessingSort is null || RenameViewOrder is null || RenameViewFilter is null || fillingRenameControls) return;
+        if(ReferenceEquals(sender,RenameRules)&&!m3Writing)M3LoadCards();
         renameRevision++; frozenRenamePlan = null; UpdateRenameButtons();RefreshSchemeControls();
         var revision=renameRevision;
         try
@@ -972,6 +973,10 @@ public partial class MainWindow : Window
         if(datePending>0){InvalidateDates();e.Cancel=true;Status.Text="正在取消日期任务；结束后可关闭。";return;}
         if (checkingEnvironment) { dependencyCheck?.Cancel(); e.Cancel = true; DependencyStatus.Text = "正在取消环境检查；结束后可关闭。"; return; }
         if (busy) { operation?.Cancel(); e.Cancel = true; Status.Text = "正在取消任务；结束后可关闭。"; return; }
+        if(m3Ready&&RenameSchemeDirty){
+            try{if(ResolveSchemeEdits()==MessageBoxResult.Cancel){e.Cancel=true;return;}}
+            catch(Exception error){e.Cancel=true;RenameStatus.Text=M3("CloseSchemeFailed")+error.Message;return;}
+        }
         if(presetEditorDirty||PresetChainDirty||invalidWorkflowCards.Count>0||dateEditorHasInput?.Invoke()==true){
             if(MessageBox.Show(this,WText("ExitInput"),"PhotoTrail",MessageBoxButton.YesNo,MessageBoxImage.Question,MessageBoxResult.No)!=MessageBoxResult.Yes){e.Cancel=true;return;}
         }

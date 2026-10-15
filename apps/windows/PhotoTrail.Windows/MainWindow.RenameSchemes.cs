@@ -11,7 +11,7 @@ public partial class MainWindow
     Guid? currentRenameScheme;
     RenameScheme? renameSchemeBaseline;
     bool fillingSchemes,renameReadingPreview;
-    bool RenameSchemeDirty=>renameSchemeBaseline is null||RenameSchemeName.Text!=renameSchemeBaseline.Name||RenameSchemeExample.Text!=renameSchemeBaseline.Example||RenameRules.Text!=renameSchemeBaseline.Rules||!SameSchemeOrder(ReadRenameOrder(),renameSchemeBaseline.Order);
+    bool RenameSchemeDirty=>M3InvalidInputs||renameSchemeBaseline is null||RenameSchemeName.Text!=renameSchemeBaseline.Name||RenameSchemeExample.Text!=renameSchemeBaseline.Example||RenameRules.Text!=renameSchemeBaseline.Rules||!SameSchemeOrder(ReadRenameOrder(),renameSchemeBaseline.Order);
     static bool SameSchemeOrder(RenameOrderSettings first,RenameOrderSettings second)=>(first with{MetadataSortTag=first.MetadataSortTag??""})==(second with{MetadataSortTag=second.MetadataSortTag??""});
     void LoadRenameSchemes() {
         try{renameSchemes=RenameSchemeLibrary.Open(RenameSchemeLibrary.DefaultPath);var state=renameSchemes.State;var scheme=state.Schemes.FirstOrDefault(s=>s.Id==state.LastId)??state.Schemes.FirstOrDefault();SetSchemeEditor(scheme);}
@@ -30,9 +30,9 @@ public partial class MainWindow
         fillingSchemes=fillingRenameControls=true;
         try{currentRenameScheme=scheme?.Id;renameSchemeBaseline=scheme;RenameSchemeName.Text=scheme?.Name??"新方案";RenameSchemeExample.Text=scheme?.Example??"";RenameRules.Text=scheme?.Rules??"";var order=scheme?.Order??new RenameOrderSettings(){Conflict="numbers"};RenameProcessingSort.SelectedIndex=Array.IndexOf(RenameOrderSettings.Sorts,order.Sort);RenameDescending.IsChecked=order.Descending;RenameMetadataTag.Text=order.MetadataSortTag??"";RenameConflictChoice.SelectedIndex=Array.IndexOf(new[]{"stop","numbers","letters"},order.Conflict);RenameConflictDigits.Text=order.ConflictDigits.ToString(System.Globalization.CultureInfo.InvariantCulture);RenameNumberSuffix.SelectedIndex=Array.IndexOf(new[]{"plain","underscore","dash","parentheses"},order.NumberSuffixFormat);RenameLetterSuffix.SelectedIndex=Array.IndexOf(new[]{"plain","underscore","dash","parentheses"},order.LetterSuffixFormat);RenameKeepFirst.IsChecked=order.KeepFirst;}
         finally{fillingSchemes=fillingRenameControls=false;}
-        RefreshSchemeList();RenameRulesChanged(this,new RoutedEventArgs());
+        RefreshSchemeList();M3LoadCards();RenameRulesChanged(this,new RoutedEventArgs());
     }
-    RenameScheme EditedScheme(Guid id,string? name=null)=>new(id,name??RenameSchemeName.Text,RenameRules.Text,ReadRenameOrder(),RenameSchemeExample.Text);
+    RenameScheme EditedScheme(Guid id,string? name=null) { M3EnsureValid();return new(id,name??RenameSchemeName.Text,RenameRules.Text,ReadRenameOrder(),RenameSchemeExample.Text); }
     void PersistSchemes(RenameSchemeState state) {
         if(renameSchemes is null)throw new InvalidOperationException("方案库读取失败，当前编辑保留。");
         var saved=RenameSchemeLibrary.Save(RenameSchemeLibrary.DefaultPath,renameSchemes,state);renameSchemes=saved;
