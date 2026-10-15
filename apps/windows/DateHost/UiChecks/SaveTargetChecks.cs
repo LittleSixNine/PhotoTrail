@@ -108,7 +108,7 @@ static partial class Program
   restricted.AddAccessRule(new FileSystemAccessRule(WindowsIdentity.GetCurrent().User!,FileSystemRights.CreateFiles|FileSystemRights.CreateDirectories,AccessControlType.Deny));
   try{deniedFolder.SetAccessControl(restricted);await ExpectFailure(()=>SavePlan.CreateAsync(client,deniedItem,proof,CancellationToken.None),"directory-create-permission-failure");Check(!File.Exists(deniedItem.Target)&&denied.Draft.Count>0,"permission-failure-retains-draft-no-target");}finally{deniedFolder.SetAccessControl(originalAcl);}
   // Real WPF editor and explicit summary/cancel/execute flow.
-  list.SelectedItem=rows.Single(r=>Doc(r).FilePath==raw);Check(!Control<Button>("FieldApplyButton").IsEnabled,"default-RAW-editor-readonly");
+  list.SelectedItem=rows.Single(r=>Doc(r).FilePath==raw);await Responsive();Check(!Control<Button>("FieldApplyButton").IsEnabled,"default-RAW-editor-readonly");
   Control<ComboBox>("SaveModeChoice").SelectedIndex=1;Check(Control<Button>("FieldApplyButton").IsEnabled,"explicit-sidecar-mode-opens-existing-whitelist-editor");
   EditedFields(new Dictionary<string,string>{{"XMP-dc:Title","WPF saved title"},{"XMP-xmp:CreateDate","1700:02:03 04:05:06.987654321-03:30"}});await Apply("ApplyDraft");await Idle();
   var rawDoc=Doc(list.SelectedItem!);Check(rawDoc.Draft.Count==2,"WPF-RAW-staging-title-date");
@@ -123,7 +123,7 @@ static partial class Program
   Check(Field("lastApply") is null&&Field("trackBatch") is null,"source-change-invalidates-undo-and-track-plan");
   Check(newRaw.VerifiedCaptureDate is not null,"new-main-date-v2-read-proof");
   Control<ComboBox>("PhotoSort").SelectedIndex=2;var first=Doc(list.Items[0]);Check(first.FilePath==raw,"source-adoption-v2-main-date-sort");
-  list.SelectedItem=list.Items.Cast<object>().Single(r=>Doc(r).FilePath==raw);SelectMetadataTab("重命名");Input("RenameDateFrom","1700-01-01");Input("RenameDateTo","1700-12-31");Action("RefreshRenameOrder");await RenameWait();Check(Groups().Length>=1,"source-adoption-v2-rename-date-filter");Input("RenameDateFrom","");Input("RenameDateTo","");
+  list.SelectedItem=list.Items.Cast<object>().Single(r=>Doc(r).FilePath==raw);await Responsive();SelectMetadataTab("重命名");Input("RenameRules","prefix|m1_");Input("RenameDateFrom","1700-01-01");Input("RenameDateTo","1700-12-31");Action("RefreshRenameOrder");await RenameWait();Check(Groups().Length>=1,"source-adoption-v2-rename-date-filter: "+Control<TextBlock>("RenameStatus").Text);Input("RenameDateFrom","");Input("RenameDateTo","");
   SelectMetadataTab("元数据");var mixedRow=list.Items.Cast<object>().Single(r=>Doc(r).FilePath==raw);list.SelectedItem=mixedRow;var mixed=Doc(mixedRow);
   mixed.SetDraft(PhotoDocument.PositionChanges(new MapPoint(121,31),null,"MANUAL"));EditedFields(new Dictionary<string,string>{{"XMP-dc:Rights","workspace rights"}});await Apply("ApplyDraft");
   string scopeOut=Path.Combine(folder,"workspace-copy");Directory.CreateDirectory(scopeOut);Input("OutputFolder",scopeOut);Control<ComboBox>("SaveModeChoice").SelectedIndex=0;

@@ -81,7 +81,8 @@ static partial class Program
    string tool=Environment.GetEnvironmentVariable("PHOTOTRAIL_EXIFTOOL")!;before=Doc(InspectorSelected);
    try{Environment.SetEnvironmentVariable("PHOTOTRAIL_EXIFTOOL",Path.Combine(folder,"nonexistent-tool.exe"));await InspectorRefresh();Check(ReferenceEquals(before,Doc(InspectorSelected))&&before.InspectionError.Length>0,"read-failure-keeps-old-snapshot");}finally{Environment.SetEnvironmentVariable("PHOTOTRAIL_EXIFTOOL",tool);}
    await InspectorRefresh();
-   list.SelectAll();SelectMetadataTab("原始字段");Check(InspectorRows().Any(r=>r.State=="混合值"),"selected-mixed-value-not-missing");
+   list.SelectAll();await Responsive();SelectMetadataTab("原始字段");
+   Check(InspectorRows().Any(r=>r.State=="混合值"),"selected-mixed-value-not-missing");
    long requests=ToolRequests(),hostRequests=InspectorHostRequests();foreach(var row in list.Items.Cast<object>())for(int i=0;i<20;i++){_=row.GetType().GetProperty("Summary")!.GetValue(row);_=row.GetType().GetProperty("Captured")!.GetValue(row);_=MetadataInspector.Counts([Doc(row)]);}
    Check(ToolRequests()==requests&&InspectorHostRequests()==hostRequests,"getters-count-and-view-never-start-ExifTool-or-DateHost");
    // Production save runs while a reread entry is attempted. Original drafts remain because these are explicit copies.
