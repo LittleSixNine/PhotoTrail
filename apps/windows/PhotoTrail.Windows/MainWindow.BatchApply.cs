@@ -119,7 +119,7 @@ public partial class MainWindow
         var batch=lastApply!;lastApply=null;
         foreach(var (row,i) in batch.Rows.Select((r,i)=>(r,i)))row.Document.ReplaceDraft(batch.Before[i]);
         foreach(var row in batch.Rows)row.Document.NotifyDraftChanged();
-        DatePlanPreview.Text=PresetPreview.Text=CsvPreview.Text=M1Text("UndoFeedback");
+        DatePlanPreview.Text=PresetPreview.Text=CsvPreview.Text=MatchResult.Text=M1Text("UndoFeedback");
         RefreshPhotoRows();RefreshSelection();RefreshMatchTime();ClearMatchMarker();_=PostPhotosAsync();Status.Text="已撤销最近一次应用，恢复该批之前的完整草稿；此前编辑和原文件保留。";
     }
 }

@@ -143,7 +143,7 @@ public partial class MainWindow : Window
         finally { restoringTheme = false; }
         LoadSettings();LoadInplaceRecords();LoadMetadataPresets();LoadMapWorkspace();
         RefreshGoogleKeyStatus();
-        LoadLatestRenameJournal();LoadRenameSchemes();InitializeM3Rename();
+        LoadLatestRenameJournal();LoadRenameSchemes();InitializeM3Rename();InitializeM4Map();
         LoadTrackHistory();await LoadTrackSnapshotsAsync();
         try
         {
@@ -515,6 +515,7 @@ public partial class MainWindow : Window
     private async void AddGpsDraft(object sender, RoutedEventArgs e)
     {
         var selected = Selected;var point=currentPreview;var revision=trackMatchRevision;
+        var before=selected.Select(r=>new Dictionary<string,string>(r.Document.Draft)).ToArray();var draftRevisions=selected.Select(r=>r.Document.DraftRevision).ToArray();
         if(currentPreview is not null&&ReferenceEquals(currentPreview,serviceQueryPoint)){Status.Text="D06：Google查询坐标仅预览，持久写入许可未确认，未应用GPS草稿。";return;}
         bool started=false;CancellationTokenSource? request=null;
         try
@@ -522,13 +523,16 @@ public partial class MainWindow : Window
             if (batchTrackViewing || busy || renameRecoveryRequired || currentPreview is null || Selected.Length == 0 || Selected.Any(row => !row.Document.CanStage)) throw new InvalidOperationException("请选择可编辑照片，并先预览定位。");
             BeginOperation();started=true;request=operation!;
             if(previewMethod=="GPS"&&!clipboardGpsPreview&&matchedTrackSource is {} source)await TrackSnapshots.EnsureSourceAsync(source,request.Token);
+            foreach(var row in selected)await row.Document.EnsureUnchangedAsync(request.Token);
             request.Token.ThrowIfCancellationRequested();
-            if(revision!=trackMatchRevision||!ReferenceEquals(point,currentPreview)||!Selected.SequenceEqual(selected)||selected.Any(r=>!r.Document.CanStage))throw new InvalidOperationException("定位或选择已改变，请重新预览。");
+            if(revision!=trackMatchRevision||!ReferenceEquals(point,currentPreview)||!Selected.SequenceEqual(selected)||selected.Select((r,i)=>!r.Document.CanStage||r.Document.DraftRevision!=draftRevisions[i]).Any(x=>x))throw new InvalidOperationException("定位、选择或草稿已改变，请重新预览。");
             var changes = PhotoDocument.PositionChanges(point, previewAltitude, previewMethod);
-            foreach (var row in selected) row.Document.SetDraft(changes);
+            var frozen=selected.Select(r=>r.Document.BatchSnapshot()).ToArray();foreach(var copy in frozen)copy.SetDraft(changes);
+            var drafts=frozen.Select(d=>new Dictionary<string,string>(d.Draft)).ToArray();var changed=Enumerable.Range(0,selected.Length).Where(i=>!SameDraft(before[i],drafts[i])).ToArray();
+            CommitBatchDrafts(selected,before,drafts,changed,frozen);
             RefreshPhotoRows(); RefreshSelection(); _ = PostPhotosAsync();
-            MatchResult.Text = $"已为{selected.Length}张照片加入WGS-84 GPS草稿。未知海拔／定位时间清除旧XMP值；请在元数据页保存副本。";
-            Status.Text = "GPS已加入可撤销草稿，原文件未修改。";
+            Status.Text = changed.Length==0?M4("GpsUnchanged"):M4Format("GpsApplied",changed.Length);
+            MatchResult.Text=Status.Text;
         }
         catch (Exception error) { if(revision==trackMatchRevision&&ReferenceEquals(point,currentPreview)&&Selected.SequenceEqual(selected)){ClearMatchMarker();Status.Text = "GPS草稿未应用：" + error.Message;} }
         finally{if(started&&ReferenceEquals(operation,request))EndOperation();}
@@ -1078,7 +1082,7 @@ public partial class MainWindow : Window
                         if (!busy) Status.Text = "地图加载失败；检查网络后点击重载地图。照片和草稿保留。";
                         return;
                     }
-                    if (MapMessage.IsReady(args.Source, args.WebMessageAsJson)) { mapReady = true;PostMapSettings(true); _ = PostTrackAsync(false); _ = PostPhotosAsync();if(mapWorkspace?.State.StartWithDevice==true)LocateDevice(this,new RoutedEventArgs()); }
+                    if (MapMessage.IsReady(args.Source, args.WebMessageAsJson)) { mapReady = true;PostMapSettings(true); _ = PostTrackAsync(mapWorkspace?.State.OpenView is null&&!userMapMoved); _ = PostPhotosAsync();if(mapWorkspace?.State.StartWithDevice==true)LocateDevice(this,new RoutedEventArgs()); }
                     if (busy || !mapReady) return;
                     if (MapMessage.TryPhoto(args.Source, args.WebMessageAsJson, out var id, out var revision) && revision == photoRevision && id < photos.Count)
                     {
@@ -1104,15 +1108,22 @@ public partial class MainWindow : Window
         catch (Exception error) { if (!busy) Status.Text = "地图暂不可用：" + error.Message; mapStarted = false; }
         finally { mapInitializing = false; MapRetryButton.IsEnabled = !busy; }
     }
-    private sealed class TrackRow(TrackSnapshot snapshot) {
-        public TrackSnapshot Snapshot {get;set;}=snapshot;
+    private sealed class TrackRow(TrackSnapshot snapshot) : INotifyPropertyChanged {
+        public event PropertyChangedEventHandler? PropertyChanged;
+        void Changed()=>PropertyChanged?.Invoke(this,new PropertyChangedEventArgs(""));
+        TrackSnapshot source=snapshot;
+        public TrackSnapshot Snapshot {get=>source;set{source=value;Changed();}}
         public string Path=>Snapshot.Path;
         public TrackData Data=>Snapshot.Data;
         public TrackData? Undo {get;set;}
         public string? MapPayload {get;set;}
-        public bool SourceUnavailable {get;set;}
-        public bool Visible {get;set;}=true;
+        bool unavailable,visible=true;
+        public bool SourceUnavailable {get=>unavailable;set{unavailable=value;Changed();}}
+        public bool Visible {get=>visible;set{visible=value;Changed();}}
         public string Name=>System.IO.Path.GetFileName(Path);
+        public string Summary {
+            get {string Label(string key)=>Application.Current?.MainWindow?.TryFindResource("M4."+key)as string??key;var points=Data.Segments.SelectMany(s=>s).ToArray();var times=points.Where(p=>p.Time is not null).Select(p=>p.Time!.Value).ToArray();return (SourceUnavailable?Label("SourceLost"):times.Length>0?Label("Ready"):Label("Geometry"))+"\n"+string.Format(System.Globalization.CultureInfo.CurrentCulture,Label("Points"),Data.Segments.Count,points.Length)+(times.Length==0?"":"\n"+times.Min().ToString("yyyy-MM-dd HH:mm:ss zzz")+" – "+times.Max().ToString("HH:mm:ss zzz"));}
+        }
     }
     private class PhotoRow(PhotoDocument Document) : INotifyPropertyChanged
     {

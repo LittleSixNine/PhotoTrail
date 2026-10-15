@@ -37,6 +37,7 @@ public partial class MainWindow
     void RenderMetadataSettings()
     {
         if(M3RenameWorkspace is not null)System.Windows.Documents.TextElement.SetFontSize(M3RenameWorkspace,metadataBaseFont+settings.FontDelta);
+        if(M4MapWorkspace is not null)System.Windows.Documents.TextElement.SetFontSize(M4MapWorkspace,metadataBaseFont+settings.FontDelta);
         System.Windows.Documents.TextElement.SetFontSize(Editor,metadataBaseFont+settings.FontDelta);MetadataGrid.FontSize=metadataBaseFont+settings.FontDelta;
         if(PresetControls is not null){System.Windows.Documents.TextElement.SetFontSize(PresetControls,metadataBaseFont+settings.FontDelta);MetadataPresetList.Padding=new Thickness(4,settings.RowPadding,4,settings.RowPadding);PresetValue.Padding=new Thickness(4,settings.RowPadding,4,settings.RowPadding);}
         foreach(var(tag,apply,input)in Fields){apply.FontSize=input.FontSize=metadataBaseFont+settings.FontDelta;apply.Content=fieldLabels[tag]+" · "+SettingsPreference.TagLabel(tag,settings.FullTagNames);apply.ToolTip=input.ToolTip=tag;System.Windows.Automation.AutomationProperties.SetName(apply,fieldLabels[tag]+" · "+tag);System.Windows.Automation.AutomationProperties.SetHelpText(input,tag);input.Padding=new Thickness(4,settings.RowPadding,4,settings.RowPadding);input.MinHeight=settings.MinimumRowHeight;}

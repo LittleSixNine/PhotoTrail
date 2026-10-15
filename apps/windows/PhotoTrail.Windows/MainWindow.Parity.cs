@@ -32,6 +32,7 @@ public partial class MainWindow
     {
         if (M1DraftCount is null) return;
         RefreshM2MetadataLayout();
+        RefreshM4Map();
         if (workflowBody is not null) workflowBody.IsEnabled = !busy && !renameRecoveryRequired;
         RefreshWorkflowContext();
         MetadataNavigation.IsChecked = WorkspaceTabs.SelectedIndex == 0;
@@ -149,6 +150,6 @@ public partial class MainWindow
         Add("CopyTag", CopyMetadataTag); menu.IsOpen = true;
     }
     void M1OpenFavorites(object sender, RoutedEventArgs e) { WorkspaceTabs.SelectedIndex = 1; FavoriteList.BringIntoView(); FavoriteList.Focus(); }
-    void M1OpenTrackMatch(object sender, RoutedEventArgs e) { WorkspaceTabs.SelectedIndex = 1; BatchTrackStatus.BringIntoView(); }
+    void M1OpenTrackMatch(object sender, RoutedEventArgs e) { M4OpenMatching(); }
     void M1PrepareGpsCopy(object sender, RoutedEventArgs e) => PrepareSave(Selected.Select(r => r.Document), SaveMode.Copy, SaveScope.Map);
 }
