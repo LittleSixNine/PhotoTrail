@@ -514,10 +514,11 @@ public partial class MainWindow : Window
     {
         if (mapReady) MapView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "match-preview", point = currentPreview, focus = batchTrackViewing }));
     }
-    private void UpdateGpsButton() => GpsDraftButton.IsEnabled = !batchTrackViewing && !busy && !renameRecoveryRequired && currentPreview is not null && Selected.Length > 0 && Selected.All(row => row.Document.CanStage);
+    private void UpdateGpsButton() => GpsDraftButton.IsEnabled = !ReferenceEquals(currentPreview,serviceQueryPoint) && !batchTrackViewing && !busy && !renameRecoveryRequired && currentPreview is not null && Selected.Length > 0 && Selected.All(row => row.Document.CanStage);
     private async void AddGpsDraft(object sender, RoutedEventArgs e)
     {
         var selected = Selected;var point=currentPreview;var revision=trackMatchRevision;
+        if(currentPreview is not null&&ReferenceEquals(currentPreview,serviceQueryPoint)){Status.Text="D06：Google查询坐标仅预览，持久写入许可未确认，未应用GPS草稿。";return;}
         try
         {
             if (batchTrackViewing || busy || renameRecoveryRequired || currentPreview is null || Selected.Length == 0 || Selected.Any(row => !row.Document.CanStage)) throw new InvalidOperationException("请选择可编辑照片，并先预览定位。");
@@ -975,7 +976,7 @@ public partial class MainWindow : Window
     }
     private void SuspendMap()
     {
-        ClearPlacePreview();mapViewEpoch++; mapReady = false; mapRevision++; photoRevision++;
+        if(currentPreview is not null&&ReferenceEquals(currentPreview,serviceQueryPoint))ClearMatchMarker();ClearPlacePreview();mapViewEpoch++; mapReady = false; mapRevision++; photoRevision++;
         mapUpdate?.Cancel(); photoMapUpdate?.Cancel();
     }
     private void RetryMap(object sender, RoutedEventArgs e)
@@ -1053,7 +1054,7 @@ public partial class MainWindow : Window
                     {
                         placePending = false;
                         PlacePreview.Text = place.Status == "OK" ? "Google Maps · 地区预览：" + place.Summary : "Google Maps查询未得到地区：" + place.Status + "。未改照片。";
-                        if(place.Query is not null&&place.Status=="OK"){InvalidateBatchTrack();currentPreview=place.Point;previewAltitude=null;previewMethod="MANUAL";clipboardGpsPreview=false;UpdateGpsButton();PostPreview();}
+                        if(place.Query is not null&&place.Status=="OK"){InvalidateBatchTrack();currentPreview=place.Point;serviceQueryPoint=currentPreview;previewAltitude=null;previewMethod="MANUAL";clipboardGpsPreview=false;UpdateGpsButton();PostPreview();}
                         return;
                     }
                     if (MapMessage.IsError(args.Source, args.WebMessageAsJson))

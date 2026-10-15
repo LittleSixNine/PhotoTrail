@@ -1,3 +1,5 @@
+R09b: regiões manuais independentes com seleção congelada e substituição explícita. Persistência de resultados online bloqueada por licença.
+
 R09a: favoritos manuais offline e preferências do mapa. A prévia não aplica GPS; serviço e localização real não verificados.
 
 R08b: sequências avançadas, contadores persistentes e sufixos de conflito por grupo. A conversão de Mac aceita um subconjunto explícito.

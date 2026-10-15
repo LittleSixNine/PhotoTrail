@@ -1,3 +1,5 @@
+R09b: regiones manuales independientes con selección congelada y sobrescritura explícita. La persistencia de resultados en línea sigue bloqueada por licencia.
+
 R09a: favoritos manuales sin conexión y preferencias del mapa. La vista previa no aplica GPS; servicio y ubicación real sin verificar.
 
 R08b: secuencias avanzadas, contadores persistentes y sufijos de conflicto por grupo. La conversión de Mac admite un subconjunto explícito.

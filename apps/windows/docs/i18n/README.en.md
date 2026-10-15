@@ -1,3 +1,5 @@
+R09b: independent manual regions use a frozen selection, fill gaps by default and require explicit overwrite. Online result persistence remains BLOCKED pending licensing.
+
 R09a: offline manual favorites and map display preferences. Preview does not apply GPS. Live service and device location remain unverified.
 
 R08b: advanced sequences, persistent counters and grouped conflict suffixes. Mac preset conversion supports an explicit subset; unknown execution never reuses counters.
