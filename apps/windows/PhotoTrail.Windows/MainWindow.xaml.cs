@@ -737,10 +737,14 @@ public partial class MainWindow : Window
         InvalidateDates();
         foreach (var (_, apply, value) in Fields) if (ReferenceEquals(value, sender)) apply.IsChecked = true;
     }
+    bool confirmingEditorDiscard;
     private bool DiscardEditor()
     {
         if (!InspectorHasInput()) return true;
-        return MessageBox.Show(this, "输入尚未加入草稿。放弃这次输入？", "PhotoTrail", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
+        if (confirmingEditorDiscard) return false;
+        confirmingEditorDiscard = true;
+        try { return MessageBox.Show(metadataWindow ?? this, "输入尚未加入草稿。放弃这次输入？", "PhotoTrail", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes; }
+        finally { confirmingEditorDiscard = false; }
     }
     private void CopyGpsClipboard(object sender, RoutedEventArgs e)
     {
@@ -958,6 +962,7 @@ public partial class MainWindow : Window
     private void CancelRead(object sender, RoutedEventArgs e) { batchTrackCancelTicks=System.Diagnostics.Stopwatch.GetTimestamp();InvalidateBatchTrack(); InvalidateTrackAdjustment();InvalidateDates();dependencyCheck?.Cancel();importCancellation?.Cancel(); operation?.Cancel(); Status.Text=importRunning?"正在取消导入；已接纳照片与原草稿保留。":busy?"正在取消任务…":"应用已取消或失效，草稿未改变。"; }
     private void WindowClosing(object? sender, CancelEventArgs e)
     {
+        if (confirmingEditorDiscard) { e.Cancel = true; return; }
         if(photoGpxJoining){operation?.Cancel();e.Cancel=true;Status.Text="正在结束生成GPX加入任务；安全结束后可关闭。";return;}
         if(trackWorkspacePending>0){e.Cancel=true;Status.Text="正在保存轨迹工作区；结束后可关闭。";return;}
         if(importRunning){importCancellation?.Cancel();e.Cancel=true;Status.Text="正在取消导入；安全结束后可关闭。";return;}

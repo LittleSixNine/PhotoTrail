@@ -10,7 +10,7 @@ namespace PhotoTrail.Windows;
 public partial class MainWindow
 {
     Window? metadataWindow, settingsWindow;
-    bool changingM1Inspector;
+    bool changingM1Inspector, metadataClosing;
     static string M1Label(string key) => Application.Current?.MainWindow?.TryFindResource("M1." + key) as string ?? key;
     string M1Text(string key) => (string)FindResource("M1." + key);
     string M1Format(string key, params object[] values) => string.Format(CultureInfo.CurrentCulture, M1Text(key), values);
@@ -86,7 +86,7 @@ public partial class MainWindow
     }
     void OpenMetadataTool(TabItem tab)
     {
-        if (busy || renameRecoveryRequired) return;
+        if (busy || renameRecoveryRequired || metadataClosing) return;
         if (metadataWindow is null)
         {
             MetadataToolsParking.Children.Remove(MetadataToolsTabs);
@@ -95,10 +95,11 @@ public partial class MainWindow
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
             var cancel = new Button { Content = M1Text("CancelEditor") };
             cancel.Click += (_, _) => {
+                if (metadataClosing) return;
                 if (busy) { CancelRead(this, new RoutedEventArgs()); return; }
                 RefreshSelection(); DatePlanPreview.Text = M1Text("EditorCancelled"); metadataWindow?.Close();
             };
-            var close = new Button { Content = M1Text("Close") }; close.Click += (_, _) => metadataWindow?.Close();
+            var close = new Button { Content = M1Text("Close") }; close.Click += (_, _) => { if (!metadataClosing) metadataWindow?.Close(); };
             buttons.Children.Add(cancel); buttons.Children.Add(close); DockPanel.SetDock(buttons, Dock.Right); footer.Children.Add(buttons);
             footer.Children.Add(new TextBlock { Text = M1Text("EditorSelection"), TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center });
             DockPanel.SetDock(footer, Dock.Bottom); panel.Children.Add(footer); panel.Children.Add(MetadataToolsTabs);
@@ -110,9 +111,12 @@ public partial class MainWindow
             metadataWindow.AddHandler(ToggleButton.CheckedEvent, new RoutedEventHandler((_, _) => { if (!fillingEditor) InvalidateDates(); }));
             metadataWindow.AddHandler(ToggleButton.UncheckedEvent, new RoutedEventHandler((_, _) => { if (!fillingEditor) InvalidateDates(); }));
             metadataWindow.Closing += (_, args) => {
-                if (busy) { CancelRead(this, new RoutedEventArgs()); args.Cancel = true; Status.Text = M1Text("BusyEditor"); return; }
-                if (!DiscardEditor()) { args.Cancel = true; return; }
-                RefreshSelection();
+                metadataClosing = true;
+                try {
+                    if (busy) { CancelRead(this, new RoutedEventArgs()); args.Cancel = true; Status.Text = M1Text("BusyEditor"); return; }
+                    if (!DiscardEditor()) { args.Cancel = true; return; }
+                    RefreshSelection();
+                } finally { metadataClosing = false; }
             };
             metadataWindow.Closed += (_, _) => { panel.Children.Remove(MetadataToolsTabs); MetadataToolsParking.Children.Add(MetadataToolsTabs); metadataWindow = null; };
             metadataWindow.Show();

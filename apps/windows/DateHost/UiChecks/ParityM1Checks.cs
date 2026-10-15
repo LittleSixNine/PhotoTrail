@@ -26,6 +26,9 @@ static partial class Program
   Check(InspectorRows().Length>0&&photos.SelectedItems.Count==3,"m1-full-field-search-preserves-selection");Input("MetadataSearch","");
   typeof(MainWindow).GetMethod("OpenM1Field",BindingFlags.NonPublic|BindingFlags.Instance)!.Invoke(window,[capture]);await Responsive();
   Check(window.OwnedWindows.Cast<Window>().Any(w=>w.IsVisible)&&SettingsTab(window,"编辑草稿")?.IsSelected==true,"m1-field-opens-live-owned-editor");
+  typeof(MainWindow).GetField("metadataClosing",BindingFlags.NonPublic|BindingFlags.Instance)!.SetValue(window,true);
+  try { FindButton((Window)Field("metadataWindow")!,"关闭").RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Check(((Window)Field("metadataWindow")!).IsVisible,"m1-repeated-footer-close-ignored-during-close-confirmation"); }
+  finally { typeof(MainWindow).GetField("metadataClosing",BindingFlags.NonPublic|BindingFlags.Instance)!.SetValue(window,false); }
   EditedFields(new(){{"Composite:SubSecDateTimeOriginal","2024:01:15 10:20:31.123456+01:00"}});await Apply("ApplyDraft");
   Check(docs.All(d=>MetadataInspector.PendingFields(d)==1)&&Control<TextBlock>("M1DraftCount").Text.Contains("3张 / 3项"),"m1-three-drafts-count-and-footer");
   Check(Control<Button>("SaveButton").IsEnabled&&InspectorRows().Any(r=>r.HasDraft),"m1-save-and-inspector-show-actual-drafts");
