@@ -34,7 +34,7 @@ static partial class Program
    var answer=(int)M3Call("M9ConfirmSaveScope")!;await visit;if(promptError is not null)throw promptError;
    Check(answer==(id=="M9ScopeCancel"?0:2)&&Field("preparedSave")is null&&docs.Select((d,i)=>d.Draft.Count==snapshots[i].Count).All(x=>x),"M9-real-scope-prompt-cancel-or-change-only-no-write-no-draft-loss-"+id);
   }
-  Check(UiPreference.Read(UiPreference.PathForSettings(Environment.GetEnvironmentVariable("PHOTOTRAIL_SETTINGS_FILE")!)).SaveCurrentPage,"M9-scope-choice-persisted-without-executing");M3Call("SaveUi",ui with{SaveCurrentPage=false,SkipSaveScopePrompt=true});
+  Check(UiPreference.Read(UiPreference.PathForSettings(Environment.GetEnvironmentVariable("PHOTOTRAIL_SETTINGS_FILE")!)).SaveCurrentPage,"M9-scope-choice-persisted-without-executing");Check(((ComboBox)Field("saveScopeChoice")!).SelectedIndex==1,"M9-reminder-current-page-updates-existing-settings-control");M3Call("SaveUi",ui with{SaveCurrentPage=false,SkipSaveScopePrompt=true});Check(((ComboBox)Field("saveScopeChoice")!).SelectedIndex==0&&((CheckBox)Field("skipScopeChoice")!).IsChecked==true,"M9-reminder-preferences-and-settings-remain-synchronized");
   foreach(var scope in new[]{SaveScope.All,SaveScope.Metadata,SaveScope.Map}){
    var output=Path.Combine(folder,"scoped-"+scope);Directory.CreateDirectory(output);var plan=SavePlan.Prepare(docs,SaveMode.Copy,scope,output,docs);
    Check(plan.Items.Length==(scope==SaveScope.Metadata?2:3),"M9-freeze-targets-ignore-selection-filter-"+scope);
