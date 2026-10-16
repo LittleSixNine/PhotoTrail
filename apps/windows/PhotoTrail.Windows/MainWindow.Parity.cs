@@ -130,6 +130,7 @@ public partial class MainWindow
     void M1OpenSettings(object sender, RoutedEventArgs e)
     {
         if (settingsWindow is not null) { settingsWindow.Activate(); return; }
+        var returnFocus = Keyboard.FocusedElement;
         ((Grid)SettingsPages.Parent).Children.Remove(SettingsPages); SettingsPages.Visibility = Visibility.Visible;
         SettingsPages.SelectedIndex = 0;
         settingsWindow = new Window { Owner = this, Resources = Resources, Title = M1Text("SettingsTitle"), FontSize=metadataBaseFont+settings.FontDelta, Width = 720, Height = Math.Min(690, SystemParameters.WorkArea.Height), MinWidth = 500, MinHeight = 400, Content = SettingsPages, WindowStartupLocation = WindowStartupLocation.CenterOwner };
@@ -137,7 +138,9 @@ public partial class MainWindow
         settingsWindow.ThemeMode = ThemeMode;
 #pragma warning restore WPF0001
         settingsWindow.Closing += (_, args) => {if(!DiscardTrackPreferenceInput())args.Cancel=true;};
-        settingsWindow.Closed += (_, _) => { settingsWindow!.Content = null; SettingsPages.Visibility = Visibility.Collapsed; ((Grid)WorkspaceTabs.Parent).Children.Add(SettingsPages); settingsWindow = null; Activate(); };
+        settingsWindow.PreviewKeyDown += (_, args) => { if(args.Key == Key.Escape) { settingsWindow?.Close(); args.Handled = true; } };
+        settingsWindow.ContentRendered += (_, _) => ((TabItem)SettingsPages.SelectedItem).Focus();
+        settingsWindow.Closed += (_, _) => { settingsWindow!.Content = null; SettingsPages.Visibility = Visibility.Collapsed; ((Grid)WorkspaceTabs.Parent).Children.Add(SettingsPages); settingsWindow = null; Activate(); if(returnFocus is UIElement { IsVisible: true, IsEnabled: true } element)element.Focus(); };
         settingsWindow.Show();
     }
     void M1ShowMore(object sender, RoutedEventArgs e)

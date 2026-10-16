@@ -182,6 +182,7 @@
         <ListView x:Name="Photos" SelectionMode="Extended" SelectionChanged="PhotoSelected" SizeChanged="M1PhotoTableSized" ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True" VirtualizingPanel.VirtualizationMode="Recycling" AutomationProperties.Name="{DynamicResource M1.PhotoTable}">
          <ListView.ItemContainerStyle>
           <Style TargetType="ListViewItem">
+           <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
            <Setter Property="MinHeight" Value="48" />
            <Setter Property="ToolTip" Value="{Binding Summary}" />
@@ -274,7 +275,7 @@
       </DockPanel>
       <Grid>
        <TextBlock x:Name="M1InspectorEmpty" Text="{DynamicResource M1.EmptySelection}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-       <DataGrid x:Name="MetadataGrid" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="None" GridLinesVisibility="Horizontal" BorderThickness="0" SelectionMode="Extended" SelectionChanged="M1FieldSelectionChanged" MouseDoubleClick="M1InspectorDoubleClick" PreviewKeyDown="M1InspectorKeyDown" CopyingRowClipboardContent="CopyMetadataRow" VirtualizingPanel.IsVirtualizingWhenGrouping="True" EnableRowVirtualization="True">
+       <DataGrid x:Name="MetadataGrid" AutomationProperties.Name="{DynamicResource M1.Metadata}" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="None" GridLinesVisibility="Horizontal" BorderThickness="0" SelectionMode="Extended" SelectionChanged="M1FieldSelectionChanged" MouseDoubleClick="M1InspectorDoubleClick" PreviewKeyDown="M1InspectorKeyDown" CopyingRowClipboardContent="CopyMetadataRow" VirtualizingPanel.IsVirtualizingWhenGrouping="True" EnableRowVirtualization="True">
         <DataGrid.GroupStyle>
          <GroupStyle>
           <GroupStyle.HeaderTemplate>
@@ -562,6 +563,12 @@
        <TextBlock x:Name="PhotoStripStatus" Text="{DynamicResource L.C43E734579775ABE}" TextWrapping="Wrap" />
       </StackPanel>
       <ListBox x:Name="PhotoStrip" MinHeight="92" SelectionMode="Extended" SelectionChanged="StripSelected" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True" VirtualizingPanel.VirtualizationMode="Recycling" AutomationProperties.Name="{DynamicResource L.4378D500900C342D}">
+       <ListBox.ItemContainerStyle>
+        <Style TargetType="ListBoxItem">
+         <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
+         <Setter Property="AutomationProperties.HelpText" Value="{Binding Summary}" />
+        </Style>
+       </ListBox.ItemContainerStyle>
        <ListBox.GroupStyle>
         <GroupStyle>
          <GroupStyle.Panel>
@@ -758,7 +765,7 @@
         </Style>
        </ListBox.ItemContainerStyle>
       </ListBox>
-      <DataGrid x:Name="RenamePreview" Grid.Column="1" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False">
+      <DataGrid x:Name="RenamePreview" AutomationProperties.Name="{DynamicResource M3Results}" Grid.Column="1" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False">
        <DataGrid.Columns>
         <DataGridTextColumn Header="{DynamicResource L.26BB0E770F72128A}" Binding="{Binding OriginalName}" Width="*" />
         <DataGridTextColumn Header="{DynamicResource L.1BE0BF02458C8BA1}" Binding="{Binding NewName}" Width="*" />
