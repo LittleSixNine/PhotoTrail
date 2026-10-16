@@ -50,12 +50,12 @@ public partial class MainWindow
             var plan=SavePlan.Prepare(docs.ToArray(),mode,scope,OutputFolder.Text,photos.Select(r=>r.Document));
             preparedSave=plan;preparedMode=SaveModeChoice.SelectedIndex;preparedOutput=OutputFolder.Text;preparedBackupText=BackupFolder.Text;preparedBackup=mode==SaveMode.Inplace?Path.GetFullPath(preparedBackupText):"";
             if(mode==SaveMode.Inplace&&!Directory.Exists(preparedBackup))throw new IOException(L10n.Text("原位必须先选择可用的既有备份目录。"));
-            SaveSummary.Text=plan.Summary+(mode==SaveMode.Inplace?$"\n强制备份：{preparedBackup}；本次{plan.Items.Length}份唯一完整字节备份。":"");WorkspaceTabs.SelectedIndex=0;OpenMetadataTool(SaveTargetTab);ExecuteSaveButton.IsEnabled=plan.Items.Length>0;
+            SaveSummary.Text=plan.Summary+(mode==SaveMode.Inplace?L10n.Format("\n强制备份：{0}；本次{1}份唯一完整字节备份。",preparedBackup,plan.Items.Length):"");WorkspaceTabs.SelectedIndex=0;OpenMetadataTool(SaveTargetTab);ExecuteSaveButton.IsEnabled=plan.Items.Length>0;
             Status.Text=L10n.Message(L10n.Text("请核对冻结摘要；确认前不创建文件。"));
         }catch(Exception error){SaveSummary.Text=Status.Text=L10n.Message(L10n.Text("保存准备失败（未写入）：")+L10n.Message(error.Message));WorkspaceTabs.SelectedIndex=0;OpenMetadataTool(SaveTargetTab);}
     }
     void CancelSavePlan(object sender,RoutedEventArgs e) {
-        if(busy){CancelRead(sender,e);return;}preparedSave=null;ExecuteSaveButton.IsEnabled=false;SaveSummary.Text+="\n计划已取消，未创建文件，草稿保留。";
+        if(busy){CancelRead(sender,e);return;}preparedSave=null;ExecuteSaveButton.IsEnabled=false;SaveSummary.Text+=L10n.Text("\n计划已取消，未创建文件，草稿保留。");
     }
     async void ExecuteSavePlan(object sender,RoutedEventArgs e) {
         if(busy||renameRecoveryRequired||preparedSave is not {} plan)return;
@@ -105,11 +105,11 @@ public partial class MainWindow
                 catch(Exception error){bool exists=plan.Mode!=SaveMode.Inplace&&(File.Exists(item.Target)||item.Companion is {} companion&&File.Exists(companion));saveResults.Add(new(item.Target,null,null,exists?"结果未知":"失败",error.Message+(exists?"；磁盘已有目标，所有权／交付状态未确认，禁止盲重试。":"")));}
             }
         }catch(OperationCanceledException){foreach(var item in plan.Items.Where(i=>saveResults.All(r=>r.Path!=i.Target)))saveResults.Add(new(item.Target,null,null,"取消","未执行；草稿保留。"));}
-        catch(Exception error){foreach(var item in plan.Items.Where(i=>saveResults.All(r=>r.Path!=i.Target)))saveResults.Add(new(item.Target,null,null,"未执行","批次准备失败，草稿保留："+error.Message));SaveSummary.Text+="\n批次失败："+error.Message;}
+        catch(Exception error){foreach(var item in plan.Items.Where(i=>saveResults.All(r=>r.Path!=i.Target)))saveResults.Add(new(item.Target,null,null,"未执行","批次准备失败，草稿保留："+error.Message));SaveSummary.Text+=L10n.Text("\n批次失败：")+L10n.Message(error.Message);}
         finally {
             saveTimings["writeAndReadbackMs"]=clock.Elapsed.TotalMilliseconds;saveTimings["exifRequests"]=Interlocked.Read(ref ExifToolClient.RequestCount)-exif;saveTimings["dateHostRequests"]=Interlocked.Read(ref DateAdapter.StartedProcesses)-hosts;
             lastApply=null;InvalidateDates();InvalidateBatchTrack();RenameRulesChanged(this,new RoutedEventArgs());RefreshPhotoRows();RefreshMatchPhoto();_=PostPhotosAsync();EndOperation();LoadInplaceRecords();
-            SaveSummary.Text+="\n"+string.Join("\n",saveResults.Select(r=>$"{r.State}：{r.Path} SHA={r.Hash??"unknown"}；{r.Detail}"));
+            SaveSummary.Text+="\n"+string.Join("\n",saveResults.Select(r=>$"{L10n.Text(r.State)}：{r.Path} SHA={r.Hash??"unknown"}；{L10n.Message(r.Detail)}"));
             Status.Text=L10n.Message(plan.Mode==SaveMode.Copy?L10n.Format("保存结束：副本成功 {0}，失败 {1}，取消 {2}，结果未知 {3}；跳过{4}。详见摘要；原件和会话草稿保留。",saveResults.Count(r=>r.State=="成功"),saveResults.Count(r=>r.State=="失败"),saveResults.Count(r=>r.State=="取消"),saveResults.Count(r=>r.State=="结果未知"),plan.Skipped.Length):L10n.Format("保存结束：成功{0}，失败{1}，取消{2}，结果未知{3}；跳过{4}。详见摘要；备份、结果和未完成草稿保留。",saveResults.Count(r=>r.State=="成功"),saveResults.Count(r=>r.State=="失败"),saveResults.Count(r=>r.State=="取消"),saveResults.Count(r=>r.State=="结果未知"),plan.Skipped.Length));
         }
     }

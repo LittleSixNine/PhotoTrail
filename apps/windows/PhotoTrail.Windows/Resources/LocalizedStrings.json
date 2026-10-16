@@ -8,6 +8,24 @@
     "es": "\nBiblioteca completa：",
     "pt-BR": "\nBiblioteca inteira："
   },
+  "\n强制备份：{0}；本次{1}份唯一完整字节备份。": {
+    "zh-Hans": "\n强制备份：{0}；本次{1}份唯一完整字节备份。",
+    "en": "\nMandatory backup: {0}; {1} unique complete byte-for-byte backups.",
+    "zh-Hant": "\n強制備份：{0}；本次{1}份唯一完整位元組備份。",
+    "ja": "\n必須バックアップ：{0}、今回{1}件の一意な完全バイトバックアップ。",
+    "ko": "\n필수 백업: {0}; 고유한 전체 바이트 백업 {1}개.",
+    "es": "\nCopia de seguridad obligatoria: {0}; {1} copias completas únicas byte a byte.",
+    "pt-BR": "\nBackup obrigatório: {0}; {1} backups completos únicos byte a byte."
+  },
+  "\n批次失败：": {
+    "zh-Hans": "\n批次失败：",
+    "en": "\nBatch failed: ",
+    "zh-Hant": "\n批次失敗：",
+    "ja": "\nバッチ失敗：",
+    "ko": "\n일괄 처리 실패: ",
+    "es": "\nLote fallido: ",
+    "pt-BR": "\nFalha no lote: "
+  },
   "\n显示已截短；编辑区包含全部已验证字段。": {
     "zh-Hans": "\n显示已截短；编辑区包含全部已验证字段。",
     "en": "\nDisplay truncated；The editor contains all validated fields。",
@@ -43,6 +61,15 @@
     "ko": "\n확인 중 ExifTool…",
     "es": "\nComprobando ExifTool…",
     "pt-BR": "\nVerificando ExifTool…"
+  },
+  "\n计划已取消，未创建文件，草稿保留。": {
+    "zh-Hans": "\n计划已取消，未创建文件，草稿保留。",
+    "en": "\nPlan cancelled. No files created; drafts retained.",
+    "zh-Hant": "\n計畫已取消，未建立檔案，草稿保留。",
+    "ja": "\n計画をキャンセルしました。ファイルは作成されず、下書きは保持されます。",
+    "ko": "\n계획이 취소되었습니다. 파일을 만들지 않았으며 초안은 유지됩니다.",
+    "es": "\nPlan cancelado. No se crearon archivos; borradores conservados.",
+    "pt-BR": "\nPlano cancelado. Nenhum arquivo criado; rascunhos preservados."
   },
   " Search location": {
     "zh-Hans": "搜索地点",
@@ -7802,6 +7829,15 @@
     "es": "Error al escribir la copia o verificarla mediante relectura.",
     "pt-BR": "Falha ao gravar a cópia ou verificar sua releitura."
   },
+  "副本已验证，原会话草稿保留。": {
+    "zh-Hans": "副本已验证，原会话草稿保留。",
+    "en": "Copy verified; original session drafts retained.",
+    "zh-Hant": "副本已驗證，原會話草稿保留。",
+    "ja": "コピーを検証済み。元のセッション下書きは保持されます。",
+    "ko": "사본을 검증했으며 기존 세션 초안은 유지됩니다.",
+    "es": "Copia verificada; borradores de sesión originales conservados.",
+    "pt-BR": "Cópia verificada; rascunhos da sessão original preservados."
+  },
   "副本（保留会话草稿）": {
     "zh-Hans": "副本（保留会话草稿）",
     "en": "Copy (retain session drafts)",
@@ -13040,6 +13076,15 @@
     "es": "Aún no se ha añadido al borrador",
     "pt-BR": "Ainda não adicionado aos rascunhos"
   },
+  "尚未执行；草稿保留。": {
+    "zh-Hans": "尚未执行；草稿保留。",
+    "en": "Not executed yet; drafts retained.",
+    "zh-Hant": "尚未執行；草稿保留。",
+    "ja": "未実行です。下書きは保持されます。",
+    "ko": "아직 실행하지 않았으며 초안은 유지됩니다.",
+    "es": "Aún no ejecutado; borradores conservados.",
+    "pt-BR": "Ainda não executado; rascunhos preservados."
+  },
   "尚未编排操作。": {
     "zh-Hans": "尚未编排操作。",
     "en": "No operations composed yet.",
@@ -15424,6 +15469,15 @@
     "ko": "경로 시간 범위 확장",
     "es": "Ampliar intervalo de la ruta",
     "pt-BR": "Ampliar intervalo da trilha"
+  },
+  "批次准备失败，草稿保留：": {
+    "zh-Hans": "批次准备失败，草稿保留：",
+    "en": "Batch preparation failed; drafts retained: ",
+    "zh-Hant": "批次準備失敗，草稿保留：",
+    "ja": "バッチ準備に失敗しました。下書きは保持されます：",
+    "ko": "일괄 준비 실패; 초안 유지: ",
+    "es": "Falló la preparación del lote; borradores conservados: ",
+    "pt-BR": "Falha na preparação do lote; rascunhos preservados: "
   },
   "批量操作": {
     "zh-Hans": "批量操作",
@@ -19961,6 +20015,24 @@
     "es": "No restaurado; rutas válidas conservadas: ",
     "pt-BR": "Não restaurado; trilhas válidas preservadas: "
   },
+  "未执行": {
+    "zh-Hans": "未执行",
+    "en": "Not executed",
+    "zh-Hant": "未執行",
+    "ja": "未実行",
+    "ko": "실행 안 됨",
+    "es": "No ejecutado",
+    "pt-BR": "Não executado"
+  },
+  "未执行；草稿保留。": {
+    "zh-Hans": "未执行；草稿保留。",
+    "en": "Not executed; drafts retained.",
+    "zh-Hant": "未執行；草稿保留。",
+    "ja": "未実行です。下書きは保持されます。",
+    "ko": "실행하지 않았으며 초안은 유지됩니다.",
+    "es": "No ejecutado; borradores conservados.",
+    "pt-BR": "Não executado; rascunhos preservados."
+  },
   "未找到 ExifTool，请按 Windows 开发说明配置。": {
     "zh-Hans": "未找到 ExifTool，请按 Windows 开发说明配置。",
     "en": "ExifTool not found; configure it using the Windows development guide.",
@@ -20095,6 +20167,15 @@
     "ko": "시간 알 수 없음",
     "es": "Fecha desconocida",
     "pt-BR": "Data desconhecida"
+  },
+  "未确认交付；草稿保留。": {
+    "zh-Hans": "未确认交付；草稿保留。",
+    "en": "Delivery unconfirmed; drafts retained.",
+    "zh-Hant": "尚未確認交付；草稿保留。",
+    "ja": "出力の確定未確認。下書きは保持されます。",
+    "ko": "출력 전달이 확인되지 않았으며 초안은 유지됩니다.",
+    "es": "Entrega sin confirmar; borradores conservados.",
+    "pt-BR": "Entrega não confirmada; rascunhos preservados."
   },
   "未编排参数保留；请先添加／更新或放弃参数，再选择操作。": {
     "zh-Hans": "未编排参数保留；请先添加／更新或放弃参数，再选择操作。",
@@ -23750,6 +23831,15 @@
     "es": "Región:",
     "pt-BR": "Estado:"
   },
+  "真实来源与界面已接纳；本次字段更新基准，残余草稿及完整备份保留。": {
+    "zh-Hans": "真实来源与界面已接纳；本次字段更新基准，残余草稿及完整备份保留。",
+    "en": "Actual sources and UI accepted the result; this operation updated the field baseline. Remaining drafts and full backups retained.",
+    "zh-Hant": "實際來源與介面已接納；本次欄位更新基準，剩餘草稿及完整備份保留。",
+    "ja": "実際のソースとUIに結果を反映済み。対象フィールドの基準を更新しました。残りの下書きと完全バックアップは保持されます。",
+    "ko": "실제 원본과 UI에 결과를 반영하고 필드 기준을 갱신했습니다. 남은 초안과 전체 백업은 유지됩니다.",
+    "es": "El origen real y la interfaz aceptaron el resultado; se actualizó la base de los campos. Borradores restantes y copias completas conservados.",
+    "pt-BR": "A origem real e a interface aceitaram o resultado; a base dos campos foi atualizada. Rascunhos restantes e backups completos preservados."
+  },
   "短横线": {
     "zh-Hans": "短横线",
     "en": "Hyphen",
@@ -23848,6 +23938,15 @@
     "ko": "미저장 초안 없이 디스크 XMP 스냅샷을 내보냈습니다. 원본 파일과 세션 초안은 유지됩니다.",
     "es": "Instantánea XMP de disco exportada sin borradores pendientes; originales y borradores conservados.",
     "pt-BR": "Instantâneo XMP do disco exportado sem rascunhos pendentes; originais e rascunhos preservados."
+  },
+  "磁盘已经提交，但UI／日志接纳失败；旧草稿保留，禁止盲写：": {
+    "zh-Hans": "磁盘已经提交，但UI／日志接纳失败；旧草稿保留，禁止盲写：",
+    "en": "Disk commit completed, but UI/log adoption failed. Old drafts retained; do not write blindly: ",
+    "zh-Hant": "磁碟已提交，但UI／日誌接納失敗；舊草稿保留，禁止盲寫：",
+    "ja": "ディスクへの確定後、UI／ログへの反映に失敗しました。旧下書きは保持されます。確認せず書き込まないでください：",
+    "ko": "디스크 반영 후 UI/로그 반영에 실패했습니다. 기존 초안은 유지됩니다. 확인 없이 쓰지 마세요: ",
+    "es": "Se confirmó en disco, pero falló la actualización de interfaz/registro. Borradores anteriores conservados; no escriba a ciegas: ",
+    "pt-BR": "A gravação em disco foi confirmada, mas falhou a atualização da interface/log. Rascunhos antigos preservados; não grave às cegas: "
   },
   "磁盘快照不含未保存草稿；含草稿导出在隔离副本构造。两者保留其他XMP语言／字段，不把EXIF/IPTC/System转换到XMP，目标不覆盖。": {
     "zh-Hans": "磁盘快照不含未保存草稿；含草稿导出在隔离副本构造。两者保留其他XMP语言／字段，不把EXIF/IPTC/System转换到XMP，目标不覆盖。",
@@ -27908,6 +28007,15 @@
     "es": "Instantánea obsoleta/lectura fallida",
     "pt-BR": "Instantâneo desatualizado/falha de leitura"
   },
+  "过期快照：": {
+    "zh-Hans": "过期快照：",
+    "en": "Stale snapshot: ",
+    "zh-Hant": "過期快照：",
+    "ja": "古いスナップショット：",
+    "ko": "오래된 스냅샷: ",
+    "es": "Instantánea obsoleta: ",
+    "pt-BR": "Instantâneo desatualizado: "
+  },
   "运动程序": {
     "zh-Hans": "运动程序",
     "en": "Action program",
@@ -30589,5 +30697,14 @@
     "ko": ". 시간대 없는 시간은 명확한 매칭 시간을 직접 입력해야 합니다.",
     "es": "; horas sin zona requieren hora de coincidencia manual explícita.",
     "pt-BR": "; horários sem fuso exigem horário de correspondência manual explícito."
+  },
+  "；磁盘已有目标，所有权／交付状态未确认，禁止盲重试。": {
+    "zh-Hans": "；磁盘已有目标，所有权／交付状态未确认，禁止盲重试。",
+    "en": "; a target exists on disk, but ownership/delivery is unconfirmed. Do not retry blindly.",
+    "zh-Hant": "；磁碟已有目標，所有權／交付狀態未確認，禁止盲目重試。",
+    "ja": "；ディスクに出力先が存在しますが、所有権／出力確定は未確認です。確認せず再試行しないでください。",
+    "ko": "; 디스크에 대상이 있으나 소유권/전달 상태가 확인되지 않았습니다. 확인 없이 재시도하지 마세요.",
+    "es": "; existe un destino en disco, pero la propiedad/entrega no está confirmada. No reintente a ciegas.",
+    "pt-BR": "; existe um destino no disco, mas a propriedade/entrega não foi confirmada. Não repita às cegas."
   }
 }
