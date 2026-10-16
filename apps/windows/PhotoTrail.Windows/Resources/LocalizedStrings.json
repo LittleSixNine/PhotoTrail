@@ -30823,5 +30823,41 @@
     "ko": "범위: 자릿수 0–32, 문자 너비 1–32, 위치/길이 0–4096, 출현 횟수≥1, 카운터 슬롯 0–10, 야간 시각 0–23. 영구 카운터는 시작값≥0, 증가값>0이어야 합니다.",
     "es": "Rangos: dígitos 0–32; ancho alfabético 1–32; posición/longitud 0–4096; aparición ≥ 1; contador 0–10; hora nocturna 0–23. Contadores persistentes: inicio ≥ 0 e incremento > 0.",
     "pt-BR": "Intervalos: dígitos 0–32; largura alfabética 1–32; posição/comprimento 0–4096; ocorrência ≥ 1; contador 0–10; hora noturna 0–23. Contadores persistentes: início ≥ 0 e incremento > 0."
+  },
+  "预览；尚未执行": {
+    "zh-Hans": "预览；尚未执行",
+    "en": "Preview; not executed",
+    "zh-Hant": "預覽；尚未執行",
+    "ja": "プレビュー・未実行",
+    "ko": "미리 보기; 실행 전",
+    "es": "Vista previa; sin ejecutar",
+    "pt-BR": "Prévia; não executado"
+  },
+  "无需更名": {
+    "zh-Hans": "无需更名",
+    "en": "No rename needed",
+    "zh-Hant": "無需重新命名",
+    "ja": "名前の変更は不要",
+    "ko": "이름 변경 불필요",
+    "es": "No necesita renombrarse",
+    "pt-BR": "Não precisa renomear"
+  },
+  "已更名": {
+    "zh-Hans": "已更名",
+    "en": "Renamed",
+    "zh-Hant": "已重新命名",
+    "ja": "名前変更済み",
+    "ko": "이름 변경됨",
+    "es": "Renombrado",
+    "pt-BR": "Renomeado"
+  },
+  "待恢复": {
+    "zh-Hans": "待恢复",
+    "en": "Awaiting restore",
+    "zh-Hant": "待還原",
+    "ja": "復元待ち",
+    "ko": "복원 대기",
+    "es": "Pendiente de restaurar",
+    "pt-BR": "Aguardando restauração"
   }
 }

@@ -687,7 +687,7 @@
             <ComboBoxItem Content="{DynamicResource L.2D7BD14198FB3C1F}" />
            </ComboBox>
 </Grid>
-          <TextBlock Text="{DynamicResource L.218DB3CB684C08FA}" />
+          <TextBlock x:Name="RenameDateBoundaryNotice" Text="{DynamicResource L.218DB3CB684C08FA}" TextWrapping="Wrap" />
          </StackPanel>
         </Expander>
         <Expander Header="{DynamicResource L.C615FE01901C6556}">
