@@ -10,7 +10,7 @@ public partial class MainWindow
     void ShowSetupGuide(bool firstRun){
         if(busy||renameRecoveryRequired)return;if(setupWindow is not null){setupWindow.Activate();return;}
         int page=0,mapNext=0;string chosen=ui.Language;var body=new DockPanel{Margin=new(24)};var footer=new WrapPanel{HorizontalAlignment=HorizontalAlignment.Right};DockPanel.SetDock(footer,Dock.Bottom);body.Children.Add(footer);var content=new StackPanel();body.Children.Add(new ScrollViewer{Content=content,VerticalScrollBarVisibility=ScrollBarVisibility.Auto});
-        var dialog=M3Dialog(L10n.Text("打开启动设置向导"),body,660,580);setupWindow=dialog;AutomationProperties.SetAutomationId(dialog,"M5SetupGuide");
+        var dialog=M3Dialog(L10n.Text("打开启动设置向导"),body,660,580);dialog.Owner=settingsWindow??this;setupWindow=dialog;AutomationProperties.SetAutomationId(dialog,"M5SetupGuide");
         void Render(){content.Children.Clear();footer.Children.Clear();string T(string key)=>L10n.Text(key,chosen);content.Children.Add(PreferenceText("PhotoTrail",true));content.Children.Add(new TextBlock{Text=T("第 {0} 步，共 4 步").Replace("{0}",(page+1).ToString()),Margin=new(2,4,2,12)});var title=new TextBlock{Text=T(new[]{"选择语言","保护原始照片","选择地图服务","准备开始"}[page]),FontSize=26,FontWeight=FontWeights.SemiBold,TextWrapping=TextWrapping.Wrap,Margin=new(2,4,2,18)};AutomationProperties.SetAutomationId(title,"M5SetupTitle");content.Children.Add(title);
             void Explain(string key)=>content.Children.Add(new TextBlock{Text=T(key),TextWrapping=TextWrapping.Wrap,Margin=new(2,8,2,12)});
             if(page==0){var language=PreferenceChoice("M5SetupLanguage",L10n.LanguageNames,Math.Max(0,Array.IndexOf(L10n.Languages,chosen)),i=>{if(i>=0)chosen=L10n.Languages[i];});content.Children.Add(language);Explain("选择应用语言；完成后保存工作并重新打开，使所有窗口采用新语言。");}
@@ -20,6 +20,6 @@ public partial class MainWindow
             void Add(string key,string id,Action run){var b=new Button{Content=T(key),IsCancel=id=="M5SetupCancel",IsDefault=id is "M5SetupNext" or "M5SetupFinish",Margin=new(4),Padding=new(12,7,12,7)};AutomationProperties.SetAutomationId(b,id);b.Click+=(_,_)=>run();footer.Children.Add(b);}
             Add("取消","M5SetupCancel",()=>dialog.Close());if(page>0)Add("上一步","M5SetupBack",()=>{page--;Render();});if(page<3)Add("下一步","M5SetupNext",()=>{page++;Render();});else Add("开始使用","M5SetupFinish",()=>{if(SaveUi(ui with{Language=chosen,SetupCompleted=true})){dialog.Close();if(languageChoice is not null){uiRestoring=true;languageChoice.SelectedIndex=Array.IndexOf(L10n.Languages,chosen);uiRestoring=false;}if(mapNext==1){M1OpenSettings(this,new RoutedEventArgs());SettingsPages.SelectedIndex=1;}}});
         }
-        Render();dialog.Closed+=(_,_)=>{setupWindow=null;Activate();};dialog.ShowDialog();
+        Render();dialog.Closed+=(_,_)=>{setupWindow=null;(settingsWindow??this).Activate();};dialog.ShowDialog();
     }
 }
