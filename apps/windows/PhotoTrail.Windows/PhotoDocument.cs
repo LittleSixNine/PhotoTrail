@@ -43,7 +43,9 @@ public sealed class PhotoDocument
         if(Inspection?.Where(p=>LocationExifTags.Contains(p.Canonical)).GroupBy(p=>p.Canonical).Any(g=>g.Count()>1)==true)throw new InvalidOperationException("定位来源实例不唯一，未清除。");
         var tags=new[]{"XMP-exif:GPSLatitude","XMP-exif:GPSLongitude","XMP-exif:GPSAltitude","XMP-exif:GPSAltitudeRef","XMP-exif:GPSMapDatum","XMP-exif:GPSProcessingMethod"}.Concat(LocationRegionTags).ToList();
         if(FileType=="JPEG"&&SidecarPath is null)tags.AddRange(new[]{"IPTC:City","IPTC:Province-State","IPTC:Sub-location","IPTC:Country-PrimaryLocationName","IPTC:Country-PrimaryLocationCode"}.Where(t=>Embedded.TryGetProperty(t,out _)));
-        StageDraft(tags.ToDictionary(t=>t,_=>""));ClearLocationRequested=true;MarkMapDraft(tags);
+        var pairedRegionTags=new[]{"IPTC:City","IPTC:Province-State","IPTC:Sub-location","IPTC:Country-PrimaryLocationName","IPTC:Country-PrimaryLocationCode"};
+        if(!tags.Any(t=>Value(t).Length>0)&&!Embedded.EnumerateObject().Any(p=>(tags.Contains(p.Name)||LocationExifTags.Contains(p.Name)||pairedRegionTags.Contains(p.Name))&&Text(p.Value).Length>0))return;
+        ClearLocationRequested=true;StageDraft(tags.ToDictionary(t=>t,_=>""));MarkMapDraft(tags);
     }
     internal bool IsBatchSnapshot=>detachedBatch;
     IReadOnlyDictionary<string,VerifiedPhotoDate?> dateSnapshot=new Dictionary<string,VerifiedPhotoDate?>();
@@ -226,7 +228,7 @@ public sealed class PhotoDocument
             var original = MetadataFields.Original(this,tag);
             var normalized = MetadataFields.IsList(tag) ? MetadataFields.FormatList(MetadataFields.List(value)) : value.Length > 0 && NumericRange(tag) is not null ? CheckedNumber(tag,value).ToString(CultureInfo.InvariantCulture) : MetadataTimes.Normalize(tag,value);
             // An explicit XMP coordinate clear must override the embedded GPS fallback in this session.
-            var clearsEmbeddedGps=normalized.Length==0 && tag is ("XMP-exif:GPSLatitude" or "XMP-exif:GPSLongitude") && Embedded.TryGetProperty(tag.Replace("XMP-exif:","GPS:"),out _);
+            var clearsEmbeddedGps=normalized.Length==0 && tag is ("XMP-exif:GPSLatitude" or "XMP-exif:GPSLongitude") && (ClearLocationRequested||Embedded.TryGetProperty(tag.Replace("XMP-exif:","GPS:"),out _));
             if (normalized == original && !clearsEmbeddedGps) draft.Remove(tag); else draft[tag] = normalized;
         }
         ChangedDraft();
