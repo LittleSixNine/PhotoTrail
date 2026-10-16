@@ -1916,6 +1916,15 @@
     "es": "IPTC Hora",
     "pt-BR": "IPTC Horário"
   },
+  "IPTC来源未成功读取。": {
+    "zh-Hans": "IPTC来源未成功读取。",
+    "en": "The IPTC source could not be read.",
+    "zh-Hant": "IPTC來源未成功讀取。",
+    "ja": "IPTCソースを読み取れませんでした。",
+    "ko": "IPTC 원본을 읽지 못했습니다.",
+    "es": "No se pudo leer el origen IPTC.",
+    "pt-BR": "Não foi possível ler a origem IPTC."
+  },
   "IPTC目标原始字节／列表顺序回读不一致：": {
     "zh-Hans": "IPTC目标原始字节／列表顺序回读不一致：",
     "en": "IPTC target raw bytes/list order differ on readback: ",
@@ -3923,6 +3932,15 @@
     "es": "{0} · {1} / {2} puntos",
     "pt-BR": "{0} · {1} / {2} pontos"
   },
+  "{0}应用完成：修改{1}张，无变化{2}张；变化操作{3}项；缺失时间跳过{4}项，文件名不匹配{5}项，文件名日期无效{6}项；CSV身份跳过{7}行，无效值跳过{8}行，忽略字段{9}列。原文件未修改；显式确认保存后才写文件。": {
+    "zh-Hans": "{0}应用完成：修改{1}张，无变化{2}张；变化操作{3}项；缺失时间跳过{4}项，文件名不匹配{5}项，文件名日期无效{6}项；CSV身份跳过{7}行，无效值跳过{8}行，忽略字段{9}列。原文件未修改；显式确认保存后才写文件。",
+    "en": "{0} applied: {1} photos changed, {2} unchanged; {3} changed operations; {4} missing times skipped, {5} filename mismatches, {6} invalid filename dates; CSV: {7} identity rows skipped, {8} invalid rows skipped, {9} columns ignored. Originals unchanged; files are written only after explicit save confirmation.",
+    "zh-Hant": "{0}套用完成：修改{1}張，無變化{2}張；變更操作{3}項；缺失時間跳過{4}項，檔名不符{5}項，檔名日期無效{6}項；CSV身分跳過{7}列，無效值跳過{8}列，忽略欄位{9}欄。原始檔案未修改；明確確認儲存後才寫入檔案。",
+    "ja": "{0}を適用：{1}枚変更、{2}枚変更なし。変更操作{3}件、日時欠落で{4}件スキップ、ファイル名不一致{5}件、ファイル名の無効な日時{6}件。CSV：識別不一致{7}行、無効値{8}行をスキップ、{9}列を無視。元ファイルは未変更です。明示的な保存確認後にのみ書き込みます。",
+    "ko": "{0} 적용 완료: {1}장 변경, {2}장 변경 없음; 변경 작업 {3}개, 시간 누락으로 {4}개 건너뜀, 파일명 불일치 {5}개, 잘못된 파일명 날짜 {6}개. CSV: 식별 불일치 {7}행, 잘못된 값 {8}행 건너뜀, {9}열 무시. 원본은 변경되지 않았으며 명시적 저장 확인 후에만 파일을 기록합니다.",
+    "es": "{0} aplicado: {1} fotos modificadas, {2} sin cambios; {3} operaciones modificadas; {4} fechas ausentes omitidas, {5} nombres no coincidentes, {6} fechas de nombre no válidas; CSV: {7} filas de identidad y {8} filas no válidas omitidas, {9} columnas ignoradas. Originales intactos; solo se escribe tras confirmar el guardado.",
+    "pt-BR": "{0} aplicado: {1} fotos alteradas, {2} sem alterações; {3} operações alteradas; {4} datas ausentes ignoradas, {5} nomes incompatíveis, {6} datas de nome inválidas; CSV: {7} linhas de identidade e {8} linhas inválidas ignoradas, {9} colunas ignoradas. Originais intactos; a gravação só ocorre após confirmar o salvamento."
+  },
   "{0}张；原标签{1}（已读{2}，未读{3}，失败/过期{4}）；净草稿字段{5}": {
     "zh-Hans": "{0}张；原标签{1}（已读{2}，未读{3}，失败/过期{4}）；净草稿字段{5}",
     "en": "{0} photos; {1} original tags ({2} read, {3} unread, {4} failed/stale); {5} net draft fields",
@@ -4003,6 +4021,24 @@
     "ko": "{0}: 발견 {1}, 읽는 중 {2}, 읽음 {3}, 수락 {4}, 대기 {5}, 건너뜀 {6}, 폴더 실패 {7}, 파일 실패 {8}.",
     "es": "{0}: encontrados {1}, leyendo {2}, leídos {3}, aceptados {4}, pendientes {5}, omitidos {6}, fallos de carpeta {7}, fallos de archivo {8}.",
     "pt-BR": "{0}: encontrados {1}, lendo {2}, lidos {3}, aceitos {4}, aguardando {5}, ignorados {6}, falhas de pasta {7}, falhas de arquivo {8}."
+  },
+  "{0}：拒绝，{1}": {
+    "zh-Hans": "{0}：拒绝，{1}",
+    "en": "{0}: refused, {1}",
+    "zh-Hant": "{0}：拒絕，{1}",
+    "ja": "{0}：拒否、{1}",
+    "ko": "{0}: 거부됨, {1}",
+    "es": "{0}: rechazado, {1}",
+    "pt-BR": "{0}: recusado, {1}"
+  },
+  "{0}：本范围无净草稿": {
+    "zh-Hans": "{0}：本范围无净草稿",
+    "en": "{0}: no net draft changes in this scope",
+    "zh-Hant": "{0}：此範圍無淨草稿變更",
+    "ja": "{0}：この範囲の下書きに正味の変更なし",
+    "ko": "{0}: 이 범위에 실제 초안 변경 없음",
+    "es": "{0}: sin cambios netos de borrador en este ámbito",
+    "pt-BR": "{0}: sem alterações líquidas de rascunho neste escopo"
   },
   "ϟ 批量操作…": {
     "zh-Hans": "ϟ 批量操作…",
@@ -6065,6 +6101,24 @@
     "es": "Las fotos seguirán en la lista, pero se borrarán sus coordenadas y datos de ubicación. Se aplica también a sus RAW emparejados. Los originales solo se actualizan al guardar; antes puedes deshacer.",
     "pt-BR": "As fotos permanecem na lista, mas suas coordenadas e informações de localização serão limpas. Isso também se aplica aos RAW emparelhados. Os originais só são atualizados ao salvar; antes, você pode desfazer."
   },
+  "修改{0}张，无变化{1}张；操作链{2}条，净变化字段{3}项，复制源缺失跳过{4}项，缺失时间跳过{5}项，文件名不匹配{6}项，文件名日期无效{7}项。原文件未修改；显式确认保存后才写文件。": {
+    "zh-Hans": "修改{0}张，无变化{1}张；操作链{2}条，净变化字段{3}项，复制源缺失跳过{4}项，缺失时间跳过{5}项，文件名不匹配{6}项，文件名日期无效{7}项。原文件未修改；显式确认保存后才写文件。",
+    "en": "{0} photos changed, {1} unchanged; {2} ordered actions, {3} net field changes; {4} missing copy sources skipped, {5} missing times skipped, {6} filename mismatches, {7} invalid filename dates. Originals unchanged; files are written only after explicit save confirmation.",
+    "zh-Hant": "修改{0}張，無變化{1}張；操作鏈{2}條，淨變更欄位{3}項，複製來源缺失跳過{4}項，缺失時間跳過{5}項，檔名不符{6}項，檔名日期無效{7}項。原始檔案未修改；明確確認儲存後才寫入檔案。",
+    "ja": "{0}枚変更、{1}枚変更なし。順序付き操作{2}件、正味のフィールド変更{3}件、コピー元欠落で{4}件、日時欠落で{5}件スキップ。ファイル名不一致{6}件、ファイル名の無効な日時{7}件。元ファイルは未変更です。明示的な保存確認後にのみ書き込みます。",
+    "ko": "{0}장 변경, {1}장 변경 없음; 순서 작업 {2}개, 실제 필드 변경 {3}개. 복사 원본 누락 {4}개와 시간 누락 {5}개 건너뜀, 파일명 불일치 {6}개, 잘못된 파일명 날짜 {7}개. 원본은 변경되지 않았으며 명시적 저장 확인 후에만 파일을 기록합니다.",
+    "es": "{0} fotos modificadas, {1} sin cambios; {2} acciones ordenadas, {3} cambios netos de campos; {4} orígenes de copia y {5} fechas ausentes omitidos, {6} nombres no coincidentes, {7} fechas de nombre no válidas. Originales intactos; solo se escribe tras confirmar el guardado.",
+    "pt-BR": "{0} fotos alteradas, {1} sem alterações; {2} ações ordenadas, {3} alterações líquidas de campos; {4} origens de cópia e {5} datas ausentes ignoradas, {6} nomes incompatíveis, {7} datas de nome inválidas. Originais intactos; a gravação só ocorre após confirmar o salvamento."
+  },
+  "修改{1}张，无变化{2}张；变化操作{3}项；缺失时间跳过{4}项，文件名不匹配{5}项，文件名日期无效{6}项；CSV身份跳过{7}行，无效值跳过{8}行，忽略字段{9}列。原文件未修改；显式确认保存后才写文件。": {
+    "zh-Hans": "修改{1}张，无变化{2}张；变化操作{3}项；缺失时间跳过{4}项，文件名不匹配{5}项，文件名日期无效{6}项；CSV身份跳过{7}行，无效值跳过{8}行，忽略字段{9}列。原文件未修改；显式确认保存后才写文件。",
+    "en": "{1} photos changed, {2} unchanged; {3} changed operations; {4} missing times skipped, {5} filename mismatches, {6} invalid filename dates; CSV: {7} identity rows skipped, {8} invalid rows skipped, {9} columns ignored. Originals unchanged; files are written only after explicit save confirmation.",
+    "zh-Hant": "修改{1}張，無變化{2}張；變更操作{3}項；缺失時間跳過{4}項，檔名不符{5}項，檔名日期無效{6}項；CSV身分跳過{7}列，無效值跳過{8}列，忽略欄位{9}欄。原始檔案未修改；明確確認儲存後才寫入檔案。",
+    "ja": "{1}枚変更、{2}枚変更なし。変更操作{3}件、日時欠落で{4}件スキップ、ファイル名不一致{5}件、ファイル名の無効な日時{6}件。CSV：識別不一致{7}行、無効値{8}行をスキップ、{9}列を無視。元ファイルは未変更です。明示的な保存確認後にのみ書き込みます。",
+    "ko": "{1}장 변경, {2}장 변경 없음; 변경 작업 {3}개, 시간 누락으로 {4}개 건너뜀, 파일명 불일치 {5}개, 잘못된 파일명 날짜 {6}개. CSV: 식별 불일치 {7}행, 잘못된 값 {8}행 건너뜀, {9}열 무시. 원본은 변경되지 않았으며 명시적 저장 확인 후에만 파일을 기록합니다.",
+    "es": "{1} fotos modificadas, {2} sin cambios; {3} operaciones modificadas; {4} fechas ausentes omitidas, {5} nombres no coincidentes, {6} fechas de nombre no válidas; CSV: {7} filas de identidad y {8} filas no válidas omitidas, {9} columnas ignoradas. Originales intactos; solo se escribe tras confirmar el guardado.",
+    "pt-BR": "{1} fotos alteradas, {2} sem alterações; {3} operações alteradas; {4} datas ausentes ignoradas, {5} nomes incompatíveis, {6} datas de nome inválidas; CSV: {7} linhas de identidade e {8} linhas inválidas ignoradas, {9} colunas ignoradas. Originais intactos; a gravação só ocorre após confirmar o salvamento."
+  },
   "修改前备份照片": {
     "zh-Hans": "修改前备份照片",
     "en": "Backup photos before modification",
@@ -6407,6 +6461,15 @@
     "es": "Metadatos (solo lectura)",
     "pt-BR": "Metadados (somente leitura)"
   },
+  "元数据（非GPS）": {
+    "zh-Hans": "元数据（非GPS）",
+    "en": "Metadata (excluding GPS)",
+    "zh-Hant": "中繼資料（不含GPS）",
+    "ja": "メタデータ（GPS以外）",
+    "ko": "메타데이터(GPS 제외)",
+    "es": "Metadatos (sin GPS)",
+    "pt-BR": "Metadados (exceto GPS)"
+  },
   "元数据：已读取 {0}/{1}，失败 {2}": {
     "zh-Hans": "元数据：已读取 {0}/{1}，失败 {2}",
     "en": "Metadata: {0}/{1} read, {2} failed",
@@ -6623,6 +6686,15 @@
     "es": "Todas las coincidencias",
     "pt-BR": "Todas as correspondências"
   },
+  "全部字段": {
+    "zh-Hans": "全部字段",
+    "en": "All fields",
+    "zh-Hant": "全部欄位",
+    "ja": "すべてのフィールド",
+    "ko": "모든 필드",
+    "es": "Todos los campos",
+    "pt-BR": "Todos os campos"
+  },
   "全部导入照片": {
     "zh-Hans": "全部导入照片",
     "en": "All imported photos",
@@ -6667,6 +6739,15 @@
     "ko": "여섯 구성 요소 시간 오프셋",
     "es": "Desfase temporal de seis componentes",
     "pt-BR": "Deslocamento temporal de seis componentes"
+  },
+  "共享日期参数拒绝：": {
+    "zh-Hans": "共享日期参数拒绝：",
+    "en": "Shared date parameters rejected: ",
+    "zh-Hant": "共享日期參數遭拒：",
+    "ja": "共有日時パラメーターが拒否されました：",
+    "ko": "공유 날짜 매개변수가 거부됨: ",
+    "es": "Parámetros de fecha compartidos rechazados: ",
+    "pt-BR": "Parâmetros de data compartilhados rejeitados: "
   },
   "关键字": {
     "zh-Hans": "关键字",
@@ -7171,6 +7252,15 @@
     "ko": "목록 시간(XMP CreateDate)",
     "es": "Hora de la lista (XMP CreateDate)",
     "pt-BR": "Hora da lista (XMP CreateDate)"
+  },
+  "列表最多256项，每项不能为空或含控制字符。": {
+    "zh-Hans": "列表最多256项，每项不能为空或含控制字符。",
+    "en": "Lists allow up to 256 nonempty items, with no control characters.",
+    "zh-Hant": "列表最多256項，每項不得為空或含控制字元。",
+    "ja": "リストは最大256項目です。空の項目や制御文字は使えません。",
+    "ko": "목록은 최대 256개이며 빈 항목이나 제어 문자는 허용되지 않습니다.",
+    "es": "Las listas admiten hasta 256 elementos no vacíos y sin caracteres de control.",
+    "pt-BR": "Listas aceitam até 256 itens não vazios, sem caracteres de controle."
   },
   "列表：每行一项；元素内部换行用JSON字符串数组。不截断、不自动trim；编码未知时仅可尝试明确清除并核对原始剩余数据集。": {
     "zh-Hans": "列表：每行一项；元素内部换行用JSON字符串数组。不截断、不自动trim；编码未知时仅可尝试明确清除并核对原始剩余数据集。",
@@ -7684,6 +7774,15 @@
     "ko": "클립보드에 사용 가능한 텍스트가 없습니다.",
     "es": "No hay texto utilizable en el portapapeles.",
     "pt-BR": "Não há texto utilizável na área de transferência."
+  },
+  "副本": {
+    "zh-Hans": "副本",
+    "en": "Copy",
+    "zh-Hant": "副本",
+    "ja": "コピー",
+    "ko": "사본",
+    "es": "Copia",
+    "pt-BR": "Cópia"
   },
   "副本保存后会话草稿仍保留；撤销只改变会话，不删除已保存文件。": {
     "zh-Hans": "副本保存后会话草稿仍保留；撤销只改变会话，不删除已保存文件。",
@@ -8341,6 +8440,15 @@
     "ko": "원위치 저장(필수 백업)",
     "es": "Guardar en el original (copia de seguridad obligatoria)",
     "pt-BR": "Salvar no original (backup obrigatório)"
+  },
+  "原位保存（强制完整备份）": {
+    "zh-Hans": "原位保存（强制完整备份）",
+    "en": "Save in place (mandatory full backup)",
+    "zh-Hant": "原位儲存（強制完整備份）",
+    "ja": "元の場所に保存（完全バックアップ必須）",
+    "ko": "원위치 저장(전체 백업 필수)",
+    "es": "Guardar en el original (copia de seguridad completa obligatoria)",
+    "pt-BR": "Salvar no original (backup completo obrigatório)"
   },
   "原位备份目录": {
     "zh-Hans": "原位备份目录",
@@ -10547,6 +10655,15 @@
     "es": "Falta la página del mapa. Vuelve a compilar la app.",
     "pt-BR": "A página do mapa está ausente. Compile o app novamente."
   },
+  "地图（整组GPS）": {
+    "zh-Hans": "地图（整组GPS）",
+    "en": "Map (complete GPS group)",
+    "zh-Hant": "地圖（整組GPS）",
+    "ja": "地図（GPSグループ全体）",
+    "ko": "지도(전체 GPS 그룹)",
+    "es": "Mapa (grupo GPS completo)",
+    "pt-BR": "Mapa (grupo GPS completo)"
+  },
   "地址": {
     "zh-Hans": "地址",
     "en": "Address",
@@ -11006,6 +11123,15 @@
     "es": "Copiar valor mostrado",
     "pt-BR": "Copiar valor exibido"
   },
+  "复制来源重复，不能猜测值。": {
+    "zh-Hans": "复制来源重复，不能猜测值。",
+    "en": "The copy source is duplicated; its value cannot be inferred.",
+    "zh-Hant": "複製來源重複，不能推測值。",
+    "ja": "コピー元が重複しているため、値を推測できません。",
+    "ko": "복사 원본이 중복되어 값을 추측할 수 없습니다.",
+    "es": "El origen de copia está duplicado; no se puede inferir el valor.",
+    "pt-BR": "A origem de cópia está duplicada; não é possível inferir o valor."
+  },
   "复制来源（每张照片自身值）": {
     "zh-Hans": "复制来源（每张照片自身值）",
     "en": "Copy source (each photo's own value)",
@@ -11059,6 +11185,15 @@
     "ko": "정규 태그 복사",
     "es": "Copiar etiqueta canónica",
     "pt-BR": "Copiar tag canônica"
+  },
+  "复制须为不同的已开放兼容类型／单位字段，目标继续校验。": {
+    "zh-Hans": "复制须为不同的已开放兼容类型／单位字段，目标继续校验。",
+    "en": "Copy requires distinct supported fields with compatible types and units; the target is still validated.",
+    "zh-Hant": "複製須為不同且已開放、類型與單位相容的欄位；目標仍須驗證。",
+    "ja": "コピーには、型と単位が互換の異なる対応フィールドが必要です。コピー先も検証されます。",
+    "ko": "복사에는 형식과 단위가 호환되는 서로 다른 지원 필드가 필요하며 대상도 검증됩니다.",
+    "es": "La copia requiere campos distintos compatibles en tipo y unidad; el destino también se valida.",
+    "pt-BR": "A cópia exige campos distintos com tipos e unidades compatíveis; o destino também é validado."
   },
   "外观": {
     "zh-Hans": "外观",
@@ -11645,6 +11780,15 @@
     "es": "Nombre de archivo completo",
     "pt-BR": "Nome completo do arquivo"
   },
+  "完整日期动作不适用于此目标。": {
+    "zh-Hans": "完整日期动作不适用于此目标。",
+    "en": "Full-date actions do not apply to this target.",
+    "zh-Hant": "完整日期動作不適用於此目標。",
+    "ja": "この対象には完全な日時の操作を適用できません。",
+    "ko": "전체 날짜 작업은 이 대상에 적용되지 않습니다.",
+    "es": "Las acciones de fecha completa no se aplican a este destino.",
+    "pt-BR": "Ações de data completa não se aplicam a este destino."
+  },
   "完整时间": {
     "zh-Hans": "完整时间",
     "en": "Complete timestamp",
@@ -11824,6 +11968,15 @@
     "ko": "실제 내용 유형이 후보 확장자와 달라 수락하지 않았습니다.",
     "es": "Tipo de contenido real distinto de la extensión candidata; no aceptado.",
     "pt-BR": "Tipo de conteúdo real diferente da extensão candidata; não aceito."
+  },
+  "实际文件属性未读取。": {
+    "zh-Hans": "实际文件属性未读取。",
+    "en": "Actual file attributes have not been read.",
+    "zh-Hant": "尚未讀取實際檔案屬性。",
+    "ja": "実際のファイル属性が読み取られていません。",
+    "ko": "실제 파일 속성을 읽지 않았습니다.",
+    "es": "No se han leído los atributos reales del archivo.",
+    "pt-BR": "Os atributos reais do arquivo não foram lidos."
   },
   "实际目标不符合任何已知身份及SHA，保留材料，拒绝接纳或覆盖。": {
     "zh-Hans": "实际目标不符合任何已知身份及SHA，保留材料，拒绝接纳或覆盖。",
@@ -14768,6 +14921,15 @@
     "es": "Agrupado",
     "pt-BR": "Agrupado"
   },
+  "成组日期来源类型无效。": {
+    "zh-Hans": "成组日期来源类型无效。",
+    "en": "The grouped date source has an invalid type.",
+    "zh-Hant": "群組日期來源類型無效。",
+    "ja": "グループ化された日時ソースの型が無効です。",
+    "ko": "그룹 날짜 원본의 형식이 잘못되었습니다.",
+    "es": "El origen de fecha agrupada tiene un tipo no válido.",
+    "pt-BR": "A origem de data agrupada tem um tipo inválido."
+  },
   "我的预设": {
     "zh-Hans": "我的预设",
     "en": "My presets",
@@ -17272,12 +17434,12 @@
   },
   "新建同目录XMP旁车": {
     "zh-Hans": "新建同目录XMP旁车",
-    "en": "Create XMP sidecar in same folder",
-    "zh-Hant": "新增同目錄XMP附屬檔",
-    "ja": "同じフォルダーにXMPサイドカーを作成",
-    "ko": "같은 폴더에 XMP 사이드카 생성",
-    "es": "Crear archivo XMP auxiliar en la misma carpeta",
-    "pt-BR": "Criar arquivo XMP auxiliar na mesma pasta"
+    "en": "New XMP sidecar in the same folder",
+    "zh-Hant": "在同目錄新建XMP附屬檔",
+    "ja": "同じフォルダーに新しいXMPサイドカー",
+    "ko": "같은 폴더에 새 XMP 사이드카",
+    "es": "Nuevo archivo XMP asociado en la misma carpeta",
+    "pt-BR": "Novo arquivo XMP auxiliar na mesma pasta"
   },
   "新建手填收藏": {
     "zh-Hans": "新建手填收藏",
@@ -17927,6 +18089,15 @@
     "es": "Días de calendario y zona horaria explícita",
     "pt-BR": "Dias de calendário e fuso horário explícito"
   },
+  "日期": {
+    "zh-Hans": "日期",
+    "en": "Date",
+    "zh-Hant": "日期",
+    "ja": "日時",
+    "ko": "날짜",
+    "es": "Fecha",
+    "pt-BR": "Data"
+  },
   "日期、预设与交换…": {
     "zh-Hans": "日期、预设与交换…",
     "en": "Dates, presets and exchange…",
@@ -17954,6 +18125,15 @@
     "es": "Fin de distribución de fechas",
     "pt-BR": "Fim da distribuição de datas"
   },
+  "日期动作包含不适用参数。": {
+    "zh-Hans": "日期动作包含不适用参数。",
+    "en": "The date action contains inapplicable parameters.",
+    "zh-Hant": "日期動作含有不適用參數。",
+    "ja": "日時操作に適用できないパラメーターが含まれています。",
+    "ko": "날짜 작업에 적용할 수 없는 매개변수가 있습니다.",
+    "es": "La acción de fecha contiene parámetros no aplicables.",
+    "pt-BR": "A ação de data contém parâmetros não aplicáveis."
+  },
   "日期动作未知。": {
     "zh-Hans": "日期动作未知。",
     "en": "Unknown date action.",
@@ -17963,6 +18143,15 @@
     "es": "Acción de fecha desconocida.",
     "pt-BR": "Ação de data desconhecida."
   },
+  "日期动作须使用有类型参数。": {
+    "zh-Hans": "日期动作须使用有类型参数。",
+    "en": "Date actions require typed parameters.",
+    "zh-Hant": "日期動作須使用有類型的參數。",
+    "ja": "日時操作には型付きパラメーターが必要です。",
+    "ko": "날짜 작업에는 형식이 지정된 매개변수가 필요합니다.",
+    "es": "Las acciones de fecha requieren parámetros tipados.",
+    "pt-BR": "Ações de data exigem parâmetros tipados."
+  },
   "日期参数尚有修改。关闭窗口并保留本次参数？选择“否”继续编辑。": {
     "zh-Hans": "日期参数尚有修改。关闭窗口并保留本次参数？选择“否”继续编辑。",
     "en": "Date parameters have changes. Close the window and retain these parameters? Choose No to continue editing.",
@@ -17971,6 +18160,24 @@
     "ko": "날짜 매개변수가 변경되었습니다. 이번 매개변수를 유지하고 창을 닫을까요? 아니요를 선택하면 편집을 계속합니다.",
     "es": "Hay cambios en parámetros de fecha. ¿Cerrar y conservarlos? Elija No para seguir editando.",
     "pt-BR": "Há alterações nos parâmetros de data. Fechar e mantê-los? Escolha Não para continuar editando."
+  },
+  "日期参数文字无效。": {
+    "zh-Hans": "日期参数文字无效。",
+    "en": "Invalid date parameter text.",
+    "zh-Hant": "日期參數文字無效。",
+    "ja": "日時パラメーターの文字列が無効です。",
+    "ko": "날짜 매개변수 텍스트가 잘못되었습니다.",
+    "es": "Texto de parámetro de fecha no válido.",
+    "pt-BR": "Texto de parâmetro de data inválido."
+  },
+  "日期参数结构或重复属性无效。": {
+    "zh-Hans": "日期参数结构或重复属性无效。",
+    "en": "Invalid date parameter structure or duplicate properties.",
+    "zh-Hant": "日期參數結構或重複屬性無效。",
+    "ja": "日時パラメーターの構造が無効、またはプロパティが重複しています。",
+    "ko": "날짜 매개변수 구조가 잘못되었거나 속성이 중복됩니다.",
+    "es": "Estructura de parámetros de fecha no válida o propiedades duplicadas.",
+    "pt-BR": "Estrutura de parâmetros de data inválida ou propriedades duplicadas."
   },
   "日期参数须为有符号宽整数。": {
     "zh-Hans": "日期参数须为有符号宽整数。",
@@ -18034,6 +18241,15 @@
     "ko": "날짜 작업의 정확한 대상",
     "es": "Destino exacto de operación de fecha",
     "pt-BR": "Destino exato da operação de data"
+  },
+  "日期操作链须异步批量共享计算。": {
+    "zh-Hans": "日期操作链须异步批量共享计算。",
+    "en": "Date action chains require asynchronous shared batch calculation.",
+    "zh-Hant": "日期操作鏈須使用非同步共用批次計算。",
+    "ja": "日時操作チェーンには非同期の共有バッチ計算が必要です。",
+    "ko": "날짜 작업 체인에는 비동기 공유 일괄 계산이 필요합니다.",
+    "es": "Las cadenas de acciones de fecha requieren cálculo compartido asíncrono por lotes.",
+    "pt-BR": "Cadeias de ações de data exigem cálculo compartilhado assíncrono em lote."
   },
   "日期时间": {
     "zh-Hans": "日期时间",
@@ -18125,6 +18341,24 @@
     "es": "Componente de fecha",
     "pt-BR": "Componente da data"
   },
+  "日期组件整数或重复属性无效。": {
+    "zh-Hans": "日期组件整数或重复属性无效。",
+    "en": "Invalid date component integer or duplicate properties.",
+    "zh-Hant": "日期組件整數或重複屬性無效。",
+    "ja": "日時要素の整数が無効、またはプロパティが重複しています。",
+    "ko": "날짜 구성 요소 정수가 잘못되었거나 속성이 중복됩니다.",
+    "es": "Entero de componente de fecha no válido o propiedades duplicadas.",
+    "pt-BR": "Inteiro de componente de data inválido ou propriedades duplicadas."
+  },
+  "日期组件结构无效。": {
+    "zh-Hans": "日期组件结构无效。",
+    "en": "Invalid date component structure.",
+    "zh-Hant": "日期組件結構無效。",
+    "ja": "日時要素の構造が無効です。",
+    "ko": "날짜 구성 요소 구조가 잘못되었습니다.",
+    "es": "Estructura de componentes de fecha no válida.",
+    "pt-BR": "Estrutura de componentes de data inválida."
+  },
   "日期结束": {
     "zh-Hans": "日期结束",
     "en": "End date",
@@ -18142,6 +18376,15 @@
     "ko": "날짜 경계가 잘못되었습니다. 날짜나 전체 타임스탬프를 사용하세요. 날짜만 있으면 해당일 00:00:00입니다.",
     "es": "Límite de fecha no válido; use fecha o fecha y hora completas. Solo fecha significa 00:00:00 de ese día.",
     "pt-BR": "Limite de data inválido; use data ou data e hora completas. Somente data significa 00:00:00 desse dia."
+  },
+  "日期预设须异步共享验证。": {
+    "zh-Hans": "日期预设须异步共享验证。",
+    "en": "Date presets require asynchronous shared validation.",
+    "zh-Hant": "日期預設須使用非同步共用驗證。",
+    "ja": "日時プリセットには非同期の共有検証が必要です。",
+    "ko": "날짜 사전 설정에는 비동기 공유 검증이 필요합니다.",
+    "es": "Los preajustes de fecha requieren validación compartida asíncrona.",
+    "pt-BR": "Predefinições de data exigem validação compartilhada assíncrona."
   },
   "日期验证期间规则、选择或元数据草稿已改变。": {
     "zh-Hans": "日期验证期间规则、选择或元数据草稿已改变。",
@@ -20258,6 +20501,24 @@
     "es": "Combinación de condiciones",
     "pt-BR": "Combinação de condições"
   },
+  "来源值存在但为空，不能当作确认缺失或自动清除目标。": {
+    "zh-Hans": "来源值存在但为空，不能当作确认缺失或自动清除目标。",
+    "en": "The source value exists but is empty; it cannot be treated as confirmed missing or used to clear the target automatically.",
+    "zh-Hant": "來源值存在但為空，不能視為確認缺失或自動清除目標。",
+    "ja": "ソース値は存在しますが空です。欠落と見なしたり、コピー先を自動消去したりできません。",
+    "ko": "원본 값이 존재하지만 비어 있어 누락으로 간주하거나 대상을 자동으로 지울 수 없습니다.",
+    "es": "El valor de origen existe pero está vacío; no se puede considerar ausente ni borrar el destino automáticamente.",
+    "pt-BR": "O valor de origem existe, mas está vazio; não pode ser considerado ausente nem limpar o destino automaticamente."
+  },
+  "来源列表类型无效，不能视为缺失。": {
+    "zh-Hans": "来源列表类型无效，不能视为缺失。",
+    "en": "The source list has an invalid type; it cannot be treated as missing.",
+    "zh-Hant": "來源列表類型無效，不能視為缺失。",
+    "ja": "ソースリストの型が無効です。欠落とは見なせません。",
+    "ko": "원본 목록의 형식이 잘못되어 누락으로 간주할 수 없습니다.",
+    "es": "La lista de origen tiene un tipo no válido; no se puede considerar ausente.",
+    "pt-BR": "A lista de origem tem um tipo inválido; não pode ser considerada ausente."
+  },
   "来源变化／失联；仅缓存查看": {
     "zh-Hans": "来源变化／失联；仅缓存查看",
     "en": "Source changed/unavailable; cached view only",
@@ -20303,6 +20564,24 @@
     "es": "Orientación del origen no válida; no se adivina la rotación.",
     "pt-BR": "Orientação da origem inválida; rotação não será adivinhada."
   },
+  "来源标量类型无效，不能视为缺失。": {
+    "zh-Hans": "来源标量类型无效，不能视为缺失。",
+    "en": "The source scalar has an invalid type; it cannot be treated as missing.",
+    "zh-Hant": "來源純量類型無效，不能視為缺失。",
+    "ja": "ソースのスカラー型が無効です。欠落とは見なせません。",
+    "ko": "원본 스칼라 형식이 잘못되어 누락으로 간주할 수 없습니다.",
+    "es": "El valor escalar de origen tiene un tipo no válido; no se puede considerar ausente.",
+    "pt-BR": "O valor escalar de origem tem um tipo inválido; não pode ser considerado ausente."
+  },
+  "来源空列表不能自动清除目标。": {
+    "zh-Hans": "来源空列表不能自动清除目标。",
+    "en": "An empty source list cannot clear the target automatically.",
+    "zh-Hant": "空的來源列表不能自動清除目標。",
+    "ja": "空のソースリストでコピー先を自動消去することはできません。",
+    "ko": "빈 원본 목록으로 대상을 자동으로 지울 수 없습니다.",
+    "es": "Una lista de origen vacía no puede borrar el destino automáticamente.",
+    "pt-BR": "Uma lista de origem vazia não pode limpar o destino automaticamente."
+  },
   "来源读取失败或过期，不能写入": {
     "zh-Hans": "来源读取失败或过期，不能写入",
     "en": "Source read failed or stale; writing prohibited",
@@ -20311,6 +20590,15 @@
     "ko": "소스 읽기 실패 또는 만료로 기록할 수 없음",
     "es": "Lectura de origen fallida u obsoleta; escritura prohibida",
     "pt-BR": "Leitura da origem falhou ou expirou; gravação proibida"
+  },
+  "来源读取失败，不能视为缺失。": {
+    "zh-Hans": "来源读取失败，不能视为缺失。",
+    "en": "Reading the source failed; it cannot be treated as missing.",
+    "zh-Hant": "來源讀取失敗，不能視為缺失。",
+    "ja": "ソースの読み取りに失敗しました。欠落とは見なせません。",
+    "ko": "원본 읽기에 실패하여 누락으로 간주할 수 없습니다.",
+    "es": "No se pudo leer el origen; no se puede considerar ausente.",
+    "pt-BR": "Falha ao ler a origem; não pode ser considerada ausente."
   },
   "极夜蓝": {
     "zh-Hans": "极夜蓝",
@@ -20788,6 +21076,15 @@
     "ko": "모드를 명시적으로 선택했습니다. 아직 파일을 생성하지 않았으며 초안과 미적용 입력은 유지됩니다.",
     "es": "Modo seleccionado explícitamente; archivos aún sin crear. Borradores y entradas sin aplicar conservados.",
     "pt-BR": "Modo selecionado explicitamente; arquivos ainda não criados. Rascunhos e entradas não aplicadas preservados."
+  },
+  "模式：{0}\n照片：{1}；字段范围：{2}\n新文件：{3}\n": {
+    "zh-Hans": "模式：{0}\n照片：{1}；字段范围：{2}\n新文件：{3}\n",
+    "en": "Mode: {0}\nPhotos: {1}; field scope: {2}\nNew files: {3}\n",
+    "zh-Hant": "模式：{0}\n照片：{1}；欄位範圍：{2}\n新檔案：{3}\n",
+    "ja": "モード：{0}\n写真：{1}、フィールド範囲：{2}\n新規ファイル：{3}\n",
+    "ko": "모드: {0}\n사진: {1}; 필드 범위: {2}\n새 파일: {3}\n",
+    "es": "Modo: {0}\nFotos: {1}; ámbito de campos: {2}\nArchivos nuevos: {3}\n",
+    "pt-BR": "Modo: {0}\nFotos: {1}; escopo dos campos: {2}\nNovos arquivos: {3}\n"
   },
   "欢迎使用 PhotoTrail": {
     "zh-Hans": "欢迎使用 PhotoTrail",
@@ -21329,6 +21626,15 @@
     "es": "Los valores positivos suman y los negativos restan. Se usa el valor actual del campo de cada foto.",
     "pt-BR": "Valores positivos somam; negativos subtraem. O cálculo usa o valor atual do campo de cada foto."
   },
+  "此动作不接受日期参数。": {
+    "zh-Hans": "此动作不接受日期参数。",
+    "en": "This action does not accept date parameters.",
+    "zh-Hant": "此動作不接受日期參數。",
+    "ja": "この操作は日時パラメーターを受け付けません。",
+    "ko": "이 작업은 날짜 매개변수를 허용하지 않습니다.",
+    "es": "Esta acción no admite parámetros de fecha.",
+    "pt-BR": "Esta ação não aceita parâmetros de data."
+  },
   "此字段为结构或计算信息，尚未接入可靠写回；GPS 请在地图定位中编辑。": {
     "zh-Hans": "此字段为结构或计算信息，尚未接入可靠写回；GPS 请在地图定位中编辑。",
     "en": "This structural or derived field has no verified write path. Edit GPS in the map workspace.",
@@ -21364,6 +21670,24 @@
     "ko": "이 정확한 필드는 기록 허용 목록에 없음",
     "es": "Este campo exacto está fuera de la lista de escritura",
     "pt-BR": "Este campo exato está fora da lista de gravação"
+  },
+  "此预设动作未支持；日期动作须为已开放完整日期目标，未载入任何操作。": {
+    "zh-Hans": "此预设动作未支持；日期动作须为已开放完整日期目标，未载入任何操作。",
+    "en": "This preset action is unsupported. Date actions require a supported full-date target. No actions were loaded.",
+    "zh-Hant": "尚未支援此預設動作；日期動作須使用已開放的完整日期目標，未載入任何操作。",
+    "ja": "このプリセット操作は未対応です。日時操作には対応する完全な日時の対象が必要です。操作は読み込まれませんでした。",
+    "ko": "이 사전 설정 작업은 지원되지 않습니다. 날짜 작업에는 지원되는 전체 날짜 대상이 필요합니다. 작업을 불러오지 않았습니다.",
+    "es": "Acción de preajuste no compatible. Las acciones de fecha requieren un destino de fecha completa compatible. No se cargó ninguna acción.",
+    "pt-BR": "Ação de predefinição não compatível. Ações de data exigem um destino de data completa compatível. Nenhuma ação foi carregada."
+  },
+  "此预设动作／字段组合未支持（日期动作须为已开放完整日期目标）；未载入任何操作。": {
+    "zh-Hans": "此预设动作／字段组合未支持（日期动作须为已开放完整日期目标）；未载入任何操作。",
+    "en": "This preset action and field combination is unsupported (date actions require a supported full-date target). No actions were loaded.",
+    "zh-Hant": "尚未支援此預設動作與欄位組合（日期動作須使用已開放的完整日期目標）；未載入任何操作。",
+    "ja": "このプリセット操作とフィールドの組み合わせは未対応です（日時操作には対応する完全な日時の対象が必要です）。操作は読み込まれませんでした。",
+    "ko": "이 사전 설정 작업과 필드 조합은 지원되지 않습니다(날짜 작업에는 지원되는 전체 날짜 대상이 필요). 작업을 불러오지 않았습니다.",
+    "es": "Combinación de acción y campo no compatible (las acciones de fecha requieren un destino de fecha completa compatible). No se cargó ninguna acción.",
+    "pt-BR": "Combinação de ação e campo não compatível (ações de data exigem um destino de data completa compatível). Nenhuma ação foi carregada."
   },
   "步长": {
     "zh-Hans": "步长",
@@ -21967,6 +22291,24 @@
     "ko": "선택한 사진 {0}장의 위치 지우기",
     "es": "Borrar ubicaciones de la selección ({0})",
     "pt-BR": "Limpar localizações da seleção ({0})"
+  },
+  "清除不接受参数；系统时间不可清除。": {
+    "zh-Hans": "清除不接受参数；系统时间不可清除。",
+    "en": "Clear accepts no parameters; system times cannot be cleared.",
+    "zh-Hant": "清除不接受參數；系統時間不可清除。",
+    "ja": "消去操作はパラメーターを受け付けません。システム日時は消去できません。",
+    "ko": "지우기는 매개변수를 허용하지 않으며 시스템 시간은 지울 수 없습니다.",
+    "es": "Borrar no admite parámetros; las horas del sistema no se pueden borrar.",
+    "pt-BR": "Limpar não aceita parâmetros; horários do sistema não podem ser apagados."
+  },
+  "清除不接受日期参数。": {
+    "zh-Hans": "清除不接受日期参数。",
+    "en": "Clear does not accept date parameters.",
+    "zh-Hant": "清除不接受日期參數。",
+    "ja": "消去操作は日時パラメーターを受け付けません。",
+    "ko": "지우기는 날짜 매개변수를 허용하지 않습니다.",
+    "es": "Borrar no admite parámetros de fecha.",
+    "pt-BR": "Limpar não aceita parâmetros de data."
   },
   "清除作者": {
     "zh-Hans": "清除作者",
@@ -23227,6 +23569,24 @@
     "ko": "대상 자격이 변경되었습니다.",
     "es": "Cambió la elegibilidad del destino.",
     "pt-BR": "A elegibilidade do destino mudou."
+  },
+  "目的字段不具备实际写入资格。": {
+    "zh-Hans": "目的字段不具备实际写入资格。",
+    "en": "The target field is not eligible for writing.",
+    "zh-Hant": "目標欄位不具備實際寫入資格。",
+    "ja": "コピー先フィールドに実際の書き込み資格がありません。",
+    "ko": "대상 필드에 실제 쓰기 자격이 없습니다.",
+    "es": "El campo de destino no cumple los requisitos de escritura.",
+    "pt-BR": "O campo de destino não atende aos requisitos de gravação."
+  },
+  "目的字段没有实际写入资格。": {
+    "zh-Hans": "目的字段没有实际写入资格。",
+    "en": "The target field is not eligible for writing.",
+    "zh-Hant": "目標欄位沒有實際寫入資格。",
+    "ja": "コピー先フィールドに実際の書き込み資格がありません。",
+    "ko": "대상 필드에 실제 쓰기 자격이 없습니다.",
+    "es": "El campo de destino no cumple los requisitos de escritura.",
+    "pt-BR": "O campo de destino não atende aos requisitos de gravação."
   },
   "直接": {
     "zh-Hans": "直接",
@@ -25648,6 +26008,15 @@
     "ko": "AMap 키 설정…",
     "es": "Configurar clave de AMap…",
     "pt-BR": "Configurar chave do AMap…"
+  },
+  "设置／补空／追加参数不能为空；清除请使用明确清除动作。": {
+    "zh-Hans": "设置／补空／追加参数不能为空；清除请使用明确清除动作。",
+    "en": "Set, fill-missing and append require a value; use the explicit Clear action to remove a value.",
+    "zh-Hant": "設定、補空及附加參數不得為空；清除請使用明確的清除動作。",
+    "ja": "設定・未設定値の補完・追加には値が必要です。値を消す場合は明示的な消去操作を使用してください。",
+    "ko": "설정, 빈 값 채우기 및 추가에는 값이 필요합니다. 값을 지우려면 명시적인 지우기 작업을 사용하세요.",
+    "es": "Asignar, rellenar ausentes y añadir requieren un valor; utilice Borrar para eliminar un valor.",
+    "pt-BR": "Definir, preencher ausentes e acrescentar exigem um valor; use a ação Limpar para remover um valor."
   },
   "评价测光": {
     "zh-Hans": "评价测光",
@@ -29204,6 +29573,24 @@
     "es": "Preajustes",
     "pt-BR": "Predefinições"
   },
+  "预设JSON结构无效。": {
+    "zh-Hans": "预设JSON结构无效。",
+    "en": "Invalid preset JSON structure.",
+    "zh-Hant": "預設JSON結構無效。",
+    "ja": "プリセットJSONの構造が無効です。",
+    "ko": "사전 설정 JSON 구조가 잘못되었습니다.",
+    "es": "Estructura JSON de preajuste no válida.",
+    "pt-BR": "Estrutura JSON de predefinição inválida."
+  },
+  "预设列表结构无效。": {
+    "zh-Hans": "预设列表结构无效。",
+    "en": "Invalid preset list structure.",
+    "zh-Hant": "預設列表結構無效。",
+    "ja": "プリセットリストの構造が無効です。",
+    "ko": "사전 설정 목록 구조가 잘못되었습니다.",
+    "es": "Estructura de lista de preajuste no válida.",
+    "pt-BR": "Estrutura de lista de predefinição inválida."
+  },
   "预设动作": {
     "zh-Hans": "预设动作",
     "en": "Preset action",
@@ -29222,6 +29609,24 @@
     "es": "Parámetros de acción del preajuste",
     "pt-BR": "Parâmetros de ação da predefinição"
   },
+  "预设动作无效。": {
+    "zh-Hans": "预设动作无效。",
+    "en": "Invalid preset action.",
+    "zh-Hant": "預設動作無效。",
+    "ja": "プリセット操作が無効です。",
+    "ko": "사전 설정 작업이 잘못되었습니다.",
+    "es": "Acción de preajuste no válida.",
+    "pt-BR": "Ação de predefinição inválida."
+  },
+  "预设参数须为文字。": {
+    "zh-Hans": "预设参数须为文字。",
+    "en": "Preset parameters must be text.",
+    "zh-Hant": "預設參數須為文字。",
+    "ja": "プリセットのパラメーターは文字列で指定してください。",
+    "ko": "사전 설정 매개변수는 텍스트여야 합니다.",
+    "es": "Los parámetros del preajuste deben ser texto.",
+    "pt-BR": "Os parâmetros da predefinição devem ser texto."
+  },
   "预设名称": {
     "zh-Hans": "预设名称",
     "en": "Preset name",
@@ -29230,6 +29635,24 @@
     "ko": "프리셋 이름",
     "es": "Nombre del preajuste",
     "pt-BR": "Nome da predefinição"
+  },
+  "预设名称须为1至80字，操作条目须为1至{0}条（重复目标也计数）。": {
+    "zh-Hans": "预设名称须为1至80字，操作条目须为1至{0}条（重复目标也计数）。",
+    "en": "Preset names require 1–80 characters and 1–{0} actions (including duplicate targets).",
+    "zh-Hant": "預設名稱須為1至80字，操作條目須為1至{0}條（重複目標亦計數）。",
+    "ja": "プリセット名は1～80文字、操作は1～{0}件です（重複する対象も含みます）。",
+    "ko": "사전 설정 이름은 1~80자, 작업은 1~{0}개여야 합니다(중복 대상 포함).",
+    "es": "El nombre del preajuste requiere 1–80 caracteres y 1–{0} acciones (incluidos destinos duplicados).",
+    "pt-BR": "O nome da predefinição exige 1–80 caracteres e 1–{0} ações (incluindo destinos duplicados)."
+  },
+  "预设含未支持字段。": {
+    "zh-Hans": "预设含未支持字段。",
+    "en": "The preset contains unsupported fields.",
+    "zh-Hant": "預設含有尚未支援的欄位。",
+    "ja": "プリセットに未対応のフィールドが含まれています。",
+    "ko": "사전 설정에 지원되지 않는 필드가 있습니다.",
+    "es": "El preajuste contiene campos no compatibles.",
+    "pt-BR": "A predefinição contém campos não compatíveis."
   },
   "预设复制接收字段": {
     "zh-Hans": "预设复制接收字段",
@@ -29248,6 +29671,15 @@
     "ko": "프리셋 복사 소스 필드",
     "es": "Campo origen de copia del preajuste",
     "pt-BR": "Campo de origem de cópia da predefinição"
+  },
+  "预设字段无效。": {
+    "zh-Hans": "预设字段无效。",
+    "en": "Invalid preset field.",
+    "zh-Hant": "預設欄位無效。",
+    "ja": "プリセットのフィールドが無効です。",
+    "ko": "사전 설정 필드가 잘못되었습니다.",
+    "es": "Campo de preajuste no válido.",
+    "pt-BR": "Campo de predefinição inválido."
   },
   "预设已保存。": {
     "zh-Hans": "预设已保存。",
@@ -29293,6 +29725,15 @@
     "ko": "프리셋을 순서가 있는 작업 체인에 로드했습니다. 초안을 적용하거나 사진에 기록하지 않았습니다.",
     "es": "Preajuste cargado en cadena ordenada; sin aplicar borradores ni escribir fotos.",
     "pt-BR": "Predefinição carregada na cadeia ordenada; sem aplicar rascunhos nem gravar fotos."
+  },
+  "预设应用完成：修改{0}张，无变化{1}张；操作链{2}条，净变化字段{3}项，复制源缺失跳过{4}项，缺失时间跳过{5}项，文件名不匹配{6}项，文件名日期无效{7}项。原文件未修改；显式确认保存后才写文件。": {
+    "zh-Hans": "预设应用完成：修改{0}张，无变化{1}张；操作链{2}条，净变化字段{3}项，复制源缺失跳过{4}项，缺失时间跳过{5}项，文件名不匹配{6}项，文件名日期无效{7}项。原文件未修改；显式确认保存后才写文件。",
+    "en": "Preset applied: {0} photos changed, {1} unchanged; {2} ordered actions, {3} net field changes; {4} missing copy sources skipped, {5} missing times skipped, {6} filename mismatches, {7} invalid filename dates. Originals unchanged; files are written only after explicit save confirmation.",
+    "zh-Hant": "預設套用完成：修改{0}張，無變化{1}張；操作鏈{2}條，淨變更欄位{3}項，複製來源缺失跳過{4}項，缺失時間跳過{5}項，檔名不符{6}項，檔名日期無效{7}項。原始檔案未修改；明確確認儲存後才寫入檔案。",
+    "ja": "プリセットを適用：{0}枚変更、{1}枚変更なし。順序付き操作{2}件、正味のフィールド変更{3}件、コピー元欠落で{4}件、日時欠落で{5}件スキップ。ファイル名不一致{6}件、ファイル名の無効な日時{7}件。元ファイルは未変更です。明示的な保存確認後にのみ書き込みます。",
+    "ko": "사전 설정 적용 완료: {0}장 변경, {1}장 변경 없음; 순서 작업 {2}개, 실제 필드 변경 {3}개. 복사 원본 누락 {4}개와 시간 누락 {5}개 건너뜀, 파일명 불일치 {6}개, 잘못된 파일명 날짜 {7}개. 원본은 변경되지 않았으며 명시적 저장 확인 후에만 파일을 기록합니다.",
+    "es": "Preajuste aplicado: {0} fotos modificadas, {1} sin cambios; {2} acciones ordenadas, {3} cambios netos de campos; {4} orígenes de copia y {5} fechas ausentes omitidos, {6} nombres no coincidentes, {7} fechas de nombre no válidas. Originales intactos; solo se escribe tras confirmar el guardado.",
+    "pt-BR": "Predefinição aplicada: {0} fotos alteradas, {1} sem alterações; {2} ações ordenadas, {3} alterações líquidas de campos; {4} origens de cópia e {5} datas ausentes ignoradas, {6} nomes incompatíveis, {7} datas de nome inválidas. Originais intactos; a gravação só ocorre após confirmar o salvamento."
   },
   "预设文件": {
     "zh-Hans": "预设文件",
@@ -29447,6 +29888,15 @@
     "es": "Formato o versión de preajuste no compatible.",
     "pt-BR": "Formato ou versão da predefinição não suportado."
   },
+  "预设版本或名称无效。": {
+    "zh-Hans": "预设版本或名称无效。",
+    "en": "Invalid preset version or name.",
+    "zh-Hant": "預設版本或名稱無效。",
+    "ja": "プリセットのバージョンまたは名前が無効です。",
+    "ko": "사전 설정 버전 또는 이름이 잘못되었습니다.",
+    "es": "Versión o nombre de preajuste no válido.",
+    "pt-BR": "Versão ou nome de predefinição inválido."
+  },
   "预设目标字段": {
     "zh-Hans": "预设目标字段",
     "en": "Preset target field",
@@ -29455,6 +29905,15 @@
     "ko": "프리셋 대상 필드",
     "es": "Campo destino del preajuste",
     "pt-BR": "Campo de destino da predefinição"
+  },
+  "预设结构或重复属性无效。": {
+    "zh-Hans": "预设结构或重复属性无效。",
+    "en": "Invalid preset structure or duplicate properties.",
+    "zh-Hant": "預設結構或重複屬性無效。",
+    "ja": "プリセットの構造が無効、またはプロパティが重複しています。",
+    "ko": "사전 설정 구조가 잘못되었거나 속성이 중복됩니다.",
+    "es": "Estructura de preajuste no válida o propiedades duplicadas.",
+    "pt-BR": "Estrutura de predefinição inválida ou propriedades duplicadas."
   },
   "预设调整分钟": {
     "zh-Hans": "预设调整分钟",
@@ -29518,6 +29977,24 @@
     "ko": "프리셋이 128KiB 제한을 초과합니다.",
     "es": "El preajuste supera el límite de 128 KiB.",
     "pt-BR": "A predefinição excede o limite de 128 KiB."
+  },
+  "预设须包含1至{0}条操作。": {
+    "zh-Hans": "预设须包含1至{0}条操作。",
+    "en": "A preset must contain 1–{0} actions.",
+    "zh-Hant": "預設須包含1至{0}條操作。",
+    "ja": "プリセットには1～{0}件の操作が必要です。",
+    "ko": "사전 설정에는 1~{0}개 작업이 필요합니다.",
+    "es": "Un preajuste debe contener 1–{0} acciones.",
+    "pt-BR": "Uma predefinição deve conter 1–{0} ações."
+  },
+  "预设验证期间草稿已改变。": {
+    "zh-Hans": "预设验证期间草稿已改变。",
+    "en": "Drafts changed during preset validation.",
+    "zh-Hant": "草稿在預設驗證期間已變更。",
+    "ja": "プリセットの検証中に下書きが変更されました。",
+    "ko": "사전 설정 검증 중 초안이 변경되었습니다.",
+    "es": "Los borradores cambiaron durante la validación del preajuste.",
+    "pt-BR": "Os rascunhos mudaram durante a validação da predefinição."
   },
   "颜色标签": {
     "zh-Hans": "颜色标签",
@@ -29996,6 +30473,15 @@
     "es": "Seguir Windows por defecto; los cambios guardan preferencias locales y se restauran al reiniciar.",
     "pt-BR": "Seguir Windows por padrão; alterações salvam preferências locais e são restauradas ao reiniciar."
   },
+  "（{0}个技术字段：{1}）": {
+    "zh-Hans": "（{0}个技术字段：{1}）",
+    "en": " ({0} technical fields: {1})",
+    "zh-Hant": "（{0}個技術欄位：{1}）",
+    "ja": "（技術フィールド{0}件：{1}）",
+    "ko": " (기술 필드 {0}개: {1})",
+    "es": " ({0} campos técnicos: {1})",
+    "pt-BR": " ({0} campos técnicos: {1})"
+  },
   "（过期/失败）": {
     "zh-Hans": "（过期/失败）",
     "en": "(stale/failed)",
@@ -30067,6 +30553,15 @@
     "ko": ". IPTC 독립 삭제, 인코딩 선언 및 나머지 원시 데이터셋 유지",
     "es": "; eliminación IPTC independiente, declaración de codificación y conjuntos originales restantes conservados",
     "pt-BR": "; remoção IPTC independente, declaração de codificação e conjuntos originais restantes preservados"
+  },
+  "；原图系统时间；冻结时区={0}；Windows精度100ns，无损设置={1}": {
+    "zh-Hans": "；原图系统时间；冻结时区={0}；Windows精度100ns，无损设置={1}",
+    "en": "; original system times; frozen time zone={0}; Windows precision 100 ns, lossless values={1}",
+    "zh-Hant": "；原圖系統時間；凍結時區={0}；Windows精度100ns，無損設定={1}",
+    "ja": "；元画像のシステム日時；固定タイムゾーン={0}；Windows精度100ns、無損失の値={1}",
+    "ko": "; 원본 시스템 시간; 고정 시간대={0}; Windows 정밀도 100ns, 무손실 값={1}",
+    "es": "; horas de sistema originales; zona horaria congelada={0}; precisión Windows 100 ns, valores sin pérdida={1}",
+    "pt-BR": "; horários de sistema originais; fuso horário congelado={0}; precisão Windows 100 ns, valores sem perda={1}"
   },
   "；可取消，尚未加入草稿。": {
     "zh-Hans": "；可取消，尚未加入草稿。",

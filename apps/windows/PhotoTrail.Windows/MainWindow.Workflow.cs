@@ -339,7 +339,7 @@ public partial class MainWindow
                 invalidWorkflowCards.Remove(index); error.Text = ""; InvalidateDates();
             }
             catch (Exception problem) when (problem is ArgumentException or InvalidOperationException or KeyNotFoundException)
-            { invalidWorkflowCards.Add(index); error.Text = string.Format(CultureInfo.CurrentCulture, WText("CardError"), index + 1, target.SelectedValue, problem.Message);workflowCardInputs[op]=new((string)target.SelectedValue,(string)action.SelectedValue,inputs.ToDictionary(p=>p.Key,p=>p.Value.Text),source?.SelectedValue as string,problem.Message); InvalidateDates(); }
+            { invalidWorkflowCards.Add(index); error.Text = string.Format(CultureInfo.CurrentCulture, WText("CardError"), index + 1, target.SelectedValue, L10n.Message(problem.Message));workflowCardInputs[op]=new((string)target.SelectedValue,(string)action.SelectedValue,inputs.ToDictionary(p=>p.Key,p=>p.Value.Text),source?.SelectedValue as string,problem.Message); InvalidateDates(); }
         }
         void Parameters()
         {
@@ -381,8 +381,8 @@ public partial class MainWindow
         };
         enabled.Click += (_, _) => { if (busy) return; if (enabled.IsChecked == true) { disabledWorkflowOperations.Remove(op); Commit(); } else { disabledWorkflowOperations.Add(op); invalidWorkflowCards.Remove(index); } parameters.IsEnabled = enabled.IsChecked == true; InvalidateDates(); };
         parameters.IsEnabled = enabled.IsChecked == true;
-        if(enabled.IsChecked==true&&savedInput is not null) { invalidWorkflowCards.Add(index);error.Text=string.Format(CultureInfo.CurrentCulture,WText("CardError"),index+1,savedInput.Tag,savedInput.Error); }
-        else if (enabled.IsChecked == true) try { MetadataPreset.Validate(op); } catch (ArgumentException problem) { invalidWorkflowCards.Add(index); error.Text = string.Format(CultureInfo.CurrentCulture, WText("CardError"), index + 1, op.Tag, problem.Message); }
+        if(enabled.IsChecked==true&&savedInput is not null) { invalidWorkflowCards.Add(index);error.Text=string.Format(CultureInfo.CurrentCulture,WText("CardError"),index+1,savedInput.Tag,L10n.Message(savedInput.Error)); }
+        else if (enabled.IsChecked == true) try { MetadataPreset.Validate(op); } catch (ArgumentException problem) { invalidWorkflowCards.Add(index); error.Text = string.Format(CultureInfo.CurrentCulture, WText("CardError"), index + 1, op.Tag, L10n.Message(problem.Message)); }
         return cardShell=new Expander { Header = (index + 1) + " · " + fieldLabels.GetValueOrDefault(savedInput?.Tag??op.Tag, savedInput?.Tag??op.Tag), Content = card, IsExpanded = true, Margin = new Thickness(0, 5, 8, 8), BorderBrush = SystemColors.ControlDarkBrush, BorderThickness = new Thickness(1) };
     }
     async void ApplyWorkflow()
