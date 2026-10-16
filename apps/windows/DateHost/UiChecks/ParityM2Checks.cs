@@ -20,6 +20,7 @@ static partial class Program
   typeof(MainWindow).GetField("dateEditorHasInput",BindingFlags.NonPublic|BindingFlags.Instance)!.SetValue(window,(Func<bool>)(()=>false));
   M2Invoke("FillEditor",new Dictionary<string,string>());
   M2Invoke("SetPresetChain",new MetadataPreset("新预设",Array.Empty<MetadataOperation>()));
+  M3Set("metadataPresetBaseline",new MetadataPreset(Control<TextBox>("PresetName").Text,Array.Empty<MetadataOperation>()));
   M3Set("renameSchemeBaseline",M3Call("EditedScheme",Guid.NewGuid(),null));
  }
  static async Task M2Checks()
