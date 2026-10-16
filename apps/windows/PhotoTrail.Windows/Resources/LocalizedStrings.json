@@ -30706,5 +30706,122 @@
     "ko": "; 디스크에 대상이 있으나 소유권/전달 상태가 확인되지 않았습니다. 확인 없이 재시도하지 마세요.",
     "es": "; existe un destino en disco, pero la propiedad/entrega no está confirmada. No reintente a ciegas.",
     "pt-BR": "; existe um destino no disco, mas a propriedade/entrega não foi confirmada. Não repita às cegas."
+  },
+  "{0}：请输入有符号整数（{1}位）；原输入“{2}”已保留。": {
+    "zh-Hans": "{0}：请输入有符号整数（{1}位）；原输入“{2}”已保留。",
+    "en": "{0}: enter a signed {1}-bit integer; original input “{2}” is retained.",
+    "zh-Hant": "{0}：請輸入有號整數（{1}位元）；原輸入「{2}」已保留。",
+    "ja": "{0}：符号付き{1}ビット整数を入力してください。元の入力「{2}」を保持しています。",
+    "ko": "{0}: 부호 있는 {1}비트 정수를 입력하세요. 원래 입력 “{2}”는 유지됩니다.",
+    "es": "{0}: introduzca un entero con signo de {1} bits; se conserva «{2}».",
+    "pt-BR": "{0}: digite um inteiro com sinal de {1} bits; a entrada “{2}” foi mantida."
+  },
+  "第 {0} 条 · {1}：{2}": {
+    "zh-Hans": "第 {0} 条 · {1}：{2}",
+    "en": "Rule {0} · {1}: {2}",
+    "zh-Hant": "第 {0} 條 · {1}：{2}",
+    "ja": "ルール {0} · {1}：{2}",
+    "ko": "규칙 {0} · {1}: {2}",
+    "es": "Regla {0} · {1}: {2}",
+    "pt-BR": "Regra {0} · {1}: {2}"
+  },
+  "起始值≥0；步长>0；最少位数1—9。": {
+    "zh-Hans": "起始值≥0；步长>0；最少位数1—9。",
+    "en": "Start ≥ 0; step > 0; minimum digits 1–9.",
+    "zh-Hant": "起始值≥0；步長>0；最少位數1—9。",
+    "ja": "開始値≥0、増分>0、最小桁数1～9。",
+    "ko": "시작값≥0, 증가값>0, 최소 자릿수 1–9.",
+    "es": "Inicio ≥ 0; incremento > 0; dígitos mínimos 1–9.",
+    "pt-BR": "Início ≥ 0; incremento > 0; mínimo de dígitos 1–9."
+  },
+  "请按参数字段要求修正；不使用默认值替代。": {
+    "zh-Hans": "请按参数字段要求修正；不使用默认值替代。",
+    "en": "Correct the listed parameters; invalid input is never replaced with defaults.",
+    "zh-Hant": "請依參數欄位要求修正；不使用預設值替代。",
+    "ja": "表示されたパラメーターを修正してください。既定値への置換は行いません。",
+    "ko": "표시된 매개변수를 수정하세요. 잘못된 입력을 기본값으로 바꾸지 않습니다.",
+    "es": "Corrija los parámetros indicados; no se sustituyen por valores predeterminados.",
+    "pt-BR": "Corrija os parâmetros indicados; não substituímos entradas inválidas por padrões."
+  },
+  "定位首个错误": {
+    "zh-Hans": "定位首个错误",
+    "en": "Locate first error",
+    "zh-Hant": "定位第一個錯誤",
+    "ja": "最初のエラーへ",
+    "ko": "첫 오류로 이동",
+    "es": "Ir al primer error",
+    "pt-BR": "Localizar primeiro erro"
+  },
+  "规则操作": {
+    "zh-Hans": "规则操作",
+    "en": "Rule actions",
+    "zh-Hant": "規則操作",
+    "ja": "ルール操作",
+    "ko": "규칙 작업",
+    "es": "Acciones de regla",
+    "pt-BR": "Ações da regra"
+  },
+  "照片条": {
+    "zh-Hans": "照片条",
+    "en": "Photo strip",
+    "zh-Hant": "照片列",
+    "ja": "写真ストリップ",
+    "ko": "사진 스트립",
+    "es": "Tira de fotos",
+    "pt-BR": "Faixa de fotos"
+  },
+  "显示或收起照片条": {
+    "zh-Hans": "显示或收起照片条",
+    "en": "Show or collapse photo strip",
+    "zh-Hant": "顯示或收合照片列",
+    "ja": "写真ストリップを表示・折りたたむ",
+    "ko": "사진 스트립 표시 또는 접기",
+    "es": "Mostrar u ocultar la tira de fotos",
+    "pt-BR": "Mostrar ou recolher a faixa de fotos"
+  },
+  "地图工具": {
+    "zh-Hans": "地图工具",
+    "en": "Map tools",
+    "zh-Hant": "地圖工具",
+    "ja": "地図ツール",
+    "ko": "지도 도구",
+    "es": "Herramientas del mapa",
+    "pt-BR": "Ferramentas do mapa"
+  },
+  "照片面板": {
+    "zh-Hans": "照片面板",
+    "en": "Photo panel",
+    "zh-Hant": "照片面板",
+    "ja": "写真パネル",
+    "ko": "사진 패널",
+    "es": "Panel de fotos",
+    "pt-BR": "Painel de fotos"
+  },
+  "定位筛选": {
+    "zh-Hans": "定位筛选",
+    "en": "Location filter",
+    "zh-Hant": "定位篩選",
+    "ja": "位置情報フィルター",
+    "ko": "위치 필터",
+    "es": "Filtro de ubicación",
+    "pt-BR": "Filtro de localização"
+  },
+  "字段值筛选": {
+    "zh-Hans": "字段值筛选",
+    "en": "Field value filter",
+    "zh-Hant": "欄位值篩選",
+    "ja": "フィールド値フィルター",
+    "ko": "필드 값 필터",
+    "es": "Filtro de valores de campo",
+    "pt-BR": "Filtro de valores de campo"
+  },
+  "数值范围：位数0—32；字母宽度1—32；位置／长度0—4096；出现次数≥1；计数槽0—10；夜间小时0—23。持续计数的起始值≥0且步长>0。": {
+    "zh-Hans": "数值范围：位数0—32；字母宽度1—32；位置／长度0—4096；出现次数≥1；计数槽0—10；夜间小时0—23。持续计数的起始值≥0且步长>0。",
+    "en": "Ranges: digits 0–32; alphabet width 1–32; position/length 0–4096; occurrence ≥ 1; counter slot 0–10; night hour 0–23. Persistent counters require start ≥ 0 and step > 0.",
+    "zh-Hant": "數值範圍：位數0—32；字母寬度1—32；位置／長度0—4096；出現次數≥1；計數槽0—10；夜間小時0—23。持續計數的起始值≥0且步長>0。",
+    "ja": "範囲：桁数0～32、英字幅1～32、位置・長さ0～4096、出現回数≥1、カウンター枠0～10、夜間時刻0～23。永続カウンターは開始値≥0、増分>0。",
+    "ko": "범위: 자릿수 0–32, 문자 너비 1–32, 위치/길이 0–4096, 출현 횟수≥1, 카운터 슬롯 0–10, 야간 시각 0–23. 영구 카운터는 시작값≥0, 증가값>0이어야 합니다.",
+    "es": "Rangos: dígitos 0–32; ancho alfabético 1–32; posición/longitud 0–4096; aparición ≥ 1; contador 0–10; hora nocturna 0–23. Contadores persistentes: inicio ≥ 0 e incremento > 0.",
+    "pt-BR": "Intervalos: dígitos 0–32; largura alfabética 1–32; posição/comprimento 0–4096; ocorrência ≥ 1; contador 0–10; hora noturna 0–23. Contadores persistentes: início ≥ 0 e incremento > 0."
   }
 }

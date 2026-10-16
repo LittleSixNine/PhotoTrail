@@ -345,4 +345,6 @@
 <sys:String x:Key="M3Vafter">晚于／大于</sys:String>
 <sys:String x:Key="M3Vexists">存在</sys:String>
 <sys:String x:Key="M3Vmissing">缺失</sys:String>
+ <sys:String x:Key="M6.RenameInputGps">定位筛选</sys:String>
+ <sys:String x:Key="M6.RenameInputPresence">字段值筛选</sys:String>
 </ResourceDictionary>

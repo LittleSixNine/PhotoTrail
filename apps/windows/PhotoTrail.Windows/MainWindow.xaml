@@ -317,7 +317,7 @@
          <DataGridTemplateColumn Width="40">
           <DataGridTemplateColumn.CellTemplate>
            <DataTemplate>
-            <Button Content="{Binding ActionLabel}" IsEnabled="{Binding CanEdit}" ToolTip="{Binding Permission}" AutomationProperties.Name="{Binding ActionDescription}" Tag="{Binding}" Click="M1EditRow" Padding="4,1" MinHeight="24" VerticalAlignment="Center" Background="Transparent" Foreground="{Binding Foreground,RelativeSource={RelativeSource AncestorType=Window}}" BorderThickness="0" />
+            <Button Content="{Binding ActionLabel}" IsEnabled="{Binding CanEdit}" ToolTip="{Binding Permission}" AutomationProperties.Name="{Binding ActionDescription}" Tag="{Binding}" Click="M1EditRow" Padding="4,1" MinHeight="24" VerticalAlignment="Center" Background="Transparent" Foreground="{Binding Foreground,RelativeSource={RelativeSource AncestorType=DataGridCell}}" BorderThickness="0" />
            </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
          </DataGridTemplateColumn>
@@ -654,36 +654,39 @@
             <ComboBoxItem Content="{DynamicResource L.14F3CAC7218B9448}" />
            </ComboBox>
            <CheckBox x:Name="RenameDescending" Content="{DynamicResource L.D54EEFC26F267908}" Checked="RenameOrderChanged" Unchecked="RenameOrderChanged" />
-           <TextBlock Text="{DynamicResource L.35DC4C3268FF907E}" />
-           <TextBox x:Name="RenameMetadataTag" Width="150" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.CF37D2472AD5C477}" />
+           <StackPanel Margin="2,4"><TextBlock Text="{DynamicResource L.35DC4C3268FF907E}" TextWrapping="Wrap"/>
+           <TextBox x:Name="RenameMetadataTag" Width="150" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.CF37D2472AD5C477}" /></StackPanel>
            <Button Content="{DynamicResource L.AC0976E17BF9CE27}" Click="RefreshRenameOrder" />
           </WrapPanel>
-          <WrapPanel>
-           <TextBlock Text="{DynamicResource L.9CF2E418D6B6FB4C}" />
-           <TextBox x:Name="RenameInputQuery" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.EC20CC4CE2D916DD}" />
-           <TextBlock Text="{DynamicResource L.BA40014FF496F64E}" />
-           <TextBox x:Name="RenameInputType" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.EE7E80078645F66D}" />
-           <TextBlock Text="{DynamicResource L.52DAA71EBC310581}" />
-           <TextBox x:Name="RenameInputFolder" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.BFF46086961F7E97}" />
-           <TextBlock Text="{DynamicResource L.E1506406A5BD8F02}" />
-           <TextBox x:Name="RenameInputCamera" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.C38946AD4C39C80A}" />
-           <TextBlock Text="{DynamicResource L.4AD3DD1A63FBAD6C}" />
-           <TextBox x:Name="RenameDateFrom" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.C297CC85CEB07263}" />
-           <TextBlock Text="{DynamicResource L.81C0DA11A7B77AF6}" />
-           <TextBox x:Name="RenameDateTo" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.98E68EB57B8CF0AF}" />
-           <TextBlock Text="{DynamicResource L.1D0FD5F9336D9103}" />
-           <TextBox x:Name="RenameInputTag" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.3192A23017FD62E5}" />
-           <ComboBox x:Name="RenameInputGps" Width="85" SelectedIndex="0" SelectionChanged="RenameOrderChanged">
+          <Grid x:Name="M6RenameFilters"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" MaxWidth="220"/><ColumnDefinition Width="*" MinWidth="140"/></Grid.ColumnDefinitions><Grid.RowDefinitions>
+<RowDefinition Height="Auto"/>
+<RowDefinition Height="Auto"/>
+<RowDefinition Height="Auto"/>
+<RowDefinition Height="Auto"/>
+<RowDefinition Height="Auto"/>
+<RowDefinition Height="Auto"/>
+<RowDefinition Height="Auto"/>
+<RowDefinition Height="Auto"/>
+<RowDefinition Height="Auto"/>
+</Grid.RowDefinitions>
+<TextBlock Grid.Row="0" Text="{DynamicResource L.9CF2E418D6B6FB4C}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="2,5"/><TextBox Grid.Row="0" Grid.Column="1" Margin="6,5,2,5" x:Name="RenameInputQuery" MinWidth="100" HorizontalAlignment="Stretch" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.EC20CC4CE2D916DD}" />
+<TextBlock Grid.Row="1" Text="{DynamicResource L.BA40014FF496F64E}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="2,5"/><TextBox Grid.Row="1" Grid.Column="1" Margin="6,5,2,5" x:Name="RenameInputType" MinWidth="100" HorizontalAlignment="Stretch" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.EE7E80078645F66D}" />
+<TextBlock Grid.Row="2" Text="{DynamicResource L.52DAA71EBC310581}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="2,5"/><TextBox Grid.Row="2" Grid.Column="1" Margin="6,5,2,5" x:Name="RenameInputFolder" MinWidth="100" HorizontalAlignment="Stretch" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.BFF46086961F7E97}" />
+<TextBlock Grid.Row="3" Text="{DynamicResource L.E1506406A5BD8F02}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="2,5"/><TextBox Grid.Row="3" Grid.Column="1" Margin="6,5,2,5" x:Name="RenameInputCamera" MinWidth="100" HorizontalAlignment="Stretch" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.C38946AD4C39C80A}" />
+<TextBlock Grid.Row="4" Text="{DynamicResource L.4AD3DD1A63FBAD6C}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="2,5"/><TextBox Grid.Row="4" Grid.Column="1" Margin="6,5,2,5" x:Name="RenameDateFrom" MinWidth="100" HorizontalAlignment="Stretch" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.C297CC85CEB07263}" />
+<TextBlock Grid.Row="5" Text="{DynamicResource L.81C0DA11A7B77AF6}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="2,5"/><TextBox Grid.Row="5" Grid.Column="1" Margin="6,5,2,5" x:Name="RenameDateTo" MinWidth="100" HorizontalAlignment="Stretch" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.98E68EB57B8CF0AF}" />
+<TextBlock Grid.Row="6" Text="{DynamicResource L.1D0FD5F9336D9103}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="2,5"/><TextBox Grid.Row="6" Grid.Column="1" Margin="6,5,2,5" x:Name="RenameInputTag" MinWidth="100" HorizontalAlignment="Stretch" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.3192A23017FD62E5}" />
+<TextBlock Grid.Row="7" Text="{DynamicResource M6.RenameInputGps}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="2,5"/><ComboBox Grid.Row="7" Grid.Column="1" Margin="6,5,2,5" x:Name="RenameInputGps" MinWidth="100" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="RenameOrderChanged">
             <ComboBoxItem Content="{DynamicResource L.09493BEDA0D7A910}" />
             <ComboBoxItem Content="{DynamicResource L.0BC7CACEC7A445D5}" />
             <ComboBoxItem Content="{DynamicResource L.E9E1C68B865D0A95}" />
            </ComboBox>
-           <ComboBox x:Name="RenameInputPresence" Width="85" SelectedIndex="0" SelectionChanged="RenameOrderChanged">
+<TextBlock Grid.Row="8" Text="{DynamicResource M6.RenameInputPresence}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="2,5"/><ComboBox Grid.Row="8" Grid.Column="1" Margin="6,5,2,5" x:Name="RenameInputPresence" MinWidth="100" HorizontalAlignment="Stretch" SelectedIndex="0" SelectionChanged="RenameOrderChanged">
             <ComboBoxItem Content="{DynamicResource L.B709CB12F0ABA6BE}" />
             <ComboBoxItem Content="{DynamicResource L.A8DA8005BA637C2D}" />
             <ComboBoxItem Content="{DynamicResource L.2D7BD14198FB3C1F}" />
            </ComboBox>
-          </WrapPanel>
+</Grid>
           <TextBlock Text="{DynamicResource L.218DB3CB684C08FA}" />
          </StackPanel>
         </Expander>
