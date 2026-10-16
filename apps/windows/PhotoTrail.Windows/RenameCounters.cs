@@ -27,6 +27,7 @@ internal static class RenameCounters
     static void Save(string path,RenameCounterSnapshot expected,IReadOnlyDictionary<int,long> values){if(Revision(path)!=expected.Revision)throw new IOException("执行期间计数文件改变；保留未知记录，未覆写。");SettingsPreference.WriteJson(path,JsonSerializer.SerializeToElement(new State("phototrail-windows-rename-counters",1,values.ToDictionary()),Json));}
     internal static void Reset(string path,IReadOnlyList<RenameRule> rules){using var gate=Guard(path);var snapshot=Read(path);var used=rules.Where(r=>r.Enabled&&r.Counter>0).ToArray();if(used.Select(r=>r.Counter).Distinct().Count()!=used.Length||used.Any(r=>r.Start<0))throw new ArgumentException("计数器重设参数无效。");var values=snapshot.Values.ToDictionary();foreach(var rule in used)values[rule.Counter]=rule.Start;Save(path,snapshot,values);}
     internal static async Task<RenameResult> ExecuteAsync(RenamePlan plan,RenameCounterUse use,string path,string history,CancellationToken token,Action<int,int>? progress=null) {
+        token.ThrowIfCancellationRequested();
         using var parents=SavePaths.LockParents(path,false);using var gate=Guard(path);var current=Read(path);
         if(current.Revision!=use.Snapshot.Revision||use.Advances.Keys.Any(i=>current.Values.GetValueOrDefault(i)!=use.Snapshot.Values.GetValueOrDefault(i)))throw new IOException("计数器已变化，请重新冻结；未执行。");
         var ticket=new Pending(Guid.NewGuid().ToString("N"),plan.Files.ToArray(),use.Advances.ToDictionary(),current);

@@ -25,6 +25,9 @@
   <Compile Include="../PhotoTrail.Windows/PresetDateArguments.cs" Link="PresetDateArguments.cs" />
   <Compile Include="../PhotoTrail.Windows/MetadataTimes.cs" Link="MetadataTimes.cs" />
   <Compile Include="../PhotoTrail.Windows/BatchTrackMatch.cs" Link="BatchTrackMatch.cs" />
+  <Compile Include="../PhotoTrail.Windows/L10n.cs" Link="L10n.cs" />
+  <Compile Include="../PhotoTrail.Windows/UiPreference.cs" Link="UiPreference.cs" />
+  <EmbeddedResource Include="../PhotoTrail.Windows/Resources/LocalizedStrings.json" LogicalName="PhotoTrail.Windows.Resources.LocalizedStrings.json" />
   <Compile Include="../PhotoTrail.Windows/SessionTime.cs" Link="SessionTime.cs" />
   <Compile Include="../PhotoTrail.Windows/VerifiedPhotoDate.cs" Link="VerifiedPhotoDate.cs" />
   <Compile Include="../PhotoTrail.Windows/SharedMetadataDates.cs" Link="SharedMetadataDates.cs" />
