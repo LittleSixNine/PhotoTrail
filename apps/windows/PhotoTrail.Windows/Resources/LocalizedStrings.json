@@ -30868,5 +30868,14 @@
     "ko": "{0} · {1}개 작업",
     "es": "{0} · {1} operaciones",
     "pt-BR": "{0} · {1} operações"
+  },
+  "尚未准备保存计划。默认副本；原位必须先备份。": {
+    "zh-Hans": "尚未准备保存计划。默认副本；原位必须先备份。",
+    "en": "No save plan prepared. Copies are the default; in-place saves require a backup first.",
+    "zh-Hant": "尚未準備儲存計畫。預設為副本；原位儲存必須先備份。",
+    "ja": "保存プランは未作成です。既定はコピー保存で、上書き保存には先にバックアップが必要です。",
+    "ko": "저장 계획이 아직 없습니다. 기본값은 사본이며, 원본 위치에 저장하려면 먼저 백업해야 합니다.",
+    "es": "Todavía no hay un plan de guardado. Se guardan copias de forma predeterminada; guardar en el original requiere una copia de seguridad previa.",
+    "pt-BR": "Nenhum plano de salvamento preparado. O padrão é salvar cópias; salvar no original exige um backup prévio."
   }
 }

@@ -1286,7 +1286,7 @@
        </WrapPanel>
        <TextBlock x:Name="InplaceStatus" TextWrapping="Wrap" />
       </StackPanel>
-      <TextBox x:Name="SaveSummary" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="{DynamicResource L.3A7ADFD29925E309}" Text="尚未准备保存计划。默认副本；原位必须先备份。" />
+      <TextBox x:Name="SaveSummary" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="{DynamicResource L.3A7ADFD29925E309}" Text="{DynamicResource L.D9F0C09D5A5BE91B}" />
      </DockPanel>
     </TabItem>
     <TabItem Header="CSV" Tag="tool.8" AutomationProperties.AutomationId="MetadataTools.8">
