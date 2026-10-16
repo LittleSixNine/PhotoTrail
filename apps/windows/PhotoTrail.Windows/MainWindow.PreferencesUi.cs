@@ -60,14 +60,14 @@ public partial class MainWindow
         }catch(Exception){if(revision==storageSummaryRevision&&IsLoaded)storageStatus.Text=L10n.Message(L10n.Text("存储摘要不可读取，已有文件保持。没有执行清理。"));}
     }
     internal static (int Tracks,long SourceBytes,long BackupBytes,int Old) ReadStorageSummary(string backup,int days){
-        var cache=TrackSnapshots.Read(TrackSnapshots.DefaultPath);long bytes=0,backupBytes=0;int old=0;
-        foreach(string path in cache.Select(t=>t.Path).Distinct(StringComparer.OrdinalIgnoreCase)){var file=new FileInfo(path);if(!file.Exists||(file.Attributes&FileAttributes.ReparsePoint)!=0)throw new IOException("Track source unavailable");bytes=checked(bytes+file.Length);}
+        var history=TrackHistory.Read(TrackHistory.DefaultPath);var cache=TrackSnapshots.Read(TrackSnapshots.DefaultPath);long bytes=0,backupBytes=0;int old=0;
+        foreach(string path in history.Concat(cache.Select(t=>t.Path)).Distinct(StringComparer.OrdinalIgnoreCase)){var file=new FileInfo(path);if(!file.Exists||(file.Attributes&FileAttributes.ReparsePoint)!=0)throw new IOException("Track source unavailable");bytes=checked(bytes+file.Length);}
         if(backup.Length>0){
             var attributes=File.GetAttributes(backup);if((attributes&FileAttributes.Directory)==0||(attributes&FileAttributes.ReparsePoint)!=0)throw new IOException("Backup folder unavailable or linked");
             var options=new EnumerationOptions{RecurseSubdirectories=true,AttributesToSkip=FileAttributes.ReparsePoint,IgnoreInaccessible=false};var cutoff=DateTime.UtcNow.AddDays(-days);
             foreach(var file in new DirectoryInfo(backup).EnumerateFiles("*",options)){backupBytes=checked(backupBytes+file.Length);if(days>0&&file.LastWriteTimeUtc<cutoff)old++;}
         }
-        return(cache.Length,bytes,backupBytes,old);
+        return(history.Length,bytes,backupBytes,old);
     }
     string DisplayCoordinate(double value){double absolute=Math.Abs(value);int degree=(int)absolute;double minutes=(absolute-degree)*60;return ui.CoordinateFormat switch{1=>(value<0?"−":"")+degree+"° "+minutes.ToString("0.######",CultureInfo.InvariantCulture)+"′",2=>(value<0?"−":"")+degree+"° "+(int)minutes+"′ "+((minutes-(int)minutes)*60).ToString("0.####",CultureInfo.InvariantCulture)+"″",_=>value.ToString("0.######",CultureInfo.InvariantCulture)};}
     bool TrackPreferenceInputDirty=>trackColorInput is not null&&(trackColorInput.Text!=ui.TrackColor||trackWidthInput!.Text!=ui.TrackWidth.ToString("R",CultureInfo.InvariantCulture)||trackGapInput!.Text!=ui.MatchGapMinutes.ToString("R",CultureInfo.InvariantCulture)||gpxGapInput!.Text!=(ui.PhotoGpxGapSeconds/60).ToString(CultureInfo.InvariantCulture));
