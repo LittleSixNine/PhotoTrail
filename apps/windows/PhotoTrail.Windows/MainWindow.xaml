@@ -417,7 +417,7 @@
        </Expander>
        <Expander x:Name="PhotoGpxPanel" Header="{DynamicResource L.BD31C04096D69B18}" Margin="8,0">
         <StackPanel x:Name="PhotoGpxControls">
-         <TextBlock Text="{DynamicResource L.34588FD926E58633}" TextWrapping="Wrap" />
+         <TextBlock Text="{DynamicResource L.78B7FEC8386E4DA2}" TextWrapping="Wrap" />
          <WrapPanel>
           <TextBlock Text="{DynamicResource L.4878B41C3938B24A}" />
           <TextBox x:Name="GpxSegmentGap" Text="300" Width="110" MaxLength="32" TextChanged="PhotoGpxInputChanged" AutomationProperties.Name="{DynamicResource L.881AB7D2482D4649}" />

@@ -31453,5 +31453,14 @@
     "ko": "쌍 이미지 픽셀 또는 썸네일이 변경되었습니다.",
     "es": "Cambiaron píxeles o miniatura de la imagen emparejada.",
     "pt-BR": "Pixels ou miniatura da imagem do par mudaram."
+  },
+  "冻结当前有效GPS与主时间（含已确认草稿）；显式偏移优先，无偏移按当前批次相机时区解释。缺少WGS84、歧义或无法无损适配时跳过，不回退旧时间，不删重复点。": {
+    "zh-Hans": "冻结当前有效GPS与主时间（含已确认草稿）；显式偏移优先，无偏移按当前批次相机时区解释。缺少WGS84、歧义或无法无损适配时跳过，不回退旧时间，不删重复点。",
+    "en": "Freeze valid GPS and primary times, including drafts. Explicit offsets take priority; offset-free times use the current session camera zone. Skip missing WGS84, ambiguous or non-losslessly adaptable times. Do not fall back to old times or remove duplicate points.",
+    "zh-Hant": "凍結有效GPS與主時間（含草稿）；明確偏移優先，無偏移按目前批次相機時區解釋。缺WGS84、歧義或無法無損適配則略過，不回退舊時間，不刪重複點。",
+    "ja": "有効なGPSと主時刻（下書き含む）を確定。明示オフセット優先、未指定時は現在のカメラ時間帯で解釈。WGS84欠落・曖昧・精度不足は除外し、旧時刻への戻しや重複点削除は行いません。",
+    "ko": "유효한 GPS와 주 시간(초안 포함)을 고정합니다. 명시 오프셋을 우선하고 없으면 현재 세션 카메라 시간대를 사용합니다. WGS84 누락, 모호함, 정밀도 부족은 건너뛰며 이전 시간 대체나 중복점 삭제는 하지 않습니다.",
+    "es": "Fijar GPS y horas válidas, incluidos borradores. Priorizar desfases explícitos; sin desfase usar la zona de cámara de esta sesión. Omitir WGS84 ausente, ambigüedad o pérdida de precisión. No recurrir a horas antiguas ni eliminar puntos duplicados.",
+    "pt-BR": "Fixar GPS e horários válidos, incluindo rascunhos. Priorizar deslocamentos explícitos; sem deslocamento usar o fuso da câmera desta sessão. Ignorar WGS84 ausente, ambiguidade ou perda de precisão. Não usar horários antigos nem remover pontos duplicados."
   }
 }
