@@ -25,7 +25,7 @@ public partial class MainWindow
     ComboBox? m4Filter,m4Sort;
     string M4(string key)=>TryFindResource("M4."+key) as string??key;
     string M4Format(string key,params object[] values)=>string.Format(CultureInfo.CurrentCulture,M4(key),values);
-    Button M4Button(string key,RoutedEventHandler action){var button=new Button{Content=M4(key),Margin=new(2),Padding=new(7,5,7,5)};AutomationProperties.SetName(button,M4(key));AutomationProperties.SetAutomationId(button,"M4"+key);button.Click+=action;return button;}
+    Button M4Button(string key,RoutedEventHandler action){var button=new Button{Content=new TextBlock{Text=M4(key),TextWrapping=TextWrapping.Wrap},Margin=new(2),Padding=new(7,5,7,5)};AutomationProperties.SetName(button,M4(key));AutomationProperties.SetAutomationId(button,"M4"+key);button.Click+=action;return button;}
     static void M4Text(Panel panel,string value,bool heading=false){panel.Children.Add(new TextBlock{Text=value,TextWrapping=TextWrapping.Wrap,FontSize=heading?16:12,FontWeight=heading?FontWeights.SemiBold:FontWeights.Normal,Margin=new(2,8,2,5)});}
     void InitializeM4Map(){
         if(m4Ready)return;m4Ready=true;

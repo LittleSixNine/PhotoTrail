@@ -725,7 +725,7 @@
           <Button Content="{DynamicResource L.F46A1A31E51CC91D}" Click="ResetRenameCounters" />
          </WrapPanel>
         </Expander>
-        <TextBlock x:Name="RenameOrderStatus" Text="{DynamicResource L.F5808FF7FFF767E2}" />
+        <TextBlock x:Name="RenameOrderStatus" Text="{DynamicResource L.F5808FF7FFF767E2}" TextWrapping="Wrap" />
         <DockPanel Margin="0,10,0,10">
          <Button x:Name="FreezeRenameButton" DockPanel.Dock="Right" Content="{DynamicResource L.B3CDE8A45E490101}" Click="FreezeRename" Padding="12,6" Margin="10,0,0,0" />
          <TextBox x:Name="RenameRules" AutomationProperties.Name="{DynamicResource L.389BA884F4590D00}" Text="前缀|旅行_" TextChanged="RenameRulesChanged" AcceptsReturn="True" MaxLength="32768" Height="60" VerticalScrollBarVisibility="Auto" />
