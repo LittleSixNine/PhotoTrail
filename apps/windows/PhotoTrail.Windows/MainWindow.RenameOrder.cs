@@ -16,7 +16,7 @@ public partial class MainWindow
     bool fillingRenameControls;
     Point renameDragStart;
     string[] renameDragIds=[];
-    RenameOrderSettings ReadRenameOrder(){var settings=new RenameOrderSettings(RenameOrderSettings.Sorts[RenameProcessingSort.SelectedIndex],RenameDescending.IsChecked==true,RenameMetadataTag.Text.Trim()){Conflict=new[]{"stop","numbers","letters"}[RenameConflictChoice.SelectedIndex],ConflictDigits=int.TryParse(RenameConflictDigits.Text,out var digits)?digits:0,NumberSuffixFormat=new[]{"plain","underscore","dash","parentheses"}[RenameNumberSuffix.SelectedIndex],LetterSuffixFormat=new[]{"plain","underscore","dash","parentheses"}[RenameLetterSuffix.SelectedIndex],KeepFirst=RenameKeepFirst.IsChecked==true};return settings;}
+    RenameOrderSettings ReadRenameOrder(){var settings=new RenameOrderSettings(RenameOrderSettings.Sorts[RenameProcessingSort.SelectedIndex],RenameDescending.IsChecked==true,RenameMetadataTag.Text.Trim()){Conflict=new[]{"stop","numbers","letters"}[RenameConflictChoice.SelectedIndex],ConflictDigits=int.TryParse(RenameConflictDigits.Text,out var digits)?digits:0,NumberSuffixFormat=new[]{"plain","underscore","dash","parentheses"}[RenameNumberSuffix.SelectedIndex],LetterSuffixFormat=new[]{"plain","underscore","dash","parentheses"}[RenameLetterSuffix.SelectedIndex],KeepFirst=RenameKeepFirst.IsChecked==true,Pair=RenamePair.IsChecked==true,SourceExtensions=RenameSources.Text,TargetExtensions=RenameTargets.Text,DatePriority=RenameDatePriority.Text};return settings;}
     IReadOnlyDictionary<string,VerifiedPhotoDate?> renameDateResults=new Dictionary<string,VerifiedPhotoDate?>();
     CancellationTokenSource? renameDateValidation;
     static string RenameBoundText(string value)=>value.Trim().Length==10?value.Trim().Replace('-',':')+" 00:00:00":RenameInput.BridgeDate(value.Trim());
@@ -69,7 +69,7 @@ public partial class MainWindow
         var imported=photos.FirstOrDefault(p=>p.Document.FilePath.Equals(group.Leader.Path,StringComparison.OrdinalIgnoreCase))?.Document;
         var embedded=group.Leader.Metadata??JsonSerializer.SerializeToElement(group.Leader.Tags);
         var sidecar=group.Members.FirstOrDefault(m=>m.Extension=="xmp"&&!m.Path.Equals(group.Leader.Path,StringComparison.OrdinalIgnoreCase))?.Metadata;
-        if(key=="captured")return imported is not null?BatchTrackMatch.Capture(imported):BatchTrackMatch.Capture(embedded,sidecar,new Dictionary<string,string>());
+        if(key=="captured")return group.Leader.ShootingTexts().FirstOrDefault(raw=>renameDateResults.GetValueOrDefault(raw) is not null);
         if(key is not("city" or "model")) {
             var values=new Dictionary<string,string>(StringComparer.Ordinal);
             void Add(JsonElement data,bool xmpOnly=false){foreach(var property in data.EnumerateObject().Where(p=>!xmpOnly||p.Name.StartsWith("XMP-",StringComparison.Ordinal)))values[property.Name]=property.Value.ValueKind is JsonValueKind.Object or JsonValueKind.Null?"\0invalid-type":PhotoDocument.Text(property.Value);}
@@ -88,12 +88,23 @@ public partial class MainWindow
         }
         return null;
     }
-    private void RenameOrderChanged(object sender,RoutedEventArgs e){if(!IsLoaded||fillingRenameControls)return;RenameRulesChanged(sender,e);}
+    CancellationTokenSource? m8SettingsRefresh;
+    private async void RenameOrderChanged(object sender,RoutedEventArgs e){
+        if(!IsLoaded||fillingRenameControls)return;RenameRulesChanged(sender,e);
+        if(sender!=RenamePair&&sender!=RenameSources&&sender!=RenameTargets&&sender!=RenameDatePriority)return;
+        m8SettingsRefresh?.Cancel();m8SettingsRefresh?.Dispose();var request=m8SettingsRefresh=new();
+        try{await Task.Delay(300,request.Token);if(busy||request.IsCancellationRequested)return;ReadRenameOrder().Validate();RefreshRenameOrder(sender,e);}
+        catch(OperationCanceledException){}catch(ArgumentException error){RenameStatus.Text=L10n.Message(error.Message);}
+    }
     private void RenameViewChanged(object sender,RoutedEventArgs e){if(!IsLoaded||RenamePreview.ItemsSource is null)return;var view=System.Windows.Data.CollectionViewSource.GetDefaultView(RenamePreview.ItemsSource);using(view.DeferRefresh()){view.Filter=item=>RenameViewFilter.SelectedIndex switch{1=>item is RenameFile f?f.Source!=f.Target:item is RenameOutcome o&&o.Source!=o.Current,2=>item is RenameFile f?f.Source==f.Target:item is RenameOutcome o&&o.Source==o.Current,_=>true};view.SortDescriptions.Clear();if(RenameViewOrder.SelectedIndex!=0)view.SortDescriptions.Add(new("NewName",RenameViewOrder.SelectedIndex==1?System.ComponentModel.ListSortDirection.Ascending:System.ComponentModel.ListSortDirection.Descending));}UpdateRenameButtons();}
     async Task ReadRenameGroupsAsync(CancellationToken cancellation){
         var reference=DateTimeOffset.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffffffzzz",System.Globalization.CultureInfo.InvariantCulture);
-        var selected=RenameSelection();var inputPaths=selected.Select(r=>r.Document.FilePath).ToArray();var roots=inputPaths.Select(RenameGroup.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);var paths=inputPaths.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach(var dir in inputPaths.Select(Path.GetDirectoryName).Distinct(StringComparer.OrdinalIgnoreCase))foreach(var path in Directory.EnumerateFiles(dir!))if(roots.Contains(RenameGroup.Key(path)))paths.Add(path);
+        var selected=RenameSelection();var order=ReadRenameOrder();order.Validate();var inputPaths=selected.Select(r=>r.Document.FilePath).ToArray();
+        if(!order.Pair&&selected.Any(r=>r.Document.SidecarPath is not null||File.Exists(Path.ChangeExtension(r.Document.FilePath,".xmp"))))throw new IOException(L10n.Text("关闭配对会拆开实际XMP来源，未安排更名；请启用配对。"));
+        var roots=inputPaths.Select(p=>RenameGroup.Key(p,order)).ToHashSet(StringComparer.OrdinalIgnoreCase);var paths=inputPaths.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if(order.Pair)foreach(var dir in inputPaths.Where(p=>order.SourceList.Contains(Path.GetExtension(p).TrimStart('.').ToLowerInvariant())).Select(Path.GetDirectoryName).Distinct(StringComparer.OrdinalIgnoreCase)){
+            int scanned=0;foreach(var path in Directory.EnumerateFiles(dir!)){if(++scanned>100000)throw new IOException(L10n.Text("目录配对扫描超过100000项。"));if(roots.Contains(RenameGroup.Key(path,order)))paths.Add(path);}
+        }
         if(roots.Count>3000||paths.Count>6000)throw new ArgumentException(L10n.Text("超过3000组或6000个物理文件上限。"));
         // Keep a full before/after source interval; batch only the external metadata process, never the file proofs.
         var proofs=new Dictionary<string,(ImportSource Version,string Hash,FileInfo File)>(StringComparer.OrdinalIgnoreCase);
@@ -115,7 +126,7 @@ public partial class MainWindow
                 cancellation.ThrowIfCancellationRequested();var (version,hash,file)=proofs[path];var tags=new Dictionary<string,string>();JsonElement? metadata=null;bool failed=!metadataByPath.TryGetValue(path,out var data);
                 if(!failed)try {
                     metadata=data.Clone();var extension=Path.GetExtension(path).TrimStart('.').ToLowerInvariant();
-                    if(RenameGroup.Sources.Contains(extension)&&(!data.TryGetProperty("File:MIMEType",out var mime)||!mime.ToString().StartsWith("image/",StringComparison.OrdinalIgnoreCase))||extension=="xmp"&&(!data.TryGetProperty("File:FileType",out var kind)||kind.ToString()!="XMP"))throw new InvalidDataException(L10n.Text("配对照片或XMP内容无效。"));
+                    if(order.SourceList.Contains(extension)&&(!data.TryGetProperty("File:MIMEType",out var mime)||!mime.ToString().StartsWith("image/",StringComparison.OrdinalIgnoreCase))||extension=="xmp"&&(!data.TryGetProperty("File:FileType",out var kind)||kind.ToString()!="XMP"))throw new InvalidDataException(L10n.Text("配对照片或XMP内容无效。"));
                     foreach(var tag in data.EnumerateObject().Where(t=>t.Name!="SourceFile"))tags[tag.Name]=PhotoDocument.Text(tag.Value);
                 }catch(Exception error)when(error is IOException or JsonException or InvalidDataException){failed=true;}
                 if(hash!=await PhotoDocument.HashAsync(path,cancellation))throw new IOException(L10n.Text("配对成员读取期间改变。"));
@@ -127,11 +138,13 @@ public partial class MainWindow
         inputs=inputs.Select(member=>{
             var imported=photos.FirstOrDefault(row=>(row.Document.FilePath.Equals(member.Path,StringComparison.OrdinalIgnoreCase)||row.Document.SidecarPath?.Equals(member.Path,StringComparison.OrdinalIgnoreCase)==true))?.Document;
             var external=inputs.FirstOrDefault(other=>other.Extension=="xmp"&&!other.Path.Equals(member.Path,StringComparison.OrdinalIgnoreCase)&&RenameGroup.Key(other.Path)==RenameGroup.Key(member.Path));
-            bool known=imported is not null||external is not null||member.Extension is "jpg" or "jpeg" or "xmp";
-            var capture=imported is not null?BatchTrackMatch.Capture(imported):member.Metadata is {} data?BatchTrackMatch.Capture(data,external?.Metadata,new Dictionary<string,string>()):null;
-            return member with{CaptureKnown=known,MainCapture=capture};
+            var merged=new Dictionary<string,string>(member.Tags,StringComparer.Ordinal);
+            if(external?.Metadata is {} side)foreach(var tag in side.EnumerateObject().Where(p=>p.Name.StartsWith("XMP-",StringComparison.Ordinal)))merged[tag.Name]=PhotoDocument.Text(tag.Value);
+            if(imported is not null)foreach(var tag in imported.Draft)merged[tag.Key]=tag.Value;
+            bool cleared=imported is not null&&imported.Draft.TryGetValue(imported.MainDateTag,out var pending)&&pending.Length==0;
+            return member with{Tags=merged,DatePriority=order.DatePriority,CaptureKnown=cleared,MainCapture=null};
         }).ToList();
-        var groups=inputs.GroupBy(m=>RenameGroup.Key(m.Path),StringComparer.OrdinalIgnoreCase).Select(values=>{var members=values.ToArray();var id=members.Select(m=>renameIdentities.GetValueOrDefault(m.Path)).FirstOrDefault(v=>v is not null)??Guid.NewGuid().ToString("N");foreach(var member in members)renameIdentities[member.Path]=id;return new RenameGroup(id,members);}).ToArray();
+        var groups=inputs.GroupBy(m=>RenameGroup.Key(m.Path,order),StringComparer.OrdinalIgnoreCase).Select(values=>{var members=values.ToArray();var id=members.Select(m=>renameIdentities.GetValueOrDefault(m.Path)).FirstOrDefault(v=>v is not null)??Guid.NewGuid().ToString("N");foreach(var member in members)renameIdentities[member.Path]=id;return new RenameGroup(id,members){Settings=order};}).ToArray();
         renameGroups=groups;manualRenameOrder=manualRenameOrder.Concat(groups.Select(g=>g.Id).Where(id=>!manualRenameOrder.Contains(id))).ToArray();
     }
     private async void RefreshRenameOrder(object sender,RoutedEventArgs e){

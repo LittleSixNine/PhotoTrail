@@ -187,7 +187,7 @@ internal static class RenameTransform
             Validate(variant);var adapted=new Dictionary<string,string>();var shifted=new Dictionary<string,string>();
             foreach(var (raw,proof) in dates.Where(p=>!p.Key.Contains("|zone=",StringComparison.Ordinal)).ToArray()) {
                 token.ThrowIfCancellationRequested();if(proof is null)continue;var text=proof.Text;
-                if(variant.TimeZone!="source") {
+                if(variant.TimeZone!="source"&&proof.Offset.Length>0) {
                     // Native timezone formatting is bounded to modern, representable instants; the shared core proves the date first.
                     if(proof.InstantLimitation is not null||string.CompareOrdinal(text[..10],"1582:10:15")<0)continue;
                     var zone=variant.TimeZone=="local"?TimeZoneInfo.Local:TimeZoneInfo.FindSystemTimeZoneById(variant.TimeZone);

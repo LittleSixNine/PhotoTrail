@@ -35,11 +35,12 @@ public sealed record RenameInput(string Path,IReadOnlyDictionary<string,string> 
         if(raw is null||!DateTimeOffset.TryParse(raw,CultureInfo.InvariantCulture,DateTimeStyles.None,out var time))return null;
         return (time.UtcTicks-DateTime.UnixEpoch.Ticks)/(decimal)TimeSpan.TicksPerSecond;
     }
+    internal string DatePriority {get;init;}=RenameOrderSettings.DefaultDatePriority;
     internal bool CaptureKnown {get;init;}
     internal string? MainCapture {get;init;}
     internal IEnumerable<string> ShootingTexts() {
         if(CaptureKnown){if(MainCapture is not null)yield return BridgeDate(MainCapture);yield break;}
-        foreach(var key in new[]{"Composite:SubSecDateTimeOriginal","Composite:DateTimeOriginal","ExifIFD:DateTimeOriginal","XMP-exif:DateTimeOriginal","ExifIFD:CreateDate","QuickTime:CreationDate","QuickTime:DateTimeOriginal","QuickTime:ContentCreateDate","QuickTime:CreateDate","QuickTime:MediaCreateDate","ID3:Date","XMP-xmp:CreateDate"}) {
+        foreach(var key in DatePriority.Replace("\r\n","\n").Split('\n',StringSplitOptions.RemoveEmptyEntries)) {
             var raw=Tag(key);if(raw is null)continue;bool digitized=key.EndsWith(":CreateDate",StringComparison.Ordinal);
             var fraction=Tag(digitized?"SubSecTimeDigitized":"SubSecTimeOriginal");var offset=Tag(digitized?"OffsetTimeDigitized":"OffsetTimeOriginal");
             if(raw.Length>=19&&!raw.Contains('.')) {if(fraction is not null)raw=raw[..19]+"."+fraction+raw[19..];}
@@ -54,21 +55,37 @@ public sealed record RenameGroup(string Id,IReadOnlyList<RenameInput> Members)
 {
     public static readonly string[] Sources=["jpg","jpeg","heic","cr3","cr2","nef","arw","dng","raf"];
     public static readonly string[] Targets=["xmp","aae","thm"];
-    public RenameInput Leader=>Members.OrderBy(m=>Array.IndexOf(Sources,m.Extension) is var n&&n>=0?n:int.MaxValue).First();
+    public RenameOrderSettings Settings {get;init;}=new();
+    public RenameInput Leader=>Members.OrderBy(m=>Array.IndexOf(Settings.SourceList,m.Extension) is var n&&n>=0?n:int.MaxValue).First();
     public string Name=>Leader.Name;
+    public static string Key(string path,RenameOrderSettings settings)=>settings.Pair&&settings.SourceList.Concat(settings.TargetList).Contains(System.IO.Path.GetExtension(path).TrimStart('.').ToLowerInvariant())?System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path)!,RenameTransform.Split(System.IO.Path.GetFileName(path)).Stem).ToLowerInvariant():System.IO.Path.GetFullPath(path).ToLowerInvariant();
     public string Identity=>Id;
     public string Status=>Members.Any(m=>m.MetadataFailed)?"元数据读取失败；不可冻结":"处理预览";
     public static string Key(string path)=>Sources.Concat(Targets).Contains(System.IO.Path.GetExtension(path).TrimStart('.').ToLowerInvariant())?System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path)!,RenameTransform.Split(System.IO.Path.GetFileName(path)).Stem).ToLowerInvariant():System.IO.Path.GetFullPath(path).ToLowerInvariant();
 }
 public sealed record RenameOrderSettings(string Sort="input",bool Descending=false,string? MetadataSortTag=null)
 {
+    public bool Pair {get;init;}=true;
+    public string SourceExtensions {get;init;}="jpg,jpeg,heic,cr3,cr2,nef,arw,dng,raf";
+    public string TargetExtensions {get;init;}="xmp,aae,thm";
+    public const string DefaultDatePriority="Composite:SubSecDateTimeOriginal\nComposite:DateTimeOriginal\nExifIFD:DateTimeOriginal\nXMP-exif:DateTimeOriginal\nExifIFD:CreateDate\nQuickTime:CreationDate\nQuickTime:DateTimeOriginal\nQuickTime:ContentCreateDate\nQuickTime:CreateDate\nQuickTime:MediaCreateDate\nID3:Date\nXMP-xmp:CreateDate";
+    public string DatePriority {get;init;}=DefaultDatePriority;
+    [System.Text.Json.Serialization.JsonIgnore] public string[] SourceList=>Extensions(SourceExtensions);
+    [System.Text.Json.Serialization.JsonIgnore] public string[] TargetList=>Extensions(TargetExtensions);
+    static string[] Extensions(string value)=>value.Split(',',StringSplitOptions.RemoveEmptyEntries).Select(e=>e.Trim().ToLowerInvariant()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+    internal void ValidateInputs(){
+        if(SourceExtensions is null||TargetExtensions is null||DatePriority is null||SourceExtensions.Length>1024||TargetExtensions.Length>1024||DatePriority.Length>8192)throw new ArgumentException("配对或日期来源设置缺失／过长。");
+        foreach(var list in new[]{SourceList,TargetList})if(list.Length>64||list.Any(e=>e.Length is <1 or >16||e.Any(c=>!char.IsAsciiLetterOrDigit(c)))||list.Distinct(StringComparer.OrdinalIgnoreCase).Count()!=list.Length)throw new ArgumentException("扩展名须为不带点的非空字母数字、逗号分隔且不重复。");
+        var priorities=DatePriority.Replace("\r\n","\n").Split('\n',StringSplitOptions.RemoveEmptyEntries);
+        if(priorities.Length>64||priorities.Any(p=>p!=p.Trim()||p.Length>256||p.Any(char.IsControl))||priorities.Distinct(StringComparer.Ordinal).Count()!=priorities.Length)throw new ArgumentException("日期来源须为每行一个非空且不重复的精确标签。");
+    }
     public string Conflict { get; init; } = "stop";
     public int ConflictDigits { get; init; } = 3;
     public string NumberSuffixFormat { get; init; } = "underscore";
     public string LetterSuffixFormat { get; init; } = "plain";
     public bool KeepFirst { get; init; } = true;
     public static readonly string[] Sorts=["input","name","natural","shooting","created","modified","fileExtension","folder","size","make","model","city","rating","metadata","manual"];
-    public void Validate(){if(!Sorts.Contains(Sort)||MetadataSortTag?.Length>256||MetadataSortTag?.Any(char.IsControl)==true||Conflict is not("stop" or "numbers" or "letters")||ConflictDigits is <2 or >5||NumberSuffixFormat is not("plain" or "underscore" or "dash" or "parentheses")||LetterSuffixFormat is not("plain" or "underscore" or "dash" or "parentheses"))throw new ArgumentException("排序或碰撞参数无效。");}
+    public void Validate(){ValidateInputs();if(!Sorts.Contains(Sort)||MetadataSortTag?.Length>256||MetadataSortTag?.Any(char.IsControl)==true||Conflict is not("stop" or "numbers" or "letters")||ConflictDigits is <2 or >5||NumberSuffixFormat is not("plain" or "underscore" or "dash" or "parentheses")||LetterSuffixFormat is not("plain" or "underscore" or "dash" or "parentheses"))throw new ArgumentException("排序或碰撞参数无效。");}
 }
 public sealed record RenameInputFilter(string Query="",string Extension="",string Folder="",string Camera="",decimal? From=null,decimal? To=null,int Gps=0,string Tag="",int Presence=0)
 {

@@ -1,0 +1,48 @@
+using System.IO;
+using System.Security.Cryptography;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Windows.Controls;
+using PhotoTrail.Windows;
+
+static partial class Program
+{
+ static async Task M8Checks(){
+  await ImportDone();var photos=Control<ListBox>("Photos");photos.SelectAll();Control<TabControl>("WorkspaceTabs").SelectedIndex=2;await Responsive();
+  var rules=new[]{new RenameRule("action"){Action="number-begin",Start=1,Step=1,Padding=3,Counter=1},new RenameRule("action","_M8"){Action="add-end"}};
+  var order=new RenameOrderSettings("name"){SourceExtensions="jpeg,jpg",TargetExtensions="xmp",DatePriority="XMP-xmp:CreateDate\nExifIFD:DateTimeOriginal",Conflict="numbers"};
+  var scheme=new RenameScheme(Guid.NewGuid(),"M8 synthetic contract",RenamePlan.EncodeEditorRules(rules),order,"");
+  M3Call("SetSchemeEditor",scheme);await Responsive();Action("RefreshRenameOrder");await RenameWait();
+  var groups=(RenameGroup[])Field("renameGroups")!;var paired=groups.Single(g=>g.Members.Count==3);
+  Check(paired.Leader.Extension=="jpeg"&&paired.Members.Any(m=>m.Extension=="xmp"),"M8-source-order-chooses-real-JPEG-extension-and-associated-XMP");
+  Check(paired.Settings==order&&paired.Leader.ShootingTexts().First().StartsWith("2024:01:02",StringComparison.Ordinal),"M8-custom-date-priority-uses-actual-XMP-source");
+  var reverse=order with{SourceExtensions="JPG,jpeg",TargetExtensions="xmp,aae"};M3Call("SetSchemeEditor",scheme with{Order=reverse});Action("RefreshRenameOrder");await RenameWait();Check(((RenameGroup[])Field("renameGroups")!).Single(g=>g.Members.Count==3).Leader.Extension=="jpg","M8-priority-reversal-and-case-normalization-real-group");
+  M3Call("SetSchemeEditor",scheme with{Order=order with{Pair=false}});Action("RefreshRenameOrder");await RenameWait();Check(Control<DataGrid>("RenamePreview").Items.Count==0&&Control<TextBlock>("RenameStatus").Text.Contains("XMP",StringComparison.Ordinal),"M8-pair-off-rejects-splitting-loaded-sidecar-with-visible-reason");
+  M3Call("SetSchemeEditor",scheme);Action("RefreshRenameOrder");await RenameWait();Action("FreezeRename");await RenameWait();var frozen=(RenamePlan)Field("frozenRenamePlan")!;Check(frozen.Files.Count==5&&frozen.GroupSettings==order,"M8-real-freeze-includes-five-qualified-physical-members-and-settings");
+  Control<CheckBox>("RenameDescending").IsChecked=true;await Responsive();Check(Field("frozenRenamePlan")is null,"M8-sort-condition-invalidates-old-freeze");M3Call("SetSchemeEditor",scheme);
+  var full=RenameSchemeLibrary.Export(scheme);var localImport=RenameSchemeLibrary.Import(full,"own");Check(localImport.Order==order&&RenamePlan.ParseRules(localImport.Rules).Count==2,"M8-Windows-old-v3-container-retains-new-settings-without-public-format-change");
+  var mac=MacRenamePreset.Export(scheme);File.WriteAllText(Path.Combine(folder,"windows-to-mac-v1-synthetic.json"),mac);var imported=RenameSchemeLibrary.Import(mac,"synthetic");Check(imported.Order==order&&RenamePlan.ParseRules(imported.Rules)[0].Counter==1,"M8-Mac-v1-settings-and-counter-selection-local-roundtrip");
+  var node=JsonNode.Parse(mac)!;Check(node["version"]!.GetValue<int>()==1&&!node.ToJsonString().Contains("counterValues",StringComparison.Ordinal),"M8-Mac-preset-has-no-runtime-counter-state-or-new-version");
+  var date=new RenameRule("action"){Action="date-set",DateFormat="yyyy-MM-dd_HH-mm-ss",TimeZone="America/New_York",NightHour=4};var filtered=new RenameRule("action"){Action="filter-following",FilterAny=true,Filters=[new("name","starts","é"),new("fileExtension","equals","jpg")]};
+  var boundary=scheme with{Rules=RenamePlan.EncodeEditorRules([filtered,date,rules[1] with{Enabled=false}])};var converted=RenameSchemeLibrary.Import(MacRenamePreset.Export(boundary),"synthetic");var parsed=RenamePlan.ParseRules(converted.Rules);Check(parsed[0].Filters.Length==2&&parsed[0].FilterAny&&parsed[1].NightHour==4&&parsed[1].TimeZone==date.TimeZone&&!parsed[2].Enabled,"M8-rule-filter-date-parameters-disabled-order-preserved");
+  File.WriteAllText(Path.Combine(folder,"date-filter-Mac-v1-synthetic.json"),MacRenamePreset.Export(boundary));
+  foreach(var mutation in new[]{"version","unknown","id","rule-id","filter-id","action","natural","format","counter-duplicate"}){
+   var bad=JsonNode.Parse(mac)!;switch(mutation){case "version":bad["version"]=2;break;case "unknown":bad["unexpected"]=1;break;case "id":bad["id"]=Guid.Empty.ToString();break;case "rule-id":bad["rules"]![1]!["id"]=bad["rules"]![0]!["id"]!.GetValue<string>();break;case "filter-id":bad["rules"]![0]!["filters"]![0]!["id"]=Guid.Empty.ToString();break;case "action":bad["rules"]![0]!["action"]=72;break;case "natural":bad["settings"]!["sort"]="natural";break;case "format":bad["rules"]![0]!["action"]=40;bad["rules"]![0]!["dateFormat"]="unsupported G";break;case "counter-duplicate":bad["rules"]![1]!["action"]=47;bad["rules"]![1]!["counter"]=1;break;}
+   bool refused=false;try{RenameSchemeLibrary.Import(bad.ToJsonString(),"reject");}catch(Exception error)when(error is InvalidDataException or ArgumentException){refused=true;}Check(refused,"M8-whole-preset-refuses-"+mutation);File.WriteAllText(Path.Combine(folder,"rejected-"+mutation+"-synthetic.json"),bad.ToJsonString());
+  }
+  bool duplicate=false;try{RenameSchemeLibrary.Import(mac.Replace("\"version\":1","\"version\":1,\"version\":1"),"reject");}catch(InvalidDataException){duplicate=true;}Check(duplicate,"M8-duplicate-JSON-properties-refused-recursively");
+  foreach(var extensions in new[]{".jpg","jpg/evil","jpg, bad name"}){bool invalid=false;try{(order with{SourceExtensions=extensions}).Validate();}catch(ArgumentException){invalid=true;}Check(invalid,"M8-invalid-extension-list-refused-"+extensions);}
+  var empty=order with{SourceExtensions="",TargetExtensions="",DatePriority=""};empty.Validate();Check(RenameGroup.Key(paired.Leader.Path,empty).EndsWith(".jpeg",StringComparison.Ordinal)&&new RenameInput(paired.Leader.Path,paired.Leader.Tags){DatePriority=""}.ShootingTexts().Count()==0,"M8-empty-lists-remain-empty-no-default-fallback");
+  var texts=new[]{"2024:01:02 01:02:03.123456+08:00","2024:01:02 01:02:03.123456"};var dateRules=new[]{date};var proofs=await RenameTransform.PrepareDatesAsync(texts,dateRules,CancellationToken.None);
+  string Name(string raw)=>RenamePlan.ApplyVerified("sample.jpg",dateRules,0,key=>key=="captured"?raw:null,proofs.GetValueOrDefault(raw),proofs);
+  Check(Name(texts[0])=="2024-01-01_12-02-03.jpg","M8-explicit-offset-converts-zone-then-night-previous-day");
+  Check(Name(texts[1])=="2024-01-01_01-02-03.jpg","M8-no-offset-wall-clock-keeps-wall-zone-night-only");
+  var missing=new RenameRule("action"){Action="date-set",SkipMissing=true};Check(RenamePlan.ApplyVerified("keep.jpg",[missing,rules[1]],0,_=>null,null)=="keep.jpg","M8-missing-date-skips-entire-group-following-rules");
+  Action("FreezeRename");await RenameWait();frozen=(RenamePlan)Field("frozenRenamePlan")!;var before=frozen.Files.ToDictionary(f=>f.Source,f=>f.Hash,StringComparer.OrdinalIgnoreCase);var counterBefore=RenameCounters.Read(RenameCounters.DefaultPath);
+  var result=await RenameExecutor.ExecuteAsync(frozen,Path.Combine(folder,"m8-journal"));Check(result.Complete&&result.Files.Count==5,"M8-five-physical-files-execute-existing-protected-engine");var after=RenameCounters.Read(RenameCounters.DefaultPath);Check(after.Values[1]>counterBefore.Values[1],"M8-counter-advances-only-after-complete-execution");
+  var restored=await RenameExecutor.RestoreAsync(result.Journal,Path.Combine(folder,"m8-journal"));Check(restored.Complete,"M8-this-execution-record-restores");
+  foreach(var pair in before)Check(await PhotoDocument.HashAsync(pair.Key)==pair.Value,"M8-restored-source-content-SHA");Check(RenameCounters.Read(RenameCounters.DefaultPath).Values[1]==after.Values[1],"M8-record-restore-does-not-rewind-counter");
+  M3Set("frozenRenamePlan",null);M3Set("renameSchemeBaseline",M3Call("EditedScheme",Guid.NewGuid(),null));
+  File.WriteAllText(Path.Combine(folder,"m8-results.json"),JsonSerializer.Serialize(new{buildSha=Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(MainWindow).Assembly.Location))),passed=evidence.Count,evidence,realMacExecution="NOT_TESTED",samples="synthetic fixed v1 schema, not real Mac exports"},new JsonSerializerOptions{WriteIndented=true}));
+ }
+}

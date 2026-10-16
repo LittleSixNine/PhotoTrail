@@ -46,6 +46,7 @@ public record RenameFile(string Source, string Target, string Hash)
 public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool ExplicitGroups=false)
 {
     internal RenameCounterUse? CounterUse { get; init; }
+    internal RenameOrderSettings? GroupSettings {get;init;}
     public static IReadOnlyList<RenameRule> ParseRules(string text)
     {
         if (text.Length > 32768 || text.Any(c => char.IsControl(c) && c is not ('\r' or '\n'))) throw new ArgumentException("规则文字超过上限或含控制字符。");

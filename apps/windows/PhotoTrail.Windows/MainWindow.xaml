@@ -118,7 +118,7 @@
          <Button Content="{DynamicResource M1.TrackMatch}" Click="M1OpenTrackMatch" />
          <Button Content="{DynamicResource M1.AdjustDate}" Tag="3" Click="M1OpenTool" />
          <Button Content="{DynamicResource M1.PhotoGpx}" Click="M4OpenPhotoGpx" />
-         <Button Content="{DynamicResource M1.GpsCopy}" Click="M1PrepareGpsCopy" />
+         <Button AutomationProperties.Name="{DynamicResource M1.GpsCopy}" Click="M1PrepareGpsCopy"><TextBlock Text="{DynamicResource M1.GpsCopy}" TextWrapping="Wrap" /></Button>
          <TextBlock Text="{DynamicResource M1.GpsClearLimit}" TextWrapping="Wrap" Margin="3,9" />
          <Button Content="{DynamicResource M1.ClearDraft}" Click="UndoDraft" />
          <Button x:Name="RereadPhotosButton" Content="{DynamicResource L.44B72659D5BADE69}" AutomationProperties.Name="{DynamicResource L.945F1BCC4973C975}" Padding="8,6" Click="RereadPhotos" Margin="3" />
@@ -642,6 +642,12 @@
         </Expander>
         <Expander Header="{DynamicResource L.4C906D7463D91681}" IsExpanded="True">
          <StackPanel x:Name="RenameProcessingControls">
+          <CheckBox x:Name="RenamePair" IsChecked="True" Content="{DynamicResource M8.Pair}" Checked="RenameOrderChanged" Unchecked="RenameOrderChanged"/>
+          <TextBlock Text="{DynamicResource M8.Sources}" TextWrapping="Wrap"/><TextBox x:Name="RenameSources" Text="jpg,jpeg,heic,cr3,cr2,nef,arw,dng,raf" MaxLength="1024" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource M8.Sources}"/>
+          <TextBlock Text="{DynamicResource M8.SourceHelp}" TextWrapping="Wrap" FontSize="11"/>
+          <TextBlock Text="{DynamicResource M8.Targets}" TextWrapping="Wrap"/><TextBox x:Name="RenameTargets" Text="xmp,aae,thm" MaxLength="1024" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource M8.Targets}"/>
+          <TextBlock Text="{DynamicResource M8.TargetHelp}" TextWrapping="Wrap" FontSize="11"/>
+          <Expander Header="{DynamicResource M8.Priority}"><TextBox x:Name="RenameDatePriority" AcceptsReturn="True" Height="140" VerticalScrollBarVisibility="Auto" MaxLength="8192" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource M8.Priority}"/></Expander>
           <WrapPanel>
            <ComboBox x:Name="RenameProcessingSort" Width="130" SelectedIndex="0" SelectionChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.87B3C0C0656B6A3C}">
             <ComboBoxItem Content="{DynamicResource L.CD2DCE1E5C1969FA}" />

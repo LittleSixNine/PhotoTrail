@@ -73,4 +73,10 @@
 <system:String x:Key="M1.ImportFolder">导入文件夹…</system:String>
  <system:String x:Key="M1.NoNetChange">{0}没有净改动，未写文件；</system:String>
  <system:String x:Key="M1.SelectedSummary">已选择{0}张照片；{1}张有草稿。</system:String>
+ <system:String x:Key="M8.Pair">照片及关联文件一起改名</system:String>
+ <system:String x:Key="M8.Sources">照片扩展名（从左到右优先）</system:String>
+ <system:String x:Key="M8.Targets">附属文件扩展名</system:String>
+ <system:String x:Key="M8.SourceHelp">以首个实际存在的格式为主文件；逗号分隔，不加点。</system:String>
+ <system:String x:Key="M8.TargetHelp">成员保留各自扩展名；附属列表顺序不影响主文件优先级。</system:String>
+ <system:String x:Key="M8.Priority">拍摄时间来源优先级（每行一个标签）</system:String>
 </ResourceDictionary>

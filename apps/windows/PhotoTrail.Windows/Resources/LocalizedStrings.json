@@ -15652,12 +15652,12 @@
   },
   "拍摄时间来源优先级（每行一个标签）": {
     "zh-Hans": "拍摄时间来源优先级（每行一个标签）",
-    "en": "Shooting date priority (one tag per line)",
-    "zh-Hant": "拍摄時間來源優先級（每行一個標籤）",
+    "en": "Capture date source priority (one tag per line)",
+    "zh-Hant": "拍攝時間來源優先級（每行一個標籤）",
     "ja": "撮影日時の優先順位（1行1タグ）",
-    "ko": "촬영 시간 우선순위(줄당 태그 하나)",
-    "es": "Prioridad de fecha de captura (una etiqueta por línea)",
-    "pt-BR": "Prioridade da data de captura (uma etiqueta por linha)"
+    "ko": "촬영 시간 소스 우선순위 (줄당 태그 하나)",
+    "es": "Prioridad del origen de fecha (una etiqueta por línea)",
+    "pt-BR": "Prioridade da origem da data (uma tag por linha)"
   },
   "拍摄时间缺失或格式错误。": {
     "zh-Hans": "拍摄时间缺失或格式错误。",
@@ -22870,12 +22870,12 @@
   },
   "照片及关联文件一起改名": {
     "zh-Hans": "照片及关联文件一起改名",
-    "en": "Rename photos and related files together",
+    "en": "Rename photos and associated files together",
     "zh-Hant": "照片及關聯檔案一起改名",
-    "ja": "同じ名前のファイルをまとめて変更",
-    "ko": "같은 이름의 파일을 함께 이름 변경",
-    "es": "Renombrar juntos los archivos del mismo nombre",
-    "pt-BR": "Renomear juntos os arquivos de mesmo nome"
+    "ja": "写真と関連ファイルを一緒に変更",
+    "ko": "사진과 연결 파일을 함께 이름 변경",
+    "es": "Renombrar fotos y archivos asociados juntos",
+    "pt-BR": "Renomear fotos e arquivos associados juntos"
   },
   "照片名称": {
     "zh-Hans": "照片名称",
@@ -29368,12 +29368,12 @@
   },
   "附属文件扩展名": {
     "zh-Hans": "附属文件扩展名",
-    "en": "Companion file extensions",
+    "en": "Associated file extensions",
     "zh-Hant": "附屬檔案副檔名",
     "ja": "関連ファイルの拡張子",
-    "ko": "관련 파일 확장자",
-    "es": "Extensiones de archivos auxiliares",
-    "pt-BR": "Extensões de arquivos auxiliares"
+    "ko": "연결 파일 확장자",
+    "es": "Extensiones de archivos asociados",
+    "pt-BR": "Extensões de arquivos associados"
   },
   "降序": {
     "zh-Hans": "降序",
@@ -30949,5 +30949,32 @@
     "ko": "잘못된 고도/기준",
     "es": "Altitud o referencia no válida",
     "pt-BR": "Altitude ou referência inválida"
+  },
+  "照片扩展名（从左到右优先）": {
+    "zh-Hans": "照片扩展名（从左到右优先）",
+    "en": "Photo extensions (priority left to right)",
+    "zh-Hant": "照片副檔名（由左至右優先）",
+    "ja": "写真拡張子（左から優先）",
+    "ko": "사진 확장자 (왼쪽부터 우선)",
+    "es": "Extensiones de fotos (prioridad de izquierda a derecha)",
+    "pt-BR": "Extensões de fotos (prioridade da esquerda para a direita)"
+  },
+  "以首个实际存在的格式为主文件；逗号分隔，不加点。": {
+    "zh-Hans": "以首个实际存在的格式为主文件；逗号分隔，不加点。",
+    "en": "The first existing format is the primary file. Comma-separated, without dots.",
+    "zh-Hant": "以首個實際存在的格式為主檔案；逗號分隔，不加點。",
+    "ja": "実在する最初の形式を主ファイルにします。ドットなし、カンマ区切り。",
+    "ko": "실제로 존재하는 첫 형식을 기본 파일로 사용합니다. 점 없이 쉼표로 구분합니다.",
+    "es": "El primer formato existente es el archivo principal. Separar por comas, sin puntos.",
+    "pt-BR": "O primeiro formato existente é o arquivo principal. Separar por vírgulas, sem pontos."
+  },
+  "成员保留各自扩展名；附属列表顺序不影响主文件优先级。": {
+    "zh-Hans": "成员保留各自扩展名；附属列表顺序不影响主文件优先级。",
+    "en": "Members retain their extensions. Associated-file order does not change primary priority.",
+    "zh-Hant": "成員保留各自副檔名；附屬清單順序不影響主檔案優先級。",
+    "ja": "各拡張子を保持します。関連ファイルの順序は主ファイルの優先順位を変えません。",
+    "ko": "각 파일의 확장자를 유지합니다. 연결 파일 순서는 기본 파일 우선순위에 영향을 주지 않습니다.",
+    "es": "Se conservan las extensiones. El orden de archivos asociados no cambia la prioridad principal.",
+    "pt-BR": "As extensões são mantidas. A ordem dos associados não altera a prioridade principal."
   }
 }
