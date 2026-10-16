@@ -30,41 +30,41 @@ public partial class MainWindow
     void SaveModeChanged(object sender,SelectionChangedEventArgs e) {
         if(!IsLoaded||changingSaveMode)return;
         try {
-            if(busy||renameRecoveryRequired||ChosenSaveMode!=SaveMode.NewSidecar&&photos.Any(r=>!r.Document.CanEdit&&r.Document.Draft.Count>0))throw new InvalidOperationException("事务进行中或RAW草稿仍绑定新旁车，模式未改变。");
+            if(busy||renameRecoveryRequired||ChosenSaveMode!=SaveMode.NewSidecar&&photos.Any(r=>!r.Document.CanEdit&&r.Document.Draft.Count>0))throw new InvalidOperationException(L10n.Text("事务进行中或RAW草稿仍绑定新旁车，模式未改变。"));
             preparedSave=null;ExecuteSaveButton.IsEnabled=false;SyncSaveMode();InvalidateDates();InvalidateBatchTrack();
             bool preserve=preserveBatchEditor;preserveBatchEditor=true;try{RefreshSelection();}finally{preserveBatchEditor=preserve;}
-            previousSaveMode=SaveModeChoice.SelectedIndex;Status.Text="模式已明确选择；尚未创建文件，草稿与未应用输入保留。";
-        }catch(Exception error){changingSaveMode=true;SaveModeChoice.SelectedIndex=previousSaveMode;changingSaveMode=false;Status.Text=error.Message;}
+            previousSaveMode=SaveModeChoice.SelectedIndex;Status.Text=L10n.Message(L10n.Text("模式已明确选择；尚未创建文件，草稿与未应用输入保留。"));
+        }catch(Exception error){changingSaveMode=true;SaveModeChoice.SelectedIndex=previousSaveMode;changingSaveMode=false;Status.Text=L10n.Message(error.Message);}
     }
     void PrepareSaveAll(object sender,RoutedEventArgs e)=>PrepareSave(photos.Select(r=>r.Document),ChosenSaveMode,SaveScope.All);
     void PrepareSaveWorkspace(object sender,RoutedEventArgs e) {
         int workspace=WorkspaceTabs.SelectedIndex;
-        if(workspace is not (0 or 1)){Status.Text="当前工作区没有元数据保存范围；重命名不产生第三套草稿。请选元数据或地图，或使用全部待保存。";return;}
+        if(workspace is not (0 or 1)){Status.Text=L10n.Message(L10n.Text("当前工作区没有元数据保存范围；重命名不产生第三套草稿。请选元数据或地图，或使用全部待保存。"));return;}
         PrepareSave(photos.Select(r=>r.Document),ChosenSaveMode,workspace==1?SaveScope.Map:SaveScope.Metadata);
     }
     void PrepareSave(IEnumerable<PhotoDocument> docs,SaveMode mode,SaveScope scope) {
         if(busy||renameRecoveryRequired)return;
         preparedSave=null;ExecuteSaveButton.IsEnabled=false;
-        if(InspectorHasInput()){Status.Text="保存准备被阻止：有未应用输入，请明确加入草稿；不会隐式保存。";return;}
+        if(InspectorHasInput()){Status.Text=L10n.Message(L10n.Text("保存准备被阻止：有未应用输入，请明确加入草稿；不会隐式保存。"));return;}
         try {
             var plan=SavePlan.Prepare(docs.ToArray(),mode,scope,OutputFolder.Text,photos.Select(r=>r.Document));
             preparedSave=plan;preparedMode=SaveModeChoice.SelectedIndex;preparedOutput=OutputFolder.Text;preparedBackupText=BackupFolder.Text;preparedBackup=mode==SaveMode.Inplace?Path.GetFullPath(preparedBackupText):"";
-            if(mode==SaveMode.Inplace&&!Directory.Exists(preparedBackup))throw new IOException("原位必须先选择可用的既有备份目录。");
+            if(mode==SaveMode.Inplace&&!Directory.Exists(preparedBackup))throw new IOException(L10n.Text("原位必须先选择可用的既有备份目录。"));
             SaveSummary.Text=plan.Summary+(mode==SaveMode.Inplace?$"\n强制备份：{preparedBackup}；本次{plan.Items.Length}份唯一完整字节备份。":"");WorkspaceTabs.SelectedIndex=0;OpenMetadataTool(SaveTargetTab);ExecuteSaveButton.IsEnabled=plan.Items.Length>0;
-            Status.Text="请核对冻结摘要；确认前不创建文件。";
-        }catch(Exception error){SaveSummary.Text=Status.Text="保存准备失败（未写入）："+error.Message;WorkspaceTabs.SelectedIndex=0;OpenMetadataTool(SaveTargetTab);}
+            Status.Text=L10n.Message(L10n.Text("请核对冻结摘要；确认前不创建文件。"));
+        }catch(Exception error){SaveSummary.Text=Status.Text=L10n.Message(L10n.Text("保存准备失败（未写入）：")+L10n.Message(error.Message));WorkspaceTabs.SelectedIndex=0;OpenMetadataTool(SaveTargetTab);}
     }
     void CancelSavePlan(object sender,RoutedEventArgs e) {
         if(busy){CancelRead(sender,e);return;}preparedSave=null;ExecuteSaveButton.IsEnabled=false;SaveSummary.Text+="\n计划已取消，未创建文件，草稿保留。";
     }
     async void ExecuteSavePlan(object sender,RoutedEventArgs e) {
         if(busy||renameRecoveryRequired||preparedSave is not {} plan)return;
-        if(InspectorHasInput()||preparedMode!=SaveModeChoice.SelectedIndex||(plan.Mode==SaveMode.Copy&&preparedOutput!=OutputFolder.Text||plan.Mode==SaveMode.Inplace&&preparedBackupText!=BackupFolder.Text)){Status.Text="模式、目标或未应用输入改变，计划失效；未写入。";return;}
+        if(InspectorHasInput()||preparedMode!=SaveModeChoice.SelectedIndex||(plan.Mode==SaveMode.Copy&&preparedOutput!=OutputFolder.Text||plan.Mode==SaveMode.Inplace&&preparedBackupText!=BackupFolder.Text)){Status.Text=L10n.Message(L10n.Text("模式、目标或未应用输入改变，计划失效；未写入。"));return;}
         try {
-            foreach(var item in plan.Items){SavePlan.Require(item);if(!photos.Any(r=>ReferenceEquals(r.Document,item.Document)))throw new IOException("照片已移除或来源改变。");}
+            foreach(var item in plan.Items){SavePlan.Require(item);if(!photos.Any(r=>ReferenceEquals(r.Document,item.Document)))throw new IOException(L10n.Text("照片已移除或来源改变。"));}
             var check=SavePlan.Prepare(plan.Items.Select(i=>i.Document),plan.Mode,plan.Scope,plan.Mode==SaveMode.Copy?Path.GetDirectoryName(plan.Items[0].Target)!:"",photos.Select(r=>r.Document));
-            if(!check.Items.Select(i=>i.Target).SequenceEqual(plan.Items.Select(i=>i.Target)))throw new IOException("目标资格已改变。");
-        }catch(Exception error){Status.Text="计划失效，未写入："+error.Message;preparedSave=null;ExecuteSaveButton.IsEnabled=false;return;}
+            if(!check.Items.Select(i=>i.Target).SequenceEqual(plan.Items.Select(i=>i.Target)))throw new IOException(L10n.Text("目标资格已改变。"));
+        }catch(Exception error){Status.Text=L10n.Message(L10n.Text("计划失效，未写入：")+L10n.Message(error.Message));preparedSave=null;ExecuteSaveButton.IsEnabled=false;return;}
         preparedSave=null;BeginOperation();long sequence=++rereadSequence;var request=operation!;
         var clock=Stopwatch.StartNew();long exif=Interlocked.Read(ref ExifToolClient.RequestCount),hosts=Interlocked.Read(ref DateAdapter.StartedProcesses);saveResults.Clear();
         try {
@@ -77,7 +77,7 @@ public partial class MainWindow
                 if(request.IsCancellationRequested){saveResults.Add(new(item.Target,null,null,"取消","尚未执行；草稿保留。"));continue;}
                 try {
                     SavePlan.Require(item);
-                    if(sequence!=rereadSequence||!photos.Any(r=>ReferenceEquals(r.Document,item.Document)))throw new IOException("请求或照片身份已失效。");
+                    if(sequence!=rereadSequence||!photos.Any(r=>ReferenceEquals(r.Document,item.Document)))throw new IOException(L10n.Text("请求或照片身份已失效。"));
                     if(plan.Mode==SaveMode.Copy) {
                         await MetadataCopy.SaveValidatedAsync(client,item.Document,Path.GetDirectoryName(item.Target)!,item.Fields,dates,request.Token);
                         saveResults.Add(new(item.Target,await PhotoDocument.HashAsync(item.Target),null,"成功","副本已验证，原会话草稿保留。"));
@@ -90,7 +90,7 @@ public partial class MainWindow
                                 using var sidecarGuard=next.SidecarPath is null?null:new FileStream(next.SidecarPath,FileMode.Open,FileAccess.Read,FileShare.Read);
                                 await next.EnsureUnchangedAsync(request.Token);SavePlan.Require(item,source:plan.Mode!=SaveMode.Inplace);
                                 if(result.RecordId is {} recordId){var record=InplaceHistory.Read(InplaceHistory.PathFor(recordId));await InplaceHistory.VerifyCurrent(record,record.NewHash!,record.NewIdentity!,request.Token);}
-                                if(sequence!=rereadSequence)throw new IOException("保存请求已失效。");
+                                if(sequence!=rereadSequence)throw new IOException(L10n.Text("保存请求已失效。"));
                                 var old=photos.Single(r=>ReferenceEquals(r.Document,item.Document));var replacement=old.WithDocument(next);bool selected=Photos.SelectedItems.Contains(old);
                                 fillingEditor=true;try{int index=photos.IndexOf(old);photos[index]=replacement;if(selected)Photos.SelectedItems.Add(replacement);try{if(result.RecordId is {} savedId)InplaceHistory.Append(InplaceHistory.Read(InplaceHistory.PathFor(savedId)) with{Phase="saved"});}catch{photos[index]=old;if(selected)Photos.SelectedItems.Add(old);throw;}previousSelection=Selected;}finally{fillingEditor=false;}
                                 result=result with{State="成功",Detail="真实来源与界面已接纳；本次字段更新基准，残余草稿及完整备份保留。"};
@@ -110,7 +110,7 @@ public partial class MainWindow
             saveTimings["writeAndReadbackMs"]=clock.Elapsed.TotalMilliseconds;saveTimings["exifRequests"]=Interlocked.Read(ref ExifToolClient.RequestCount)-exif;saveTimings["dateHostRequests"]=Interlocked.Read(ref DateAdapter.StartedProcesses)-hosts;
             lastApply=null;InvalidateDates();InvalidateBatchTrack();RenameRulesChanged(this,new RoutedEventArgs());RefreshPhotoRows();RefreshMatchPhoto();_=PostPhotosAsync();EndOperation();LoadInplaceRecords();
             SaveSummary.Text+="\n"+string.Join("\n",saveResults.Select(r=>$"{r.State}：{r.Path} SHA={r.Hash??"unknown"}；{r.Detail}"));
-            Status.Text=plan.Mode==SaveMode.Copy?$"保存结束：副本成功 {saveResults.Count(r=>r.State=="成功")}，失败 {saveResults.Count(r=>r.State=="失败")}，取消 {saveResults.Count(r=>r.State=="取消")}，结果未知 {saveResults.Count(r=>r.State=="结果未知")}；跳过{plan.Skipped.Length}。详见摘要；原件和会话草稿保留。":$"保存结束：成功{saveResults.Count(r=>r.State=="成功")}，失败{saveResults.Count(r=>r.State=="失败")}，取消{saveResults.Count(r=>r.State=="取消")}，结果未知{saveResults.Count(r=>r.State=="结果未知")}；跳过{plan.Skipped.Length}。详见摘要；备份、结果和未完成草稿保留。";
+            Status.Text=L10n.Message(plan.Mode==SaveMode.Copy?L10n.Format("保存结束：副本成功 {0}，失败 {1}，取消 {2}，结果未知 {3}；跳过{4}。详见摘要；原件和会话草稿保留。",saveResults.Count(r=>r.State=="成功"),saveResults.Count(r=>r.State=="失败"),saveResults.Count(r=>r.State=="取消"),saveResults.Count(r=>r.State=="结果未知"),plan.Skipped.Length):L10n.Format("保存结束：成功{0}，失败{1}，取消{2}，结果未知{3}；跳过{4}。详见摘要；备份、结果和未完成草稿保留。",saveResults.Count(r=>r.State=="成功"),saveResults.Count(r=>r.State=="失败"),saveResults.Count(r=>r.State=="取消"),saveResults.Count(r=>r.State=="结果未知"),plan.Skipped.Length));
         }
     }
 }

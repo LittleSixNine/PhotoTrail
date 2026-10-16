@@ -21,7 +21,7 @@ public partial class MainWindow
         try {
             InspectorView.SelectedIndex=settings.CommonOnly?0:1;
             string query=CommonFieldSearch.Text;var common=settings.CommonTags.ToHashSet(StringComparer.Ordinal);
-            CommonFieldOptions.ItemsSource=MetadataInspector.Options(photos.Select(r=>r.Document),settings.CommonTags).Where(t=>t.Contains(query,StringComparison.OrdinalIgnoreCase)||MetadataInspector.Label(t).Contains(query,StringComparison.CurrentCultureIgnoreCase)).Select(t=>new CommonOption(t,MetadataInspector.Label(t)+" · "+t,common.Contains(t))).ToArray();
+            CommonFieldOptions.ItemsSource=MetadataInspector.Options(photos.Select(r=>r.Document),settings.CommonTags).Where(t=>t.Contains(query,StringComparison.OrdinalIgnoreCase)||L10n.Text(MetadataInspector.Label(t)).Contains(query,StringComparison.CurrentCultureIgnoreCase)).Select(t=>new CommonOption(t,L10n.Text(MetadataInspector.Label(t))+" · "+t,common.Contains(t))).ToArray();
         }finally{changingInspectorSettings=false;}
     }
     void CommonFieldSearchChanged(object sender,TextChangedEventArgs e){if(IsLoaded)RefreshInspectorSettings();}
@@ -42,7 +42,7 @@ public partial class MainWindow
     {
         if(MetadataGrid is null||InspectorCounts is null)return;
         var selected=Selected.Select(r=>r.Document).ToArray();string query=MetadataSearch.Text;
-        var rows=MetadataInspector.Rows(selected,settings.CommonTags.ToHashSet(StringComparer.Ordinal));
+        var rows=MetadataInspector.Rows(selected,settings.CommonTags.ToHashSet(StringComparer.Ordinal)).Select(r=>r with{Section=L10n.Text(r.Section),Name=L10n.Text(r.Name),SourceRoleLabel=r.Tag.Contains(" / ",StringComparison.Ordinal)?L10n.Text(r.Tag.Split(" / ",StringSplitOptions.None)[0]):"",StateLabel=string.Join("; ",r.State.Split('；').Select(L10n.Message)),PermissionLabel=r.CanEdit?L10n.Text("编辑精确来源字段"):r.ReadOnlyReason.Length>0?L10n.Format("只读：{0}",L10n.Message(r.ReadOnlyReason)):L10n.Text("只读"),Value=r.State=="混合值"?L10n.Message(r.Value):r.Value}).ToArray();
         string? group=M1InspectorGroup.SelectedItem as string;
         var selectedTags=MetadataGrid.SelectedItems.OfType<InspectorRow>().Select(r=>r.Tag).ToHashSet(StringComparer.Ordinal);
         changingM1Inspector=true;
@@ -56,8 +56,8 @@ public partial class MainWindow
             (settings.CommonOnly||M1InspectorGroup.SelectedItem as string==M1Text("AllGroups")||r.Section==M1InspectorGroup.SelectedItem as string)).Select(r=>r with{ShowFullTag=settings.FullTagNames,MissingLabel=M1Text("MissingValue"),DraftLabel=M1Text("Draft"),DateFractionLabel=WText("Subseconds"),DateUnknownZoneLabel=WText("NoTimezone")}).ToArray();
         foreach(var row in MetadataGrid.Items.OfType<InspectorRow>())if(selectedTags.Contains(row.Tag))MetadataGrid.SelectedItems.Add(row);
         var view=CollectionViewSource.GetDefaultView(MetadataGrid.ItemsSource);view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(InspectorRow.Section)));
-        InspectorCounts.Text="所选："+MetadataInspector.Counts(selected)+"\n全库："+MetadataInspector.Counts(photos.Select(r=>r.Document));
-        InspectorStatus.Text=string.Join("\n",selected.Where(d=>d.InspectionError.Length>0).Select(d=>Path.GetFileName(d.FilePath)+"："+d.InspectionError));
+        InspectorCounts.Text=L10n.Message(L10n.Text("所选：")+L10n.Message(MetadataInspector.Counts(selected))+L10n.Text("\n全库：")+L10n.Message(MetadataInspector.Counts(photos.Select(r=>r.Document))));
+        InspectorStatus.Text=L10n.Message(string.Join("\n",selected.Where(d=>L10n.Message(d.InspectionError).Length>0).Select(d=>Path.GetFileName(d.FilePath)+"："+L10n.Message(d.InspectionError))));
         RefreshM1Shell();
     }
     readonly Dictionary<string,string> editorBaseline=new(StringComparer.Ordinal);
@@ -71,10 +71,10 @@ public partial class MainWindow
     {
         if(busy||renameRecoveryRequired)return;
         var selected=Selected;if(selected.Length==0)return;
-        if(InspectorHasInput()){Status.Text="重新读取已跳过：所选有未应用输入，输入及草稿保留。";return;}
+        if(InspectorHasInput()){Status.Text=L10n.Message(L10n.Text("重新读取已跳过：所选有未应用输入，输入及草稿保留。"));return;}
         bool Clear(PhotoRow row){try{InplaceHistory.RequireClear([row.Document.FilePath,row.Document.SidecarPath??row.Document.FilePath]);return true;}catch(Exception error){row.Document.InspectionError="待核对，旧快照保留："+error.Message;return false;}}
         var eligible=selected.Where(r=>r.Document.Draft.Count==0&&Clear(r)).ToArray();int skipped=selected.Length-eligible.Length;
-        if(eligible.Length==0){Status.Text=$"重新读取已跳过{skipped}张：有草稿或持久待核对记录；草稿保留。";return;}
+        if(eligible.Length==0){Status.Text=L10n.Message(L10n.Format("重新读取已跳过{0}张：有草稿或持久待核对记录；草稿保留。",skipped));return;}
         long sequence=++rereadSequence;var revisions=eligible.Select(r=>r.Document.DraftRevision).ToArray();
         var editor=Fields.Select(f=>(f.Apply.IsChecked,f.Value.Text)).ToArray();
         BeginOperation();var request=operation!;var clock=Stopwatch.StartNew();long requests=Interlocked.Read(ref ExifToolClient.RequestCount),hostRequests=Interlocked.Read(ref DateAdapter.StartedProcesses);int refreshed=0,failed=0,addedSidecars=0,removedSidecars=0;bool cancelled=false;
@@ -120,7 +120,7 @@ public partial class MainWindow
             if(ReferenceEquals(operation,request)){
                 bool preserve=preserveBatchEditor;preserveBatchEditor=preserve||!Fields.Select(f=>(f.Apply.IsChecked,f.Value.Text)).SequenceEqual(editor);
                 try{EndOperation();}finally{preserveBatchEditor=preserve;}
-                Status.Text=$"重新读取{(cancelled?"已取消或失效":"完成")}：更新{refreshed}，草稿跳过{skipped}，失败{failed}；旁车新增{addedSidecars}、消失{removedSidecars}。失败保留旧快照；原文件未写入。";}
+                Status.Text=L10n.Message(L10n.Format("重新读取{0}：更新{1}，草稿跳过{2}，失败{3}；旁车新增{4}、消失{5}。失败保留旧快照；原文件未写入。",(cancelled?L10n.Text("已取消或失效"):L10n.Text("完成")),refreshed,skipped,failed,addedSidecars,removedSidecars));}
         }
     }
 }

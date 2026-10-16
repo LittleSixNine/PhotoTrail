@@ -1,4 +1,4 @@
-<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:local="clr-namespace:PhotoTrail.Windows" xmlns:wv="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="PhotoTrail.Windows.MainWindow" ThemeMode="System" Title="PhotoTrail Windows · WIN-M4" Width="1193" Height="736" MinWidth="720" MinHeight="480" PreviewKeyDown="WindowKeyDown" Loaded="WindowLoaded" Closing="WindowClosing" Closed="WindowClosed" AllowDrop="True" Drop="FilesDropped" FontSize="13">
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:local="clr-namespace:PhotoTrail.Windows" xmlns:wv="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="PhotoTrail.Windows.MainWindow" ThemeMode="System" Title="PhotoTrail Windows · WIN-M5" Width="1193" Height="736" MinWidth="720" MinHeight="480" PreviewKeyDown="WindowKeyDown" Loaded="WindowLoaded" Closing="WindowClosing" Closed="WindowClosed" AllowDrop="True" Drop="FilesDropped" FontSize="13">
  <Window.Resources>
   <ResourceDictionary>
    <ResourceDictionary.MergedDictionaries>
@@ -7,11 +7,12 @@
     <ResourceDictionary Source="Resources/M3Strings.xaml" />
     <ResourceDictionary Source="Resources/M4Strings.xaml" />
    </ResourceDictionary.MergedDictionaries>
-   <Style TargetType="Button">
+   <local:LocalizedDisplay x:Key="LocalizedDisplay"/>
+   <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
     <Setter Property="Padding" Value="9,5" />
     <Setter Property="Margin" Value="2" />
    </Style>
-   <Style x:Key="M1.Primary" TargetType="Button">
+   <Style x:Key="M1.Primary" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
     <Setter Property="Background" Value="#087EF5" />
     <Setter Property="Foreground" Value="White" />
     <Setter Property="Padding" Value="12,6" />
@@ -67,24 +68,24 @@
     <RadioButton x:Name="RenameNavigation" Tag="2" GroupName="Workspaces" Style="{StaticResource M1.Navigation}" Checked="M1WorkspaceSelected" Content="{DynamicResource M1.RenameNav}" />
    </StackPanel>
    <WrapPanel x:Name="M1TopActions" Grid.Column="2" HorizontalAlignment="Right">
-    <Button x:Name="SaveButton" Content="{DynamicResource M1.SaveSelected}" ToolTip="保存所选草稿为副本 · Ctrl+S" AutomationProperties.AcceleratorKey="Ctrl+S" Click="SaveCopies" Padding="12,6" HorizontalAlignment="Left" IsEnabled="False" Margin="3" Style="{StaticResource M1.Primary}" />
-    <Button x:Name="ReadButton" Content="{DynamicResource M1.Import}" ToolTip="导入照片 · Ctrl+O" AutomationProperties.AcceleratorKey="Ctrl+O" Padding="12,6" Click="ReadPhoto" Margin="3" />
+    <Button x:Name="SaveButton" Content="{DynamicResource M1.SaveSelected}" ToolTip="{DynamicResource L.0A4E670F09B7CEB9}" AutomationProperties.AcceleratorKey="Ctrl+S" Click="SaveCopies" Padding="12,6" HorizontalAlignment="Left" IsEnabled="False" Margin="3" Style="{StaticResource M1.Primary}" />
+    <Button x:Name="ReadButton" Content="{DynamicResource M1.Import}" ToolTip="{DynamicResource L.E87568B8C772C44E}" AutomationProperties.AcceleratorKey="Ctrl+O" Padding="12,6" Click="ReadPhoto" Margin="3" />
     <Button x:Name="M1MoreButton" Content="{DynamicResource M1.More}" Click="M1ShowMore" />
     <Button Content="{DynamicResource M1.Settings}" Click="M1OpenSettings" AutomationProperties.Name="{DynamicResource M1.Settings}" />
    </WrapPanel>
   </Grid>
   <DockPanel x:Name="M1TaskPanel" Grid.Row="1" Margin="12,0,12,5" Visibility="Collapsed">
    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" x:Name="M1TaskActions">
-    <Button x:Name="ImportPause" Content="暂停准备" IsEnabled="False" Click="PauseImport" AutomationProperties.Name="暂停或继续导入准备" Margin="3" />
+    <Button x:Name="ImportPause" Content="{DynamicResource L.F5D3C9F02005D671}" IsEnabled="False" Click="PauseImport" AutomationProperties.Name="{DynamicResource L.5595BA4EBCCE32C1}" Margin="3" />
     <Button Content="{DynamicResource M1.CancelTask}" Click="CancelRead" />
    </StackPanel>
    <StackPanel x:Name="M1TaskInformation">
-    <TextBlock x:Name="ImportProgress" Text="队列仅当前运行内保留；尚未准备的来源不进入写入范围。" TextWrapping="Wrap" Margin="3" />
-    <ListBox x:Name="ImportPending" MaxHeight="72" DisplayMemberPath="Path" SelectionChanged="PrioritizeImport" AutomationProperties.Name="等待准备的照片；选中优先读取" Margin="3" />
+    <TextBlock x:Name="ImportProgress" Text="{DynamicResource L.595792F6F775E238}" TextWrapping="Wrap" Margin="3" />
+    <ListBox x:Name="ImportPending" MaxHeight="72" DisplayMemberPath="Path" SelectionChanged="PrioritizeImport" AutomationProperties.Name="{DynamicResource L.F0D84DA2C1254648}" Margin="3" />
    </StackPanel>
   </DockPanel>
   <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" MaxHeight="64" HorizontalScrollBarVisibility="Disabled" x:Name="M1StatusHost">
-   <TextBlock x:Name="Status" Text="导入照片或拖入文件。原文件不会被修改。" TextWrapping="Wrap" Margin="3" />
+   <TextBlock x:Name="Status" Text="{DynamicResource L.A3E88EDA06284005}" TextWrapping="Wrap" Margin="3" />
   </ScrollViewer>
   <TabControl x:Name="WorkspaceTabs" SelectedIndex="0" SelectionChanged="MapSelected" Grid.Row="2" BorderThickness="0" Padding="0">
    <TabControl.Template>
@@ -95,7 +96,7 @@
      </Grid>
     </ControlTemplate>
    </TabControl.Template>
-   <TabItem Header="元数据编辑">
+   <TabItem Header="{DynamicResource L.837FECF839DAC544}">
     <Grid x:Name="M1MetadataLayout" SizeChanged="M2MetadataLayoutSized">
      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
      <Grid.ColumnDefinitions>
@@ -115,15 +116,15 @@
         <StackPanel x:Name="M1PhotoActions" Margin="8">
          <Button Content="{DynamicResource M1.Favorite}" Click="M1OpenFavorites" />
          <Button Content="{DynamicResource M1.TrackMatch}" Click="M1OpenTrackMatch" />
-         <Button Content="{DynamicResource M1.AdjustDate}" Tag="批量日期" Click="M1OpenTool" />
+         <Button Content="{DynamicResource M1.AdjustDate}" Tag="3" Click="M1OpenTool" />
          <Button Content="{DynamicResource M1.PhotoGpx}" Click="M4OpenPhotoGpx" />
          <Button Content="{DynamicResource M1.GpsCopy}" Click="M1PrepareGpsCopy" />
          <TextBlock Text="{DynamicResource M1.GpsClearLimit}" TextWrapping="Wrap" Margin="3,9" />
          <Button Content="{DynamicResource M1.ClearDraft}" Click="UndoDraft" />
-         <Button x:Name="RereadPhotosButton" Content="重新读取所选照片" AutomationProperties.Name="重新读取所选照片，跳过草稿与未应用输入" Padding="8,6" Click="RereadPhotos" Margin="3" />
-         <Button x:Name="RemoveButton" Content="移除所选" Padding="12,6" Margin="3" Click="RemovePhotos" IsEnabled="False" />
-         <Button x:Name="UndoRemoveButton" Content="撤销移除" Padding="12,6" Click="UndoRemovePhotos" IsEnabled="False" Margin="3" />
-         <Button x:Name="UndoLastApplyButton" Content="撤销最近一次应用" Click="UndoLastApply" Padding="12,6" Margin="3" IsEnabled="False" ToolTip="恢复最近一批应用之前的完整草稿；不撤销保存文件。" />
+         <Button x:Name="RereadPhotosButton" Content="{DynamicResource L.44B72659D5BADE69}" AutomationProperties.Name="{DynamicResource L.945F1BCC4973C975}" Padding="8,6" Click="RereadPhotos" Margin="3" />
+         <Button x:Name="RemoveButton" Content="{DynamicResource L.A194128B29390AEF}" Padding="12,6" Margin="3" Click="RemovePhotos" IsEnabled="False" />
+         <Button x:Name="UndoRemoveButton" Content="{DynamicResource L.2016190CEFE354D2}" Padding="12,6" Click="UndoRemovePhotos" IsEnabled="False" Margin="3" />
+         <Button x:Name="UndoLastApplyButton" Content="{DynamicResource L.E65698F977D23751}" Click="UndoLastApply" Padding="12,6" Margin="3" IsEnabled="False" ToolTip="{DynamicResource L.57B93A23D565A0F8}" />
         </StackPanel>
        </ScrollViewer>
       </DockPanel>
@@ -152,19 +153,19 @@
           </TextBlock>
          </Grid>
          <ComboBox Grid.Column="1" x:Name="PhotoSort" SelectedIndex="0" SelectionChanged="PhotoViewChanged" AutomationProperties.Name="{DynamicResource M1.Sort}" Margin="0,3,5,3">
-          <ComboBoxItem Content="文件名升序" />
-          <ComboBoxItem Content="文件名降序" />
-          <ComboBoxItem Content="拍摄时间升序" />
-          <ComboBoxItem Content="拍摄时间降序" />
-          <ComboBoxItem Content="导入顺序" />
-          <ComboBoxItem Content="导入顺序倒序" />
+          <ComboBoxItem Content="{DynamicResource L.1884F0C84B00CD9A}" />
+          <ComboBoxItem Content="{DynamicResource L.19455D941BC782C8}" />
+          <ComboBoxItem Content="{DynamicResource L.D6E88C4D8623541A}" />
+          <ComboBoxItem Content="{DynamicResource L.91AE6166FA3D00DA}" />
+          <ComboBoxItem Content="{DynamicResource L.CD2DCE1E5C1969FA}" />
+          <ComboBoxItem Content="{DynamicResource L.544639A4994CED77}" />
          </ComboBox>
          <ComboBox Grid.Column="2" x:Name="PhotoFilter" SelectedIndex="0" SelectionChanged="PhotoViewChanged" AutomationProperties.Name="{DynamicResource M1.Filter}" Margin="0,3">
-          <ComboBoxItem Content="全部照片" />
-          <ComboBoxItem Content="有草稿" />
-          <ComboBoxItem Content="无草稿" />
-          <ComboBoxItem Content="有定位" />
-          <ComboBoxItem Content="无定位" />
+          <ComboBoxItem Content="{DynamicResource L.B49FDF55EEFBFB7D}" />
+          <ComboBoxItem Content="{DynamicResource L.5AC4C737577F50AA}" />
+          <ComboBoxItem Content="{DynamicResource L.999CEF8BF194F49D}" />
+          <ComboBoxItem Content="{DynamicResource L.154821CC24849F31}" />
+          <ComboBoxItem Content="{DynamicResource L.F5E32AC219194EC2}" />
          </ComboBox>
         </Grid>
         <DockPanel Margin="0,6">
@@ -234,7 +235,7 @@
      <DockPanel x:Name="M2InspectorPane" Grid.Row="1" Grid.Column="2" Margin="10,3,10,0">
       <StackPanel DockPanel.Dock="Top">
        <DockPanel Margin="0,4">
-        <Button DockPanel.Dock="Right" Content="{DynamicResource M1.Batch}" Tag="字段预设" Click="M1OpenTool" />
+        <Button DockPanel.Dock="Right" Content="{DynamicResource M1.Batch}" Tag="2" Click="M1OpenTool" />
         <Button x:Name="M2DiagnosticDetails" DockPanel.Dock="Right" Content="{DynamicResource M2.Diagnostics}" FontSize="11" Padding="6,2" Click="M2ShowInspectorCounts" AutomationProperties.HelpText="{Binding ElementName=InspectorCounts,Path=Text}"/>
         <TextBlock Text="{DynamicResource M1.Metadata}" FontWeight="SemiBold" VerticalAlignment="Center" />
        </DockPanel>
@@ -248,8 +249,8 @@
         <Button Content="↻" ToolTip="{DynamicResource M1.Refresh}" Click="RereadPhotos" AutomationProperties.Name="{DynamicResource M1.Refresh}" />
        </WrapPanel>
        <ComboBox x:Name="InspectorView" Visibility="Collapsed" SelectedIndex="0" SelectionChanged="InspectorViewChanged">
-        <ComboBoxItem Content="常用字段" />
-        <ComboBoxItem Content="完整字段" />
+        <ComboBoxItem Content="{DynamicResource L.E56195638EDF33C5}" />
+        <ComboBoxItem Content="{DynamicResource L.98CCA5F7175F19D6}" />
        </ComboBox>
        <Grid x:Name="M1FieldSearchBox">
         <TextBox x:Name="MetadataSearch" AutomationProperties.Name="{DynamicResource M1.FieldSearch}" ToolTip="{DynamicResource M1.FieldSearch}" TextChanged="MetadataFilterChanged" Margin="0,0,0,6" />
@@ -316,7 +317,7 @@
          <DataGridTemplateColumn Width="40">
           <DataGridTemplateColumn.CellTemplate>
            <DataTemplate>
-            <Button Content="{Binding ActionLabel}" IsEnabled="{Binding CanEdit}" ToolTip="{Binding Permission}" AutomationProperties.Name="{Binding ActionDescription}" Tag="{Binding}" Click="M1EditRow" Padding="4,1" MinHeight="24" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" />
+            <Button Content="{Binding ActionLabel}" IsEnabled="{Binding CanEdit}" ToolTip="{Binding Permission}" AutomationProperties.Name="{Binding ActionDescription}" Tag="{Binding}" Click="M1EditRow" Padding="4,1" MinHeight="24" VerticalAlignment="Center" Background="Transparent" Foreground="{Binding Foreground,RelativeSource={RelativeSource AncestorType=Window}}" BorderThickness="0" />
            </DataTemplate>
           </DataGridTemplateColumn.CellTemplate>
          </DataGridTemplateColumn>
@@ -326,7 +327,7 @@
      </DockPanel>
     </Grid>
    </TabItem>
-   <TabItem Header="地图定位">
+   <TabItem Header="{DynamicResource L.D3B2E5A57BF549A5}">
     <Grid>
      <Grid x:Name="M4MapWorkspace" />
      <Grid x:Name="M4MapParking" Visibility="Collapsed">
@@ -339,60 +340,62 @@
       <StackPanel>
        <StackPanel x:Name="M4SearchControls" DockPanel.Dock="Top" Margin="8,4">
         <DockPanel>
-         <Button Content="搜索地点（Google联网）" Click="SearchPlace" DockPanel.Dock="Right" Padding="10,5" Margin="8,0,0,0" />
-         <TextBox x:Name="MapSearchQuery" AutomationProperties.Name="地图搜索地点" MaxLength="256" KeyDown="MapSearchKeyDown" TextChanged="MapSearchQueryChanged" />
+         <Button Content="{DynamicResource L.3AB771376DCCADDA}" Click="SearchPlace" DockPanel.Dock="Right" Padding="10,5" Margin="8,0,0,0" />
+         <TextBox x:Name="MapSearchQuery" AutomationProperties.Name="{DynamicResource L.72B1DF075BDFDC82}" MaxLength="256" KeyDown="MapSearchKeyDown" TextChanged="MapSearchQueryChanged" />
         </DockPanel>
-        <ListBox x:Name="RecentMapSearches" AutomationProperties.Name="最近地图搜索" MaxHeight="90" Visibility="Collapsed" SelectionChanged="UseRecentMapSearch" />
+        <ListBox x:Name="RecentMapSearches" AutomationProperties.Name="{DynamicResource L.C3B3B0AF1E26D8F7}" MaxHeight="90" Visibility="Collapsed" SelectionChanged="UseRecentMapSearch" />
        </StackPanel>
-       <Expander x:Name="M4OldFavorites" Header="本机手填收藏（离线可用）" Margin="8,0" IsExpanded="True">
+       <Expander x:Name="M4OldFavorites" Header="{DynamicResource L.AF2CC00AD70260AE}" Margin="8,0" IsExpanded="True">
         <StackPanel>
-         <TextBlock Text="名称/备注和WGS84坐标均由用户手填；服务返回文字不自动保存。点击收藏只预览。" />
+         <TextBlock Text="{DynamicResource L.147B971580ADE0DF}" />
          <WrapPanel>
-          <ListBox x:Name="FavoriteList" Width="300" MaxHeight="100" SelectionChanged="PreviewFavorite" AutomationProperties.Name="本机手填收藏" />
-          <CheckBox x:Name="FavoritesExpanded" Content="显示全部收藏" Checked="FavoritesExpand" Unchecked="FavoritesExpand" />
+          <ListBox x:Name="FavoriteList" Width="300" MaxHeight="100" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="PreviewFavorite" AutomationProperties.Name="{DynamicResource L.93813387759E5B2B}">
+           <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="2,4"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="{Binding Note}" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></DataTemplate></ListBox.ItemTemplate>
+          </ListBox>
+          <CheckBox x:Name="FavoritesExpanded" Content="{DynamicResource L.32CF5558C2A8E053}" Checked="FavoritesExpand" Unchecked="FavoritesExpand" />
          </WrapPanel>
          <WrapPanel>
-          <TextBlock Text="名称" />
-          <TextBox x:Name="FavoriteName" Width="150" MaxLength="100" AutomationProperties.Name="收藏名称" />
-          <TextBlock Text="备注" />
-          <TextBox x:Name="FavoriteNote" Width="200" MaxLength="1000" AutomationProperties.Name="收藏手填备注" />
-          <TextBlock Text="经度" />
-          <TextBox x:Name="FavoriteLongitude" Width="95" MaxLength="32" AutomationProperties.Name="收藏WGS84经度" />
-          <TextBlock Text="纬度" />
-          <TextBox x:Name="FavoriteLatitude" Width="95" MaxLength="32" AutomationProperties.Name="收藏WGS84纬度" />
+          <TextBlock Text="{DynamicResource L.D44E9B3D3B31D37B}" />
+          <TextBox x:Name="FavoriteName" Width="150" MaxLength="100" AutomationProperties.Name="{DynamicResource L.71D9EA75F5C8E963}" />
+          <TextBlock Text="{DynamicResource L.DAEDE9881787ABE7}" />
+          <TextBox x:Name="FavoriteNote" Width="200" MaxLength="1000" AutomationProperties.Name="{DynamicResource L.6B849B8EFA6E4AF8}" />
+          <TextBlock Text="{DynamicResource L.69F7889BCB0C6789}" />
+          <TextBox x:Name="FavoriteLongitude" Width="95" MaxLength="32" AutomationProperties.Name="{DynamicResource L.435F02DC67DE1CE1}" />
+          <TextBlock Text="{DynamicResource L.9C11BD8446723806}" />
+          <TextBox x:Name="FavoriteLatitude" Width="95" MaxLength="32" AutomationProperties.Name="{DynamicResource L.6CD6F58C36250A23}" />
          </WrapPanel>
          <WrapPanel>
-          <Button Content="新建手填收藏" Click="NewFavorite" />
-          <Button Content="保存收藏编辑" Click="SaveFavorite" />
-          <Button Content="删除当前收藏" Click="DeleteFavorite" />
-          <Button Content="上移收藏" Click="MoveFavoriteUp" />
-          <Button Content="重读收藏/地图偏好" Click="ReloadFavorites" />
+          <Button Content="{DynamicResource L.7BA1839EF2E86417}" Click="NewFavorite" />
+          <Button Content="{DynamicResource L.62626E790F97D4E7}" Click="SaveFavorite" />
+          <Button Content="{DynamicResource L.21FD8988D2E21338}" Click="DeleteFavorite" />
+          <Button Content="{DynamicResource L.25355D3382D580DB}" Click="MoveFavoriteUp" />
+          <Button Content="{DynamicResource L.73EC4BD3C1488C8C}" Click="ReloadFavorites" />
          </WrapPanel>
          <TextBlock x:Name="FavoriteStatus" TextWrapping="Wrap" />
         </StackPanel>
        </Expander>
        <WrapPanel x:Name="M4MapDisplayOptions" Margin="8,4">
-        <CheckBox x:Name="MapSelectedOnly" Content="仅显示所选照片标记" Checked="MapDisplayChanged" Unchecked="MapDisplayChanged" />
-        <CheckBox x:Name="MapStartWithDevice" IsChecked="True" Content="启动尝试系统定位，失败保留视野" Checked="MapDisplayChanged" Unchecked="MapDisplayChanged" />
-        <TextBlock Text="Google图层" />
-        <ComboBox x:Name="GoogleLayerChoice" Width="100" SelectedIndex="0" SelectionChanged="MapDisplayChanged" AutomationProperties.Name="Google地图图层">
-         <ComboBoxItem Content="标准" />
-         <ComboBoxItem Content="卫星" />
-         <ComboBoxItem Content="混合" />
-         <ComboBoxItem Content="地形" />
+        <CheckBox x:Name="MapSelectedOnly" Content="{DynamicResource L.E23D7A9E71D8C85D}" Checked="MapDisplayChanged" Unchecked="MapDisplayChanged" />
+        <CheckBox x:Name="MapStartWithDevice" IsChecked="True" Content="{DynamicResource L.339695FC88BDBC5F}" Checked="MapDisplayChanged" Unchecked="MapDisplayChanged" />
+        <TextBlock Text="{DynamicResource L.68ED1142D21AED4B}" />
+        <ComboBox x:Name="GoogleLayerChoice" Width="100" SelectedIndex="0" SelectionChanged="MapDisplayChanged" AutomationProperties.Name="{DynamicResource L.CD75C0AB0E7C9DEF}">
+         <ComboBoxItem Content="{DynamicResource L.6BEA77ACEFB364AC}" />
+         <ComboBoxItem Content="{DynamicResource L.865B888C5D823EA7}" />
+         <ComboBoxItem Content="{DynamicResource L.1B76C104F489615A}" />
+         <ComboBoxItem Content="{DynamicResource L.51695AD45A11D603}" />
         </ComboBox>
-        <Button Content="尝试系统定位" Click="LocateDevice" />
-        <TextBlock Text="OpenFreeMap仅标准底图；定位失败保留视野。Google视野仅会话，不缓存查询内容。" />
+        <Button Content="{DynamicResource L.67474C9422B073D4}" Click="LocateDevice" />
+        <TextBlock Text="{DynamicResource L.BF280888A0F0A86D}" />
        </WrapPanel>
        <WrapPanel DockPanel.Dock="Top" Margin="8">
-        <Button x:Name="TrackReadButton" Content="导入轨迹" Click="ReadTracks" Padding="12,6" />
-        <ComboBox x:Name="TrackList" Width="250" Margin="8,0" DisplayMemberPath="Name" SelectionChanged="TrackSelected" AutomationProperties.Name="当前轨迹" />
-        <Button x:Name="TrackRemoveButton" Content="移除当前轨迹" Click="RemoveTrack" Padding="12,6" />
-        <Button x:Name="MapRetryButton" Content="重载地图" Click="RetryMap" Padding="12,6" Margin="8,0,0,0" />
+        <Button x:Name="TrackReadButton" Content="{DynamicResource L.637113BA7A9BD74F}" Click="ReadTracks" Padding="12,6" />
+        <ComboBox x:Name="TrackList" Width="250" Margin="8,0" DisplayMemberPath="Name" SelectionChanged="TrackSelected" AutomationProperties.Name="{DynamicResource L.ED644EAD24C0DCFE}" />
+        <Button x:Name="TrackRemoveButton" Content="{DynamicResource L.A7A1488154EA9A4B}" Click="RemoveTrack" Padding="12,6" />
+        <Button x:Name="MapRetryButton" Content="{DynamicResource L.1AAD469B34E29C57}" Click="RetryMap" Padding="12,6" Margin="8,0,0,0" />
        </WrapPanel>
-       <Expander x:Name="M4OldTrackWorkspace" Header="多轨迹独立显隐（不改变匹配集合）" Margin="8,0">
+       <Expander x:Name="M4OldTrackWorkspace" Header="{DynamicResource L.73E0DB3AF1EB73A4}" Margin="8,0">
         <StackPanel>
-         <ListBox x:Name="TrackDisplayRows" MaxHeight="160" AutomationProperties.Name="当前轨迹显隐">
+         <ListBox x:Name="TrackDisplayRows" MaxHeight="160" AutomationProperties.Name="{DynamicResource L.B05DED51CB80F379}">
           <ListBox.ItemTemplate>
            <DataTemplate>
             <StackPanel Margin="2,5">
@@ -403,162 +406,162 @@
           </ListBox.ItemTemplate>
          </ListBox>
          <WrapPanel>
-          <Button Content="刷新当前轨迹源" Click="RefreshCurrentTrack" />
-          <Button Content="保存当前轨迹工作区" Click="SaveTrackWorkspace" />
-          <Button Content="重读已保存轨迹工作区" Click="ReloadTrackWorkspace" />
+          <Button Content="{DynamicResource L.E82E0199B3DFDB94}" Click="RefreshCurrentTrack" />
+          <Button Content="{DynamicResource L.5EB11C52DC0B9679}" Click="SaveTrackWorkspace" />
+          <Button Content="{DynamicResource L.0EC0B6417B757A6A}" Click="ReloadTrackWorkspace" />
          </WrapPanel>
-         <TextBlock x:Name="TrackWorkspaceStatus" Text="显隐仅影响绘制；失联缓存不参与匹配。" TextWrapping="Wrap" />
+         <TextBlock x:Name="TrackWorkspaceStatus" Text="{DynamicResource L.EDA2EC8310F27B70}" TextWrapping="Wrap" />
         </StackPanel>
        </Expander>
-       <Expander x:Name="PhotoGpxPanel" Header="从所选照片生成GPX（不保存照片）" Margin="8,0">
+       <Expander x:Name="PhotoGpxPanel" Header="{DynamicResource L.BD31C04096D69B18}" Margin="8,0">
         <StackPanel x:Name="PhotoGpxControls">
-         <TextBlock Text="冻结当前有效GPS与主时间（含已确认草稿）；无明确WGS84/偏移、非法或无法无损适配的时间分别跳过，不回退旧时间，不删重复点。" TextWrapping="Wrap" />
+         <TextBlock Text="{DynamicResource L.34588FD926E58633}" TextWrapping="Wrap" />
          <WrapPanel>
-          <TextBlock Text="断段间隔秒（严格大于）" />
-          <TextBox x:Name="GpxSegmentGap" Text="300" Width="110" MaxLength="32" TextChanged="PhotoGpxInputChanged" AutomationProperties.Name="照片GPX断段间隔秒" />
-          <TextBlock Text="轨迹名称" />
-          <TextBox x:Name="PhotoGpxName" Text="PhotoTrail Photos" Width="200" MaxLength="255" TextChanged="PhotoGpxInputChanged" AutomationProperties.Name="照片GPX名称" />
-          <Button Content="冻结所选照片生成预览" Click="PreviewPhotoGpx" />
+          <TextBlock Text="{DynamicResource L.4878B41C3938B24A}" />
+          <TextBox x:Name="GpxSegmentGap" Text="300" Width="110" MaxLength="32" TextChanged="PhotoGpxInputChanged" AutomationProperties.Name="{DynamicResource L.881AB7D2482D4649}" />
+          <TextBlock Text="{DynamicResource L.DE61E171437F5ED4}" />
+          <TextBox x:Name="PhotoGpxName" Text="PhotoTrail Photos" Width="200" MaxLength="255" TextChanged="PhotoGpxInputChanged" AutomationProperties.Name="{DynamicResource L.8F9FE14539BA606D}" />
+          <Button Content="{DynamicResource L.3AC72F310BBD6717}" Click="PreviewPhotoGpx" />
          </WrapPanel>
-         <ListBox x:Name="PhotoGpxRows" MaxHeight="100" AutomationProperties.Name="逐照片GPX资格与跳过原因">
+         <ListBox x:Name="PhotoGpxRows" MaxHeight="100" AutomationProperties.Name="{DynamicResource L.8EBDA0130DF97E5B}">
           <ListBox.ItemTemplate>
            <DataTemplate>
             <StackPanel Orientation="Horizontal">
              <TextBlock Text="{Binding Name}" Margin="0,0,12,0" />
-             <TextBlock Text="{Binding Reason}" />
+             <TextBlock Text="{Binding Reason,Converter={StaticResource LocalizedDisplay}}" />
             </StackPanel>
            </DataTemplate>
           </ListBox.ItemTemplate>
          </ListBox>
          <DockPanel>
-          <Button Content="选择GPX位置" Click="ChoosePhotoGpx" DockPanel.Dock="Right" />
-          <TextBox x:Name="PhotoGpxOutput" AutomationProperties.Name="照片GPX新文件路径" />
+          <Button Content="{DynamicResource L.021B704265F4F711}" Click="ChoosePhotoGpx" DockPanel.Dock="Right" />
+          <TextBox x:Name="PhotoGpxOutput" AutomationProperties.Name="{DynamicResource L.44DB645CF52A99F4}" />
          </DockPanel>
          <WrapPanel>
-          <Button x:Name="GpxExportButton" Content="另存冻结GPX并回读" Click="ExportPhotoGpx" IsEnabled="False" />
-          <Button x:Name="GpxAddButton" Content="将已导出GPX加入轨迹工作区" Click="AddPhotoGpxToWorkspace" IsEnabled="False" />
+          <Button x:Name="GpxExportButton" Content="{DynamicResource L.50D188C64822C643}" Click="ExportPhotoGpx" IsEnabled="False" />
+          <Button x:Name="GpxAddButton" Content="{DynamicResource L.7FBBD3FF2B62B3F3}" Click="AddPhotoGpxToWorkspace" IsEnabled="False" />
          </WrapPanel>
-         <TextBlock x:Name="PhotoGpxStatus" Text="预览/生成/导出/加入轨迹/匹配/GPS草稿/照片保存分开；不覆盖已有文件。" TextWrapping="Wrap" />
+         <TextBlock x:Name="PhotoGpxStatus" Text="{DynamicResource L.EE83B3A2DE680F97}" TextWrapping="Wrap" />
         </StackPanel>
        </Expander>
-       <Expander x:Name="M4TrackAdjustment" Header="调整轨迹 / 导出GPX" DockPanel.Dock="Top" Margin="8,0,8,6" Expanded="TrackAdjustmentExpanded">
+       <Expander x:Name="M4TrackAdjustment" Header="{DynamicResource L.FA5DEAB284516328}" DockPanel.Dock="Top" Margin="8,0,8,6" Expanded="TrackAdjustmentExpanded">
         <StackPanel>
          <WrapPanel Margin="0,4">
-          <ComboBox x:Name="TrackTimeDirection" SelectedIndex="0" Width="90" AutomationProperties.Name="轨迹时间方向" SelectionChanged="TrackAdjustmentChanged">
-           <ComboBoxItem Content="向后" />
-           <ComboBoxItem Content="向前" />
+          <ComboBox x:Name="TrackTimeDirection" SelectedIndex="0" Width="90" AutomationProperties.Name="{DynamicResource L.8013C57AD64EB2C2}" SelectionChanged="TrackAdjustmentChanged">
+           <ComboBoxItem Content="{DynamicResource L.7D506BD0C8D2EC2B}" />
+           <ComboBoxItem Content="{DynamicResource L.C0FE0D7BBC373073}" />
           </ComboBox>
-          <TextBlock Text=" 天" VerticalAlignment="Center" />
-          <TextBox x:Name="TrackDays" Text="0" Width="48" AutomationProperties.Name="轨迹调整天" TextChanged="TrackAdjustmentChanged" />
-          <TextBlock Text=" 时" VerticalAlignment="Center" />
-          <TextBox x:Name="TrackHours" Text="0" Width="48" AutomationProperties.Name="轨迹调整小时" TextChanged="TrackAdjustmentChanged" />
-          <TextBlock Text=" 分" VerticalAlignment="Center" />
-          <TextBox x:Name="TrackMinutes" Text="0" Width="48" AutomationProperties.Name="轨迹调整分钟" TextChanged="TrackAdjustmentChanged" />
-          <TextBlock Text=" 秒" VerticalAlignment="Center" />
-          <TextBox x:Name="TrackSeconds" Text="0" Width="70" AutomationProperties.Name="轨迹调整秒" TextChanged="TrackAdjustmentChanged" />
+          <TextBlock Text="{DynamicResource L.4CE3054E7C4D0257}" VerticalAlignment="Center" />
+          <TextBox x:Name="TrackDays" Text="0" Width="48" AutomationProperties.Name="{DynamicResource L.E28EF31BA057882F}" TextChanged="TrackAdjustmentChanged" />
+          <TextBlock Text="{DynamicResource L.44A1454433D81BC4}" VerticalAlignment="Center" />
+          <TextBox x:Name="TrackHours" Text="0" Width="48" AutomationProperties.Name="{DynamicResource L.9FB5238FEBC72CDF}" TextChanged="TrackAdjustmentChanged" />
+          <TextBlock Text="{DynamicResource L.B75A03ACE74C22C4}" VerticalAlignment="Center" />
+          <TextBox x:Name="TrackMinutes" Text="0" Width="48" AutomationProperties.Name="{DynamicResource L.89533D79AEFA1134}" TextChanged="TrackAdjustmentChanged" />
+          <TextBlock Text="{DynamicResource L.00FE8DDA1FD70F64}" VerticalAlignment="Center" />
+          <TextBox x:Name="TrackSeconds" Text="0" Width="70" AutomationProperties.Name="{DynamicResource L.C9257002276010E0}" TextChanged="TrackAdjustmentChanged" />
          </WrapPanel>
          <WrapPanel Margin="0,4">
-          <ComboBox x:Name="TrackEastDirection" SelectedIndex="0" Width="90" AutomationProperties.Name="轨迹东西方向" SelectionChanged="TrackAdjustmentChanged">
-           <ComboBoxItem Content="向东" />
-           <ComboBoxItem Content="向西" />
+          <ComboBox x:Name="TrackEastDirection" SelectedIndex="0" Width="90" AutomationProperties.Name="{DynamicResource L.ACD00E732F10DFEF}" SelectionChanged="TrackAdjustmentChanged">
+           <ComboBoxItem Content="{DynamicResource L.E2F5C67D024DBF41}" />
+           <ComboBoxItem Content="{DynamicResource L.55037247F396732A}" />
           </ComboBox>
-          <TextBox x:Name="TrackEast" Text="0" Width="85" AutomationProperties.Name="轨迹东西米数" TextChanged="TrackAdjustmentChanged" />
-          <TextBlock Text=" 米    " VerticalAlignment="Center" />
-          <ComboBox x:Name="TrackNorthDirection" SelectedIndex="0" Width="90" AutomationProperties.Name="轨迹南北方向" SelectionChanged="TrackAdjustmentChanged">
-           <ComboBoxItem Content="向北" />
-           <ComboBoxItem Content="向南" />
+          <TextBox x:Name="TrackEast" Text="0" Width="85" AutomationProperties.Name="{DynamicResource L.E5EECE4C209DFA4E}" TextChanged="TrackAdjustmentChanged" />
+          <TextBlock Text="{DynamicResource L.D86C596C732A6F36}" VerticalAlignment="Center" />
+          <ComboBox x:Name="TrackNorthDirection" SelectedIndex="0" Width="90" AutomationProperties.Name="{DynamicResource L.7E103F176838D076}" SelectionChanged="TrackAdjustmentChanged">
+           <ComboBoxItem Content="{DynamicResource L.801ACA3D8BA2DAD7}" />
+           <ComboBoxItem Content="{DynamicResource L.F83F78A73D2C9840}" />
           </ComboBox>
-          <TextBox x:Name="TrackNorth" Text="0" Width="85" AutomationProperties.Name="轨迹南北米数" TextChanged="TrackAdjustmentChanged" />
-          <TextBlock Text=" 米" VerticalAlignment="Center" />
+          <TextBox x:Name="TrackNorth" Text="0" Width="85" AutomationProperties.Name="{DynamicResource L.FD6D92EEB3219850}" TextChanged="TrackAdjustmentChanged" />
+          <TextBlock Text="{DynamicResource L.A8E71FA55BA52733}" VerticalAlignment="Center" />
          </WrapPanel>
          <WrapPanel>
-          <Button x:Name="TrackPreviewButton" Content="预览调整" Click="PreviewTrackAdjustment" Padding="9,4" />
-          <Button x:Name="TrackApplyButton" Content="应用轨迹调整" Click="ApplyTrackAdjustment" IsEnabled="False" Padding="9,4" Margin="6,0" />
-          <Button Content="取消调整预览" Click="CancelTrackAdjustment" Padding="9,4" />
-          <Button x:Name="TrackUndoButton" Content="撤销最近调整" Click="UndoTrackAdjustment" IsEnabled="False" Padding="9,4" Margin="6,0" />
-          <Button x:Name="TrackRestoreButton" Content="恢复原轨迹" Click="RestoreTrackOriginal" IsEnabled="False" Padding="9,4" />
+          <Button x:Name="TrackPreviewButton" Content="{DynamicResource L.9EF03299EE1501D2}" Click="PreviewTrackAdjustment" Padding="9,4" />
+          <Button x:Name="TrackApplyButton" Content="{DynamicResource L.8E78799BB36BC083}" Click="ApplyTrackAdjustment" IsEnabled="False" Padding="9,4" Margin="6,0" />
+          <Button Content="{DynamicResource L.62A928806FC6E6E3}" Click="CancelTrackAdjustment" Padding="9,4" />
+          <Button x:Name="TrackUndoButton" Content="{DynamicResource L.7B4B9F4B3856E7CB}" Click="UndoTrackAdjustment" IsEnabled="False" Padding="9,4" Margin="6,0" />
+          <Button x:Name="TrackRestoreButton" Content="{DynamicResource L.72E7306AD9AD644C}" Click="RestoreTrackOriginal" IsEnabled="False" Padding="9,4" />
          </WrapPanel>
-         <TextBlock x:Name="TrackAdjustmentStatus" Text="从当前有效轨迹预览；先保存状态再应用。源文件及照片不自动修改。" TextWrapping="Wrap" Margin="0,4" />
+         <TextBlock x:Name="TrackAdjustmentStatus" Text="{DynamicResource L.76EFCC44F019C108}" TextWrapping="Wrap" Margin="0,4" />
          <DockPanel>
-          <Button x:Name="TrackExportButton" Content="另存当前轨迹为GPX" Click="ExportTrack" DockPanel.Dock="Right" Padding="9,4" />
-          <Button Content="选择导出位置…" Click="ChooseTrackExport" DockPanel.Dock="Right" Padding="9,4" Margin="6,0" />
-          <TextBox x:Name="TrackExportPath" AutomationProperties.Name="GPX另存路径" ToolTip="新GPX文件完整路径；不覆盖已有文件或源轨迹。" />
+          <Button x:Name="TrackExportButton" Content="{DynamicResource L.9311782EE0C12E20}" Click="ExportTrack" DockPanel.Dock="Right" Padding="9,4" />
+          <Button Content="{DynamicResource L.DDC399FCEA854BA2}" Click="ChooseTrackExport" DockPanel.Dock="Right" Padding="9,4" Margin="6,0" />
+          <TextBox x:Name="TrackExportPath" AutomationProperties.Name="{DynamicResource L.33FC950D0F09896D}" ToolTip="{DynamicResource L.4903CC191F44FFF4}" />
          </DockPanel>
         </StackPanel>
        </Expander>
        <WrapPanel x:Name="M4TrackHistoryControls" DockPanel.Dock="Top" Margin="8,0,8,8">
-        <TextBlock Text="最近轨迹" VerticalAlignment="Center" />
-        <ComboBox x:Name="RecentTracks" Width="440" Margin="8,0" AutomationProperties.Name="最近轨迹路径" />
-        <Button x:Name="RecentTrackReadButton" Content="重新读取所选历史" Click="ReadRecentTrack" Padding="10,5" />
-        <TextBlock x:Name="TrackHistoryStatus" Text="历史仅保存本机路径，不自动加载轨迹。" TextWrapping="Wrap" Margin="8,0" VerticalAlignment="Center" />
+        <TextBlock Text="{DynamicResource L.10B197212CA829AA}" VerticalAlignment="Center" />
+        <ComboBox x:Name="RecentTracks" Width="440" Margin="8,0" AutomationProperties.Name="{DynamicResource L.17D29C14558458BC}" />
+        <Button x:Name="RecentTrackReadButton" Content="{DynamicResource L.E35936C7FFF0DACE}" Click="ReadRecentTrack" Padding="10,5" />
+        <TextBlock x:Name="TrackHistoryStatus" Text="{DynamicResource L.F1CF03D462CDD376}" TextWrapping="Wrap" Margin="8,0" VerticalAlignment="Center" />
        </WrapPanel>
        <StackPanel x:Name="M4OldPositionControls" Margin="8">
-        <TextBlock x:Name="TrackInfo" Text="支持GPX／KML／KMZ；轨迹留在本机，仅显示和匹配预览。" TextWrapping="Wrap" />
-        <Expander x:Name="M4BatchMatch" Header="所选照片批量轨迹匹配" IsExpanded="True" Margin="0,5">
+        <TextBlock x:Name="TrackInfo" Text="{DynamicResource L.870B5013F9406C1C}" TextWrapping="Wrap" />
+        <Expander x:Name="M4BatchMatch" Header="{DynamicResource L.2E69E4D1B8993B30}" IsExpanded="True" Margin="0,5">
          <StackPanel>
           <TextBlock x:Name="BatchTrackSources" TextWrapping="Wrap" />
-          <Expander Header="更多匹配选项">
+          <Expander Header="{DynamicResource L.015DEC305E66E38A}">
            <StackPanel>
-            <CheckBox x:Name="BatchOverwrite" Content="重新匹配并覆盖已有定位（成功才替换）" Checked="BatchTrackOptionsChanged" Unchecked="BatchTrackOptionsChanged" />
-            <CheckBox x:Name="BatchCurrentOnly" Content="仅当前轨迹（处理多轨迹歧义）" Checked="BatchTrackOptionsChanged" Unchecked="BatchTrackOptionsChanged" />
+            <CheckBox x:Name="BatchOverwrite" Content="{DynamicResource L.BBD42ED7727E6C15}" Checked="BatchTrackOptionsChanged" Unchecked="BatchTrackOptionsChanged" />
+            <CheckBox x:Name="BatchCurrentOnly" Content="{DynamicResource L.53C2A7DF6371E026}" Checked="BatchTrackOptionsChanged" Unchecked="BatchTrackOptionsChanged" />
            </StackPanel>
           </Expander>
           <WrapPanel>
-           <Button x:Name="BatchTrackCompute" Content="计算所选照片匹配结果" Click="ComputeBatchTrack" Padding="10,5" />
-           <Button x:Name="BatchTrackApply" Content="应用匹配结果" Click="ApplyBatchTrack" IsEnabled="False" Padding="10,5" Margin="6,0" />
-           <Button Content="撤销最近一次应用" Click="UndoLastApply" Padding="10,5" />
+           <Button x:Name="BatchTrackCompute" Content="{DynamicResource L.C3FB5F52F95257DE}" Click="ComputeBatchTrack" Padding="10,5" />
+           <Button x:Name="BatchTrackApply" Content="{DynamicResource L.BF1A65AD7AABFCCA}" Click="ApplyBatchTrack" IsEnabled="False" Padding="10,5" Margin="6,0" />
+           <Button Content="{DynamicResource L.E65698F977D23751}" Click="UndoLastApply" Padding="10,5" />
           </WrapPanel>
-          <CheckBox x:Name="BatchUnsuccessful" Content="只查看未成功结果（不改变应用范围）" Checked="BatchTrackFilterChanged" Unchecked="BatchTrackFilterChanged" />
-          <ListBox x:Name="BatchTrackResults" Height="96" DisplayMemberPath="Summary" SelectionChanged="ViewBatchTrackResult" AutomationProperties.Name="逐照片轨迹匹配结果" />
-          <TextBlock x:Name="BatchTrackStatus" Text="默认补齐缺失定位；计算和查看均不修改草稿。" TextWrapping="Wrap" />
+          <CheckBox x:Name="BatchUnsuccessful" Content="{DynamicResource L.8E35DACFCDC4061D}" Checked="BatchTrackFilterChanged" Unchecked="BatchTrackFilterChanged" />
+          <ListBox x:Name="BatchTrackResults" Height="96" DisplayMemberPath="Summary" SelectionChanged="ViewBatchTrackResult" AutomationProperties.Name="{DynamicResource L.F0A9CC50EAA78E5B}" />
+          <TextBlock x:Name="BatchTrackStatus" Text="{DynamicResource L.19C9C70E0E4900FC}" TextWrapping="Wrap" />
          </StackPanel>
         </Expander>
-        <TextBlock x:Name="MatchPhotoInfo" Text="匹配照片沿用元数据页的选择；无时区时间须手动提供明确匹配时间。" TextWrapping="Wrap" Margin="0,6,0,4" />
+        <TextBlock x:Name="MatchPhotoInfo" Text="{DynamicResource L.08F35CFF923E0EC8}" TextWrapping="Wrap" Margin="0,6,0,4" />
         <DockPanel>
-         <Button x:Name="MatchButton" DockPanel.Dock="Right" Content="预览时间匹配" Click="MatchTrack" Padding="10,5" Margin="8,0,0,0" />
-         <TextBox x:Name="MatchTimeValue" AutomationProperties.Name="轨迹匹配时间" VerticalContentAlignment="Center" />
+         <Button x:Name="MatchButton" DockPanel.Dock="Right" Content="{DynamicResource L.FE7D71F95C306D87}" Click="MatchTrack" Padding="10,5" Margin="8,0,0,0" />
+         <TextBox x:Name="MatchTimeValue" AutomationProperties.Name="{DynamicResource L.9ECF200334EE2744}" VerticalContentAlignment="Center" />
         </DockPanel>
-        <TextBlock x:Name="MatchResult" Text="匹配时间格式：2026-10-04T00:00:30Z，必须包含时区。尚未写入GPS。" TextWrapping="Wrap" Margin="0,4,0,0" />
-        <Button Content="Google查询预览位置（联网）" Click="LookupPlace" HorizontalAlignment="Left" Padding="10,5" Margin="0,4,0,0" />
-        <TextBlock x:Name="PlacePreview" Text="地区查询只预览；Google Maps结果不自动写入照片。" TextWrapping="Wrap" Margin="0,4,0,0" />
-        <Expander x:Name="M4ManualRegion" Header="独立手填地区（离线，默认仅补缺项）">
+        <TextBlock x:Name="MatchResult" Text="{DynamicResource L.1159848BD7B949E2}" TextWrapping="Wrap" Margin="0,4,0,0" />
+        <Button Content="{DynamicResource L.EE3D0E5206A443B8}" Click="LookupPlace" HorizontalAlignment="Left" Padding="10,5" Margin="0,4,0,0" />
+        <TextBlock x:Name="PlacePreview" Text="{DynamicResource L.F3B9F932C1034F3C}" TextWrapping="Wrap" Margin="0,4,0,0" />
+        <Expander x:Name="M4ManualRegion" Header="{DynamicResource L.1BE6CFC47B3E0488}">
          <StackPanel>
-          <TextBlock Text="在线地址写入BLOCKED：尚无明确持久化许可；手填值须独立来源，每张照片已有明确WGS84。留空保持，不清除旧地区。" TextWrapping="Wrap" />
-          <Button Content="在线结果永久写入（许可未确认）" IsEnabled="False" />
+          <TextBlock Text="{DynamicResource L.3323B99009632CAD}" TextWrapping="Wrap" />
+          <Button Content="{DynamicResource L.D920F34FD7CF3704}" IsEnabled="False" />
           <WrapPanel>
-           <TextBlock Text="国家" />
-           <TextBox x:Name="RegionCountry" Width="100" MaxLength="2000" TextChanged="RegionInputChanged" AutomationProperties.Name="手填国家" />
-           <TextBlock Text="省/州" />
-           <TextBox x:Name="RegionState" Width="100" MaxLength="2000" TextChanged="RegionInputChanged" AutomationProperties.Name="手填省州" />
-           <TextBlock Text="城市" />
-           <TextBox x:Name="RegionCity" Width="100" MaxLength="2000" TextChanged="RegionInputChanged" AutomationProperties.Name="手填城市" />
-           <TextBlock Text="区/地点" />
-           <TextBox x:Name="RegionSublocation" Width="100" MaxLength="2000" TextChanged="RegionInputChanged" AutomationProperties.Name="手填区地点" />
-           <TextBlock Text="国家码" />
-           <TextBox x:Name="RegionCode" Width="55" MaxLength="3" TextChanged="RegionInputChanged" AutomationProperties.Name="手填精确国家码" />
+           <TextBlock Text="{DynamicResource L.0CC659A9F57C2493}" />
+           <TextBox x:Name="RegionCountry" Width="100" MaxLength="2000" TextChanged="RegionInputChanged" AutomationProperties.Name="{DynamicResource L.2149571A520DCE63}" />
+           <TextBlock Text="{DynamicResource L.809DC376D39E8E13}" />
+           <TextBox x:Name="RegionState" Width="100" MaxLength="2000" TextChanged="RegionInputChanged" AutomationProperties.Name="{DynamicResource L.67342D4049A047AC}" />
+           <TextBlock Text="{DynamicResource L.ED84A1665F79B6CA}" />
+           <TextBox x:Name="RegionCity" Width="100" MaxLength="2000" TextChanged="RegionInputChanged" AutomationProperties.Name="{DynamicResource L.EFF02BFCFF6C7EF8}" />
+           <TextBlock Text="{DynamicResource L.2ECDB463822368D3}" />
+           <TextBox x:Name="RegionSublocation" Width="100" MaxLength="2000" TextChanged="RegionInputChanged" AutomationProperties.Name="{DynamicResource L.A8225D16363C32A6}" />
+           <TextBlock Text="{DynamicResource L.076337F22BA72B21}" />
+           <TextBox x:Name="RegionCode" Width="55" MaxLength="3" TextChanged="RegionInputChanged" AutomationProperties.Name="{DynamicResource L.6DCA8FB4F91D9F41}" />
           </WrapPanel>
           <WrapPanel>
-           <CheckBox x:Name="RegionIndependent" Content="确认是独立手填来源，不是服务返回内容" Checked="RegionInputChanged" Unchecked="RegionInputChanged" />
-           <CheckBox x:Name="RegionOverwrite" Content="明确覆盖已有地区" Checked="RegionInputChanged" Unchecked="RegionInputChanged" />
-           <CheckBox x:Name="RegionIptc" Content="只写JPEG独立IPTC（国家码3字母，UTF8资格）" Checked="RegionInputChanged" Unchecked="RegionInputChanged" />
+           <CheckBox x:Name="RegionIndependent" Content="{DynamicResource L.4CC95533D84BBE68}" Checked="RegionInputChanged" Unchecked="RegionInputChanged" />
+           <CheckBox x:Name="RegionOverwrite" Content="{DynamicResource L.74BE11FAA431319A}" Checked="RegionInputChanged" Unchecked="RegionInputChanged" />
+           <CheckBox x:Name="RegionIptc" Content="{DynamicResource L.CF1E9E0CD0E6ABD5}" Checked="RegionInputChanged" Unchecked="RegionInputChanged" />
           </WrapPanel>
           <WrapPanel>
-           <Button Content="核对并冻结手填地区" Click="PreviewManualRegion" />
-           <Button x:Name="RegionApply" Content="将冻结地区加入字段草稿" Click="ApplyManualRegion" IsEnabled="False" />
+           <Button Content="{DynamicResource L.CE5920200B9B14E6}" Click="PreviewManualRegion" />
+           <Button x:Name="RegionApply" Content="{DynamicResource L.A755835AADC8A8C1}" Click="ApplyManualRegion" IsEnabled="False" />
           </WrapPanel>
-          <TextBlock x:Name="RegionStatus" Text="默认精确XMP地区字段，独立手填三字母国家码；服务两位码不转换；地区归现有元数据保存范围。默认副本，保存全部包含地区；当前地图范围仍只保存GPS。" TextWrapping="Wrap" />
+          <TextBlock x:Name="RegionStatus" Text="{DynamicResource L.C9A64A6BE2BAB2DA}" TextWrapping="Wrap" />
          </StackPanel>
         </Expander>
-        <Button x:Name="GpsDraftButton" Content="将预览位置加入所选照片的 GPS 草稿" Click="AddGpsDraft" IsEnabled="False" HorizontalAlignment="Left" Padding="10,5" Margin="0,6,0,0" />
+        <Button x:Name="GpsDraftButton" Content="{DynamicResource L.87CC271351061017}" Click="AddGpsDraft" IsEnabled="False" HorizontalAlignment="Left" Padding="10,5" Margin="0,6,0,0" />
        </StackPanel>
       </StackPanel>
      </ScrollViewer>
      <DockPanel x:Name="M4Strip" Grid.Row="2">
       <StackPanel x:Name="M4OldStripHeader" DockPanel.Dock="Top">
-       <Button Content="回到当前" Click="ReturnToCurrent" HorizontalAlignment="Left" AutomationProperties.Name="仅滚动到当前照片，不改变选择或地图视野" />
-       <TextBlock x:Name="PhotoStripStatus" Text="照片条与元数据列表共用筛选、排序和选择；每个成员保持独立来源。" TextWrapping="Wrap" />
+       <Button Content="{DynamicResource L.52095CB663D27F54}" Click="ReturnToCurrent" HorizontalAlignment="Left" AutomationProperties.Name="{DynamicResource L.A784FEF20BD27CD3}" />
+       <TextBlock x:Name="PhotoStripStatus" Text="{DynamicResource L.C43E734579775ABE}" TextWrapping="Wrap" />
       </StackPanel>
-      <ListBox x:Name="PhotoStrip" MinHeight="92" SelectionMode="Extended" SelectionChanged="StripSelected" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True" VirtualizingPanel.VirtualizationMode="Recycling" AutomationProperties.Name="地图照片条">
+      <ListBox x:Name="PhotoStrip" MinHeight="92" SelectionMode="Extended" SelectionChanged="StripSelected" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True" VirtualizingPanel.VirtualizationMode="Recycling" AutomationProperties.Name="{DynamicResource L.4378D500900C342D}">
        <ListBox.GroupStyle>
         <GroupStyle>
          <GroupStyle.Panel>
@@ -581,7 +584,7 @@
        <ListBox.ItemTemplate>
         <DataTemplate>
          <StackPanel Width="160">
-          <local:PhotoThumbnail Document="{Binding Document}" Strip="True" Width="160" Height="92" AutomationProperties.Name="地图照片条缩略图" />
+          <local:PhotoThumbnail Document="{Binding Document}" Strip="True" Width="160" Height="92" AutomationProperties.Name="{DynamicResource L.6E422C8712EEC450}" />
           <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
           <TextBlock Text="{Binding Summary}" FontSize="10" TextTrimming="CharacterEllipsis" />
          </StackPanel>
@@ -593,7 +596,7 @@
      </Grid>
     </Grid>
    </TabItem>
-   <TabItem Header="重命名">
+   <TabItem Header="{DynamicResource L.0D0CBAC2EEE54113}">
     <Grid>
     <Grid x:Name="M3RenameWorkspace" Margin="10" />
     <Grid x:Name="M3RenameParking" Visibility="Collapsed">
@@ -603,139 +606,139 @@
       <RowDefinition Height="*" />
       <RowDefinition Height="Auto" />
      </Grid.RowDefinitions>
-     <TextBlock Text="沿用元数据页所选照片；规则从上到下读取前步结果；简单规则默认作用于主体。每行一条：前缀|旅行_、后缀|_成片、替换|旧|新、设名|新名称、大写、小写、序号|起始|步长|位数。参数规则每行一个Windows JSON对象；可选完整名称与扩展名域。" TextWrapping="Wrap" />
+     <TextBlock Text="{DynamicResource L.38A5C2884D9FE3FF}" TextWrapping="Wrap" />
      <StackPanel Grid.Row="1">
       <WrapPanel>
-       <ComboBox x:Name="RenameSchemeList" Width="220" SelectionChanged="RenameSchemeChanged" AutomationProperties.Name="已保存重命名方案" />
-       <TextBlock x:Name="RenameSchemeStatus" Text="方案库尚未读取" Margin="8,0" VerticalAlignment="Center" />
+       <ComboBox x:Name="RenameSchemeList" Width="220" SelectionChanged="RenameSchemeChanged" AutomationProperties.Name="{DynamicResource L.A300EB1C089EF389}" />
+       <TextBlock x:Name="RenameSchemeStatus" Text="{DynamicResource L.52037E1BF63CED7E}" Margin="8,0" VerticalAlignment="Center" />
       </WrapPanel>
       <ScrollViewer MaxHeight="230" VerticalScrollBarVisibility="Auto">
        <StackPanel>
-        <Expander x:Name="RenameSchemeManager" Header="方案管理 · 保存配置不会执行改名">
+        <Expander x:Name="RenameSchemeManager" Header="{DynamicResource L.C19F9968AC03FD5F}">
          <StackPanel>
           <WrapPanel>
-           <TextBlock Text="名称" />
-           <TextBox x:Name="RenameSchemeName" Width="220" MaxLength="100" TextChanged="SchemeTextChanged" AutomationProperties.Name="重命名方案名称" />
-           <TextBlock Text="文件名示例（独立于规则）" Margin="8,0" />
-           <TextBox x:Name="RenameSchemeExample" Width="260" MaxLength="255" TextChanged="SchemeTextChanged" AutomationProperties.Name="重命名方案示例" />
+           <TextBlock Text="{DynamicResource L.D44E9B3D3B31D37B}" />
+           <TextBox x:Name="RenameSchemeName" Width="220" MaxLength="100" TextChanged="SchemeTextChanged" AutomationProperties.Name="{DynamicResource L.AAF0138E1975902A}" />
+           <TextBlock Text="{DynamicResource L.948EA770154865CE}" Margin="8,0" />
+           <TextBox x:Name="RenameSchemeExample" Width="260" MaxLength="255" TextChanged="SchemeTextChanged" AutomationProperties.Name="{DynamicResource L.CA1F8E1CAA948160}" />
           </WrapPanel>
           <WrapPanel x:Name="RenameSchemeActions">
-           <Button Content="新建" Click="NewRenameScheme" />
-           <Button Content="更新当前／保存新方案" Click="UpdateRenameScheme" />
-           <Button Content="另存为" Click="SaveAsRenameScheme" />
-           <Button Content="改名" Click="RenameCurrentScheme" />
-           <Button Content="删除当前" Click="DeleteRenameScheme" />
-           <Button Content="导入JSON…" Click="LoadRenamePreset" />
-           <Button Content="导出JSON…" Click="SaveRenamePreset" />
+           <Button Content="{DynamicResource L.50EF2F4CF6A46924}" Click="NewRenameScheme" />
+           <Button Content="{DynamicResource L.540999AC4A6A4AA2}" Click="UpdateRenameScheme" />
+           <Button Content="{DynamicResource L.1232EB44296BB8CF}" Click="SaveAsRenameScheme" />
+           <Button Content="{DynamicResource L.83C37E8A4A5F2C36}" Click="RenameCurrentScheme" />
+           <Button Content="{DynamicResource L.345FC8A593B6AD7E}" Click="DeleteRenameScheme" />
+           <Button Content="{DynamicResource L.C90A9488EF043494}" Click="LoadRenamePreset" />
+           <Button Content="{DynamicResource L.77FDE8161C05F99C}" Click="SaveRenamePreset" />
           </WrapPanel>
          </StackPanel>
         </Expander>
-        <Expander Header="处理排序与输入筛选" IsExpanded="True">
+        <Expander Header="{DynamicResource L.4C906D7463D91681}" IsExpanded="True">
          <StackPanel x:Name="RenameProcessingControls">
           <WrapPanel>
-           <ComboBox x:Name="RenameProcessingSort" Width="130" SelectedIndex="0" SelectionChanged="RenameOrderChanged" AutomationProperties.Name="重命名处理排序">
-            <ComboBoxItem Content="导入顺序" />
-            <ComboBoxItem Content="文件名" />
-            <ComboBoxItem Content="自然文件名" />
-            <ComboBoxItem Content="拍摄时间" />
-            <ComboBoxItem Content="创建时间" />
-            <ComboBoxItem Content="修改时间" />
-            <ComboBoxItem Content="扩展名" />
-            <ComboBoxItem Content="目录" />
-            <ComboBoxItem Content="大小" />
-            <ComboBoxItem Content="设备品牌" />
-            <ComboBoxItem Content="设备型号" />
-            <ComboBoxItem Content="城市" />
-            <ComboBoxItem Content="评分" />
-            <ComboBoxItem Content="通用元数据" />
-            <ComboBoxItem Content="手动顺序" />
+           <ComboBox x:Name="RenameProcessingSort" Width="130" SelectedIndex="0" SelectionChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.87B3C0C0656B6A3C}">
+            <ComboBoxItem Content="{DynamicResource L.CD2DCE1E5C1969FA}" />
+            <ComboBoxItem Content="{DynamicResource L.A6E48ADC26D686D7}" />
+            <ComboBoxItem Content="{DynamicResource L.D196F1BAD6A46CA0}" />
+            <ComboBoxItem Content="{DynamicResource L.50B635EC9C64C64E}" />
+            <ComboBoxItem Content="{DynamicResource L.07EC86E0F1D44F91}" />
+            <ComboBoxItem Content="{DynamicResource L.257BBCC44C839DB4}" />
+            <ComboBoxItem Content="{DynamicResource L.8C19D7BA7981A61D}" />
+            <ComboBoxItem Content="{DynamicResource L.52DAA71EBC310581}" />
+            <ComboBoxItem Content="{DynamicResource L.50DB7447B966F5EF}" />
+            <ComboBoxItem Content="{DynamicResource L.041961E4ABC2BCDE}" />
+            <ComboBoxItem Content="{DynamicResource L.13E641A3EA2095DF}" />
+            <ComboBoxItem Content="{DynamicResource L.ED84A1665F79B6CA}" />
+            <ComboBoxItem Content="{DynamicResource L.96FFF2E26C8D1027}" />
+            <ComboBoxItem Content="{DynamicResource L.E6282420337B1A10}" />
+            <ComboBoxItem Content="{DynamicResource L.14F3CAC7218B9448}" />
            </ComboBox>
-           <CheckBox x:Name="RenameDescending" Content="降序（缺值最后）" Checked="RenameOrderChanged" Unchecked="RenameOrderChanged" />
-           <TextBlock Text="排序标签" />
-           <TextBox x:Name="RenameMetadataTag" Width="150" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="元数据排序标签" />
-           <Button Content="读取配对并刷新预览" Click="RefreshRenameOrder" />
+           <CheckBox x:Name="RenameDescending" Content="{DynamicResource L.D54EEFC26F267908}" Checked="RenameOrderChanged" Unchecked="RenameOrderChanged" />
+           <TextBlock Text="{DynamicResource L.35DC4C3268FF907E}" />
+           <TextBox x:Name="RenameMetadataTag" Width="150" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.CF37D2472AD5C477}" />
+           <Button Content="{DynamicResource L.AC0976E17BF9CE27}" Click="RefreshRenameOrder" />
           </WrapPanel>
           <WrapPanel>
-           <TextBlock Text="文件名／路径" />
-           <TextBox x:Name="RenameInputQuery" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="输入筛选文件名／路径" />
-           <TextBlock Text="类型" />
-           <TextBox x:Name="RenameInputType" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="输入筛选类型" />
-           <TextBlock Text="目录" />
-           <TextBox x:Name="RenameInputFolder" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="输入筛选目录" />
-           <TextBlock Text="设备" />
-           <TextBox x:Name="RenameInputCamera" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="输入筛选设备" />
-           <TextBlock Text="日期开始" />
-           <TextBox x:Name="RenameDateFrom" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="输入筛选日期开始" />
-           <TextBlock Text="日期结束" />
-           <TextBox x:Name="RenameDateTo" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="输入筛选日期结束" />
-           <TextBlock Text="标签" />
-           <TextBox x:Name="RenameInputTag" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="输入筛选标签" />
+           <TextBlock Text="{DynamicResource L.9CF2E418D6B6FB4C}" />
+           <TextBox x:Name="RenameInputQuery" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.EC20CC4CE2D916DD}" />
+           <TextBlock Text="{DynamicResource L.BA40014FF496F64E}" />
+           <TextBox x:Name="RenameInputType" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.EE7E80078645F66D}" />
+           <TextBlock Text="{DynamicResource L.52DAA71EBC310581}" />
+           <TextBox x:Name="RenameInputFolder" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.BFF46086961F7E97}" />
+           <TextBlock Text="{DynamicResource L.E1506406A5BD8F02}" />
+           <TextBox x:Name="RenameInputCamera" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.C38946AD4C39C80A}" />
+           <TextBlock Text="{DynamicResource L.4AD3DD1A63FBAD6C}" />
+           <TextBox x:Name="RenameDateFrom" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.C297CC85CEB07263}" />
+           <TextBlock Text="{DynamicResource L.81C0DA11A7B77AF6}" />
+           <TextBox x:Name="RenameDateTo" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.98E68EB57B8CF0AF}" />
+           <TextBlock Text="{DynamicResource L.1D0FD5F9336D9103}" />
+           <TextBox x:Name="RenameInputTag" Width="100" MaxLength="256" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.3192A23017FD62E5}" />
            <ComboBox x:Name="RenameInputGps" Width="85" SelectedIndex="0" SelectionChanged="RenameOrderChanged">
-            <ComboBoxItem Content="全部GPS" />
-            <ComboBoxItem Content="有GPS" />
-            <ComboBoxItem Content="无GPS" />
+            <ComboBoxItem Content="{DynamicResource L.09493BEDA0D7A910}" />
+            <ComboBoxItem Content="{DynamicResource L.0BC7CACEC7A445D5}" />
+            <ComboBoxItem Content="{DynamicResource L.E9E1C68B865D0A95}" />
            </ComboBox>
            <ComboBox x:Name="RenameInputPresence" Width="85" SelectedIndex="0" SelectionChanged="RenameOrderChanged">
-            <ComboBoxItem Content="全部标签" />
-            <ComboBoxItem Content="标签存在" />
-            <ComboBoxItem Content="标签缺失" />
+            <ComboBoxItem Content="{DynamicResource L.B709CB12F0ABA6BE}" />
+            <ComboBoxItem Content="{DynamicResource L.A8DA8005BA637C2D}" />
+            <ComboBoxItem Content="{DynamicResource L.2D7BD14198FB3C1F}" />
            </ComboBox>
           </WrapPanel>
-          <TextBlock Text="日期用完整时间或日期（仅日期=午夜）；输入成员命中则整组参与。" />
+          <TextBlock Text="{DynamicResource L.218DB3CB684C08FA}" />
          </StackPanel>
         </Expander>
-        <Expander Header="冲突设置与持续计数">
+        <Expander Header="{DynamicResource L.C615FE01901C6556}">
          <WrapPanel>
-          <TextBlock Text="冲突" />
-          <ComboBox x:Name="RenameConflictChoice" Width="100" SelectedIndex="0" SelectionChanged="RenameOrderChanged" AutomationProperties.Name="重命名冲突策略">
-           <ComboBoxItem Content="阻止" />
-           <ComboBoxItem Content="数字后缀" />
-           <ComboBoxItem Content="字母后缀" />
+          <TextBlock Text="{DynamicResource L.45FB956103636EA6}" />
+          <ComboBox x:Name="RenameConflictChoice" Width="100" SelectedIndex="0" SelectionChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.64048BE56B69A1F4}">
+           <ComboBoxItem Content="{DynamicResource L.2A366D097BC61CB5}" />
+           <ComboBoxItem Content="{DynamicResource L.73397E21E2FE92CA}" />
+           <ComboBoxItem Content="{DynamicResource L.BDFCE20008941914}" />
           </ComboBox>
-          <TextBlock Text="数字最小位数" />
-          <TextBox x:Name="RenameConflictDigits" Text="3" Width="35" MaxLength="1" TextChanged="RenameOrderChanged" AutomationProperties.Name="冲突数字最小位数" />
-          <TextBlock Text="数字形式" />
+          <TextBlock Text="{DynamicResource L.059965D6EF871FAC}" />
+          <TextBox x:Name="RenameConflictDigits" Text="3" Width="35" MaxLength="1" TextChanged="RenameOrderChanged" AutomationProperties.Name="{DynamicResource L.B2FF676AA9BC51F8}" />
+          <TextBlock Text="{DynamicResource L.0E52EC499ACDC4A1}" />
           <ComboBox x:Name="RenameNumberSuffix" SelectedIndex="1" Width="95" SelectionChanged="RenameOrderChanged">
-           <ComboBoxItem Content="直接" />
-           <ComboBoxItem Content="下划线" />
-           <ComboBoxItem Content="短横线" />
-           <ComboBoxItem Content="括号" />
+           <ComboBoxItem Content="{DynamicResource L.3F995FD2410C88BE}" />
+           <ComboBoxItem Content="{DynamicResource L.D3B4A22B47250C5E}" />
+           <ComboBoxItem Content="{DynamicResource L.259AEC3977CEC922}" />
+           <ComboBoxItem Content="{DynamicResource L.AA9B615896987C2F}" />
           </ComboBox>
-          <TextBlock Text="字母形式" />
+          <TextBlock Text="{DynamicResource L.456296640533F5EA}" />
           <ComboBox x:Name="RenameLetterSuffix" SelectedIndex="0" Width="95" SelectionChanged="RenameOrderChanged">
-           <ComboBoxItem Content="直接" />
-           <ComboBoxItem Content="下划线" />
-           <ComboBoxItem Content="短横线" />
-           <ComboBoxItem Content="括号" />
+           <ComboBoxItem Content="{DynamicResource L.3F995FD2410C88BE}" />
+           <ComboBoxItem Content="{DynamicResource L.D3B4A22B47250C5E}" />
+           <ComboBoxItem Content="{DynamicResource L.259AEC3977CEC922}" />
+           <ComboBoxItem Content="{DynamicResource L.AA9B615896987C2F}" />
           </ComboBox>
-          <CheckBox x:Name="RenameKeepFirst" Content="首项无后缀" IsChecked="True" Checked="RenameOrderChanged" Unchecked="RenameOrderChanged" />
-          <Button Content="将所用计数槽重设为规则起点" Click="ResetRenameCounters" />
+          <CheckBox x:Name="RenameKeepFirst" Content="{DynamicResource L.BC704F06451A88C1}" IsChecked="True" Checked="RenameOrderChanged" Unchecked="RenameOrderChanged" />
+          <Button Content="{DynamicResource L.F46A1A31E51CC91D}" Click="ResetRenameCounters" />
          </WrapPanel>
         </Expander>
-        <TextBlock x:Name="RenameOrderStatus" Text="尚未读取配对组。" />
+        <TextBlock x:Name="RenameOrderStatus" Text="{DynamicResource L.F5808FF7FFF767E2}" />
         <DockPanel Margin="0,10,0,10">
-         <Button x:Name="FreezeRenameButton" DockPanel.Dock="Right" Content="检查冲突并冻结" Click="FreezeRename" Padding="12,6" Margin="10,0,0,0" />
-         <TextBox x:Name="RenameRules" AutomationProperties.Name="重命名规则链" Text="前缀|旅行_" TextChanged="RenameRulesChanged" AcceptsReturn="True" MaxLength="32768" Height="60" VerticalScrollBarVisibility="Auto" />
+         <Button x:Name="FreezeRenameButton" DockPanel.Dock="Right" Content="{DynamicResource L.B3CDE8A45E490101}" Click="FreezeRename" Padding="12,6" Margin="10,0,0,0" />
+         <TextBox x:Name="RenameRules" AutomationProperties.Name="{DynamicResource L.389BA884F4590D00}" Text="前缀|旅行_" TextChanged="RenameRulesChanged" AcceptsReturn="True" MaxLength="32768" Height="60" VerticalScrollBarVisibility="Auto" />
         </DockPanel>
         <WrapPanel>
-         <TextBlock Text="结果查看" />
+         <TextBlock Text="{DynamicResource L.024BA64656CBB2D2}" />
          <ComboBox x:Name="RenameViewOrder" Width="110" SelectedIndex="0" SelectionChanged="RenameViewChanged">
-          <ComboBoxItem Content="处理顺序" />
-          <ComboBoxItem Content="新名升序" />
-          <ComboBoxItem Content="新名降序" />
+          <ComboBoxItem Content="{DynamicResource L.2B1058E01BE365D4}" />
+          <ComboBoxItem Content="{DynamicResource L.CD7F875C8D1871D7}" />
+          <ComboBoxItem Content="{DynamicResource L.552DF9795CF9591C}" />
          </ComboBox>
          <ComboBox x:Name="RenameViewFilter" Width="95" SelectedIndex="0" SelectionChanged="RenameViewChanged">
-          <ComboBoxItem Content="查看全部" />
-          <ComboBoxItem Content="只看变化" />
-          <ComboBoxItem Content="只看不变" />
+          <ComboBoxItem Content="{DynamicResource L.FA2FF3C379A7C988}" />
+          <ComboBoxItem Content="{DynamicResource L.CB497DEB4D646C5D}" />
+          <ComboBoxItem Content="{DynamicResource L.E048C359478431E0}" />
          </ComboBox>
-         <Button Content="上移 Alt+↑" Click="RenameMoveUp" />
-         <Button Content="下移 Alt+↓" Click="RenameMoveDown" />
-         <Button x:Name="RenameUndoOrder" Content="撤销 Ctrl+Z" Click="UndoRenameOrder" />
-         <TextBox x:Name="RenameInsertPosition" Width="30" Text="1" AutomationProperties.Name="可见组插入位置" />
-         <Button Content="插入此位置" Click="InsertRenameGroups" />
+         <Button Content="{DynamicResource L.3A20B23515D83A13}" Click="RenameMoveUp" />
+         <Button Content="{DynamicResource L.D2FA921DFB18825B}" Click="RenameMoveDown" />
+         <Button x:Name="RenameUndoOrder" Content="{DynamicResource L.B3D5FE5C6EE206B4}" Click="UndoRenameOrder" />
+         <TextBox x:Name="RenameInsertPosition" Width="30" Text="1" AutomationProperties.Name="{DynamicResource L.7580F2665578B768}" />
+         <Button Content="{DynamicResource L.3B48AE24BBE3EDD6}" Click="InsertRenameGroups" />
         </WrapPanel>
-        <TextBlock x:Name="RenameDropHint" Text="拖到目标组前，空白为末尾；仅改内存。" />
+        <TextBlock x:Name="RenameDropHint" Text="{DynamicResource L.BE001084C1B3F617}" />
        </StackPanel>
       </ScrollViewer>
      </StackPanel>
@@ -744,7 +747,7 @@
        <ColumnDefinition Width="220" />
        <ColumnDefinition Width="*" />
       </Grid.ColumnDefinitions>
-      <ListBox x:Name="RenameGroups" SelectionMode="Extended" DisplayMemberPath="Name" AllowDrop="True" PreviewMouseLeftButtonDown="RenameDragBegin" PreviewMouseMove="RenameDragMove" DragOver="RenameDragOver" Drop="RenameDrop" PreviewKeyDown="RenameOrderKey" AutomationProperties.Name="处理组顺序（可多选拖放）">
+      <ListBox x:Name="RenameGroups" SelectionMode="Extended" DisplayMemberPath="Name" AllowDrop="True" PreviewMouseLeftButtonDown="RenameDragBegin" PreviewMouseMove="RenameDragMove" DragOver="RenameDragOver" Drop="RenameDrop" PreviewKeyDown="RenameOrderKey" AutomationProperties.Name="{DynamicResource L.A4FA43ACC1651B6D}">
        <ListBox.ItemContainerStyle>
         <Style TargetType="ListBoxItem">
          <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
@@ -754,25 +757,25 @@
       </ListBox>
       <DataGrid x:Name="RenamePreview" Grid.Column="1" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False">
        <DataGrid.Columns>
-        <DataGridTextColumn Header="原名" Binding="{Binding OriginalName}" Width="*" />
-        <DataGridTextColumn Header="新名" Binding="{Binding NewName}" Width="*" />
-        <DataGridTextColumn Header="中间步骤（主文件规则结果）" Binding="{Binding Steps}" Width="250" />
-        <DataGridTextColumn Header="状态" Binding="{Binding Status}" Width="200" />
+        <DataGridTextColumn Header="{DynamicResource L.26BB0E770F72128A}" Binding="{Binding OriginalName}" Width="*" />
+        <DataGridTextColumn Header="{DynamicResource L.1BE0BF02458C8BA1}" Binding="{Binding NewName}" Width="*" />
+        <DataGridTextColumn Header="{DynamicResource L.0F6094F9CFA13D8B}" Binding="{Binding Steps}" Width="250" />
+        <DataGridTextColumn Header="{DynamicResource L.6320B4A8722A851F}" Binding="{Binding Status,Converter={StaticResource LocalizedDisplay}}" Width="200" />
        </DataGrid.Columns>
       </DataGrid>
      </Grid>
      <StackPanel Grid.Row="3" Margin="0,8,0,0">
       <WrapPanel>
-       <Button x:Name="RenamePresetSaveButton" Content="导出方案…" Click="SaveRenamePreset" Padding="10,6" Margin="0,0,8,0" />
-       <Button x:Name="RenamePresetLoadButton" Content="导入方案／旧规则…" Click="LoadRenamePreset" Padding="10,6" Margin="0,0,12,0" />
-       <Button x:Name="ExecuteRenameButton" Content="执行冻结计划" Click="ExecuteRename" IsEnabled="False" Padding="12,6" Margin="10,0,0,0" />
+       <Button x:Name="RenamePresetSaveButton" Content="{DynamicResource L.CA13CAC156D222CA}" Click="SaveRenamePreset" Padding="10,6" Margin="0,0,8,0" />
+       <Button x:Name="RenamePresetLoadButton" Content="{DynamicResource L.F20045627EEEED0E}" Click="LoadRenamePreset" Padding="10,6" Margin="0,0,12,0" />
+       <Button x:Name="ExecuteRenameButton" Content="{DynamicResource L.514876AD655CAB66}" Click="ExecuteRename" IsEnabled="False" Padding="12,6" Margin="10,0,0,0" />
       </WrapPanel>
-      <TextBlock Text="执行记录路径（恢复会验证实际文件内容，不覆盖其他文件）" Margin="0,8,0,4" />
+      <TextBlock Text="{DynamicResource L.F76736B8A4DAB97C}" Margin="0,8,0,4" />
       <DockPanel>
-       <Button x:Name="RestoreRenameButton" DockPanel.Dock="Right" Content="按记录恢复原名" Click="RestoreRename" Padding="12,6" Margin="8,0,0,0" />
-       <TextBox x:Name="RenameJournalPath" AutomationProperties.Name="重命名执行记录" MaxLength="32768" />
+       <Button x:Name="RestoreRenameButton" DockPanel.Dock="Right" Content="{DynamicResource L.C1A54AC8645EAF10}" Click="RestoreRename" Padding="12,6" Margin="8,0,0,0" />
+       <TextBox x:Name="RenameJournalPath" AutomationProperties.Name="{DynamicResource L.2476AD56A4C3386C}" MaxLength="32768" />
       </DockPanel>
-      <TextBlock x:Name="RenameStatus" Text="预览不修改文件；冻结后才可执行，成功/失败/取消均保留实际名称记录。" TextWrapping="Wrap" Margin="0,8,0,0" />
+      <TextBlock x:Name="RenameStatus" Text="{DynamicResource L.F5BB2D1A3D918261}" TextWrapping="Wrap" Margin="0,8,0,0" />
      </StackPanel>
     </Grid>
     </Grid>
@@ -780,28 +783,28 @@
   </TabControl>
   <Grid x:Name="MetadataToolsParking" Visibility="Collapsed">
    <TabControl SelectionChanged="PhotoPreviewTabChanged" x:Name="MetadataToolsTabs">
-    <TabItem Header="编辑草稿">
+    <TabItem Header="{DynamicResource L.9D0EEDD99D2BDAC6}" Tag="tool.0" AutomationProperties.AutomationId="MetadataTools.0">
      <DockPanel>
       <WrapPanel x:Name="DraftActions" DockPanel.Dock="Bottom" Margin="10,6" IsEnabled="False">
-       <Button x:Name="FieldApplyButton" Content="应用" Click="ApplyDraft" Padding="12,6" />
-       <Button x:Name="ClearSelectedDraftButton" Content="清空所选全部草稿" Click="UndoDraft" Padding="12,6" Margin="8,0,0,0" />
+       <Button x:Name="FieldApplyButton" Content="{DynamicResource L.63C73C4730F4473E}" Click="ApplyDraft" Padding="12,6" />
+       <Button x:Name="ClearSelectedDraftButton" Content="{DynamicResource L.AEFEE3856629C89E}" Click="UndoDraft" Padding="12,6" Margin="8,0,0,0" />
       </WrapPanel>
       <ScrollViewer VerticalScrollBarVisibility="Auto">
        <StackPanel x:Name="Editor" Margin="10" IsEnabled="False">
-        <TextBlock Text="只应用勾选字段。勾选并留空会清除该字段；混合值不自动应用。" TextWrapping="Wrap" Margin="0,0,0,10" />
-        <CheckBox x:Name="AuthorApply" Content="作者 · 每行一项；项内换行用JSON字符串数组" />
-        <TextBox x:Name="AuthorValue" AutomationProperties.Name="作者" AcceptsReturn="True" MinHeight="42" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="TitleApply" Content="标题 · x-default" />
-        <TextBox x:Name="TitleValue" AutomationProperties.Name="标题" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="DescriptionApply" Content="说明 · x-default" />
-        <TextBox x:Name="DescriptionValue" AutomationProperties.Name="说明" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="64" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="KeywordsApply" Content="关键词 · 每行一项；项内换行用JSON字符串数组" />
-        <TextBox x:Name="KeywordsValue" AutomationProperties.Name="关键词" AcceptsReturn="True" MinHeight="42" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="RightsApply" Content="版权 · x-default" />
-        <TextBox x:Name="RightsValue" AutomationProperties.Name="版权" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="42" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="RatingApply" Content="评分 · 0至5，-1拒绝，留空清除" />
-        <TextBox x:Name="RatingValue" AutomationProperties.Name="评分" MaxLength="2" TextChanged="EditorChanged" Visibility="Collapsed" />
-        <ComboBox IsEditable="True" IsEnabled="{Binding ElementName=RatingValue, Path=IsEnabled}" Text="{Binding ElementName=RatingValue, Path=Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,10" AutomationProperties.Name="Rating枚举选择或原始值">
+        <TextBlock Text="{DynamicResource L.EE431EBDC8DAEB76}" TextWrapping="Wrap" Margin="0,0,0,10" />
+        <CheckBox x:Name="AuthorApply" Content="{DynamicResource L.1FBF8A4B83C24D6E}" />
+        <TextBox x:Name="AuthorValue" AutomationProperties.Name="{DynamicResource L.7D4146CA082798F0}" AcceptsReturn="True" MinHeight="42" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="TitleApply" Content="{DynamicResource L.F2F4D882815410B8}" />
+        <TextBox x:Name="TitleValue" AutomationProperties.Name="{DynamicResource L.C3405F8C7D9D392A}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="DescriptionApply" Content="{DynamicResource L.DA751F06CD766744}" />
+        <TextBox x:Name="DescriptionValue" AutomationProperties.Name="{DynamicResource L.4262C45DC797BB0C}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="64" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="KeywordsApply" Content="{DynamicResource L.55A5CF33E39CFF41}" />
+        <TextBox x:Name="KeywordsValue" AutomationProperties.Name="{DynamicResource L.1F7F0DB90F932DFA}" AcceptsReturn="True" MinHeight="42" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="RightsApply" Content="{DynamicResource L.A672E1C786EEB38B}" />
+        <TextBox x:Name="RightsValue" AutomationProperties.Name="{DynamicResource L.8A5C7A0C197E6F49}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="42" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="RatingApply" Content="{DynamicResource L.2D417FE69B953CBC}" />
+        <TextBox x:Name="RatingValue" AutomationProperties.Name="{DynamicResource L.96FFF2E26C8D1027}" MaxLength="2" TextChanged="EditorChanged" Visibility="Collapsed" />
+        <ComboBox IsEditable="True" IsEnabled="{Binding ElementName=RatingValue, Path=IsEnabled}" Text="{Binding ElementName=RatingValue, Path=Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,10" AutomationProperties.Name="{DynamicResource L.C678CF4F5137133C}">
          <ComboBoxItem Content="" />
          <ComboBoxItem Content="-1" />
          <ComboBoxItem Content="0" />
@@ -811,156 +814,156 @@
          <ComboBoxItem Content="4" />
          <ComboBoxItem Content="5" />
         </ComboBox>
-        <CheckBox x:Name="LabelApply" Content="标签 · 自定义文字" />
-        <TextBox x:Name="LabelValue" AutomationProperties.Name="标签" MaxLength="256" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="DateApply" Content="XMP 拍摄时间" />
-        <TextBox x:Name="DateValue" AutomationProperties.Name="拍摄时间" TextChanged="EditorChanged" Margin="0,4,0,4" />
-        <TextBlock Text="格式：yyyy:MM:dd HH:mm:ss，可附小数秒及Z/±hh:mm；不改 EXIF / IPTC。" TextWrapping="Wrap" Margin="0,0,0,10" />
-        <CheckBox x:Name="DigitizedApply" Content="XMP 数字化时间" />
-        <TextBox x:Name="DigitizedValue" AutomationProperties.Name="数字化时间 · XMP" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="CreateDateApply" Content="XMP 创建时间" />
-        <TextBox x:Name="CreateDateValue" AutomationProperties.Name="创建时间 · XMP" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ModifyDateApply" Content="XMP 修改时间" />
-        <TextBox x:Name="ModifyDateValue" AutomationProperties.Name="修改时间 · XMP" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <TextBlock Text="四个XMP日期独立。旁车主时间为XMP创建时间；无旁车JPEG主时间为下方成组EXIF拍摄时间。" TextWrapping="Wrap" Margin="0,0,0,10" />
-        <TextBlock Text="EXIF 精确来源 · 仅无旁车JPEG；与XMP同义字段独立" TextWrapping="Wrap" />
-        <TextBlock Text="R04c 精确EXIF数值／IPTC部分日期／原图系统时间；仅无旁车JPEG" TextWrapping="Wrap" />
-        <CheckBox x:Name="ExifExposureTimeApply" Content="ExifIFD:ExposureTime · 秒 0.000001—86400" />
-        <TextBox x:Name="ExifExposureTimeValue" AutomationProperties.Name="ExifIFD:ExposureTime" ToolTip="秒 0.000001—86400；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifShutterApply" Content="ExifIFD:ShutterSpeedValue · 秒 0.000001—86400；存储APEX" />
-        <TextBox x:Name="ExifShutterValue" AutomationProperties.Name="ExifIFD:ShutterSpeedValue" ToolTip="秒 0.000001—86400；存储APEX；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifFNumberApply" Content="ExifIFD:FNumber · f数 0.1—128" />
-        <TextBox x:Name="ExifFNumberValue" AutomationProperties.Name="ExifIFD:FNumber" ToolTip="f数 0.1—128；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifApertureApply" Content="ExifIFD:ApertureValue · f数 1—128；存储APEX" />
-        <TextBox x:Name="ExifApertureValue" AutomationProperties.Name="ExifIFD:ApertureValue" ToolTip="f数 1—128；存储APEX；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifMaxApertureApply" Content="ExifIFD:MaxApertureValue · f数 1—128；存储APEX" />
-        <TextBox x:Name="ExifMaxApertureValue" AutomationProperties.Name="ExifIFD:MaxApertureValue" ToolTip="f数 1—128；存储APEX；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifIsoApply" Content="ExifIFD:ISO · 整数1—65535" />
-        <TextBox x:Name="ExifIsoValue" AutomationProperties.Name="ExifIFD:ISO" ToolTip="整数1—65535；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifFocalApply" Content="ExifIFD:FocalLength · 毫米0.1—10000" />
-        <TextBox x:Name="ExifFocalValue" AutomationProperties.Name="ExifIFD:FocalLength" ToolTip="毫米0.1—10000；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifFocal35Apply" Content="ExifIFD:FocalLengthIn35mmFormat · 整数0—65535" />
-        <TextBox x:Name="ExifFocal35Value" AutomationProperties.Name="ExifIFD:FocalLengthIn35mmFormat" ToolTip="整数0—65535；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="LabelApply" Content="{DynamicResource L.A8AA252C53E9EA21}" />
+        <TextBox x:Name="LabelValue" AutomationProperties.Name="{DynamicResource L.1D0FD5F9336D9103}" MaxLength="256" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="DateApply" Content="{DynamicResource L.09200E177895446F}" />
+        <TextBox x:Name="DateValue" AutomationProperties.Name="{DynamicResource L.50B635EC9C64C64E}" TextChanged="EditorChanged" Margin="0,4,0,4" />
+        <TextBlock Text="{DynamicResource L.4C4A60E1AD306EA4}" TextWrapping="Wrap" Margin="0,0,0,10" />
+        <CheckBox x:Name="DigitizedApply" Content="{DynamicResource L.579B711F148426E9}" />
+        <TextBox x:Name="DigitizedValue" AutomationProperties.Name="{DynamicResource L.7D8A445C6A6E7DBB}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="CreateDateApply" Content="{DynamicResource L.494C0CEC76A92C2B}" />
+        <TextBox x:Name="CreateDateValue" AutomationProperties.Name="{DynamicResource L.D5B5FC14236278EB}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ModifyDateApply" Content="{DynamicResource L.C467B36BFAA2E155}" />
+        <TextBox x:Name="ModifyDateValue" AutomationProperties.Name="{DynamicResource L.7CBDF876F50B50C0}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <TextBlock Text="{DynamicResource L.90BECF07F5D562BB}" TextWrapping="Wrap" Margin="0,0,0,10" />
+        <TextBlock Text="{DynamicResource L.3ACC72F38450A38F}" TextWrapping="Wrap" />
+        <TextBlock Text="{DynamicResource L.F5D73F4C4557D46D}" TextWrapping="Wrap" />
+        <CheckBox x:Name="ExifExposureTimeApply" Content="{DynamicResource L.EEF0E30ACE25343A}" />
+        <TextBox x:Name="ExifExposureTimeValue" AutomationProperties.Name="ExifIFD:ExposureTime" ToolTip="{DynamicResource L.C541686E94D6C16F}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifShutterApply" Content="{DynamicResource L.CFA9EE0AC2E749D6}" />
+        <TextBox x:Name="ExifShutterValue" AutomationProperties.Name="ExifIFD:ShutterSpeedValue" ToolTip="{DynamicResource L.087FC9F8B58ACCC0}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifFNumberApply" Content="{DynamicResource L.1D5628C515954442}" />
+        <TextBox x:Name="ExifFNumberValue" AutomationProperties.Name="ExifIFD:FNumber" ToolTip="{DynamicResource L.BB9F55BEC7B89D19}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifApertureApply" Content="{DynamicResource L.54DC69E25CAE6733}" />
+        <TextBox x:Name="ExifApertureValue" AutomationProperties.Name="ExifIFD:ApertureValue" ToolTip="{DynamicResource L.C9F7083190D75C0F}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifMaxApertureApply" Content="{DynamicResource L.D78917C924EF9F84}" />
+        <TextBox x:Name="ExifMaxApertureValue" AutomationProperties.Name="ExifIFD:MaxApertureValue" ToolTip="{DynamicResource L.C9F7083190D75C0F}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifIsoApply" Content="{DynamicResource L.252EE4BE39A2C872}" />
+        <TextBox x:Name="ExifIsoValue" AutomationProperties.Name="ExifIFD:ISO" ToolTip="{DynamicResource L.442A162B2DBAE27E}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifFocalApply" Content="{DynamicResource L.A9B0F7544374EE55}" />
+        <TextBox x:Name="ExifFocalValue" AutomationProperties.Name="ExifIFD:FocalLength" ToolTip="{DynamicResource L.FD3559B149908671}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifFocal35Apply" Content="{DynamicResource L.4F71798F50E03AB8}" />
+        <TextBox x:Name="ExifFocal35Value" AutomationProperties.Name="ExifIFD:FocalLengthIn35mmFormat" ToolTip="{DynamicResource L.B2A8F22A6EE79370}" TextChanged="EditorChanged" Margin="0,4,0,10" />
         <CheckBox x:Name="ExifBiasApply" Content="ExifIFD:ExposureCompensation · EV -100—100" />
-        <TextBox x:Name="ExifBiasValue" AutomationProperties.Name="ExifIFD:ExposureCompensation" ToolTip="EV -100—100；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifFlashApply" Content="ExifIFD:Flash · 整数0—127；原始位组合：0触发／1—2返回／3—4模式／5无功能／6防红眼，不猜未知原值" />
-        <TextBox x:Name="ExifFlashValue" AutomationProperties.Name="ExifIFD:Flash" ToolTip="整数0—127；原始位组合：0触发／1—2返回／3—4模式／5无功能／6防红眼，不猜未知原值；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifColorApply" Content="ExifIFD:ColorSpace · 仅1／65535" />
-        <TextBox x:Name="ExifColorValue" AutomationProperties.Name="ExifIFD:ColorSpace" ToolTip="仅1／65535；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifModeApply" Content="ExifIFD:ExposureMode · 整数0—2" />
-        <TextBox x:Name="ExifModeValue" AutomationProperties.Name="ExifIFD:ExposureMode" ToolTip="整数0—2；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifProgramApply" Content="ExifIFD:ExposureProgram · 整数0—8" />
-        <TextBox x:Name="ExifProgramValue" AutomationProperties.Name="ExifIFD:ExposureProgram" ToolTip="整数0—8；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifMeterApply" Content="ExifIFD:MeteringMode · 仅0／1／2／3／4／5／6／255" />
-        <TextBox x:Name="ExifMeterValue" AutomationProperties.Name="ExifIFD:MeteringMode" ToolTip="仅0／1／2／3／4／5／6／255；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifWhiteApply" Content="ExifIFD:WhiteBalance · 整数0—1" />
-        <TextBox x:Name="ExifWhiteValue" AutomationProperties.Name="ExifIFD:WhiteBalance" ToolTip="整数0—1；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifSaturationApply" Content="ExifIFD:Saturation · 整数0—2" />
-        <TextBox x:Name="ExifSaturationValue" AutomationProperties.Name="ExifIFD:Saturation" ToolTip="整数0—2；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifSharpnessApply" Content="ExifIFD:Sharpness · 整数0—2" />
-        <TextBox x:Name="ExifSharpnessValue" AutomationProperties.Name="ExifIFD:Sharpness" ToolTip="整数0—2；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifOrientationApply" Content="IFD0:Orientation · 整数1—8；仅改标签不旋转像素" />
-        <TextBox x:Name="ExifOrientationValue" AutomationProperties.Name="IFD0:Orientation" ToolTip="整数1—8；仅改标签不旋转像素；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <TextBox x:Name="ExifBiasValue" AutomationProperties.Name="ExifIFD:ExposureCompensation" ToolTip="{DynamicResource L.A3E89E2E48CC5A1C}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifFlashApply" Content="{DynamicResource L.3C7129765C09AB6D}" />
+        <TextBox x:Name="ExifFlashValue" AutomationProperties.Name="ExifIFD:Flash" ToolTip="{DynamicResource L.DBF344F3A62D2A7F}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifColorApply" Content="{DynamicResource L.413F01459434B461}" />
+        <TextBox x:Name="ExifColorValue" AutomationProperties.Name="ExifIFD:ColorSpace" ToolTip="{DynamicResource L.026AE397E6F867FD}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifModeApply" Content="{DynamicResource L.97CA45589A3A0D7B}" />
+        <TextBox x:Name="ExifModeValue" AutomationProperties.Name="ExifIFD:ExposureMode" ToolTip="{DynamicResource L.DC1F2A10B4E21A73}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifProgramApply" Content="{DynamicResource L.8DF8F483C89D9149}" />
+        <TextBox x:Name="ExifProgramValue" AutomationProperties.Name="ExifIFD:ExposureProgram" ToolTip="{DynamicResource L.A38C1B698D29843C}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifMeterApply" Content="{DynamicResource L.42A21DDA2D8199F9}" />
+        <TextBox x:Name="ExifMeterValue" AutomationProperties.Name="ExifIFD:MeteringMode" ToolTip="{DynamicResource L.A43A611295D791CA}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifWhiteApply" Content="{DynamicResource L.239BE2B836A24174}" />
+        <TextBox x:Name="ExifWhiteValue" AutomationProperties.Name="ExifIFD:WhiteBalance" ToolTip="{DynamicResource L.E8652D04E0F83470}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifSaturationApply" Content="{DynamicResource L.7BA1FE046AC9E18C}" />
+        <TextBox x:Name="ExifSaturationValue" AutomationProperties.Name="ExifIFD:Saturation" ToolTip="{DynamicResource L.DC1F2A10B4E21A73}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifSharpnessApply" Content="{DynamicResource L.FFC4764BDAC5A5F4}" />
+        <TextBox x:Name="ExifSharpnessValue" AutomationProperties.Name="ExifIFD:Sharpness" ToolTip="{DynamicResource L.DC1F2A10B4E21A73}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifOrientationApply" Content="{DynamicResource L.5344F81C52D6F3CB}" />
+        <TextBox x:Name="ExifOrientationValue" AutomationProperties.Name="IFD0:Orientation" ToolTip="{DynamicResource L.AE0C2B8137AE8A69}" TextChanged="EditorChanged" Margin="0,4,0,10" />
         <CheckBox x:Name="ExifXResApply" Content="IFD0:XResolution · 0.000001—1000000" />
-        <TextBox x:Name="ExifXResValue" AutomationProperties.Name="IFD0:XResolution" ToolTip="0.000001—1000000；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <TextBox x:Name="ExifXResValue" AutomationProperties.Name="IFD0:XResolution" ToolTip="{DynamicResource L.63A906B4BDD1C262}" TextChanged="EditorChanged" Margin="0,4,0,10" />
         <CheckBox x:Name="ExifYResApply" Content="IFD0:YResolution · 0.000001—1000000" />
-        <TextBox x:Name="ExifYResValue" AutomationProperties.Name="IFD0:YResolution" ToolTip="0.000001—1000000；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifResUnitApply" Content="IFD0:ResolutionUnit · 整数1—3" />
-        <TextBox x:Name="ExifResUnitValue" AutomationProperties.Name="IFD0:ResolutionUnit" ToolTip="整数1—3；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="IptcDateApply" Content="IPTC:DateCreated · yyyy:MM:dd；严格公历" />
-        <TextBox x:Name="IptcDateValue" AutomationProperties.Name="IPTC:DateCreated" ToolTip="yyyy:MM:dd；严格公历；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="IptcTimeApply" Content="IPTC:TimeCreated · HH:mm:ssZ／±hh:mm；明确偏移" />
-        <TextBox x:Name="IptcTimeValue" AutomationProperties.Name="IPTC:TimeCreated" ToolTip="HH:mm:ssZ／±hh:mm；明确偏移；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="SystemCreateApply" Content="System:FileCreateDate · 完整时间；无偏移使用本机时区；100ns；不可清除" />
-        <TextBox x:Name="SystemCreateValue" AutomationProperties.Name="System:FileCreateDate" ToolTip="完整时间；无偏移使用本机时区；100ns；不可清除；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="SystemModifyApply" Content="System:FileModifyDate · 完整时间；无偏移使用本机时区；100ns；不可清除" />
-        <TextBox x:Name="SystemModifyValue" AutomationProperties.Name="System:FileModifyDate" ToolTip="完整时间；无偏移使用本机时区；100ns；不可清除；未勾选保持；EXIF/IPTC勾选留空清除，系统时间空值拒绝。" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <TextBlock Text="IPTC 精确图内来源 · 设置须明确UTF8；勾选留空为清除" TextWrapping="Wrap" />
-        <CheckBox x:Name="IptcBylineApply" Content="IPTC:By-line · 32 UTF8字节" />
-        <TextBox x:Name="IptcBylineValue" AutomationProperties.Name="IPTC:By-line" ToolTip="列表：每行一项；元素内部换行用JSON字符串数组。不截断、不自动trim；编码未知时仅可尝试明确清除并核对原始剩余数据集。" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="IptcBylineTitleApply" Content="IPTC:By-lineTitle · 32 UTF8字节" />
-        <TextBox x:Name="IptcBylineTitleValue" AutomationProperties.Name="IPTC:By-lineTitle" ToolTip="列表：每行一项；元素内部换行用JSON字符串数组。不截断、不自动trim；编码未知时仅可尝试明确清除并核对原始剩余数据集。" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="IptcContactApply" Content="IPTC:Contact · 128 UTF8字节" />
-        <TextBox x:Name="IptcContactValue" AutomationProperties.Name="IPTC:Contact" ToolTip="列表：每行一项；元素内部换行用JSON字符串数组。不截断、不自动trim；编码未知时仅可尝试明确清除并核对原始剩余数据集。" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="IptcKeywordsApply" Content="IPTC:Keywords · 64 UTF8字节" />
-        <TextBox x:Name="IptcKeywordsValue" AutomationProperties.Name="IPTC:Keywords" ToolTip="列表：每行一项；元素内部换行用JSON字符串数组。不截断、不自动trim；编码未知时仅可尝试明确清除并核对原始剩余数据集。" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="IptcHeadlineApply" Content="IPTC:Headline · 256 UTF8字节" />
-        <TextBox x:Name="IptcHeadlineValue" AutomationProperties.Name="IPTC:Headline" ToolTip="不截断、不自动trim；编码未知时仅可尝试明确清除并核对原始剩余数据集。" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="IptcCaptionApply" Content="IPTC:Caption-Abstract · 2000 UTF8字节" />
-        <TextBox x:Name="IptcCaptionValue" AutomationProperties.Name="IPTC:Caption-Abstract" ToolTip="不截断、不自动trim；编码未知时仅可尝试明确清除并核对原始剩余数据集。" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="IptcObjectNameApply" Content="IPTC:ObjectName · 64 UTF8字节" />
-        <TextBox x:Name="IptcObjectNameValue" AutomationProperties.Name="IPTC:ObjectName" ToolTip="不截断、不自动trim；编码未知时仅可尝试明确清除并核对原始剩余数据集。" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="IptcCityApply" Content="IPTC:City · 32 UTF8字节" />
-        <TextBox x:Name="IptcCityValue" AutomationProperties.Name="IPTC:City" ToolTip="不截断、不自动trim；编码未知时仅可尝试明确清除并核对原始剩余数据集。" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="IptcProvinceApply" Content="IPTC:Province-State · 32 UTF8字节" />
-        <TextBox x:Name="IptcProvinceValue" AutomationProperties.Name="IPTC:Province-State" ToolTip="不截断、不自动trim；编码未知时仅可尝试明确清除并核对原始剩余数据集。" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="IptcLocationApply" Content="IPTC:Sub-location · 32 UTF8字节" />
-        <TextBox x:Name="IptcLocationValue" AutomationProperties.Name="IPTC:Sub-location" ToolTip="不截断、不自动trim；编码未知时仅可尝试明确清除并核对原始剩余数据集。" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="IptcCountryApply" Content="IPTC:Country-PrimaryLocationName · 64 UTF8字节" />
-        <TextBox x:Name="IptcCountryValue" AutomationProperties.Name="IPTC:Country-PrimaryLocationName" ToolTip="不截断、不自动trim；编码未知时仅可尝试明确清除并核对原始剩余数据集。" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="IptcCountryCodeApply" Content="IPTC:Country-PrimaryLocationCode · 3 UTF8字节" />
-        <TextBox x:Name="IptcCountryCodeValue" AutomationProperties.Name="IPTC:Country-PrimaryLocationCode" ToolTip="不截断、不自动trim；编码未知时仅可尝试明确清除并核对原始剩余数据集。" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifArtistApply" Content="EXIF 作者 · IFD0:Artist" />
-        <TextBox x:Name="ExifArtistValue" AutomationProperties.Name="EXIF 作者" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifDescriptionApply" Content="EXIF 说明 · IFD0:ImageDescription" />
-        <TextBox x:Name="ExifDescriptionValue" AutomationProperties.Name="EXIF 说明" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifCopyrightApply" Content="EXIF 版权 · IFD0:Copyright" />
-        <TextBox x:Name="ExifCopyrightValue" AutomationProperties.Name="EXIF 版权" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifSoftwareApply" Content="EXIF 软件 · IFD0:Software" />
-        <TextBox x:Name="ExifSoftwareValue" AutomationProperties.Name="EXIF 软件" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifCommentApply" Content="EXIF 用户备注 · ExifIFD:UserComment" />
-        <TextBox x:Name="ExifCommentValue" AutomationProperties.Name="EXIF 用户备注" AcceptsReturn="true" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifMakeApply" Content="EXIF 制造商 · IFD0:Make" />
-        <TextBox x:Name="ExifMakeValue" AutomationProperties.Name="EXIF 制造商" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifModelApply" Content="EXIF 型号 · IFD0:Model" />
-        <TextBox x:Name="ExifModelValue" AutomationProperties.Name="EXIF 型号" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifSerialApply" Content="EXIF 机身序列号 · ExifIFD:SerialNumber" />
-        <TextBox x:Name="ExifSerialValue" AutomationProperties.Name="EXIF 机身序列号" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifLensMakeApply" Content="EXIF 镜头制造商 · ExifIFD:LensMake" />
-        <TextBox x:Name="ExifLensMakeValue" AutomationProperties.Name="EXIF 镜头制造商" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifLensModelApply" Content="EXIF 镜头型号 · ExifIFD:LensModel" />
-        <TextBox x:Name="ExifLensModelValue" AutomationProperties.Name="EXIF 镜头型号" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifLensSerialApply" Content="EXIF 镜头序列号 · ExifIFD:LensSerialNumber" />
-        <TextBox x:Name="ExifLensSerialValue" AutomationProperties.Name="EXIF 镜头序列号" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifCaptureApply" Content="EXIF 拍摄时间 · 主时间／亚秒／偏移成组 · Composite:SubSecDateTimeOriginal" />
-        <TextBox x:Name="ExifCaptureValue" AutomationProperties.Name="EXIF 拍摄时间 · 主时间／亚秒／偏移成组" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifCreateApply" Content="EXIF 数字化时间 · 成组 · Composite:SubSecCreateDate" />
-        <TextBox x:Name="ExifCreateValue" AutomationProperties.Name="EXIF 数字化时间 · 成组" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExifModifyApply" Content="EXIF 修改时间 · 成组 · Composite:SubSecModifyDate" />
-        <TextBox x:Name="ExifModifyValue" AutomationProperties.Name="EXIF 修改时间 · 成组" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="CountryApply" Content="国家 · 手填" />
-        <TextBox x:Name="CountryValue" AutomationProperties.Name="国家" MaxLength="256" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="StateApply" Content="省／州 · 手填" />
-        <TextBox x:Name="StateValue" AutomationProperties.Name="省／州" MaxLength="256" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="CityApply" Content="城市 · 手填" />
-        <TextBox x:Name="CityValue" AutomationProperties.Name="城市" MaxLength="256" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="LocationApply" Content="区／地点 · 手填" />
-        <TextBox x:Name="LocationValue" AutomationProperties.Name="区／地点" MaxLength="256" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="CountryCodeApply" Content="国家代码 · 三字母，例如CHN · 手填" />
-        <TextBox x:Name="CountryCodeValue" AutomationProperties.Name="国家代码 · 三字母，例如CHN" MaxLength="256" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <TextBlock Text="设备信息 · 只写XMP，原EXIF设备字段保留" TextWrapping="Wrap" Margin="0,8,0,10" />
-        <CheckBox x:Name="MakeApply" Content="制造商 · XMP-tiff:Make" />
-        <TextBox x:Name="MakeValue" AutomationProperties.Name="制造商 · XMP" MaxLength="8192" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ModelApply" Content="设备型号 · XMP-tiff:Model" />
-        <TextBox x:Name="ModelValue" AutomationProperties.Name="设备型号 · XMP" MaxLength="8192" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="LensApply" Content="镜头 · XMP-aux:Lens" />
-        <TextBox x:Name="LensValue" AutomationProperties.Name="镜头 · XMP" MaxLength="8192" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="LensSerialApply" Content="镜头序列号 · XMP-aux:LensSerialNumber" />
-        <TextBox x:Name="LensSerialValue" AutomationProperties.Name="镜头序列号 · XMP" MaxLength="8192" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <TextBlock Text="曝光参数 · 只写XMP；可输入数值或分数，如1/125" TextWrapping="Wrap" Margin="0,8,0,10" />
-        <CheckBox x:Name="ExposureTimeApply" Content="曝光时间 · 秒 · 0.000001至86400" />
-        <TextBox x:Name="ExposureTimeValue" AutomationProperties.Name="曝光时间 · XMP" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="FNumberApply" Content="光圈 · 0.1至128" />
-        <TextBox x:Name="FNumberValue" AutomationProperties.Name="光圈 · XMP" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="IsoApply" Content="ISO · 整数1至1000000" />
+        <TextBox x:Name="ExifYResValue" AutomationProperties.Name="IFD0:YResolution" ToolTip="{DynamicResource L.63A906B4BDD1C262}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifResUnitApply" Content="{DynamicResource L.37652AD5B1E770CB}" />
+        <TextBox x:Name="ExifResUnitValue" AutomationProperties.Name="IFD0:ResolutionUnit" ToolTip="{DynamicResource L.29CC70AB7273010B}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="IptcDateApply" Content="{DynamicResource L.E6EBC378770BE2DD}" />
+        <TextBox x:Name="IptcDateValue" AutomationProperties.Name="IPTC:DateCreated" ToolTip="{DynamicResource L.A4AB188BB63741A7}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="IptcTimeApply" Content="{DynamicResource L.678EC4EF25CCA5B0}" />
+        <TextBox x:Name="IptcTimeValue" AutomationProperties.Name="IPTC:TimeCreated" ToolTip="{DynamicResource L.D663CFB5C340BC2B}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="SystemCreateApply" Content="{DynamicResource L.0ED04437A88F3575}" />
+        <TextBox x:Name="SystemCreateValue" AutomationProperties.Name="System:FileCreateDate" ToolTip="{DynamicResource L.4F789619A4215CA9}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="SystemModifyApply" Content="{DynamicResource L.F9C24B661FD9CA35}" />
+        <TextBox x:Name="SystemModifyValue" AutomationProperties.Name="System:FileModifyDate" ToolTip="{DynamicResource L.4F789619A4215CA9}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <TextBlock Text="{DynamicResource L.41199CF0CA059BD5}" TextWrapping="Wrap" />
+        <CheckBox x:Name="IptcBylineApply" Content="{DynamicResource L.11267085FE7E51DF}" />
+        <TextBox x:Name="IptcBylineValue" AutomationProperties.Name="IPTC:By-line" ToolTip="{DynamicResource L.D8632331D81DCAB7}" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="IptcBylineTitleApply" Content="{DynamicResource L.1FAA9469FAFA8D62}" />
+        <TextBox x:Name="IptcBylineTitleValue" AutomationProperties.Name="IPTC:By-lineTitle" ToolTip="{DynamicResource L.D8632331D81DCAB7}" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="IptcContactApply" Content="{DynamicResource L.A5AC31521A45AFB6}" />
+        <TextBox x:Name="IptcContactValue" AutomationProperties.Name="IPTC:Contact" ToolTip="{DynamicResource L.D8632331D81DCAB7}" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="IptcKeywordsApply" Content="{DynamicResource L.920D2C360BCA26E1}" />
+        <TextBox x:Name="IptcKeywordsValue" AutomationProperties.Name="IPTC:Keywords" ToolTip="{DynamicResource L.D8632331D81DCAB7}" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="IptcHeadlineApply" Content="{DynamicResource L.3E5FC960FC502D82}" />
+        <TextBox x:Name="IptcHeadlineValue" AutomationProperties.Name="IPTC:Headline" ToolTip="{DynamicResource L.F27CEA1DBF57241A}" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="IptcCaptionApply" Content="{DynamicResource L.ADA4437A3C1B1882}" />
+        <TextBox x:Name="IptcCaptionValue" AutomationProperties.Name="IPTC:Caption-Abstract" ToolTip="{DynamicResource L.F27CEA1DBF57241A}" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="IptcObjectNameApply" Content="{DynamicResource L.44D3BAF7F003DADF}" />
+        <TextBox x:Name="IptcObjectNameValue" AutomationProperties.Name="IPTC:ObjectName" ToolTip="{DynamicResource L.F27CEA1DBF57241A}" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="IptcCityApply" Content="{DynamicResource L.401C6663D221A527}" />
+        <TextBox x:Name="IptcCityValue" AutomationProperties.Name="IPTC:City" ToolTip="{DynamicResource L.F27CEA1DBF57241A}" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="IptcProvinceApply" Content="{DynamicResource L.1C05BF14917A5C2E}" />
+        <TextBox x:Name="IptcProvinceValue" AutomationProperties.Name="IPTC:Province-State" ToolTip="{DynamicResource L.F27CEA1DBF57241A}" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="IptcLocationApply" Content="{DynamicResource L.34C27C85FB8386E3}" />
+        <TextBox x:Name="IptcLocationValue" AutomationProperties.Name="IPTC:Sub-location" ToolTip="{DynamicResource L.F27CEA1DBF57241A}" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="IptcCountryApply" Content="{DynamicResource L.94046550A42ADF1C}" />
+        <TextBox x:Name="IptcCountryValue" AutomationProperties.Name="IPTC:Country-PrimaryLocationName" ToolTip="{DynamicResource L.F27CEA1DBF57241A}" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="IptcCountryCodeApply" Content="{DynamicResource L.957FD91EE70238EB}" />
+        <TextBox x:Name="IptcCountryCodeValue" AutomationProperties.Name="IPTC:Country-PrimaryLocationCode" ToolTip="{DynamicResource L.F27CEA1DBF57241A}" AcceptsReturn="True" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifArtistApply" Content="{DynamicResource L.13EAE24B9B3A2493}" />
+        <TextBox x:Name="ExifArtistValue" AutomationProperties.Name="{DynamicResource L.05D698CA9A3F2F90}" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifDescriptionApply" Content="{DynamicResource L.FE4495D2C9D9E3EE}" />
+        <TextBox x:Name="ExifDescriptionValue" AutomationProperties.Name="{DynamicResource L.8688D19678776A69}" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifCopyrightApply" Content="{DynamicResource L.0EE08051F5F0E1B1}" />
+        <TextBox x:Name="ExifCopyrightValue" AutomationProperties.Name="{DynamicResource L.DF6993667161FD36}" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifSoftwareApply" Content="{DynamicResource L.AFB85AF1F36AAEA4}" />
+        <TextBox x:Name="ExifSoftwareValue" AutomationProperties.Name="{DynamicResource L.C5531A58041C11FF}" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifCommentApply" Content="{DynamicResource L.43FFE1E9F4E2FEAC}" />
+        <TextBox x:Name="ExifCommentValue" AutomationProperties.Name="{DynamicResource L.A6B45D8B7542F65D}" AcceptsReturn="true" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifMakeApply" Content="{DynamicResource L.4BF291FD86D58968}" />
+        <TextBox x:Name="ExifMakeValue" AutomationProperties.Name="{DynamicResource L.927D790015066C23}" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifModelApply" Content="{DynamicResource L.6EA0F5AEB1EF46F8}" />
+        <TextBox x:Name="ExifModelValue" AutomationProperties.Name="{DynamicResource L.A1018C7AED7CCAF4}" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifSerialApply" Content="{DynamicResource L.DCAF95F5C456354D}" />
+        <TextBox x:Name="ExifSerialValue" AutomationProperties.Name="{DynamicResource L.5B690BF6C41CEDBD}" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifLensMakeApply" Content="{DynamicResource L.7EE2BCF4875F7890}" />
+        <TextBox x:Name="ExifLensMakeValue" AutomationProperties.Name="{DynamicResource L.52543233484FF0D1}" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifLensModelApply" Content="{DynamicResource L.7D33747D5F0EC734}" />
+        <TextBox x:Name="ExifLensModelValue" AutomationProperties.Name="{DynamicResource L.E253DFA390C4C176}" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifLensSerialApply" Content="{DynamicResource L.E5577A854A5E3D57}" />
+        <TextBox x:Name="ExifLensSerialValue" AutomationProperties.Name="{DynamicResource L.50B4028D8B9A170A}" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifCaptureApply" Content="{DynamicResource L.C321544EDC2492CE}" />
+        <TextBox x:Name="ExifCaptureValue" AutomationProperties.Name="{DynamicResource L.DE8DBF10B58A3A49}" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifCreateApply" Content="{DynamicResource L.0A74ECCB86F745BC}" />
+        <TextBox x:Name="ExifCreateValue" AutomationProperties.Name="{DynamicResource L.424188E27BABF8D2}" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExifModifyApply" Content="{DynamicResource L.1B0E37789E2D3F98}" />
+        <TextBox x:Name="ExifModifyValue" AutomationProperties.Name="{DynamicResource L.B4263A7DAAAD7128}" AcceptsReturn="false" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="CountryApply" Content="{DynamicResource L.724BE5539BDFD83E}" />
+        <TextBox x:Name="CountryValue" AutomationProperties.Name="{DynamicResource L.0CC659A9F57C2493}" MaxLength="256" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="StateApply" Content="{DynamicResource L.9B06993694738756}" />
+        <TextBox x:Name="StateValue" AutomationProperties.Name="{DynamicResource L.7547F7479EA110BB}" MaxLength="256" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="CityApply" Content="{DynamicResource L.1BDEC147A2DA19E5}" />
+        <TextBox x:Name="CityValue" AutomationProperties.Name="{DynamicResource L.ED84A1665F79B6CA}" MaxLength="256" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="LocationApply" Content="{DynamicResource L.E44668B4768943D4}" />
+        <TextBox x:Name="LocationValue" AutomationProperties.Name="{DynamicResource L.8925F90DFD2BC344}" MaxLength="256" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="CountryCodeApply" Content="{DynamicResource L.D676678422CDE80C}" />
+        <TextBox x:Name="CountryCodeValue" AutomationProperties.Name="{DynamicResource L.7B915D06E30BEAB3}" MaxLength="256" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <TextBlock Text="{DynamicResource L.4A7101BB18BAE790}" TextWrapping="Wrap" Margin="0,8,0,10" />
+        <CheckBox x:Name="MakeApply" Content="{DynamicResource L.D5C67899BB17EF7E}" />
+        <TextBox x:Name="MakeValue" AutomationProperties.Name="{DynamicResource L.D800C302417AD03D}" MaxLength="8192" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ModelApply" Content="{DynamicResource L.17A3BE6CAA34AAF9}" />
+        <TextBox x:Name="ModelValue" AutomationProperties.Name="{DynamicResource L.5C01CA5D6BCD99BD}" MaxLength="8192" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="LensApply" Content="{DynamicResource L.48510ECD9D1AA774}" />
+        <TextBox x:Name="LensValue" AutomationProperties.Name="{DynamicResource L.B47625EC20CC6C57}" MaxLength="8192" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="LensSerialApply" Content="{DynamicResource L.731626EB02525C65}" />
+        <TextBox x:Name="LensSerialValue" AutomationProperties.Name="{DynamicResource L.BF49EB42E78C0C4B}" MaxLength="8192" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <TextBlock Text="{DynamicResource L.5CF11C077FFAD94D}" TextWrapping="Wrap" Margin="0,8,0,10" />
+        <CheckBox x:Name="ExposureTimeApply" Content="{DynamicResource L.0D002FD55A750B4F}" />
+        <TextBox x:Name="ExposureTimeValue" AutomationProperties.Name="{DynamicResource L.7AE437B77C4778D6}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="FNumberApply" Content="{DynamicResource L.21BBDA93007C0BDA}" />
+        <TextBox x:Name="FNumberValue" AutomationProperties.Name="{DynamicResource L.54288FBD431D39F1}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="IsoApply" Content="{DynamicResource L.70C62D4B2C773FCD}" />
         <TextBox x:Name="IsoValue" AutomationProperties.Name="ISO · XMP" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="FocalLengthApply" Content="焦距 · mm · 0.1至10000" />
-        <TextBox x:Name="FocalLengthValue" AutomationProperties.Name="焦距 · XMP" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExposureBiasApply" Content="曝光补偿 · EV · -100至100" />
-        <TextBox x:Name="ExposureBiasValue" AutomationProperties.Name="曝光补偿 · XMP" TextChanged="EditorChanged" Margin="0,4,0,10" />
-        <CheckBox x:Name="ExposureProgramApply" Content="曝光程序 · 整数0至8" />
-        <TextBox x:Name="ExposureProgramValue" AutomationProperties.Name="曝光程序 · XMP" TextChanged="EditorChanged" Visibility="Collapsed" />
-        <ComboBox IsEditable="True" IsEnabled="{Binding ElementName=ExposureProgramValue, Path=IsEnabled}" Text="{Binding ElementName=ExposureProgramValue, Path=Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,10" AutomationProperties.Name="ExposureProgram枚举选择或原始值">
+        <CheckBox x:Name="FocalLengthApply" Content="{DynamicResource L.428933051AED39C2}" />
+        <TextBox x:Name="FocalLengthValue" AutomationProperties.Name="{DynamicResource L.CFAC6DCBC486A279}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExposureBiasApply" Content="{DynamicResource L.C9C29A7CD8E1366A}" />
+        <TextBox x:Name="ExposureBiasValue" AutomationProperties.Name="{DynamicResource L.EEFF0720A59D2025}" TextChanged="EditorChanged" Margin="0,4,0,10" />
+        <CheckBox x:Name="ExposureProgramApply" Content="{DynamicResource L.0E2EF54208FAFF5E}" />
+        <TextBox x:Name="ExposureProgramValue" AutomationProperties.Name="{DynamicResource L.5226AF3BE71C04DE}" TextChanged="EditorChanged" Visibility="Collapsed" />
+        <ComboBox IsEditable="True" IsEnabled="{Binding ElementName=ExposureProgramValue, Path=IsEnabled}" Text="{Binding ElementName=ExposureProgramValue, Path=Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,10" AutomationProperties.Name="{DynamicResource L.EE5158392ECD0441}">
          <ComboBoxItem Content="" />
          <ComboBoxItem Content="0" />
          <ComboBoxItem Content="1" />
@@ -972,9 +975,9 @@
          <ComboBoxItem Content="7" />
          <ComboBoxItem Content="8" />
         </ComboBox>
-        <CheckBox x:Name="WhiteBalanceApply" Content="白平衡 · 0自动／1手动" />
-        <TextBox x:Name="WhiteBalanceValue" AutomationProperties.Name="白平衡 · XMP" TextChanged="EditorChanged" Visibility="Collapsed" />
-        <ComboBox IsEditable="True" IsEnabled="{Binding ElementName=WhiteBalanceValue, Path=IsEnabled}" Text="{Binding ElementName=WhiteBalanceValue, Path=Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,10" AutomationProperties.Name="WhiteBalance枚举选择或原始值">
+        <CheckBox x:Name="WhiteBalanceApply" Content="{DynamicResource L.69F6020F007BB7D3}" />
+        <TextBox x:Name="WhiteBalanceValue" AutomationProperties.Name="{DynamicResource L.E8C074DF98D4A83E}" TextChanged="EditorChanged" Visibility="Collapsed" />
+        <ComboBox IsEditable="True" IsEnabled="{Binding ElementName=WhiteBalanceValue, Path=IsEnabled}" Text="{Binding ElementName=WhiteBalanceValue, Path=Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,10" AutomationProperties.Name="{DynamicResource L.AC3E98E04D2691AD}">
          <ComboBoxItem Content="" />
          <ComboBoxItem Content="0" />
          <ComboBoxItem Content="1" />
@@ -983,153 +986,153 @@
       </ScrollViewer>
      </DockPanel>
     </TabItem>
-    <TabItem Header="字段剪贴板">
+    <TabItem Header="{DynamicResource L.10BDE906A9C8AE66}" Tag="tool.1" AutomationProperties.AutomationId="MetadataTools.1">
      <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="10">
-       <TextBlock Text="复制当前所选照片的同一个原始字段值（包含草稿）。值不一致或缺失时不能复制。文本框自身Ctrl+C/V仍使用原生行为。" TextWrapping="Wrap" />
-       <TextBlock Text="GPS坐标仅复制单张照片的WGS-84经纬度（包含草稿），不包含海拔/时间/地区。选择目标后先预览，再在地图页加入GPS草稿并保存副本；未知海拔/测量时间清除旧XMP值。" TextWrapping="Wrap" Margin="0,12,0,8" />
+       <TextBlock Text="{DynamicResource L.C9A048280612E103}" TextWrapping="Wrap" />
+       <TextBlock Text="{DynamicResource L.FCF3CEF3A7F33B9D}" TextWrapping="Wrap" Margin="0,12,0,8" />
        <WrapPanel>
-        <Button Content="复制所选GPS坐标" Click="CopyGpsClipboard" Padding="10,6" Margin="0,0,8,0" />
-        <Button Content="预览剪贴板GPS坐标" Click="PreviewGpsClipboard" Padding="10,6" />
+        <Button Content="{DynamicResource L.E022592542C33D25}" Click="CopyGpsClipboard" Padding="10,6" Margin="0,0,8,0" />
+        <Button Content="{DynamicResource L.CC5015D6C25F62BA}" Click="PreviewGpsClipboard" Padding="10,6" />
        </WrapPanel>
-       <ComboBox x:Name="ClipboardField" DisplayMemberPath="Name" SelectedValuePath="Tag" SelectedIndex="0" AutomationProperties.Name="复制字段" Margin="0,10" />
-       <Button Content="复制字段值" Click="CopyField" HorizontalAlignment="Left" Padding="10,6" />
-       <TextBlock Text="粘贴前，在编辑草稿页勾选目标字段。先完整验证，再把同一个字面值填入全部勾选字段；不会直接加入草稿或写入照片。" TextWrapping="Wrap" Margin="0,12,0,8" />
-       <Button Content="将剪贴板填入勾选字段" Click="PasteFields" HorizontalAlignment="Left" Padding="10,6" />
-       <TextBlock Text="切回编辑草稿页核对并明确加入草稿，最后手动保存副本。作者/关键词按换行分项；日期保留原始精度和时区，不转换显示值。" TextWrapping="Wrap" Margin="0,12" />
+       <ComboBox x:Name="ClipboardField" DisplayMemberPath="Name" SelectedValuePath="Tag" SelectedIndex="0" AutomationProperties.Name="{DynamicResource L.96EBDA39E82634DA}" Margin="0,10" />
+       <Button Content="{DynamicResource L.E7D7002527838DA3}" Click="CopyField" HorizontalAlignment="Left" Padding="10,6" />
+       <TextBlock Text="{DynamicResource L.1B9F0100ED94B5F0}" TextWrapping="Wrap" Margin="0,12,0,8" />
+       <Button Content="{DynamicResource L.150B18C236D856FD}" Click="PasteFields" HorizontalAlignment="Left" Padding="10,6" />
+       <TextBlock Text="{DynamicResource L.733F2AAFC1D270AF}" TextWrapping="Wrap" Margin="0,12" />
       </StackPanel>
      </ScrollViewer>
     </TabItem>
-    <TabItem Header="字段预设">
+    <TabItem Header="{DynamicResource L.29BAFEBC2A838C61}" Tag="tool.2" AutomationProperties.AutomationId="MetadataTools.2">
      <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="10">
-       <TextBlock Text="按列表顺序对每张照片应用。设置和关键词精确追加可重复而无变化；文字追加每次都会再次生效。载入与保存 JSON 只修改预设，显式保存副本才写照片。" TextWrapping="Wrap" />
+       <TextBlock Text="{DynamicResource L.5AF886FECAA05055}" TextWrapping="Wrap" />
        <StackPanel x:Name="PresetControls">
-        <TextBlock Text="本机已保存预设（库管理只保存配置，不应用照片）" />
-        <ListBox x:Name="MetadataPresetList" Height="110" SelectionChanged="SavedPresetSelected" AutomationProperties.Name="已保存元数据预设列表" />
-        <TextBlock x:Name="PresetLibraryStatus" Text="正在读取本机库…" TextWrapping="Wrap" />
+        <TextBlock Text="{DynamicResource L.393C87694DC1936B}" />
+        <ListBox x:Name="MetadataPresetList" Height="110" SelectionChanged="SavedPresetSelected" AutomationProperties.Name="{DynamicResource L.349663CF4CC3BAB8}" />
+        <TextBlock x:Name="PresetLibraryStatus" Text="{DynamicResource L.E4E18D32893A30B5}" TextWrapping="Wrap" />
         <WrapPanel x:Name="PresetLibraryActions">
-         <Button Content="新建编辑链" Click="NewMetadataPreset" />
-         <Button Content="保存为新预设" Click="SaveNewMetadataPreset" />
-         <Button x:Name="UpdateMetadataPresetButton" Content="更新当前预设" Click="UpdateMetadataPreset" />
-         <Button Content="复制已保存项" Click="CopyMetadataPreset" />
-         <Button Content="删除已保存项…" Click="DeleteMetadataPreset" />
-         <Button Content="导入 JSON 到库…" Click="ImportMetadataPreset" />
-         <Button Content="导出已保存项 JSON…" Click="ExportMetadataPreset" />
+         <Button Content="{DynamicResource L.77402BC4BABC03D2}" Click="NewMetadataPreset" />
+         <Button Content="{DynamicResource L.B78C23B5AB75599F}" Click="SaveNewMetadataPreset" />
+         <Button x:Name="UpdateMetadataPresetButton" Content="{DynamicResource L.93C8EDDFA931CFBB}" Click="UpdateMetadataPreset" />
+         <Button Content="{DynamicResource L.A20657C7AE921311}" Click="CopyMetadataPreset" />
+         <Button Content="{DynamicResource L.02E6E5D177F68603}" Click="DeleteMetadataPreset" />
+         <Button Content="{DynamicResource L.401610EE09225116}" Click="ImportMetadataPreset" />
+         <Button Content="{DynamicResource L.86069EB7E6EE33F5}" Click="ExportMetadataPreset" />
         </WrapPanel>
-        <TextBlock Text="重命名所选已保存条目（不修改当前编辑链）" />
+        <TextBlock Text="{DynamicResource L.92D7C96D75E8578B}" />
         <DockPanel>
-         <Button Content="重命名已保存项" Click="RenameMetadataPreset" DockPanel.Dock="Right" />
-         <TextBox x:Name="PresetLibraryRenameName" MaxLength="80" AutomationProperties.Name="已保存预设的新名称" />
+         <Button Content="{DynamicResource L.5A15F22A58CD5166}" Click="RenameMetadataPreset" DockPanel.Dock="Right" />
+         <TextBox x:Name="PresetLibraryRenameName" MaxLength="80" AutomationProperties.Name="{DynamicResource L.39CAF15D1243176B}" />
         </DockPanel>
-        <Button Content="重新读取本机预设库…" Click="ReloadMetadataPresets" HorizontalAlignment="Left" />
-        <TextBlock Text="预设名称" />
-        <TextBox x:Name="PresetName" Text="我的预设" MaxLength="80" AutomationProperties.Name="预设名称" TextChanged="PresetInputChanged" />
-        <ListBox x:Name="PresetOperations" Height="150" Margin="0,8" SelectionChanged="PresetSelectionChanged" AutomationProperties.Name="有序预设操作列表" />
+        <Button Content="{DynamicResource L.E012B2437CEC22BA}" Click="ReloadMetadataPresets" HorizontalAlignment="Left" />
+        <TextBlock Text="{DynamicResource L.5FE110AA6D1DCA31}" />
+        <TextBox x:Name="PresetName" Text="我的预设" MaxLength="80" AutomationProperties.Name="{DynamicResource L.5FE110AA6D1DCA31}" TextChanged="PresetInputChanged" />
+        <ListBox x:Name="PresetOperations" Height="150" Margin="0,8" SelectionChanged="PresetSelectionChanged" AutomationProperties.Name="{DynamicResource L.004023BE44244E96}" />
         <WrapPanel>
-         <Button Content="上移" Click="MovePresetUp" />
-         <Button Content="下移" Click="MovePresetDown" />
-         <Button Content="删除所选操作" Click="DeletePresetOperation" />
-         <Button Content="清空操作链" Click="ClearPresetOperations" />
+         <Button Content="{DynamicResource L.F853A70B120418BE}" Click="MovePresetUp" />
+         <Button Content="{DynamicResource L.E75E8B4E5C971227}" Click="MovePresetDown" />
+         <Button Content="{DynamicResource L.155D4F62C59FAEDD}" Click="DeletePresetOperation" />
+         <Button Content="{DynamicResource L.2CC8E9B3873E7736}" Click="ClearPresetOperations" />
         </WrapPanel>
-        <TextBlock Text="目标字段" />
-        <ComboBox x:Name="PresetTarget" DisplayMemberPath="Name" SelectedValuePath="Tag" SelectionChanged="PresetEditorChanged" AutomationProperties.Name="预设目标字段" />
-        <TextBlock Text="动作" />
-        <ComboBox x:Name="PresetAction" DisplayMemberPath="Name" SelectedValuePath="Action" SelectionChanged="PresetActionChanged" AutomationProperties.Name="预设动作" />
-        <TextBlock Text="参数（列表每行一项；项内换行用JSON字符串数组；清除不使用参数）" />
-        <TextBox x:Name="PresetValue" AcceptsReturn="True" Height="60" VerticalScrollBarVisibility="Auto" MaxLength="8192" TextChanged="PresetEditorChanged" AutomationProperties.Name="预设动作参数" />
+        <TextBlock Text="{DynamicResource L.4155DF9FA35C8198}" />
+        <ComboBox x:Name="PresetTarget" DisplayMemberPath="Name" SelectedValuePath="Tag" SelectionChanged="PresetEditorChanged" AutomationProperties.Name="{DynamicResource L.F4A6B21C6DF7BD57}" />
+        <TextBlock Text="{DynamicResource L.BE37D84119D6B71F}" />
+        <ComboBox x:Name="PresetAction" DisplayMemberPath="Name" SelectedValuePath="Action" SelectionChanged="PresetActionChanged" AutomationProperties.Name="{DynamicResource L.4C22CAB5ABE3EE10}" />
+        <TextBlock Text="{DynamicResource L.69752E40174EDF3F}" />
+        <TextBox x:Name="PresetValue" AcceptsReturn="True" Height="60" VerticalScrollBarVisibility="Auto" MaxLength="8192" TextChanged="PresetEditorChanged" AutomationProperties.Name="{DynamicResource L.CB1247D89661D68D}" />
         <StackPanel x:Name="PresetCopyControls" Visibility="Collapsed">
-         <TextBlock Text="复制源字段（每张照片自己的草稿及前一步值）" />
-         <ComboBox x:Name="PresetSource" DisplayMemberPath="Name" SelectedValuePath="Tag" SelectionChanged="PresetEditorChanged" AutomationProperties.Name="预设复制源字段" />
-         <TextBlock Text="接收字段（可多选；排除源字段，按规范字段顺序展开）" />
-         <ListBox x:Name="PresetRecipients" DisplayMemberPath="Name" SelectionMode="Multiple" Height="110" SelectionChanged="PresetEditorChanged" AutomationProperties.Name="预设复制接收字段" />
+         <TextBlock Text="{DynamicResource L.0EB3391B27074083}" />
+         <ComboBox x:Name="PresetSource" DisplayMemberPath="Name" SelectedValuePath="Tag" SelectionChanged="PresetEditorChanged" AutomationProperties.Name="{DynamicResource L.821F96A12498843D}" />
+         <TextBlock Text="{DynamicResource L.B2E171773F168A35}" />
+         <ListBox x:Name="PresetRecipients" DisplayMemberPath="Name" SelectionMode="Multiple" Height="110" SelectionChanged="PresetEditorChanged" AutomationProperties.Name="{DynamicResource L.87833B12F478A3C3}" />
         </StackPanel>
         <StackPanel x:Name="PresetDateControls" Visibility="Collapsed">
          <StackPanel x:Name="PresetDateShiftOptions">
-          <TextBlock Text="调整量（整数，可负；依次应用年、月、日、时、分、秒）" TextWrapping="Wrap" />
+          <TextBlock Text="{DynamicResource L.71E3507C22052AF3}" TextWrapping="Wrap" />
           <WrapPanel Margin="0,6">
-           <TextBlock Text="年" VerticalAlignment="Center" />
-           <TextBox x:Name="PresetDateYears" Text="0" Width="50" Margin="4" AutomationProperties.Name="预设调整年" TextChanged="PresetEditorChanged" />
-           <TextBlock Text="月" VerticalAlignment="Center" />
-           <TextBox x:Name="PresetDateMonths" Text="0" Width="50" Margin="4" AutomationProperties.Name="预设调整月" TextChanged="PresetEditorChanged" />
-           <TextBlock Text="日" VerticalAlignment="Center" />
-           <TextBox x:Name="PresetDateDays" Text="0" Width="50" Margin="4" AutomationProperties.Name="预设调整日" TextChanged="PresetEditorChanged" />
-           <TextBlock Text="时" VerticalAlignment="Center" />
-           <TextBox x:Name="PresetDateHours" Text="0" Width="50" Margin="4" AutomationProperties.Name="预设调整小时" TextChanged="PresetEditorChanged" />
-           <TextBlock Text="分" VerticalAlignment="Center" />
-           <TextBox x:Name="PresetDateMinutes" Text="0" Width="50" Margin="4" AutomationProperties.Name="预设调整分钟" TextChanged="PresetEditorChanged" />
-           <TextBlock Text="秒" VerticalAlignment="Center" />
-           <TextBox x:Name="PresetDateSeconds" Text="0" Width="80" Margin="4" AutomationProperties.Name="预设调整秒" TextChanged="PresetEditorChanged" />
+           <TextBlock Text="{DynamicResource L.62EF900A8F5D5BFF}" VerticalAlignment="Center" />
+           <TextBox x:Name="PresetDateYears" Text="0" Width="50" Margin="4" AutomationProperties.Name="{DynamicResource L.98B254C5055C3BCD}" TextChanged="PresetEditorChanged" />
+           <TextBlock Text="{DynamicResource L.1625179BADC027F0}" VerticalAlignment="Center" />
+           <TextBox x:Name="PresetDateMonths" Text="0" Width="50" Margin="4" AutomationProperties.Name="{DynamicResource L.8EFA441C4FCC44EA}" TextChanged="PresetEditorChanged" />
+           <TextBlock Text="{DynamicResource L.85217F7AFF778414}" VerticalAlignment="Center" />
+           <TextBox x:Name="PresetDateDays" Text="0" Width="50" Margin="4" AutomationProperties.Name="{DynamicResource L.1FEB9F0642502A87}" TextChanged="PresetEditorChanged" />
+           <TextBlock Text="{DynamicResource L.7D58B6422CACEDBC}" VerticalAlignment="Center" />
+           <TextBox x:Name="PresetDateHours" Text="0" Width="50" Margin="4" AutomationProperties.Name="{DynamicResource L.28E578A91A9175C4}" TextChanged="PresetEditorChanged" />
+           <TextBlock Text="{DynamicResource L.B6A993C256EF577A}" VerticalAlignment="Center" />
+           <TextBox x:Name="PresetDateMinutes" Text="0" Width="50" Margin="4" AutomationProperties.Name="{DynamicResource L.4879F6C9CD1D98F7}" TextChanged="PresetEditorChanged" />
+           <TextBlock Text="{DynamicResource L.9DCDC2B289B9D233}" VerticalAlignment="Center" />
+           <TextBox x:Name="PresetDateSeconds" Text="0" Width="80" Margin="4" AutomationProperties.Name="{DynamicResource L.EDAB421A187E3AAA}" TextChanged="PresetEditorChanged" />
           </WrapPanel>
          </StackPanel>
          <StackPanel x:Name="PresetDateReplaceOptions" Visibility="Collapsed">
-          <TextBlock Text="组件替换（整数；留空保留，0只对时/分/秒有效；保留原小数秒和固定时区）" TextWrapping="Wrap" />
+          <TextBlock Text="{DynamicResource L.1FAF9D9BFD327264}" TextWrapping="Wrap" />
           <WrapPanel Margin="0,6">
-           <TextBlock Text="年" VerticalAlignment="Center" />
-           <TextBox x:Name="PresetDateReplaceYear" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="预设替换年" TextChanged="PresetEditorChanged" />
-           <TextBlock Text="月" VerticalAlignment="Center" />
-           <TextBox x:Name="PresetDateReplaceMonth" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="预设替换月" TextChanged="PresetEditorChanged" />
-           <TextBlock Text="日" VerticalAlignment="Center" />
-           <TextBox x:Name="PresetDateReplaceDay" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="预设替换日" TextChanged="PresetEditorChanged" />
-           <TextBlock Text="时" VerticalAlignment="Center" />
-           <TextBox x:Name="PresetDateReplaceHour" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="预设替换时" TextChanged="PresetEditorChanged" />
-           <TextBlock Text="分" VerticalAlignment="Center" />
-           <TextBox x:Name="PresetDateReplaceMinute" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="预设替换分" TextChanged="PresetEditorChanged" />
-           <TextBlock Text="秒" VerticalAlignment="Center" />
-           <TextBox x:Name="PresetDateReplaceSecond" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="预设替换秒" TextChanged="PresetEditorChanged" />
+           <TextBlock Text="{DynamicResource L.62EF900A8F5D5BFF}" VerticalAlignment="Center" />
+           <TextBox x:Name="PresetDateReplaceYear" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="{DynamicResource L.E8C63957B9032F1C}" TextChanged="PresetEditorChanged" />
+           <TextBlock Text="{DynamicResource L.1625179BADC027F0}" VerticalAlignment="Center" />
+           <TextBox x:Name="PresetDateReplaceMonth" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="{DynamicResource L.0F47A072E83CC0C1}" TextChanged="PresetEditorChanged" />
+           <TextBlock Text="{DynamicResource L.85217F7AFF778414}" VerticalAlignment="Center" />
+           <TextBox x:Name="PresetDateReplaceDay" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="{DynamicResource L.278E9CD90C22BC01}" TextChanged="PresetEditorChanged" />
+           <TextBlock Text="{DynamicResource L.7D58B6422CACEDBC}" VerticalAlignment="Center" />
+           <TextBox x:Name="PresetDateReplaceHour" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="{DynamicResource L.C0E0BA8210C68884}" TextChanged="PresetEditorChanged" />
+           <TextBlock Text="{DynamicResource L.B6A993C256EF577A}" VerticalAlignment="Center" />
+           <TextBox x:Name="PresetDateReplaceMinute" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="{DynamicResource L.EC0664BE4DD13F24}" TextChanged="PresetEditorChanged" />
+           <TextBlock Text="{DynamicResource L.9DCDC2B289B9D233}" VerticalAlignment="Center" />
+           <TextBox x:Name="PresetDateReplaceSecond" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="{DynamicResource L.68F286E4DCF066AA}" TextChanged="PresetEditorChanged" />
           </WrapPanel>
          </StackPanel>
          <StackPanel x:Name="PresetDateStartOptions" Visibility="Collapsed">
-          <TextBlock Text="序列/分布起点（yyyy:MM:dd HH:mm:ss，可附小数秒及Z/±hh:mm）" TextWrapping="Wrap" />
-          <TextBox x:Name="PresetDateStart" AutomationProperties.Name="预设日期序列起点" TextChanged="PresetEditorChanged" Margin="0,4" />
+          <TextBlock Text="{DynamicResource L.7FAAF5562A99F896}" TextWrapping="Wrap" />
+          <TextBox x:Name="PresetDateStart" AutomationProperties.Name="{DynamicResource L.1F735B331F479232}" TextChanged="PresetEditorChanged" Margin="0,4" />
          </StackPanel>
          <DockPanel x:Name="PresetDateSequenceOptions" Visibility="Collapsed" Margin="0,4">
-          <TextBlock Text="序列间隔秒" DockPanel.Dock="Left" VerticalAlignment="Center" />
-          <TextBox x:Name="PresetDateStep" Text="1" Width="100" HorizontalAlignment="Left" Margin="8,0" AutomationProperties.Name="预设日期序列间隔秒" TextChanged="PresetEditorChanged" />
+          <TextBlock Text="{DynamicResource L.0D645885875F1830}" DockPanel.Dock="Left" VerticalAlignment="Center" />
+          <TextBox x:Name="PresetDateStep" Text="1" Width="100" HorizontalAlignment="Left" Margin="8,0" AutomationProperties.Name="{DynamicResource L.55C1AF7683E09059}" TextChanged="PresetEditorChanged" />
          </DockPanel>
          <StackPanel x:Name="PresetDateDistributionOptions" Visibility="Collapsed">
-          <TextBlock Text="分布终点（起止小数秒/时区须完全相同；按最近整秒分配，可出现相同时间；单张采用起点）" TextWrapping="Wrap" />
-          <TextBox x:Name="PresetDateEnd" AutomationProperties.Name="预设日期分布终点" TextChanged="PresetEditorChanged" Margin="0,4" />
+          <TextBlock Text="{DynamicResource L.7B8A406576AFCE96}" TextWrapping="Wrap" />
+          <TextBox x:Name="PresetDateEnd" AutomationProperties.Name="{DynamicResource L.B720A12D60263342}" TextChanged="PresetEditorChanged" Margin="0,4" />
          </StackPanel>
          <StackPanel x:Name="PresetDateFilenameOptions" Visibility="Collapsed">
-          <TextBlock Text="文件名日期正则（最多1024字；普通捕获组，不支持前后查找/反向引用）" TextWrapping="Wrap" />
-          <TextBox x:Name="PresetDateFilenamePattern" Text="([0-9]{4})([0-9]{2})([0-9]{2})_([0-9]{2})([0-9]{2})([0-9]{2})" MaxLength="1024" AutomationProperties.Name="预设文件名日期正则" TextChanged="PresetEditorChanged" Margin="0,4" />
-          <TextBlock Text="日期模板（$1等捕获组；不匹配/非法日期逐项跳过，不猜测当前时间或时区）" TextWrapping="Wrap" />
-          <TextBox x:Name="PresetDateFilenameTemplate" Text="$1:$2:$3 $4:$5:$6" MaxLength="512" AutomationProperties.Name="预设文件名日期模板" TextChanged="PresetEditorChanged" Margin="0,4" />
+          <TextBlock Text="{DynamicResource L.6A6E52ACF611BEDF}" TextWrapping="Wrap" />
+          <TextBox x:Name="PresetDateFilenamePattern" Text="([0-9]{4})([0-9]{2})([0-9]{2})_([0-9]{2})([0-9]{2})([0-9]{2})" MaxLength="1024" AutomationProperties.Name="{DynamicResource L.AE14081E3DF69226}" TextChanged="PresetEditorChanged" Margin="0,4" />
+          <TextBlock Text="{DynamicResource L.B27CA156F565CB0A}" TextWrapping="Wrap" />
+          <TextBox x:Name="PresetDateFilenameTemplate" Text="$1:$2:$3 $4:$5:$6" MaxLength="512" AutomationProperties.Name="{DynamicResource L.F8478B85F05AA65B}" TextChanged="PresetEditorChanged" Margin="0,4" />
          </StackPanel>
         </StackPanel>
         <WrapPanel Margin="0,8">
-         <Button Content="添加操作" Click="AddPresetOperation" />
-         <Button Content="更新所选操作" Click="UpdatePresetOperation" />
-         <Button Content="放弃未编排参数" Click="DiscardPresetInput" />
-         <Button Content="从勾选字段编排" Click="PresetFromFields" />
+         <Button Content="{DynamicResource L.6CC2633DA87439F6}" Click="AddPresetOperation" />
+         <Button Content="{DynamicResource L.959332372DEEED95}" Click="UpdatePresetOperation" />
+         <Button Content="{DynamicResource L.B64CECDA2AC4CA12}" Click="DiscardPresetInput" />
+         <Button Content="{DynamicResource L.444E52515F81D225}" Click="PresetFromFields" />
         </WrapPanel>
         <WrapPanel>
-         <Button Content="保存操作链 JSON…" Click="SavePreset" />
-         <Button Content="保存勾选字段 JSON…" Click="SaveFieldPreset" />
+         <Button Content="{DynamicResource L.0B961B9495EAA9F0}" Click="SavePreset" />
+         <Button Content="{DynamicResource L.02D9B7D8C8D38045}" Click="SaveFieldPreset" />
         </WrapPanel>
-        <TextBlock Text="预设文件" />
+        <TextBlock Text="{DynamicResource L.A9918BF9E970EAFF}" />
         <DockPanel>
-         <Button Content="选择…" DockPanel.Dock="Right" Click="ChoosePreset" />
-         <TextBox x:Name="PresetPath" AutomationProperties.Name="预设文件" />
+         <Button Content="{DynamicResource L.4AEA6B5FF7A5857C}" DockPanel.Dock="Right" Click="ChoosePreset" />
+         <TextBox x:Name="PresetPath" AutomationProperties.Name="{DynamicResource L.A9918BF9E970EAFF}" />
         </DockPanel>
-        <Button Content="载入 JSON 到操作链" Click="LoadPreset" HorizontalAlignment="Left" />
+        <Button Content="{DynamicResource L.1BB1F040CF8A411D}" Click="LoadPreset" HorizontalAlignment="Left" />
        </StackPanel>
        <WrapPanel Margin="0,8">
-        <Button x:Name="PresetApplyButton" Content="一次应用操作链到所选草稿" Click="ApplyPreset" />
-        <Button Content="撤销最近一次应用" Click="UndoLastApply" />
+        <Button x:Name="PresetApplyButton" Content="{DynamicResource L.F06F7C2C44CC1470}" Click="ApplyPreset" />
+        <Button Content="{DynamicResource L.E65698F977D23751}" Click="UndoLastApply" />
        </WrapPanel>
-       <TextBlock x:Name="PresetPreview" Text="尚未编排操作。" TextWrapping="Wrap" />
+       <TextBlock x:Name="PresetPreview" Text="{DynamicResource L.923076B8F31721EC}" TextWrapping="Wrap" />
       </StackPanel>
      </ScrollViewer>
     </TabItem>
-    <TabItem Header="批量日期">
+    <TabItem Header="{DynamicResource L.D4A968E8BAA5228D}" Tag="tool.3" AutomationProperties.AutomationId="MetadataTools.3">
      <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="10">
-       <TextBlock Text="调整所选主时间：无旁车JPEG为成组EXIF拍摄时间，旁车／独立XMP为XMP创建时间。其他日期独立，不改IPTC或文件时间。" TextWrapping="Wrap" />
-       <TextBlock Text="日期目标" />
-       <ComboBox x:Name="DateTarget" SelectedIndex="0" SelectionChanged="DatePlanChanged" AutomationProperties.Name="日期操作精确目标">
-        <ComboBoxItem Content="主时间（按实际来源）" />
+       <TextBlock Text="{DynamicResource L.983052FA289B0E79}" TextWrapping="Wrap" />
+       <TextBlock Text="{DynamicResource L.005B614F3C2C2DFB}" />
+       <ComboBox x:Name="DateTarget" SelectedIndex="0" SelectionChanged="DatePlanChanged" AutomationProperties.Name="{DynamicResource L.B03FC9FF3293E865}">
+        <ComboBoxItem Content="{DynamicResource L.651CA98355897364}" />
         <ComboBoxItem Tag="Composite:SubSecDateTimeOriginal" Content="Composite:SubSecDateTimeOriginal" />
         <ComboBoxItem Tag="Composite:SubSecCreateDate" Content="Composite:SubSecCreateDate" />
         <ComboBoxItem Tag="Composite:SubSecModifyDate" Content="Composite:SubSecModifyDate" />
@@ -1138,215 +1141,215 @@
         <ComboBoxItem Tag="XMP-xmp:CreateDate" Content="XMP-xmp:CreateDate" />
         <ComboBoxItem Tag="XMP-xmp:ModifyDate" Content="XMP-xmp:ModifyDate" />
        </ComboBox>
-       <ComboBox x:Name="DateMode" SelectedIndex="0" SelectionChanged="DatePlanChanged" AutomationProperties.Name="日期操作" Margin="0,8">
-        <ComboBoxItem Content="调整各自日期" />
-        <ComboBoxItem Content="按当前选择顺序设置序列" />
-        <ComboBoxItem Content="替换指定日期组件" />
-        <ComboBoxItem Content="按当前选择顺序均匀分布" />
-        <ComboBoxItem Content="从文件名捕获日期" />
+       <ComboBox x:Name="DateMode" SelectedIndex="0" SelectionChanged="DatePlanChanged" AutomationProperties.Name="{DynamicResource L.0F6C3A214D4CC709}" Margin="0,8">
+        <ComboBoxItem Content="{DynamicResource L.D26CC7219234355F}" />
+        <ComboBoxItem Content="{DynamicResource L.041C83C748F452C8}" />
+        <ComboBoxItem Content="{DynamicResource L.6A4F5FBE2C11ECC2}" />
+        <ComboBoxItem Content="{DynamicResource L.224DC9BB4A540A9F}" />
+        <ComboBoxItem Content="{DynamicResource L.C59F3B06967799C3}" />
        </ComboBox>
        <StackPanel x:Name="DateShiftOptions">
-        <TextBlock Text="调整量（整数，可负；依次应用年、月、日、时、分、秒）" TextWrapping="Wrap" />
+        <TextBlock Text="{DynamicResource L.71E3507C22052AF3}" TextWrapping="Wrap" />
         <WrapPanel Margin="0,6">
-         <TextBlock Text="年" VerticalAlignment="Center" />
-         <TextBox x:Name="DateYears" Text="0" Width="50" Margin="4" AutomationProperties.Name="调整年" TextChanged="DatePlanChanged" />
-         <TextBlock Text="月" VerticalAlignment="Center" />
-         <TextBox x:Name="DateMonths" Text="0" Width="50" Margin="4" AutomationProperties.Name="调整月" TextChanged="DatePlanChanged" />
-         <TextBlock Text="日" VerticalAlignment="Center" />
-         <TextBox x:Name="DateDays" Text="0" Width="50" Margin="4" AutomationProperties.Name="调整日" TextChanged="DatePlanChanged" />
-         <TextBlock Text="时" VerticalAlignment="Center" />
-         <TextBox x:Name="DateHours" Text="0" Width="50" Margin="4" AutomationProperties.Name="调整小时" TextChanged="DatePlanChanged" />
-         <TextBlock Text="分" VerticalAlignment="Center" />
-         <TextBox x:Name="DateMinutes" Text="0" Width="50" Margin="4" AutomationProperties.Name="调整分钟" TextChanged="DatePlanChanged" />
-         <TextBlock Text="秒" VerticalAlignment="Center" />
-         <TextBox x:Name="DateSeconds" Text="0" Width="80" Margin="4" AutomationProperties.Name="调整秒" TextChanged="DatePlanChanged" />
+         <TextBlock Text="{DynamicResource L.62EF900A8F5D5BFF}" VerticalAlignment="Center" />
+         <TextBox x:Name="DateYears" Text="0" Width="50" Margin="4" AutomationProperties.Name="{DynamicResource L.F3C08317F7EDA5B8}" TextChanged="DatePlanChanged" />
+         <TextBlock Text="{DynamicResource L.1625179BADC027F0}" VerticalAlignment="Center" />
+         <TextBox x:Name="DateMonths" Text="0" Width="50" Margin="4" AutomationProperties.Name="{DynamicResource L.5B2AE72807B5414C}" TextChanged="DatePlanChanged" />
+         <TextBlock Text="{DynamicResource L.85217F7AFF778414}" VerticalAlignment="Center" />
+         <TextBox x:Name="DateDays" Text="0" Width="50" Margin="4" AutomationProperties.Name="{DynamicResource L.6E13828F47E3ACDF}" TextChanged="DatePlanChanged" />
+         <TextBlock Text="{DynamicResource L.7D58B6422CACEDBC}" VerticalAlignment="Center" />
+         <TextBox x:Name="DateHours" Text="0" Width="50" Margin="4" AutomationProperties.Name="{DynamicResource L.7BA828E312F24C97}" TextChanged="DatePlanChanged" />
+         <TextBlock Text="{DynamicResource L.B6A993C256EF577A}" VerticalAlignment="Center" />
+         <TextBox x:Name="DateMinutes" Text="0" Width="50" Margin="4" AutomationProperties.Name="{DynamicResource L.69FEA038244DEA93}" TextChanged="DatePlanChanged" />
+         <TextBlock Text="{DynamicResource L.9DCDC2B289B9D233}" VerticalAlignment="Center" />
+         <TextBox x:Name="DateSeconds" Text="0" Width="80" Margin="4" AutomationProperties.Name="{DynamicResource L.4A8487078ABB4F27}" TextChanged="DatePlanChanged" />
         </WrapPanel>
        </StackPanel>
        <StackPanel x:Name="DateReplaceOptions" Visibility="Collapsed">
-        <TextBlock Text="组件替换（整数；留空保留，0只对时/分/秒有效；保留原小数秒和固定时区）" TextWrapping="Wrap" />
+        <TextBlock Text="{DynamicResource L.1FAF9D9BFD327264}" TextWrapping="Wrap" />
         <WrapPanel Margin="0,6">
-         <TextBlock Text="年" VerticalAlignment="Center" />
-         <TextBox x:Name="DateReplaceYear" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="替换年" TextChanged="DatePlanChanged" />
-         <TextBlock Text="月" VerticalAlignment="Center" />
-         <TextBox x:Name="DateReplaceMonth" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="替换月" TextChanged="DatePlanChanged" />
-         <TextBlock Text="日" VerticalAlignment="Center" />
-         <TextBox x:Name="DateReplaceDay" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="替换日" TextChanged="DatePlanChanged" />
-         <TextBlock Text="时" VerticalAlignment="Center" />
-         <TextBox x:Name="DateReplaceHour" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="替换时" TextChanged="DatePlanChanged" />
-         <TextBlock Text="分" VerticalAlignment="Center" />
-         <TextBox x:Name="DateReplaceMinute" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="替换分" TextChanged="DatePlanChanged" />
-         <TextBlock Text="秒" VerticalAlignment="Center" />
-         <TextBox x:Name="DateReplaceSecond" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="替换秒" TextChanged="DatePlanChanged" />
+         <TextBlock Text="{DynamicResource L.62EF900A8F5D5BFF}" VerticalAlignment="Center" />
+         <TextBox x:Name="DateReplaceYear" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="{DynamicResource L.9299C1414259C299}" TextChanged="DatePlanChanged" />
+         <TextBlock Text="{DynamicResource L.1625179BADC027F0}" VerticalAlignment="Center" />
+         <TextBox x:Name="DateReplaceMonth" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="{DynamicResource L.D92EA20DBAC55EF7}" TextChanged="DatePlanChanged" />
+         <TextBlock Text="{DynamicResource L.85217F7AFF778414}" VerticalAlignment="Center" />
+         <TextBox x:Name="DateReplaceDay" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="{DynamicResource L.020C3E14E3401E7F}" TextChanged="DatePlanChanged" />
+         <TextBlock Text="{DynamicResource L.7D58B6422CACEDBC}" VerticalAlignment="Center" />
+         <TextBox x:Name="DateReplaceHour" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="{DynamicResource L.7FBC2DBD94CD25DF}" TextChanged="DatePlanChanged" />
+         <TextBlock Text="{DynamicResource L.B6A993C256EF577A}" VerticalAlignment="Center" />
+         <TextBox x:Name="DateReplaceMinute" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="{DynamicResource L.EE1B3510A47E6863}" TextChanged="DatePlanChanged" />
+         <TextBlock Text="{DynamicResource L.9DCDC2B289B9D233}" VerticalAlignment="Center" />
+         <TextBox x:Name="DateReplaceSecond" Width="60" Margin="4" MaxLength="8" AutomationProperties.Name="{DynamicResource L.9224134830AAA223}" TextChanged="DatePlanChanged" />
         </WrapPanel>
        </StackPanel>
        <StackPanel x:Name="DateStartOptions" Visibility="Collapsed">
-        <TextBlock Text="序列/分布起点（yyyy:MM:dd HH:mm:ss，可附小数秒及Z/±hh:mm）" TextWrapping="Wrap" />
-        <TextBox x:Name="DateStart" AutomationProperties.Name="日期序列起点" TextChanged="DatePlanChanged" Margin="0,4" />
+        <TextBlock Text="{DynamicResource L.7FAAF5562A99F896}" TextWrapping="Wrap" />
+        <TextBox x:Name="DateStart" AutomationProperties.Name="{DynamicResource L.A6F3F4AE9AFCBCBB}" TextChanged="DatePlanChanged" Margin="0,4" />
        </StackPanel>
        <DockPanel x:Name="DateSequenceOptions" Visibility="Collapsed" Margin="0,4">
-        <TextBlock Text="序列间隔秒" DockPanel.Dock="Left" VerticalAlignment="Center" />
-        <TextBox x:Name="DateStep" Text="1" Width="100" HorizontalAlignment="Left" Margin="8,0" AutomationProperties.Name="日期序列间隔秒" TextChanged="DatePlanChanged" />
+        <TextBlock Text="{DynamicResource L.0D645885875F1830}" DockPanel.Dock="Left" VerticalAlignment="Center" />
+        <TextBox x:Name="DateStep" Text="1" Width="100" HorizontalAlignment="Left" Margin="8,0" AutomationProperties.Name="{DynamicResource L.A5748BFAD5224631}" TextChanged="DatePlanChanged" />
        </DockPanel>
        <StackPanel x:Name="DateDistributionOptions" Visibility="Collapsed">
-        <TextBlock Text="分布终点（起止小数秒/时区须完全相同；按最近整秒分配，可出现相同时间；单张采用起点）" TextWrapping="Wrap" />
-        <TextBox x:Name="DateEnd" AutomationProperties.Name="日期分布终点" TextChanged="DatePlanChanged" Margin="0,4" />
+        <TextBlock Text="{DynamicResource L.7B8A406576AFCE96}" TextWrapping="Wrap" />
+        <TextBox x:Name="DateEnd" AutomationProperties.Name="{DynamicResource L.4756CAD4F75F81C2}" TextChanged="DatePlanChanged" Margin="0,4" />
        </StackPanel>
        <StackPanel x:Name="DateFilenameOptions" Visibility="Collapsed">
-        <TextBlock Text="文件名日期正则（最多1024字；普通捕获组，不支持前后查找/反向引用）" TextWrapping="Wrap" />
-        <TextBox x:Name="DateFilenamePattern" Text="([0-9]{4})([0-9]{2})([0-9]{2})_([0-9]{2})([0-9]{2})([0-9]{2})" MaxLength="1024" AutomationProperties.Name="文件名日期正则" TextChanged="DatePlanChanged" Margin="0,4" />
-        <TextBlock Text="日期模板（$1等捕获组；不匹配/非法日期逐项跳过，不猜测当前时间或时区）" TextWrapping="Wrap" />
-        <TextBox x:Name="DateFilenameTemplate" Text="$1:$2:$3 $4:$5:$6" MaxLength="512" AutomationProperties.Name="文件名日期模板" TextChanged="DatePlanChanged" Margin="0,4" />
+        <TextBlock Text="{DynamicResource L.6A6E52ACF611BEDF}" TextWrapping="Wrap" />
+        <TextBox x:Name="DateFilenamePattern" Text="([0-9]{4})([0-9]{2})([0-9]{2})_([0-9]{2})([0-9]{2})([0-9]{2})" MaxLength="1024" AutomationProperties.Name="{DynamicResource L.850CC5BCFC8F1B0D}" TextChanged="DatePlanChanged" Margin="0,4" />
+        <TextBlock Text="{DynamicResource L.B27CA156F565CB0A}" TextWrapping="Wrap" />
+        <TextBox x:Name="DateFilenameTemplate" Text="$1:$2:$3 $4:$5:$6" MaxLength="512" AutomationProperties.Name="{DynamicResource L.178E313AA837424A}" TextChanged="DatePlanChanged" Margin="0,4" />
        </StackPanel>
        <WrapPanel Margin="0,8">
-        <Button x:Name="DatePlanApplyButton" Content="应用" Click="ApplyDates" IsEnabled="False" Padding="10,5" Margin="8,0" />
-        <Button Content="取消应用" Click="CancelRead" Padding="10,5" />
+        <Button x:Name="DatePlanApplyButton" Content="{DynamicResource L.63C73C4730F4473E}" Click="ApplyDates" IsEnabled="False" Padding="10,5" Margin="8,0" />
+        <Button Content="{DynamicResource L.E12470D045758AE6}" Click="CancelRead" Padding="10,5" />
        </WrapPanel>
-       <TextBlock Text="缺失/非法日期不会猜测；闰日或31日调整落入非法日期会拒绝。无时区保持无时区，小数秒和固定偏移原样保留；不处理时区夏令时切换。" TextWrapping="Wrap" Margin="0,0,0,8" />
-       <TextBlock x:Name="DatePlanPreview" Text="设置参数后应用；只加入待保存草稿。" TextWrapping="Wrap" />
+       <TextBlock Text="{DynamicResource L.D3C01393AF68802B}" TextWrapping="Wrap" Margin="0,0,0,8" />
+       <TextBlock x:Name="DatePlanPreview" Text="{DynamicResource L.750A0289C8032D4D}" TextWrapping="Wrap" />
       </StackPanel>
      </ScrollViewer>
     </TabItem>
-    <TabItem Header="XMP交换">
+    <TabItem Header="{DynamicResource L.0725EACF2E629403}" Tag="tool.4" AutomationProperties.AutomationId="MetadataTools.4">
      <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="10">
-       <TextBlock Text="磁盘快照不含未保存草稿；含草稿导出在隔离副本构造。两者保留其他XMP语言／字段，不把EXIF/IPTC/System转换到XMP，目标不覆盖。" TextWrapping="Wrap" />
-       <Button Content="导出磁盘XMP快照…" Click="ExportDiskXmp" HorizontalAlignment="Left" Padding="10,6" Margin="0,8" />
-       <Button Content="导出含草稿XMP…" Click="ExportXmp" HorizontalAlignment="Left" Padding="10,6" Margin="0,8" />
-       <TextBlock Text="导入XMP仅载入CSV交换已开放的XMP精确字段到编辑区，缺失字段不清除。GPS、其他语言及其他字段只提示未导入，不自动写照片。" TextWrapping="Wrap" Margin="0,8" />
+       <TextBlock Text="{DynamicResource L.7C4513C39210EBCE}" TextWrapping="Wrap" />
+       <Button Content="{DynamicResource L.D7C12AF7A2FAFACB}" Click="ExportDiskXmp" HorizontalAlignment="Left" Padding="10,6" Margin="0,8" />
+       <Button Content="{DynamicResource L.605960E4126796E4}" Click="ExportXmp" HorizontalAlignment="Left" Padding="10,6" Margin="0,8" />
+       <TextBlock Text="{DynamicResource L.0C80A7BC2233E58B}" TextWrapping="Wrap" Margin="0,8" />
        <DockPanel>
-        <Button Content="选择…" DockPanel.Dock="Right" Click="ChooseXmp" Padding="10,5" Margin="8,0,0,0" />
-        <TextBox x:Name="XmpPath" AutomationProperties.Name="XMP字段来源" />
+        <Button Content="{DynamicResource L.4AEA6B5FF7A5857C}" DockPanel.Dock="Right" Click="ChooseXmp" Padding="10,5" Margin="8,0,0,0" />
+        <TextBox x:Name="XmpPath" AutomationProperties.Name="{DynamicResource L.3475FC831C5B68A3}" />
        </DockPanel>
-       <Button Content="载入XMP字段到编辑区" Click="ImportXmp" HorizontalAlignment="Left" Padding="10,6" Margin="0,8" />
-       <TextBlock Text="XMP上限8MiB／64层，拒绝DTD/外部实体及非法字段，全部验证后才填入。核对勾选字段再加入草稿，最后保存副本。" TextWrapping="Wrap" />
-       <TextBlock x:Name="XmpPreview" Text="尚未载入。" TextWrapping="Wrap" Margin="0,10" />
+       <Button Content="{DynamicResource L.4FF5832E322751DD}" Click="ImportXmp" HorizontalAlignment="Left" Padding="10,6" Margin="0,8" />
+       <TextBlock Text="{DynamicResource L.66D53E7F1A11F000}" TextWrapping="Wrap" />
+       <TextBlock x:Name="XmpPreview" Text="{DynamicResource L.B81DE32B99B96F01}" TextWrapping="Wrap" Margin="0,10" />
       </StackPanel>
      </ScrollViewer>
     </TabItem>
-    <TabItem x:Name="ComparisonTab" Header="比较与交换">
+    <TabItem x:Name="ComparisonTab" Header="{DynamicResource L.F88560AEF6106321}" Tag="tool.5" AutomationProperties.AutomationId="MetadataTools.5">
      <DockPanel Margin="8">
       <TextBlock x:Name="ComparisonStatus" DockPanel.Dock="Top" TextWrapping="Wrap" />
       <DataGrid x:Name="ComparisonGrid" IsReadOnly="True" AutoGenerateColumns="True" CanUserAddRows="False" AutoGeneratingColumn="ComparisonColumn" EnableRowVirtualization="True" EnableColumnVirtualization="True" />
      </DockPanel>
     </TabItem>
-    <TabItem x:Name="PhotoPreviewTab" Header="照片预览">
+    <TabItem x:Name="PhotoPreviewTab" Header="{DynamicResource L.5F43E45DDF0A1E81}" Tag="tool.6" AutomationProperties.AutomationId="MetadataTools.6">
      <DockPanel Margin="8">
-      <TextBlock x:Name="PhotoPreviewStatus" DockPanel.Dock="Bottom" Text="请选择单张照片。JPEG/PNG/TIFF用本机解码，RAW用合法内嵌JPEG；不改照片。" TextWrapping="Wrap" Margin="0,8,0,0" />
-      <Image x:Name="PhotoPreviewImage" Stretch="Uniform" AutomationProperties.Name="所选照片预览" />
+      <TextBlock x:Name="PhotoPreviewStatus" DockPanel.Dock="Bottom" Text="{DynamicResource L.4D2F9400BC992286}" TextWrapping="Wrap" Margin="0,8,0,0" />
+      <Image x:Name="PhotoPreviewImage" Stretch="Uniform" AutomationProperties.Name="{DynamicResource L.1B9D33AE46FC2EEC}" />
      </DockPanel>
     </TabItem>
-    <TabItem x:Name="SaveTargetTab" Header="保存摘要">
+    <TabItem x:Name="SaveTargetTab" Header="{DynamicResource L.6E1460CF813F640A}" Tag="tool.7" AutomationProperties.AutomationId="MetadataTools.7">
      <DockPanel Margin="8">
       <StackPanel DockPanel.Dock="Top">
        <TextBlock Text="{DynamicResource M1.SaveLocation}" />
        <DockPanel x:Name="SaveLocationHost">
-        <Button x:Name="OutputButton" Content="选择…" Click="ChooseOutput" Padding="10,4" Margin="3" DockPanel.Dock="Right" />
-        <TextBox x:Name="OutputFolder" AutomationProperties.Name="输出文件夹" VerticalContentAlignment="Center" Margin="3" />
+        <Button x:Name="OutputButton" Content="{DynamicResource L.4AEA6B5FF7A5857C}" Click="ChooseOutput" Padding="10,4" Margin="3" DockPanel.Dock="Right" />
+        <TextBox x:Name="OutputFolder" AutomationProperties.Name="{DynamicResource L.0AE43F39D5E50054}" VerticalContentAlignment="Center" Margin="3" />
        </DockPanel>
        <WrapPanel x:Name="SaveOptionsHost">
-        <ComboBox x:Name="SaveModeChoice" SelectedIndex="0" Width="190" SelectionChanged="SaveModeChanged" AutomationProperties.Name="保存模式，默认副本" Margin="3">
-         <ComboBoxItem Content="副本（保留会话草稿）" />
-         <ComboBoxItem Content="新建同目录XMP旁车" />
-         <ComboBoxItem Content="原位保存（强制备份）" />
+        <ComboBox x:Name="SaveModeChoice" SelectedIndex="0" Width="190" SelectionChanged="SaveModeChanged" AutomationProperties.Name="{DynamicResource L.2D24905D0A6EF8D5}" Margin="3">
+         <ComboBoxItem Content="{DynamicResource L.9616F201D05DFFDF}" />
+         <ComboBoxItem Content="{DynamicResource L.CBC3611079B10A92}" />
+         <ComboBoxItem Content="{DynamicResource L.30084A01FC32058F}" />
         </ComboBox>
        </WrapPanel>
       </StackPanel>
       <WrapPanel DockPanel.Dock="Top">
-       <Button x:Name="ExecuteSaveButton" Content="确认执行冻结计划" Click="ExecuteSavePlan" IsEnabled="False" Padding="12,6" />
-       <Button Content="取消保存计划（不写文件）" Click="CancelSavePlan" Padding="12,6" />
+       <Button x:Name="ExecuteSaveButton" Content="{DynamicResource L.652A2B8C0E3501B3}" Click="ExecuteSavePlan" IsEnabled="False" Padding="12,6" />
+       <Button Content="{DynamicResource L.DAEB5D7DB5B1BC5E}" Click="CancelSavePlan" Padding="12,6" />
       </WrapPanel>
       <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
-       <TextBlock Text="原位备份目录（必须已存在；不自动清理）：" />
+       <TextBlock Text="{DynamicResource L.657C1B30B63E1C47}" />
        <DockPanel>
-        <Button DockPanel.Dock="Right" Content="选择备份目录" Click="ChooseBackup" />
-        <TextBox x:Name="BackupFolder" AutomationProperties.Name="原位备份目录" LostFocus="BackupChanged" />
+        <Button DockPanel.Dock="Right" Content="{DynamicResource L.B48D38E92E8888E4}" Click="ChooseBackup" />
+        <TextBox x:Name="BackupFolder" AutomationProperties.Name="{DynamicResource L.1EDAC4DB3C8D5A33}" LostFocus="BackupChanged" />
        </DockPanel>
-       <TextBlock Text="保存／恢复记录（启动仅发现，不修改磁盘）：" />
-       <ComboBox x:Name="InplaceRecords" DisplayMemberPath="Label" AutomationProperties.Name="选择按记录恢复的事务" />
+       <TextBlock Text="{DynamicResource L.0F563A4FB43BC92A}" />
+       <ComboBox x:Name="InplaceRecords" DisplayMemberPath="Label" AutomationProperties.Name="{DynamicResource L.F77E3BDFD2820540}" />
        <WrapPanel>
-        <Button Content="核对记录摘要" Click="ShowInplaceRecord" />
-        <Button Content="确认核对并接纳结果" Click="CheckInplaceRecord" />
-        <Button Content="按所选记录恢复" Click="RestoreInplaceRecord" />
+        <Button Content="{DynamicResource L.3E46B22ED8EB7D7F}" Click="ShowInplaceRecord" />
+        <Button Content="{DynamicResource L.D7BFE07777055A18}" Click="CheckInplaceRecord" />
+        <Button Content="{DynamicResource L.3E23CCAA13321698}" Click="RestoreInplaceRecord" />
        </WrapPanel>
        <TextBlock x:Name="InplaceStatus" TextWrapping="Wrap" />
       </StackPanel>
-      <TextBox x:Name="SaveSummary" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="保存目标、范围、逐文件结果" Text="尚未准备保存计划。默认副本；原位必须先备份。" />
+      <TextBox x:Name="SaveSummary" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="{DynamicResource L.3A7ADFD29925E309}" Text="尚未准备保存计划。默认副本；原位必须先备份。" />
      </DockPanel>
     </TabItem>
-    <TabItem Header="CSV">
+    <TabItem Header="CSV" Tag="tool.8" AutomationProperties.AutomationId="MetadataTools.8">
      <DockPanel Margin="12">
       <StackPanel DockPanel.Dock="Top">
-       <TextBlock Text="CSV · 沿用元数据页当前选择" FontSize="20" FontWeight="SemiBold" />
-       <TextBlock Text="回导CSV的值使用JSON字符串或列表；空单元不修改，@clear明确清除。只匹配当前选择的身份与相对路径，跨电脑路径改变后不能直接匹配。" TextWrapping="Wrap" Margin="0,8" />
+       <TextBlock Text="{DynamicResource L.F248B9602DF075B9}" FontSize="20" FontWeight="SemiBold" />
+       <TextBlock Text="{DynamicResource L.1A5185B911A12662}" TextWrapping="Wrap" Margin="0,8" />
        <WrapPanel>
-        <Button Content="导出回导CSV…" Click="ExportRoundtripCsv" Padding="10,6" />
-        <Button Content="导出显示CSV…" Click="ExportDisplayCsv" Padding="10,6" Margin="8,0" />
+        <Button Content="{DynamicResource L.B111EA46EE2732FF}" Click="ExportRoundtripCsv" Padding="10,6" />
+        <Button Content="{DynamicResource L.649F67C2F167E053}" Click="ExportDisplayCsv" Padding="10,6" Margin="8,0" />
        </WrapPanel>
-       <TextBlock Text="导入文件" Margin="0,12,0,4" />
+       <TextBlock Text="{DynamicResource L.FA3ECFB7977F5B7D}" Margin="0,12,0,4" />
        <DockPanel>
-        <Button Content="选择…" DockPanel.Dock="Right" Click="ChooseCsv" Padding="10,5" Margin="8,0,0,0" />
-        <TextBox x:Name="CsvPath" AutomationProperties.Name="CSV导入文件" TextChanged="CsvChanged" />
+        <Button Content="{DynamicResource L.4AEA6B5FF7A5857C}" DockPanel.Dock="Right" Click="ChooseCsv" Padding="10,5" Margin="8,0,0,0" />
+        <TextBox x:Name="CsvPath" AutomationProperties.Name="{DynamicResource L.30B953CC505808EF}" TextChanged="CsvChanged" />
        </DockPanel>
        <WrapPanel Margin="0,8">
-        <Button x:Name="CsvApplyButton" Content="应用" Click="ApplyCsv" IsEnabled="False" Padding="10,6" Margin="8,0" />
+        <Button x:Name="CsvApplyButton" Content="{DynamicResource L.63C73C4730F4473E}" Click="ApplyCsv" IsEnabled="False" Padding="10,6" Margin="8,0" />
        </WrapPanel>
-       <TextBlock Text="应用只加入待保存草稿，可撤销；保存副本才写入文件，不覆盖已有文件。显示CSV有公式防护，不能回导；Google查询结果不导出。" TextWrapping="Wrap" Margin="0,0,0,8" />
+       <TextBlock Text="{DynamicResource L.618AADD7E4FB75DA}" TextWrapping="Wrap" Margin="0,0,0,8" />
       </StackPanel>
       <ScrollViewer VerticalScrollBarVisibility="Auto">
-       <TextBlock x:Name="CsvPreview" Text="设置参数后应用；只加入待保存草稿。" TextWrapping="Wrap" />
+       <TextBlock x:Name="CsvPreview" Text="{DynamicResource L.750A0289C8032D4D}" TextWrapping="Wrap" />
       </ScrollViewer>
      </DockPanel>
     </TabItem>
    </TabControl>
   </Grid>
   <TabControl x:Name="SettingsPages" Visibility="Collapsed">
-   <TabItem Header="地图设置">
+   <TabItem Header="{DynamicResource L.92E876EA97E999CC}">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
      <StackPanel Margin="16" MaxWidth="700" HorizontalAlignment="Left">
-      <TextBlock Text="运行环境" FontSize="20" FontWeight="SemiBold" />
-      <CheckBox x:Name="RecordMapSearches" Content="记录最近搜索" IsChecked="True" Checked="MetadataSettingChanged" Unchecked="MetadataSettingChanged" Margin="0,10,0,6" />
-      <Button x:Name="ClearSearchHistoryButton" Content="清除最近搜索记录" Click="ClearSearchHistory" HorizontalAlignment="Left" Padding="10,5" />
-      <TextBlock x:Name="SearchHistoryStatus" Text="默认最多记录3条；关闭隐藏并停止新增，重新开启恢复。清除只删除历史内容。" TextWrapping="Wrap" Margin="0,6,0,12" />
-      <Button x:Name="EnvironmentCheckButton" Content="检查本机环境" Click="CheckDependencies" HorizontalAlignment="Left" Padding="12,6" Margin="0,8,0,8" />
-      <TextBlock x:Name="DependencyStatus" Text="可检查.NET、WebView2与ExifTool；只读取本机环境。" TextWrapping="Wrap" Margin="0,0,0,14" />
-      <TextBlock Text="Google Maps 自备密钥" FontSize="20" FontWeight="SemiBold" />
-      <TextBlock Text="默认地图仍为免费的OpenFreeMap，无需密钥。保存密钥后可明确选择Google地图；仅当前会话使用，重启默认回到OpenFreeMap。" TextWrapping="Wrap" Margin="0,10,0,10" />
-      <TextBlock Text="使用Google服务需自行配置项目、相应API及计费，并设置密钥限制与配额；保存密钥不代表验证成功，也不会产生Google请求。" TextWrapping="Wrap" Margin="0,0,0,14" />
-      <Label Content="Google API密钥" Target="{Binding ElementName=GoogleKeyInput}" />
-      <PasswordBox x:Name="GoogleKeyInput" AutomationProperties.Name="Google API密钥" MaxLength="256" Width="420" HorizontalAlignment="Left" />
+      <TextBlock Text="{DynamicResource L.423F51A286789ED3}" FontSize="20" FontWeight="SemiBold" />
+      <CheckBox x:Name="RecordMapSearches" Content="{DynamicResource L.BB089A0C843942D2}" IsChecked="True" Checked="MetadataSettingChanged" Unchecked="MetadataSettingChanged" Margin="0,10,0,6" />
+      <Button x:Name="ClearSearchHistoryButton" Content="{DynamicResource L.11A9DBF091C1D6D8}" Click="ClearSearchHistory" HorizontalAlignment="Left" Padding="10,5" />
+      <TextBlock x:Name="SearchHistoryStatus" Text="{DynamicResource L.1AB0E3F5FFD890C1}" TextWrapping="Wrap" Margin="0,6,0,12" />
+      <Button x:Name="EnvironmentCheckButton" Content="{DynamicResource L.A7F8A708C5763E22}" Click="CheckDependencies" HorizontalAlignment="Left" Padding="12,6" Margin="0,8,0,8" />
+      <TextBlock x:Name="DependencyStatus" Text="{DynamicResource L.F7B7FF7EBEF4A5BE}" TextWrapping="Wrap" Margin="0,0,0,14" />
+      <TextBlock Text="{DynamicResource L.43645FC0BB658DC5}" FontSize="20" FontWeight="SemiBold" />
+      <TextBlock Text="{DynamicResource L.41E6D86C9E09BB26}" TextWrapping="Wrap" Margin="0,10,0,10" />
+      <TextBlock Text="{DynamicResource L.9D092B7E3E67C251}" TextWrapping="Wrap" Margin="0,0,0,14" />
+      <Label Content="{DynamicResource L.320BD4C17830EBEA}" Target="{Binding ElementName=GoogleKeyInput}" />
+      <PasswordBox x:Name="GoogleKeyInput" AutomationProperties.Name="{DynamicResource L.320BD4C17830EBEA}" MaxLength="256" Width="420" HorizontalAlignment="Left" />
       <WrapPanel Margin="0,12,0,12">
-       <Button Content="保存本机密钥" Click="SaveGoogleKey" Padding="12,6" />
-       <Button Content="删除本机密钥" Click="ClearGoogleKey" Padding="12,6" Margin="8,0,0,0" />
+       <Button Content="{DynamicResource L.578056E96C64FE53}" Click="SaveGoogleKey" Padding="12,6" />
+       <Button Content="{DynamicResource L.AA0B2570016A5988}" Click="ClearGoogleKey" Padding="12,6" Margin="8,0,0,0" />
       </WrapPanel>
       <WrapPanel Margin="0,0,0,12">
-       <Button Content="使用Google地图（联网）" Click="UseGoogleMap" Padding="12,6" />
-       <Button Content="使用默认地图" Click="UseDefaultMap" Padding="12,6" Margin="8,0,0,0" />
+       <Button Content="{DynamicResource L.223BC464ED97D829}" Click="UseGoogleMap" Padding="12,6" />
+       <Button Content="{DynamicResource L.2C68AE2CE43F1855}" Click="UseDefaultMap" Padding="12,6" Margin="8,0,0,0" />
       </WrapPanel>
-      <TextBlock Text="Google使用时密钥会交给网页SDK并随请求发送，DPAPI仅保护本机存储。HTTP来源限制应匹配https://phototrail.local/*；启用Maps JavaScript API与Geocoding API。地区结果当前只预览，不自动保存。" TextWrapping="Wrap" Margin="0,0,0,12" />
-      <TextBlock x:Name="GoogleKeyStatus" Text="尚未保存本机密钥。" TextWrapping="Wrap" />
-      <TextBlock Text="密钥以Windows当前用户保护的数据保存；不会回显、进入项目源码或开发日志。更换电脑/用户后请重新输入。同一Windows用户运行的程序仍可能访问它；它不能替代Google的密钥限制。" TextWrapping="Wrap" Margin="0,16,0,0" />
+      <TextBlock Text="{DynamicResource L.EC09F357D65012E3}" TextWrapping="Wrap" Margin="0,0,0,12" />
+      <TextBlock x:Name="GoogleKeyStatus" Text="{DynamicResource L.94CCE2919CB72424}" TextWrapping="Wrap" />
+      <TextBlock Text="{DynamicResource L.FD78EC88897B8106}" TextWrapping="Wrap" Margin="0,16,0,0" />
      </StackPanel>
     </ScrollViewer>
    </TabItem>
-   <TabItem Header="应用设置">
+   <TabItem Header="{DynamicResource L.A1A42CD9B16E2162}">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
      <StackPanel Margin="16">
-      <Button x:Name="FolderButton" Content="导入文件夹" ToolTip="导入文件夹 · Ctrl+Shift+O" AutomationProperties.AcceleratorKey="Ctrl+Shift+O" Padding="12,6" Margin="3" Click="ReadFolder" />
-      <CheckBox x:Name="ImportRecursive" Content="递归导入" IsChecked="True" Checked="ImportOptionsChanged" Unchecked="ImportOptionsChanged" Margin="3" />
-      <CheckBox x:Name="ImportPair" Content="同目录JPG／RAW配对" IsChecked="True" Checked="ImportOptionsChanged" Unchecked="ImportOptionsChanged" Margin="3" />
-      <TextBlock Text="外观" FontSize="20" FontWeight="SemiBold" />
-      <TextBlock Text="默认跟随Windows系统；更改后保存本机外观偏好，重启恢复。" TextWrapping="Wrap" Margin="0,8" />
-      <ComboBox x:Name="ThemeChoice" Width="220" HorizontalAlignment="Left" SelectedIndex="0" SelectionChanged="ThemeChanged" AutomationProperties.Name="应用外观">
-       <ComboBoxItem Content="跟随系统" />
-       <ComboBoxItem Content="浅色" />
-       <ComboBoxItem Content="深色" />
+      <Button x:Name="FolderButton" Content="{DynamicResource L.9592C9B4B9494431}" ToolTip="{DynamicResource L.6EF39F2D5DDD002F}" AutomationProperties.AcceleratorKey="Ctrl+Shift+O" Padding="12,6" Margin="3" Click="ReadFolder" />
+      <CheckBox x:Name="ImportRecursive" Content="{DynamicResource L.CCC9F9D791525570}" IsChecked="True" Checked="ImportOptionsChanged" Unchecked="ImportOptionsChanged" Margin="3" />
+      <CheckBox x:Name="ImportPair" Content="{DynamicResource L.74D714D37AE02C61}" IsChecked="True" Checked="ImportOptionsChanged" Unchecked="ImportOptionsChanged" Margin="3" />
+      <TextBlock Text="{DynamicResource L.86A63F23A076B11E}" FontSize="20" FontWeight="SemiBold" />
+      <TextBlock Text="{DynamicResource L.39BBCD5EAF6B5CDE}" TextWrapping="Wrap" Margin="0,8" />
+      <ComboBox x:Name="ThemeChoice" Width="220" HorizontalAlignment="Left" SelectedIndex="0" SelectionChanged="ThemeChanged" AutomationProperties.Name="{DynamicResource L.3EC0255936CE7F50}">
+       <ComboBoxItem Content="{DynamicResource L.217CFE7DB1E3D10A}" />
+       <ComboBoxItem Content="{DynamicResource L.AA0819DFC4D8D782}" />
+       <ComboBoxItem Content="{DynamicResource L.A6B75D0680322A61}" />
       </ComboBox>
-      <TextBlock x:Name="ThemeStatus" Text="默认跟随Windows系统外观；不改变系统设置。" TextWrapping="Wrap" Margin="0,8" />
-      <TextBlock Text="常用字段配置" FontSize="20" FontWeight="SemiBold" Margin="0,12,0,8" />
-      <TextBox x:Name="CommonFieldSearch" AutomationProperties.Name="搜索常用字段名称或技术标签" TextChanged="CommonFieldSearchChanged" />
+      <TextBlock x:Name="ThemeStatus" Text="{DynamicResource L.F53BBC7762818155}" TextWrapping="Wrap" Margin="0,8" />
+      <TextBlock Text="{DynamicResource L.94F5C739E3D79C55}" FontSize="20" FontWeight="SemiBold" Margin="0,12,0,8" />
+      <TextBox x:Name="CommonFieldSearch" AutomationProperties.Name="{DynamicResource L.E588BC72966E4F00}" TextChanged="CommonFieldSearchChanged" />
       <WrapPanel>
-       <Button Content="恢复默认24项" Click="RestoreCommonFields" Padding="8,4" />
-       <Button Content="清空常用字段" Click="ClearCommonFields" Padding="8,4" />
+       <Button Content="{DynamicResource L.573DC6DD3C23AB72}" Click="RestoreCommonFields" Padding="8,4" />
+       <Button Content="{DynamicResource L.40D35CBC60964F5C}" Click="ClearCommonFields" Padding="8,4" />
       </WrapPanel>
       <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto">
        <ItemsControl x:Name="CommonFieldOptions">
@@ -1357,23 +1360,23 @@
         </ItemsControl.ItemTemplate>
        </ItemsControl>
       </ScrollViewer>
-      <TextBlock Text="元数据显示" FontSize="20" FontWeight="SemiBold" Margin="0,12,0,8" />
-      <Label Content="文字大小" Target="{Binding ElementName=MetadataTextSize}" />
-      <ComboBox x:Name="MetadataTextSize" Width="220" HorizontalAlignment="Left" SelectedIndex="1" AutomationProperties.Name="元数据文字大小" SelectionChanged="MetadataSettingChanged">
-       <ComboBoxItem Content="小（-2 pt）" />
-       <ComboBoxItem Content="标准" />
-       <ComboBoxItem Content="大（+2 pt）" />
+      <TextBlock Text="{DynamicResource L.38A17082D64AD7D5}" FontSize="20" FontWeight="SemiBold" Margin="0,12,0,8" />
+      <Label Content="{DynamicResource L.52826B6A046F60D1}" Target="{Binding ElementName=MetadataTextSize}" />
+      <ComboBox x:Name="MetadataTextSize" Width="220" HorizontalAlignment="Left" SelectedIndex="1" AutomationProperties.Name="{DynamicResource L.D6AF49576CC5E304}" SelectionChanged="MetadataSettingChanged">
+       <ComboBoxItem Content="{DynamicResource L.9517E4E78047372B}" />
+       <ComboBoxItem Content="{DynamicResource L.6BEA77ACEFB364AC}" />
+       <ComboBoxItem Content="{DynamicResource L.A3BD860B86C6180E}" />
       </ComboBox>
-      <Label Content="行间距" Target="{Binding ElementName=MetadataSpacing}" />
-      <ComboBox x:Name="MetadataSpacing" Width="220" HorizontalAlignment="Left" SelectedIndex="1" AutomationProperties.Name="元数据行间距" SelectionChanged="MetadataSettingChanged">
-       <ComboBoxItem Content="紧凑" />
-       <ComboBoxItem Content="标准" />
-       <ComboBoxItem Content="宽松" />
+      <Label Content="{DynamicResource L.3A81C84FAFB875EF}" Target="{Binding ElementName=MetadataSpacing}" />
+      <ComboBox x:Name="MetadataSpacing" Width="220" HorizontalAlignment="Left" SelectedIndex="1" AutomationProperties.Name="{DynamicResource L.1D508FC59BD5CBA1}" SelectionChanged="MetadataSettingChanged">
+       <ComboBoxItem Content="{DynamicResource L.5D63D587B0B05A75}" />
+       <ComboBoxItem Content="{DynamicResource L.6BEA77ACEFB364AC}" />
+       <ComboBoxItem Content="{DynamicResource L.051A34D53A739B7D}" />
       </ComboBox>
-      <CheckBox x:Name="FullTagNames" Content="显示完整标签名称" IsChecked="True" Checked="MetadataSettingChanged" Unchecked="MetadataSettingChanged" Margin="0,12,0,8" />
-      <TextBlock Text="关闭后保留来源家族；完整名称继续用于提示、辅助技术、搜索与复制。" TextWrapping="Wrap" />
-      <Button Content="恢复显示、排序与搜索开关默认值" Click="ResetSettings" HorizontalAlignment="Left" Padding="12,6" Margin="0,14,0,8" />
-      <TextBlock x:Name="SettingsStatus" Text="文字大小和行间距独立；默认标准，即时生效并保存本机。" TextWrapping="Wrap" />
+      <CheckBox x:Name="FullTagNames" Content="{DynamicResource L.C7514C680CFCF702}" IsChecked="True" Checked="MetadataSettingChanged" Unchecked="MetadataSettingChanged" Margin="0,12,0,8" />
+      <TextBlock Text="{DynamicResource L.4A434C6479244EED}" TextWrapping="Wrap" />
+      <Button Content="{DynamicResource L.AE98B10AA64D3588}" Click="ResetSettings" HorizontalAlignment="Left" Padding="12,6" Margin="0,14,0,8" />
+      <TextBlock x:Name="SettingsStatus" Text="{DynamicResource L.ED249E8F1377E191}" TextWrapping="Wrap" />
      </StackPanel>
     </ScrollViewer>
    </TabItem>

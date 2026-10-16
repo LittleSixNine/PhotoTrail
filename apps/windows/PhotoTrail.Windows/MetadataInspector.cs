@@ -18,15 +18,18 @@ public sealed record InspectorRow(string Section,string Name,string Tag,string V
 {
     public string FamilyTag {get {int colon=Tag.LastIndexOf(':');return colon>=0?Tag[..colon]:Tag;}}
     public string ReadOnlyReason {get;init;}="";
-    public string Permission=>CanEdit?"编辑精确来源字段":ReadOnlyReason.Length>0?"只读："+ReadOnlyReason:"只读";
+    public string PermissionLabel {get;init;}="";
+    public string StateLabel {get;init;}="";
+    public string Permission=>PermissionLabel.Length>0?PermissionLabel:CanEdit?"编辑精确来源字段":ReadOnlyReason.Length>0?"只读："+ReadOnlyReason:"只读";
     public string ActionDescription=>Permission+" · "+Tag;
     public bool ShowFullTag {get;init;}=true;
     public bool HasDraft {get;init;}
-    public string SourceLabel=>ShowFullTag?Tag:FamilyTag;
+    public string SourceRoleLabel {get;init;}="";
+    public string SourceLabel=>SourceRoleLabel.Length==0?(ShowFullTag?Tag:FamilyTag):SourceRoleLabel+" / "+(ShowFullTag?Tag:FamilyTag).Split(" / ",StringSplitOptions.None)[^1];
     public string MissingLabel {get;init;}="";
     public string DraftLabel {get;init;}="";
-    public string DisplayValue=>Value.Length==0?(State.Contains("未读")||State.Contains("失败")||State.Contains("过期")?State:MissingLabel):Value;
-    public string DisplayState=>(HasDraft?"● "+DraftLabel+" · ":"")+State;
+    public string DisplayValue=>Value.Length==0?(State.Contains("未读")||State.Contains("失败")||State.Contains("过期")?StateLabel.Length>0?StateLabel:State:MissingLabel):Value;
+    public string DisplayState=>(HasDraft?"● "+DraftLabel+" · ":"")+(StateLabel.Length>0?StateLabel:State);
     public string ActionLabel=>CanEdit?"✎":"🔒";
     string DisplayTag=>EditTag??Tag.Split(" / ",StringSplitOptions.None)[^1];
     public bool IsDate=>VerifiedMetadataDates.IsDate(DisplayTag)||MetadataTimes.IsSystem(DisplayTag)||MetadataTimes.IsPartial(DisplayTag);
@@ -46,6 +49,7 @@ public sealed record InspectorRow(string Section,string Name,string Tag,string V
 }
 public static class MetadataInspector
 {
+    internal static TimeZoneInfo DisplayTimeZone=TimeZoneInfo.Local;
     public static readonly InspectorField[] Standard=[
         new("文件","File:FileName"),
         new("文件","File:FilePath"),
@@ -173,7 +177,7 @@ public static class MetadataInspector
             if(verified is null)return row;
             // Render only whole seconds from the cached shared proof; preserve every original subsecond digit separately.
             try {
-                var instant=DateTimeOffset.FromUnixTimeSeconds(verified.Projection.Seconds);var offset=TimeZoneInfo.Local.GetUtcOffset(instant);
+                var instant=DateTimeOffset.FromUnixTimeSeconds(verified.Projection.Seconds);var offset=DisplayTimeZone.GetUtcOffset(instant);
                 var local=instant.ToOffset(offset);
                 return row with{LocalDateDisplay=local.ToString("yyyy-MM-dd HH:mm:ss",System.Globalization.CultureInfo.InvariantCulture),LocalDateOffset=(offset.Ticks<0?"-":"+")+offset.Duration().ToString(@"hh\:mm",System.Globalization.CultureInfo.InvariantCulture)};
             }catch(ArgumentException){return row;}

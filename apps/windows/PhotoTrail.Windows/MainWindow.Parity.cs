@@ -41,16 +41,16 @@ public partial class MainWindow
         SaveButton.Visibility = WorkspaceTabs.SelectedIndex == 2 ? Visibility.Collapsed : Visibility.Visible;
         M1TaskPanel.Visibility = busy || importRunning || checkingEnvironment ? Visibility.Visible : Visibility.Collapsed;
         ImportPending.Visibility = importRunning ? Visibility.Visible : Visibility.Collapsed;
-        M1SelectionCount.Text = M1Format("SelectedPhotoCount", Selected.Length, Photos.Items.Count);
+        M1SelectionCount.Text = L10n.Message(M1Format("SelectedPhotoCount", Selected.Length, Photos.Items.Count));
         int pending = photos.Sum(r => MetadataInspector.PendingFields(r.Document));
-        M1DraftCount.Text = pending == 0 ? M1Text("NoDraft") : M1Format("DraftSummary", photos.Count(r => r.Document.Draft.Count > 0), pending);
+        M1DraftCount.Text = L10n.Message(pending == 0 ? M1Text("NoDraft") : M1Format("DraftSummary", photos.Count(r => r.Document.Draft.Count > 0), pending));
         M1PhotoEmpty.Visibility = photos.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         M1InspectorEmpty.Visibility = Selected.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
         foreach(var control in new FrameworkElement[]{SelectionInfo,M2DiagnosticDetails,M1InspectorModes,M1FieldSearchBox})control.Visibility=Selected.Length==0?Visibility.Collapsed:Visibility.Visible;
         InspectorStatus.Visibility=Selected.Length>0&&InspectorStatus.Text.Length>0?Visibility.Visible:Visibility.Collapsed;
         MetadataGrid.Visibility = Selected.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
         M1EditSelectedFields.IsEnabled = !busy && !renameRecoveryRequired && MetadataGrid.SelectedItems.OfType<InspectorRow>().Any(r => r.CanEdit);
-        M1FieldSelectionCount.Text = M1Format("FieldSelectedCount", MetadataGrid.SelectedItems.Count);
+        M1FieldSelectionCount.Text = L10n.Message(M1Format("FieldSelectedCount", MetadataGrid.SelectedItems.Count));
     }
     void M1PhotoTableSized(object sender, SizeChangedEventArgs e)
     {
@@ -83,7 +83,7 @@ public partial class MainWindow
     void M1OpenTool(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: string header })
-            OpenMetadataTool(MetadataToolsTabs.Items.OfType<TabItem>().First(t => Equals(t.Header, header)));
+            OpenMetadataTool((TabItem)MetadataToolsTabs.Items[int.Parse(header,CultureInfo.InvariantCulture)]);
     }
     void OpenMetadataTool(TabItem tab)
     {
@@ -117,7 +117,7 @@ public partial class MainWindow
             advancedWindow.Closing += (_, args) => {
                 metadataClosing = true;
                 try {
-                    if (busy) { CancelRead(this, new RoutedEventArgs()); args.Cancel = true; Status.Text = M1Text("BusyEditor"); return; }
+                    if (busy) { CancelRead(this, new RoutedEventArgs()); args.Cancel = true; Status.Text = L10n.Message(M1Text("BusyEditor")); return; }
                     if (!DiscardEditor()) { args.Cancel = true; return; }
                     RefreshSelection();
                 } finally { metadataClosing = false; }
@@ -131,12 +131,13 @@ public partial class MainWindow
     {
         if (settingsWindow is not null) { settingsWindow.Activate(); return; }
         ((Grid)SettingsPages.Parent).Children.Remove(SettingsPages); SettingsPages.Visibility = Visibility.Visible;
-        SettingsPages.SelectedIndex = 1;
-        settingsWindow = new Window { Owner = this, Resources = Resources, Title = M1Text("SettingsTitle"), Width = 720, Height = Math.Min(690, SystemParameters.WorkArea.Height), MinWidth = 500, MinHeight = 400, Content = SettingsPages, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+        SettingsPages.SelectedIndex = 0;
+        settingsWindow = new Window { Owner = this, Resources = Resources, Title = M1Text("SettingsTitle"), FontSize=metadataBaseFont+settings.FontDelta, Width = 720, Height = Math.Min(690, SystemParameters.WorkArea.Height), MinWidth = 500, MinHeight = 400, Content = SettingsPages, WindowStartupLocation = WindowStartupLocation.CenterOwner };
 #pragma warning disable WPF0001
         settingsWindow.ThemeMode = ThemeMode;
 #pragma warning restore WPF0001
-        settingsWindow.Closed += (_, _) => { settingsWindow!.Content = null; SettingsPages.Visibility = Visibility.Collapsed; ((Grid)WorkspaceTabs.Parent).Children.Add(SettingsPages); settingsWindow = null; };
+        settingsWindow.Closing += (_, args) => {if(!DiscardTrackPreferenceInput())args.Cancel=true;};
+        settingsWindow.Closed += (_, _) => { settingsWindow!.Content = null; SettingsPages.Visibility = Visibility.Collapsed; ((Grid)WorkspaceTabs.Parent).Children.Add(SettingsPages); settingsWindow = null; Activate(); };
         settingsWindow.Show();
     }
     void M1ShowMore(object sender, RoutedEventArgs e)
@@ -145,8 +146,8 @@ public partial class MainWindow
         void Add(string key, RoutedEventHandler action) { var item = new MenuItem { Header = M1Text(key) }; item.Click += action; menu.Items.Add(item); }
         Add("Import", ReadPhoto); Add("ImportFolder", ReadFolder); Add("SaveAll", PrepareSaveAll); Add("SaveWorkspace", PrepareSaveWorkspace);
         Add("SaveSummary", (_, _) => OpenMetadataTool(SaveTargetTab));
-        foreach (var (key, header) in new[] { ("FieldEditor", "编辑草稿"), ("BatchDate", "批量日期"), ("Presets", "字段预设"), ("Compare", "比较与交换"), ("Clipboard", "字段剪贴板"), ("Xmp", "XMP交换"), ("Csv", "CSV"), ("Preview", "照片预览") })
-        { var item = new MenuItem { Header = M1Text(key) }; item.Click += (_, _) => OpenMetadataTool(MetadataToolsTabs.Items.OfType<TabItem>().First(t => Equals(t.Header, header))); menu.Items.Add(item); }
+        foreach (var (key, index) in new[] { ("FieldEditor", 0), ("BatchDate", 3), ("Presets", 2), ("Compare", 5), ("Clipboard", 1), ("Xmp", 4), ("Csv", 8), ("Preview", 6) })
+        { var item = new MenuItem { Header = M1Text(key) }; item.Click += (_, _) => OpenMetadataTool((TabItem)MetadataToolsTabs.Items[index]); menu.Items.Add(item); }
         Add("CopyTag", CopyMetadataTag); menu.IsOpen = true;
     }
     void M1OpenFavorites(object sender, RoutedEventArgs e) { WorkspaceTabs.SelectedIndex = 1; FavoriteList.BringIntoView(); FavoriteList.Focus(); }

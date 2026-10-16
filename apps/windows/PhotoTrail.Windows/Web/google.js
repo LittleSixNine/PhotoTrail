@@ -1,8 +1,9 @@
 'use strict';
 const message=document.getElementById('message');
-let map,trails,photos,marker,started=false,loadTimer,epoch=0,gesture=0;
+const labels=window.photoTrailLabels||{};message.textContent=labels.googleLoading||'Google Maps';
+let map,trails,photos,marker,started=false,loadTimer,epoch=0,gesture=0,trackColor='#1477d4',trackWidth=4;
 const post=data=>window.chrome.webview.postMessage(data);
-function fail(){message.textContent='Google地图不可用，请检查密钥、API权限、计费和网络，或切回默认地图。';post({type:'map-error'});}
+function fail(){message.textContent=labels.googleError||'Google Maps unavailable';post({type:'map-error'});}
 window.gm_authFailure=fail;
 function preview(point){
  const longitude=point.lng(),latitude=point.lat();
@@ -20,13 +21,13 @@ window.initGoogle=()=>{
  try{
   map=new google.maps.Map(document.getElementById('map'),{center:{lng:135.7681,lat:35.0116},zoom:11});
   trails=new google.maps.Data({map});photos=new google.maps.Data({map});
-  trails.setStyle(feature=>({strokeColor:feature.getProperty('role')==='preview'?'#df7b20':'#1477d4',strokeWeight:4}));
+  trails.setStyle(feature=>({strokeColor:feature.getProperty('role')==='preview'?'#df7b20':trackColor,strokeWeight:trackWidth}));
   photos.setStyle(feature=>({icon:{path:google.maps.SymbolPath.CIRCLE,scale:7,fillColor:feature.getProperty('selected')?'#d95914':'#217b43',fillOpacity:1,strokeColor:'white',strokeWeight:2},clickable:true}));
   photos.addListener('click',event=>post({type:'select-photo',id:Number(event.feature.getProperty('id')),revision:Number(event.feature.getProperty('revision'))}));
   const moved=()=>{gesture++;post({type:'view-moved',epoch});};
   map.addListener('dragstart',moved);map.getDiv().addEventListener('wheel',moved,{passive:true});map.getDiv().addEventListener('pointerdown',moved,{passive:true});
   map.addListener('click',event=>preview(event.latLng));
-  clearTimeout(loadTimer);message.textContent='Google Maps：选点/拖动只作预览，地址查询须显式点击。';post({type:'ready'});
+  clearTimeout(loadTimer);message.textContent=labels.googleReady||'Google Maps';post({type:'ready'});
  }catch{fail();}
 };
 function updateLayer(layer,geojson){layer.forEach(feature=>layer.remove(feature));layer.addGeoJson(geojson);}
@@ -46,7 +47,7 @@ window.chrome.webview.addEventListener('message',event=>{
   script.async=true;script.onerror=fail;loadTimer=setTimeout(fail,20000);document.head.append(script);return;
  }
  if(!map)return;
- if(data.type==='map-settings'){epoch=data.epoch;if(['roadmap','satellite','hybrid','terrain'].includes(data.layer))map.setMapTypeId(data.layer);return;}
+ if(data.type==='map-settings'){epoch=data.epoch;if(/^#[0-9a-f]{6}$/i.test(data.trackColor)&&Number.isFinite(data.trackWidth)&&data.trackWidth>0&&data.trackWidth<=1000){trackColor=data.trackColor;trackWidth=data.trackWidth;trails.setStyle(feature=>({strokeColor:feature.getProperty('role')==='preview'?'#df7b20':trackColor,strokeWeight:trackWidth}));}if(['roadmap','satellite','hybrid','terrain'].includes(data.layer))map.setMapTypeId(data.layer);return;}
  if(data.type==='device-view'&&data.epoch===epoch&&data.view){map.setCenter({lng:data.view.Longitude,lat:data.view.Latitude});map.setZoom(14);return;}
  if(data.type==='locate'&&data.epoch===epoch){const before=gesture,request=epoch;if(!navigator.geolocation){post({type:'location-error',epoch:request});return;}navigator.geolocation.getCurrentPosition(p=>{if(request!==epoch||before!==gesture)return;post({type:'located',epoch:request,longitude:p.coords.longitude,latitude:p.coords.latitude,zoom:14});},()=>{if(request===epoch&&before===gesture)post({type:'location-error',epoch:request});},{timeout:10000,maximumAge:0,enableHighAccuracy:false});return;}
  if(data.type==='tracks'||data.type==='tracks-no-fit'){

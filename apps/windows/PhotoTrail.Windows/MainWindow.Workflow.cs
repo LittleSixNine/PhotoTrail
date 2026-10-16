@@ -86,7 +86,7 @@ public partial class MainWindow
     void RefreshM2SelectionSummary()
     {
         if(SelectionInfo is null)return;
-        SelectionInfo.ToolTip=selectionSummaryText;SelectionInfo.Text=narrowMetadata?selectionSummaryText.Replace("\n"," · "):selectionSummaryText;
+        SelectionInfo.ToolTip=selectionSummaryText;SelectionInfo.Text=L10n.Message(narrowMetadata?selectionSummaryText.Replace("\n"," · "):selectionSummaryText);
     }
     void M2ShowInspectorCounts(object sender,RoutedEventArgs e)=>MessageBox.Show(this,InspectorCounts.Text+(InspectorStatus.Text.Length>0?"\n"+InspectorStatus.Text:""),WText("Diagnostics"),MessageBoxButton.OK,MessageBoxImage.Information);
     void OpenWorkflowFields(IEnumerable<InspectorRow> selection)
@@ -94,11 +94,11 @@ public partial class MainWindow
         if (busy || renameRecoveryRequired) return;
         var rows = selection.ToArray();
         var targets = rows.Where(r => r.CanEdit && r.EditTag is not null).Select(r => r.EditTag!).Distinct(StringComparer.Ordinal).ToArray();
-        if (targets.Length == 0) { Status.Text = WText("NoEditable"); return; }
+        if (targets.Length == 0) { Status.Text = L10n.Message(WText("NoEditable")); return; }
         // Opening an inspector selection must not replace an unfinished operation chain.
         if (presetEditorDirty || invalidWorkflowCards.Count > 0 || PresetChainDirty || InspectorHasInput())
         {
-            Status.Text = WText("KeepInput"); OpenWorkflow(); return;
+            Status.Text = L10n.Message(WText("KeepInput")); OpenWorkflow(); return;
         }
         workflowTargets = targets;
         workflowReadOnly = rows.Where(r => !r.CanEdit).Select(r => r.Tag + " · " + r.Permission).ToArray();
@@ -388,8 +388,8 @@ public partial class MainWindow
     async void ApplyWorkflow()
     {
         if (busy || renameRecoveryRequired) return;
-        if (invalidWorkflowCards.Count > 0) { Status.Text = WText("InvalidCards"); return; }
-        if (!workflowSelection.SequenceEqual(Selected)) { Status.Text = WText("SelectionChanged"); return; }
+        if (invalidWorkflowCards.Count > 0) { Status.Text = L10n.Message(WText("InvalidCards")); return; }
+        if (!workflowSelection.SequenceEqual(Selected)) { Status.Text = L10n.Message(WText("SelectionChanged")); return; }
         try
         {
             if (presetEditorDirty || InspectorHasInput()) throw new InvalidOperationException(WText("KeepInput"));
@@ -401,6 +401,6 @@ public partial class MainWindow
                 return new BatchDetails(Missing: result.Missing, FilenameMismatch: result.FilenameMismatch, FilenameInvalid: result.FilenameInvalid, CopyMissing: result.CopyMissing, OperationCount: preset.Operations.Count, Measurements: result.Measurements, InitialSourceMs: result.ReadMs, ParameterValidationMs: result.ParameterValidationMs);
             }, () => invalidWorkflowCards.Count == 0 && !presetEditorDirty && !InspectorHasInput() && workflowSelection.SequenceEqual(Selected) && Active().Encode() == input);
         }
-        catch (Exception problem) { Status.Text = WText("NotApplied") + problem.Message; }
+        catch (Exception problem) { Status.Text = L10n.Message(WText("NotApplied") + L10n.Message(problem.Message)); }
     }
 }

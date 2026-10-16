@@ -11,14 +11,14 @@ public partial class MainWindow
     void RequireExchangeOutput(string path) {
         var target=Path.GetFullPath(path);
         if(photos.SelectMany(r=>r.Document.SidecarPath is {} sidecar?new[]{r.Document.FilePath,sidecar}:new[]{r.Document.FilePath}).Concat(tracks.Select(t=>t.Path)).Any(p=>Path.GetFullPath(p).Equals(target,StringComparison.OrdinalIgnoreCase)))
-            throw new IOException("导出目标不能是当前照片、旁车或轨迹。");
+            throw new IOException(L10n.Text("导出目标不能是当前照片、旁车或轨迹。"));
     }
     PhotoDocument[] comparisonSelection=[];
     void RefreshComparison()
     {
         if(ComparisonTab is null||!ComparisonTab.IsSelected)return;
         comparisonSelection=Selected.Select(r=>r.Document.BatchSnapshot()).ToArray();
-        ComparisonStatus.Text=$"展示{Math.Min(20,comparisonSelection.Length)}／实际冻结{comparisonSelection.Length}张；磁盘快照与含草稿有效值分列。CSV导出／应用另行冻结全部当前选择，不受20张显示上限影响。缺失／混合／读取失败文案只用于显示。";
+        ComparisonStatus.Text=L10n.Message(L10n.Format("展示{0}／实际冻结{1}张；磁盘快照与含草稿有效值分列。CSV导出／应用另行冻结全部当前选择，不受20张显示上限影响。缺失／混合／读取失败文案只用于显示。",Math.Min(20,comparisonSelection.Length),comparisonSelection.Length));
         var shown=comparisonSelection.Take(20).ToArray();var table=new DataTable();
         var sources=comparisonSelection.ToDictionary(d=>d,d=>(d.Inspection??[]).GroupBy(v=>(v.Tag,v.Role)).ToDictionary(g=>g.Key,g=>g.Select(v=>v.Value).ToArray()));
         table.Columns.Add("精确字段");table.Columns.Add("来源");table.Columns.Add("全选择状态");

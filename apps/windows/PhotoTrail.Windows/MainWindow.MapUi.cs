@@ -58,7 +58,7 @@ public partial class MainWindow
     void RefreshM4Map(){
         if(!m4Ready||m4Preview is null)return;var selected=Selected;var current=Photos.SelectedItem as PhotoRow??selected.FirstOrDefault();m4Preview.Document=current?.Document;m4Preview.Visibility=current is null?Visibility.Collapsed:Visibility.Visible;
         m4Selection!.Text=current is null?M4("Empty"):M4Format("Selection",selected.Length,current.Name)+"\n"+current.Document.Value(current.Document.MainDateTag);int gpsDrafts=selected.Count(r=>r.Document.Draft.Keys.Any(k=>k.StartsWith("XMP-exif:GPS",StringComparison.Ordinal)));m4GpsSummary!.Text=M4Format("LocationSummary",selected.Count(r=>r.Document.Position()is null),selected.Count(r=>r.Document.Position()is not null),selected.Count(r=>!r.Document.CanStage))+(gpsDrafts==0?"":"\n"+M4Format("GpsPending",gpsDrafts));
-        var point=current?.Document.Position();m4Position!.Text=point is null?M4("NoPosition"):M4Format("Latitude")+": "+point.Latitude.ToString("0.######",CultureInfo.InvariantCulture)+"\n"+M4("Longitude")+": "+point.Longitude.ToString("0.######",CultureInfo.InvariantCulture);
+        var point=current?.Document.Position();m4Position!.Text=point is null?M4("NoPosition"):M4Format("Latitude")+": "+DisplayCoordinate(point.Latitude)+"\n"+M4("Longitude")+": "+DisplayCoordinate(point.Longitude);
         m4Sidebar!.IsEnabled=m4Toolbar!.IsEnabled=m4Commands!.IsEnabled=!busy&&!renameRecoveryRequired; m4Filter!.IsEnabled=m4Sort!.IsEnabled=!busy;
         m4Undo!.IsEnabled=!busy&&!renameRecoveryRequired&&LastApplyCurrent();m4GpsCopy!.IsEnabled=!busy&&!renameRecoveryRequired&&gpsDrafts>0;
         m4Layer!.Content=currentMapPage==MapMessage.GooglePage?"Google · "+GoogleLayerChoice.Text:M4("OpenMap");
@@ -89,11 +89,11 @@ public partial class MainWindow
         if(busy||renameRecoveryRequired||!DiscardEditor())return;
         BeginOperation();try{
             var sources=tracks.Where(t=>!t.SourceUnavailable&&t.Data.Segments.Any(s=>s.Any(p=>p.Time is not null))).ToArray();
-            if(sources.Length==0){Status.Text=M4("NoTimedTracks");return;}
+            if(sources.Length==0){Status.Text=L10n.Message(M4("NoTimedTracks"));return;}
             foreach(var source in sources)await EnsureTrackSource(source,operation!.Token);
             operation!.Token.ThrowIfCancellationRequested();
             var ranges=sources.SelectMany(t=>t.Data.Segments).Select(s=>s.Where(p=>p.Time is not null).Select(p=>p.Time!.Value).ToArray()).Where(s=>s.Length>0).Select(s=>(Start:s.Min(),End:s.Max())).ToArray();
-            var selected=photos.Where(r=>r.Document.VerifiedCaptureDate?.Instant() is {} time&&ranges.Any(s=>time>=s.Start&&time<=s.End)).Where(r=>Photos.Items.Contains(r)).ToArray();var old=Selected;fillingEditor=true;try{Photos.SelectedItems.Clear();foreach(var row in selected)Photos.SelectedItems.Add(row);}finally{fillingEditor=false;}PhotoSelected(Photos,new SelectionChangedEventArgs(SelectorEvent(),old,selected));Status.Text=M4Format("TimeSelection",selected.Length);
-        }catch(OperationCanceledException){Status.Text=M4("SelectCancelled");}catch(Exception error){Status.Text=M4("SelectFailed")+error.Message;}finally{EndOperation();}
+            var selected=photos.Where(r=>r.Document.VerifiedCaptureDate?.Instant() is {} time&&ranges.Any(s=>time>=s.Start&&time<=s.End)).Where(r=>Photos.Items.Contains(r)).ToArray();var old=Selected;fillingEditor=true;try{Photos.SelectedItems.Clear();foreach(var row in selected)Photos.SelectedItems.Add(row);}finally{fillingEditor=false;}PhotoSelected(Photos,new SelectionChangedEventArgs(SelectorEvent(),old,selected));Status.Text=L10n.Message(M4Format("TimeSelection",selected.Length));
+        }catch(OperationCanceledException){Status.Text=L10n.Message(M4("SelectCancelled"));}catch(Exception error){Status.Text=L10n.Message(M4("SelectFailed")+L10n.Message(error.Message));}finally{EndOperation();}
     }
 }

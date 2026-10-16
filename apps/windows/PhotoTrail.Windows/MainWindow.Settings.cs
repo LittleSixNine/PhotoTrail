@@ -17,7 +17,7 @@ public partial class MainWindow
     static readonly PhotoSortPreference[] sortOptions=[new("name",false),new("name",true),new("captured",false),new("captured",true),new("import",false),new("import",true)];
     void LoadSettings()
     {
-        try{settings=SettingsPreference.Read(settingsPath);}catch(Exception){settings=new();SettingsStatus.Text="本机设置不可读取，使用默认值。";}
+        try{settings=SettingsPreference.Read(settingsPath);}catch(Exception){settings=new();SettingsStatus.Text=L10n.Message(L10n.Text("本机设置不可读取，使用默认值。"));}
         BackupFolder.Text=settings.BackupFolder;ApplySettingsControls();
     }
     void ApplySettingsControls()
@@ -27,7 +27,7 @@ public partial class MainWindow
         finally{restoringSettings=false;}
         RenderMetadataSettings();RefreshSearchHistory();ApplyPhotoView();RefreshInspectorSettings();RefreshInspector();
     }
-    bool SaveSettings(){try{SettingsPreference.Save(settingsPath,settings);SettingsStatus.Text="设置已保存到本机；即时生效，重启恢复。";return true;}catch(Exception){SettingsStatus.Text="本次设置已生效，但未保存；请检查本机存储访问。";return false;}}
+    bool SaveSettings(){try{SettingsPreference.Save(settingsPath,settings);SettingsStatus.Text=L10n.Message(L10n.Text("设置已保存到本机；即时生效，重启恢复。"));return true;}catch(Exception){SettingsStatus.Text=L10n.Message(L10n.Text("本次设置已生效，但未保存；请检查本机存储访问。"));return false;}}
     private void MetadataSettingChanged(object sender,RoutedEventArgs e)
     {
         if(!IsLoaded||restoringSettings)return;
@@ -36,6 +36,8 @@ public partial class MainWindow
     }
     void RenderMetadataSettings()
     {
+        Resources["M5.BodyFont"]=metadataBaseFont+settings.FontDelta;Resources["M5.HeadingFont"]=18+settings.FontDelta;
+        if(settingsWindow is not null)settingsWindow.FontSize=metadataBaseFont+settings.FontDelta;
         if(M3RenameWorkspace is not null)System.Windows.Documents.TextElement.SetFontSize(M3RenameWorkspace,metadataBaseFont+settings.FontDelta);
         if(M4MapWorkspace is not null)System.Windows.Documents.TextElement.SetFontSize(M4MapWorkspace,metadataBaseFont+settings.FontDelta);
         System.Windows.Documents.TextElement.SetFontSize(Editor,metadataBaseFont+settings.FontDelta);MetadataGrid.FontSize=metadataBaseFont+settings.FontDelta;
@@ -53,21 +55,21 @@ public partial class MainWindow
     }
     private void ResetSettings(object sender,RoutedEventArgs e)
     {
-        if(busy||InspectorHasInput()){SettingsStatus.Text="请先结束任务或将输入加入草稿，再恢复默认设置。";return;}
-        settings=new();var saved=SaveSettings();ApplySettingsControls();SettingsStatus.Text=saved?"显示、排序及记录开关已恢复默认；历史内容、密钥、地图提供方和外观不变。":"默认设置已在本次会话生效，但未保存；历史及其他数据保留。";
+        if(busy||InspectorHasInput()){SettingsStatus.Text=L10n.Message(L10n.Text("请先结束任务或将输入加入草稿，再恢复默认设置。"));return;}
+        settings=settings with{TextSize=0,Spacing=0,FullTagNames=true,RecordSearches=true,Sorts=null,CommonOnly=true,CommonFields=null};var saved=SaveSettings();ApplySettingsControls();SettingsStatus.Text=L10n.Message(saved?L10n.Text("显示、排序及记录开关已恢复默认；历史内容、密钥、地图提供方和外观不变。"):L10n.Text("默认设置已在本次会话生效，但未保存；历史及其他数据保留。"));
     }
-    private void ClearSearchHistory(object sender,RoutedEventArgs e){try{MapSearchHistory.Clear(searchHistoryPath);RefreshSearchHistory();SearchHistoryStatus.Text="最近搜索记录已清除；当前查询及其他数据保留。";}catch(Exception){SearchHistoryStatus.Text="历史未清除，请检查本机存储访问。";}}
+    private void ClearSearchHistory(object sender,RoutedEventArgs e){try{MapSearchHistory.Clear(searchHistoryPath);RefreshSearchHistory();SearchHistoryStatus.Text=L10n.Message(L10n.Text("最近搜索记录已清除；当前查询及其他数据保留。"));}catch(Exception){SearchHistoryStatus.Text=L10n.Message(L10n.Text("历史未清除，请检查本机存储访问。"));}}
     void RefreshSearchHistory()
     {
         try{var terms=MapSearchHistory.Read(searchHistoryPath);RecentMapSearches.ItemsSource=settings.RecordSearches?terms:Array.Empty<string>();RecentMapSearches.Visibility=settings.RecordSearches&&terms.Length>0?Visibility.Visible:Visibility.Collapsed;ClearSearchHistoryButton.IsEnabled=terms.Length>0;}
-        catch(Exception){RecentMapSearches.ItemsSource=Array.Empty<string>();RecentMapSearches.Visibility=Visibility.Collapsed;SearchHistoryStatus.Text="搜索历史不可读取，已有文件未覆盖。";ClearSearchHistoryButton.IsEnabled=true;}
+        catch(Exception){RecentMapSearches.ItemsSource=Array.Empty<string>();RecentMapSearches.Visibility=Visibility.Collapsed;SearchHistoryStatus.Text=L10n.Message(L10n.Text("搜索历史不可读取，已有文件未覆盖。"));ClearSearchHistoryButton.IsEnabled=true;}
     }
-    private void UseRecentMapSearch(object sender,RoutedEventArgs e){if(RecentMapSearches.SelectedItem is string term){MapSearchQuery.Text=term;MapSearchQuery.Focus();try{MapSearchHistory.Remember(searchHistoryPath,term,settings.RecordSearches);RefreshSearchHistory();}catch(Exception){SearchHistoryStatus.Text="词条已填入，历史顺序未保存；已有记录保持。";}}}
+    private void UseRecentMapSearch(object sender,RoutedEventArgs e){if(RecentMapSearches.SelectedItem is string term){MapSearchQuery.Text=term;MapSearchQuery.Focus();try{MapSearchHistory.Remember(searchHistoryPath,term,settings.RecordSearches);RefreshSearchHistory();}catch(Exception){SearchHistoryStatus.Text=L10n.Message(L10n.Text("词条已填入，历史顺序未保存；已有记录保持。"));}}}
     private void MetadataFilterChanged(object sender,TextChangedEventArgs e)
     {
         RefreshInspector();
     }
-    private void CopyMetadataTag(object sender,RoutedEventArgs e){try{if(MetadataGrid.SelectedItem is InspectorRow row)Clipboard.SetText(row.Tag);}catch(Exception){Status.Text="完整标签未复制；剪贴板暂不可用，草稿保留。";}}
+    private void CopyMetadataTag(object sender,RoutedEventArgs e){try{if(MetadataGrid.SelectedItem is InspectorRow row)Clipboard.SetText(row.Tag);}catch(Exception){Status.Text=L10n.Message(L10n.Text("完整标签未复制；剪贴板暂不可用，草稿保留。"));}}
     private void CopyMetadataRow(object sender,DataGridRowClipboardEventArgs e){if(e.Item is InspectorRow row)for(int i=0;i<e.ClipboardRowContent.Count;i++)if(e.ClipboardRowContent[i].Column==MetadataGrid.Columns[0])e.ClipboardRowContent[i]=new DataGridClipboardCellContent(row,MetadataGrid.Columns[0],row.Tag);}
     sealed class PhotoDateComparer(SettingsPreference preference):System.Collections.IComparer
     {
@@ -91,7 +93,7 @@ public partial class MainWindow
         try{
             using(view.DeferRefresh()){
                 view.GroupDescriptions.Clear();view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(PhotoRow.DisplayGroup)));
-                view.Filter=item=>item is PhotoRow row&&row.Name.Contains(photoSearch,StringComparison.OrdinalIgnoreCase)&&(photoFilter switch{1=>row.Document.Draft.Count>0,2=>row.Document.Draft.Count==0,3=>row.Document.Position()is not null,4=>row.Document.Position()is null,_=>true});
+                view.Filter=item=>item is PhotoRow row&&(!ui.HideUneditable||row.Document.CanStage)&&row.Name.Contains(photoSearch,StringComparison.OrdinalIgnoreCase)&&(photoFilter switch{1=>row.Document.Draft.Count>0,2=>row.Document.Draft.Count==0,3=>row.Document.Position()is not null,4=>row.Document.Position()is null,_=>true});
                 if(view is ListCollectionView previous)previous.CustomSort=null;
                 view.SortDescriptions.Clear();foreach(var sort in settings.PhotoSort)view.SortDescriptions.Add(new(sort.Field switch{"name"=>nameof(PhotoRow.Name),"captured"=>nameof(PhotoRow.Captured),_=>nameof(PhotoRow.Imported)},sort.Descending?ListSortDirection.Descending:ListSortDirection.Ascending));
                 if(!settings.PhotoSort.Any(s=>s.Field=="import"))view.SortDescriptions.Add(new(nameof(PhotoRow.Imported),ListSortDirection.Ascending));
@@ -100,7 +102,7 @@ public partial class MainWindow
             Photos.SelectedItems.Clear();foreach(var row in selected)if(Photos.Items.Contains(row))Photos.SelectedItems.Add(row);
         }finally{fillingEditor=false;}
         if(!Selected.SequenceEqual(selected)){InvalidateDates();previousSelection=Selected;RenameRulesChanged(this,new RoutedEventArgs());}
-        PhotoSortStatus.Text="当前比较器序列："+string.Join(" → ",settings.PhotoSort.Select(s=>s.Field+(s.Descending?" ↓":" ↑")));
+        PhotoSortStatus.Text=L10n.Message(L10n.Text("当前比较器序列：")+string.Join(" → ",settings.PhotoSort.Select(s=>s.Field+(s.Descending?" ↓":" ↑"))));
         SyncPhotoStrip();if(IsLoaded)RefreshSelection();
     }
 }

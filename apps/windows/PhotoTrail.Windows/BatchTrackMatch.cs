@@ -41,7 +41,7 @@ internal static class BatchTrackMatch
         if(!double.TryParse(latitude,NumberStyles.Float,CultureInfo.InvariantCulture,out var lat)||!double.TryParse(longitude,NumberStyles.Float,CultureInfo.InvariantCulture,out var lon)||!double.IsFinite(lat)||!double.IsFinite(lon)||Math.Abs(lat)>90||Math.Abs(lon)>180)throw new ArgumentException("已有定位格式错误，不能当作缺失覆盖。");
         return "valid";
     }
-    internal static BatchTrackResult Calculate(PhotoDocument document,IReadOnlyList<TrackSnapshot> tracks,bool overwrite,CancellationToken token) {
+    internal static BatchTrackResult Calculate(PhotoDocument document,IReadOnlyList<TrackSnapshot> tracks,bool overwrite,CancellationToken token,TimeSpan? maximumGap=null) {
         var name=System.IO.Path.GetFileName(document.FilePath);token.ThrowIfCancellationRequested();
         if(!document.CanStage)return new(name,"不可编辑","保留全部草稿。");
         try{if(Location(document)=="valid"&&!overwrite)return new(name,"已有定位保持","补齐缺失定位，不覆盖。");}
@@ -58,11 +58,11 @@ internal static class BatchTrackMatch
         var time=date.Instant()!.Value;
         var candidates=new List<(TrackMatch Match,TrackSnapshot Source)>();
         foreach(var track in tracks) {
-            token.ThrowIfCancellationRequested();var result=track.Data.Match(time,cancellation:token);
+            token.ThrowIfCancellationRequested();var result=track.Data.Match(time,maximumGap,cancellation:token);
             if(result.Status=="ambiguous")return new(name,"歧义",result.Reason,Sources:System.IO.Path.GetFileName(track.Path));
             if(result.Point is not null)candidates.Add((result,track));
         }
-        if(candidates.Count==0)return new(name,"未匹配","无可安全匹配的点；不跨段、不跨无时间点、不外推，间隔最多120分钟。");
+        if(candidates.Count==0)return new(name,"未匹配",L10n.Format("无可安全匹配的点；不跨段、不跨无时间点、不外推，间隔最多{0}分钟。",(maximumGap??TimeSpan.FromMinutes(120)).TotalMinutes));
         if(candidates.Any(a=>candidates.Any(b=>TrackData.Distance(a.Match.Point!,b.Match.Point!)>1)))return new(name,"歧义","参与轨迹的候选位置相差超过1米。");
         // Equivalent coordinates retain the recorded-point method when available.
         var chosen=candidates.FirstOrDefault(c=>c.Match.Method=="recorded");if(chosen.Source is null)chosen=candidates[0];

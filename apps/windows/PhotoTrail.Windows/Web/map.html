@@ -3,12 +3,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://tiles.openfreemap.org; connect-src 'self' https://tiles.openfreemap.org; worker-src 'self' blob:;">
 <link rel="stylesheet" href="vendor/maplibre-gl.css"><style>
 html,body,#map{height:100%;margin:0}#message{position:absolute;top:12px;left:12px;background:white;padding:8px 12px;border-radius:6px;font:14px system-ui;max-width:70%;z-index:1}
-</style></head><body><div id="map"></div><div id="message">正在加载地图；选点只作预览。</div>
+</style></head><body><div id="map"></div><div id="message">PhotoTrail</div>
 <script type="module">
 import * as maplibregl from './vendor/maplibre-gl.mjs';
 'use strict';
 maplibregl.setWorkerUrl(new URL('./vendor/maplibre-gl-worker.mjs',import.meta.url).href);
 const message = document.getElementById('message');
+const labels=window.photoTrailLabels||{};
+message.textContent=labels.loading||'PhotoTrail';
 let trackMessage='',mapFailed=false;
 const map = new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/liberty',center:[135.7681,35.0116],zoom:11});
 map.addControl(new maplibregl.NavigationControl());
@@ -18,9 +20,9 @@ map.on('load',()=>{
  map.addLayer({id:'trail-points',type:'circle',source:'trails',filter:['==','$type','Point'],paint:{'circle-color':['case',['==',['get','role'],'preview'],'#df7b20','#1477d4'],'circle-radius':5}});
  map.addSource('photos',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
  map.addLayer({id:'photo-points',type:'circle',source:'photos',layout:{'circle-sort-key':['case',['get','selected'],1,0]},paint:{'circle-color':['case',['get','selected'],'#d95914','#217b43'],'circle-radius':7,'circle-stroke-color':'white','circle-stroke-width':2}});
- message.textContent='点击地图预览坐标，照片不会自动保存。';trackMessage=message.textContent;mapFailed=false;window.chrome.webview.postMessage({type:'ready'});
+ message.textContent=labels.ready||'PhotoTrail';trackMessage=message.textContent;mapFailed=false;window.chrome.webview.postMessage({type:'ready'});
 });
-map.on('error',()=>{mapFailed=true;message.textContent='地图加载失败，请检查网络后点击“重载地图”；照片读取仍可使用。';window.chrome.webview.postMessage({type:'map-error'});});
+map.on('error',()=>{mapFailed=true;message.textContent=labels.error||'Map unavailable';window.chrome.webview.postMessage({type:'map-error'});});
 let marker,epoch=0,gesture=0,userMoving=false;
 function moved(){gesture++;userMoving=true;window.chrome.webview.postMessage({type:'view-moved',epoch});}
 document.getElementById('map').addEventListener('pointerdown',moved,{passive:true});
@@ -30,7 +32,7 @@ function previewPoint(longitude,latitude) {
  if (!Number.isFinite(longitude)||!Number.isFinite(latitude)||longitude < -180||longitude > 180||latitude < -90||latitude > 90) return;
  if (!marker) marker=createMarker('#dd651c',[longitude,latitude]);
  else marker.setLngLat([longitude,latitude]);
- message.textContent='位置预览；可拖动标记，加入GPS草稿后另存副本。';
+ message.textContent=labels.preview||'Preview';
  window.chrome.webview.postMessage({type:'point',longitude,latitude});
 }
 function createMarker(color,coordinates) {
@@ -43,7 +45,7 @@ function createMarker(color,coordinates) {
 }
 window.chrome.webview.addEventListener('message',event=>{
  const data=event.data;
- if(data.type==='map-settings'){epoch=data.epoch;const v=data.view;if(v)map.jumpTo({center:[v.Longitude,v.Latitude],zoom:v.Zoom});return;}
+ if(data.type==='map-settings'){epoch=data.epoch;if(/^#[0-9a-f]{6}$/i.test(data.trackColor)&&Number.isFinite(data.trackWidth)&&data.trackWidth>0&&data.trackWidth<=1000&&map.getLayer('trail-lines')){map.setPaintProperty('trail-lines','line-color',['case',['==',['get','role'],'preview'],'#df7b20',data.trackColor]);map.setPaintProperty('trail-lines','line-width',data.trackWidth);map.setPaintProperty('trail-points','circle-color',['case',['==',['get','role'],'preview'],'#df7b20',data.trackColor]);}const v=data.view;if(v)map.jumpTo({center:[v.Longitude,v.Latitude],zoom:v.Zoom});return;}
  if(data.type==='device-view'&&data.epoch===epoch&&data.view){map.jumpTo({center:[data.view.Longitude,data.view.Latitude],zoom:14});return;}
  if(data.type==='locate'&&data.epoch===epoch){const before=gesture,request=epoch;if(!navigator.geolocation){window.chrome.webview.postMessage({type:'location-error',epoch:request});return;}navigator.geolocation.getCurrentPosition(p=>{if(request!==epoch||before!==gesture)return;window.chrome.webview.postMessage({type:'located',epoch:request,longitude:p.coords.longitude,latitude:p.coords.latitude,zoom:14});},()=>{if(request===epoch&&before===gesture)window.chrome.webview.postMessage({type:'location-error',epoch:request});},{timeout:10000,maximumAge:0,enableHighAccuracy:false});return;}
  if((data.type==='tracks'||data.type==='tracks-no-fit') && map.getSource('trails')) {
@@ -55,7 +57,7 @@ window.chrome.webview.addEventListener('message',event=>{
    for(const point of points){let lon=point[0];while(lon-origin>180)lon-=360;while(lon-origin < -180)lon+=360;bounds.extend([lon,point[1]]);}
    map.fitBounds(bounds,{padding:40,maxZoom:16,duration:0});
   }
-  message.textContent=points.length?'轨迹：'+data.name+'。图层留在本机，匹配只作预览。':'未选择轨迹；点击地图只作预览。';
+  message.textContent=points.length?(labels.track||'Track: {0}').replace('{0}',()=>data.name):(labels.noTrack||'Preview');
   trackMessage=message.textContent;
  } else if(data.type==='photos' && map.getSource('photos')) {
   map.getSource('photos').setData(data.geojson);

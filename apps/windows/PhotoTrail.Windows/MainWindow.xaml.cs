@@ -36,7 +36,7 @@ public partial class MainWindow : Window
     private int photoPreviewRevision;
 
     private readonly string[] extensions = [".jpg", ".jpeg", ".png", ".heic", ".dng", ".tif", ".tiff", ".xmp", ".arw", ".nef", ".raf", ".cr2", ".cr3", ".rw2", ".orf", ".pef"];
-    public MainWindow() { InitializeComponent(); CaptureEditorBaseline(); metadataBaseFont=FontSize; foreach(var field in Fields)fieldLabels[field.Tag]=field.Apply.Content.ToString()!.Replace(field.Tag,"").Trim(' ','·'); DatePlanChanged(this,new RoutedEventArgs()); Photos.ItemsSource = photos;PhotoStrip.ItemsSource=System.Windows.Data.CollectionViewSource.GetDefaultView(photos); TrackList.ItemsSource = tracks;TrackDisplayRows.ItemsSource=tracks; ClipboardField.ItemsSource = Fields.Select(field => new { field.Tag, Name = fieldLabels[field.Tag]+" · "+field.Tag }).ToArray(); ClipboardField.SelectedIndex = 0; InitializePresetEditor();
+    public MainWindow() { L10n.InitializeForSettings(); InitializeComponent(); L10n.TranslateResources(Resources); CaptureEditorBaseline(); metadataBaseFont=FontSize; foreach(var field in Fields)fieldLabels[field.Tag]=field.Apply.Content.ToString()!.Replace(field.Tag,"").Trim(' ','·'); DatePlanChanged(this,new RoutedEventArgs()); Photos.ItemsSource = photos;PhotoStrip.ItemsSource=System.Windows.Data.CollectionViewSource.GetDefaultView(photos); TrackList.ItemsSource = tracks;TrackDisplayRows.ItemsSource=tracks; ClipboardField.ItemsSource = Fields.Select(field => new { field.Tag, Name = fieldLabels[field.Tag]+" · "+field.Tag }).ToArray(); ClipboardField.SelectedIndex = 0; InitializePresetEditor();
         AddHandler(System.Windows.Controls.Primitives.ToggleButton.CheckedEvent,new RoutedEventHandler((s,e)=>{if(!fillingEditor)InvalidateDates();}));
         AddHandler(System.Windows.Controls.Primitives.ToggleButton.UncheckedEvent,new RoutedEventHandler((s,e)=>{if(!fillingEditor)InvalidateDates();}));
     }
@@ -115,12 +115,12 @@ public partial class MainWindow : Window
     {
         if (!IsLoaded) return;
 #pragma warning disable WPF0001 // Native Fluent ThemeMode is experimental in the pinned .NET 10 SDK.
-        ThemeMode = ThemeChoice.SelectedIndex switch { 1 => System.Windows.ThemeMode.Light, 2 => System.Windows.ThemeMode.Dark, _ => System.Windows.ThemeMode.System };
+        Application.Current.ThemeMode = ThemeMode = ThemeChoice.SelectedIndex switch { 1 => System.Windows.ThemeMode.Light, 2 => System.Windows.ThemeMode.Dark, _ => System.Windows.ThemeMode.System };
         foreach (Window owned in OwnedWindows) owned.ThemeMode = ThemeMode;
 #pragma warning restore WPF0001
         if (restoringTheme) return;
-        try { ThemePreference.Save(themePreferencePath,ThemeChoice.SelectedIndex); ThemeStatus.Text = "应用外观已保存为本机偏好，重启恢复；不改变Windows设置。"; }
-        catch (Exception) { ThemeStatus.Text = "本次外观已切换，但本机偏好未保存；已检测的损坏配置不覆盖。"; }
+        try { ThemePreference.Save(themePreferencePath,ThemeChoice.SelectedIndex); ThemeStatus.Text = L10n.Message(L10n.Text("应用外观已保存为本机偏好，重启恢复；不改变Windows设置。")); }
+        catch (Exception) { ThemeStatus.Text = L10n.Message(L10n.Text("本次外观已切换，但本机偏好未保存；已检测的损坏配置不覆盖。")); }
     }
     private void WindowKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
@@ -136,14 +136,15 @@ public partial class MainWindow : Window
     private async void WindowLoaded(object sender, RoutedEventArgs e)
     {
         var arguments = StartupPaths??Environment.GetCommandLineArgs().Skip(1).ToArray();
+        bool firstSetup=!File.Exists(UiPath)&&!File.Exists(settingsPath)&&!File.Exists(MapWorkspace.DefaultPath)&&arguments.Length==0;
         OutputFolder.Text = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
         restoringTheme = true;
-        try { ThemeChoice.SelectedIndex = ThemePreference.Read(themePreferencePath); ThemeStatus.Text = "已读取本机外观偏好；不改变Windows设置。"; }
-        catch (Exception) { ThemeStatus.Text = "本机外观偏好不可读取，暂跟随系统；已有配置未覆盖。"; }
+        try { ThemeChoice.SelectedIndex = ThemePreference.Read(themePreferencePath); ThemeStatus.Text = L10n.Message(L10n.Text("已读取本机外观偏好；不改变Windows设置。")); }
+        catch (Exception) { ThemeStatus.Text = L10n.Message(L10n.Text("本机外观偏好不可读取，暂跟随系统；已有配置未覆盖。")); }
         finally { restoringTheme = false; }
         LoadSettings();LoadInplaceRecords();LoadMetadataPresets();LoadMapWorkspace();
         RefreshGoogleKeyStatus();
-        LoadLatestRenameJournal();LoadRenameSchemes();InitializeM3Rename();InitializeM4Map();
+        LoadLatestRenameJournal();LoadRenameSchemes();InitializeM3Rename();InitializeM4Map();InitializeM5Preferences();
         LoadTrackHistory();await LoadTrackSnapshotsAsync();
         try
         {
@@ -151,10 +152,11 @@ public partial class MainWindow : Window
             await ImportAsync(files.Where(path => !IsTrack(path)));
             await ImportTracksAsync(await LegacyTrackInputsAsync(files));
         }
-        catch (Exception error) { Status.Text = "启动路径无法读取：" + error.Message; }
+        catch (Exception error) { Status.Text = L10n.Message(L10n.Text("启动路径无法读取：") + L10n.Message(error.Message)); }
         if (arguments.Contains("--map")) WorkspaceTabs.SelectedIndex = 1;
         await Dispatcher.InvokeAsync(()=>{},System.Windows.Threading.DispatcherPriority.ContextIdle);
         RestoreLastMetadataPreset();
+        if(firstSetup&&!ui.SetupCompleted)ShowSetupGuide(true);
     }
     private CancellationTokenSource? dependencyCheck;
     private bool checkingEnvironment;
@@ -170,7 +172,7 @@ public partial class MainWindow : Window
                 "显示缩放：" + (System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX * 100).ToString("F0") + "%" };
             try { lines.Add("WebView2：" + CoreWebView2Environment.GetAvailableBrowserVersionString()); }
             catch (Exception) { lines.Add("WebView2不可用：请安装Microsoft Edge WebView2 Runtime；元数据功能仍可使用。"); }
-            DependencyStatus.Text = string.Join("\n", lines) + "\n正在检查ExifTool…";
+            DependencyStatus.Text = L10n.Message(string.Join("\n", lines) + L10n.Text("\n正在检查ExifTool…"));
             try
             {
                 var version = (await Tool().RunAsync(["-ver"], dependencyCheck.Token, TimeSpan.FromSeconds(5))).Trim();
@@ -178,23 +180,23 @@ public partial class MainWindow : Window
             }
             catch (OperationCanceledException) { lines.Add("ExifTool检查已取消。"); }
             catch (Exception) { lines.Add("ExifTool不可用：请保留完整发行目录及随附文件。测试包应包含tools/exiftool/ExifTool.exe。"); }
-            DependencyStatus.Text = string.Join("\n", lines);
+            DependencyStatus.Text = L10n.Message(string.Join("\n", lines));
         }
         finally { checkingEnvironment = false; EnvironmentCheckButton.IsEnabled = true; RefreshM1Shell(); }
     }
-    private void RefreshGoogleKeyStatus() => GoogleKeyStatus.Text = File.Exists(GoogleKeyStore.DefaultPath) ? "已保存本机密钥；尚未联网验证，当前默认地图为OpenFreeMap。" : "尚未保存本机密钥；当前使用OpenFreeMap。";
+    private void RefreshGoogleKeyStatus() => GoogleKeyStatus.Text = L10n.Message(File.Exists(GoogleKeyStore.DefaultPath) ? L10n.Text("已保存本机密钥；尚未联网验证，当前默认地图为OpenFreeMap。") : L10n.Text("尚未保存本机密钥；当前使用OpenFreeMap。"));
     private void SaveGoogleKey(object sender, RoutedEventArgs e)
     {
         try { GoogleKeyStore.Save(GoogleKeyStore.DefaultPath, GoogleKeyInput.Password); RefreshGoogleKeyStatus(); }
-        catch (ArgumentException) { GoogleKeyStatus.Text = "密钥格式无效：请输入20至256位英文字母、数字、横线或下划线。"; }
-        catch (Exception) { GoogleKeyStatus.Text = "本机密钥未保存；请检查本机存储访问，已有密钥保持不变。"; }
+        catch (ArgumentException) { GoogleKeyStatus.Text = L10n.Message(L10n.Text("密钥格式无效：请输入20至256位英文字母、数字、横线或下划线。")); }
+        catch (Exception) { GoogleKeyStatus.Text = L10n.Message(L10n.Text("本机密钥未保存；请检查本机存储访问，已有密钥保持不变。")); }
         finally { GoogleKeyInput.Clear(); }
     }
     private void ClearGoogleKey(object sender, RoutedEventArgs e)
     {
-        if (busy || mapInitializing) { GoogleKeyStatus.Text = "任务或地图初始化中，完成后再删除密钥。"; return; }
+        if (busy || mapInitializing) { GoogleKeyStatus.Text = L10n.Message(L10n.Text("任务或地图初始化中，完成后再删除密钥。")); return; }
         try { GoogleKeyStore.Clear(GoogleKeyStore.DefaultPath); GoogleKeyInput.Clear(); if (currentMapPage == MapMessage.GooglePage) UseDefaultMap(sender, e); RefreshGoogleKeyStatus(); }
-        catch (Exception) { GoogleKeyStatus.Text = "本机密钥未删除；请检查本机存储访问。"; }
+        catch (Exception) { GoogleKeyStatus.Text = L10n.Message(L10n.Text("本机密钥未删除；请检查本机存储访问。")); }
     }
     private void UseDefaultMap(object sender, RoutedEventArgs e)
     {
@@ -208,26 +210,26 @@ public partial class MainWindow : Window
         if (busy || mapInitializing) return;
         try
         {
-            if (GoogleKeyStore.Load(GoogleKeyStore.DefaultPath) is null) { GoogleKeyStatus.Text = "请先保存本机密钥。"; return; }
+            if (GoogleKeyStore.Load(GoogleKeyStore.DefaultPath) is null) { GoogleKeyStatus.Text = L10n.Message(L10n.Text("请先保存本机密钥。")); return; }
             currentMapPage = MapMessage.GooglePage; SuspendMap(); WorkspaceTabs.SelectedIndex = 1;
             if (mapConfigured) RetryMap(sender, e);
         }
-        catch (Exception) { GoogleKeyStatus.Text = "本机密钥不可读取；请重新保存。"; }
+        catch (Exception) { GoogleKeyStatus.Text = L10n.Message(L10n.Text("本机密钥不可读取；请重新保存。")); }
     }
     private void ClearPlacePreview()
     {
         placeRequest++; placePending = false;placeQuery="";
-        PlacePreview.Text = "地区查询只预览；Google Maps结果不自动写入照片。";
+        PlacePreview.Text = L10n.Text("地区查询只预览；Google Maps结果不自动写入照片。");
     }
     private async void LookupPlace(object sender, RoutedEventArgs e)
     {
         if (busy || !mapReady || currentMapPage != MapMessage.GooglePage || currentPreview is null)
-        { PlacePreview.Text = "请先明确选择Google地图并预览一个位置。"; return; }
+        { PlacePreview.Text = L10n.Text("请先明确选择Google地图并预览一个位置。"); return; }
         var id = ++placeRequest; placePending = true;placeQuery="";
-        PlacePreview.Text = "正在向Google Maps查询预览位置…";
+        PlacePreview.Text = L10n.Text("正在向Google Maps查询预览位置…");
         MapView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "geocode", id, point = currentPreview }));
         await Task.Delay(TimeSpan.FromSeconds(20));
-        if (id == placeRequest && placePending) { placeRequest++; placePending = false; PlacePreview.Text = "Google Maps查询超时，未改照片。"; }
+        if (id == placeRequest && placePending) { placeRequest++; placePending = false; PlacePreview.Text = L10n.Text("Google Maps查询超时，未改照片。"); }
     }
     private RenamePlan? frozenRenamePlan;
     private int renameRevision;
@@ -243,9 +245,9 @@ public partial class MainWindow : Window
             RenameJournalPath.Text = path;
             var record = RenameExecutor.ReadJournal(path);
             renameRecoveryRequired = !record.Complete && record.Files.Any(file => file.Current != file.Source);
-            RenameStatus.Text = renameRecoveryRequired ? "最近更名未完成，请先按记录恢复；元数据编辑暂不可用。" : "已载入最近执行记录，可核对或恢复。";
+            RenameStatus.Text = L10n.Message(renameRecoveryRequired ? L10n.Text("最近更名未完成，请先按记录恢复；元数据编辑暂不可用。") : L10n.Text("已载入最近执行记录，可核对或恢复。"));
         }
-        catch (Exception) { renameRecoveryRequired = true; RenameStatus.Text = "最近执行记录不可读取，请核对该记录及实际名称；元数据编辑暂不可用。"; }
+        catch (Exception) { renameRecoveryRequired = true; RenameStatus.Text = L10n.Message(L10n.Text("最近执行记录不可读取，请核对该记录及实际名称；元数据编辑暂不可用。")); }
     }
     private PhotoRow[] RenameSelection() {
         var selected=Selected;
@@ -296,21 +298,21 @@ public partial class MainWindow : Window
     private async void ExecuteRename(object sender, RoutedEventArgs e)
     {
         if (busy || renameRecoveryRequired || frozenRenamePlan is not { } plan) return;
-        if (RenameHasDraft(plan.Files.Select(file => file.Source))) { RenameStatus.Text = "存在草稿或未应用输入，未执行更名。"; return; }
+        if (RenameHasDraft(plan.Files.Select(file => file.Source))) { RenameStatus.Text = L10n.Message(L10n.Text("存在草稿或未应用输入，未执行更名。")); return; }
         frozenRenamePlan = null; BeginOperation();
         try
         {
             var result = await Task.Run(() => RenameExecutor.ExecuteAsync(plan, RenameJournalDirectory, operation!.Token,
-                (completed,total) => Dispatcher.BeginInvoke(() => { if (busy && !operation!.IsCancellationRequested) RenameStatus.Text = $"更名／核验：{completed}/{total}；取消后按记录恢复。"; })));
+                (completed,total) => Dispatcher.BeginInvoke(() => { if (busy && !operation!.IsCancellationRequested) RenameStatus.Text = L10n.Message(L10n.Format("更名／核验：{0}/{1}；取消后按记录恢复。",completed,total)); })));
             renameRecoveryRequired = !result.Complete && result.Files.Any(file=>file.Current!=file.Source);
             var reloadFailures = await RefreshRenamedPhotos(result);
             RenamePreview.ItemsSource = result.Files; RenameViewChanged(this,new RoutedEventArgs());
             if (result.Journal.Length > 0) RenameJournalPath.Text = result.Journal;
-            RenameStatus.Text = result.Complete ? "更名及内容核验完成；执行记录已保存，可按记录恢复。" : "更名部分完成：" + result.Error + " 实际名称与记录已保留；恢复前不可编辑元数据。";
-            if (reloadFailures > 0) RenameStatus.Text += $" {reloadFailures}个上下文未能重读，磁盘文件保留，实际路径见记录。";
+            RenameStatus.Text = L10n.Message(result.Complete ? L10n.Text("更名及内容核验完成；执行记录已保存，可按记录恢复。") : L10n.Text("更名部分完成：") + result.Error + L10n.Text(" 实际名称与记录已保留；恢复前不可编辑元数据。"));
+            if (reloadFailures > 0) RenameStatus.Text += L10n.Message(L10n.Format(" {0}个上下文未能重读，磁盘文件保留，实际路径见记录。",reloadFailures));
         }
-        catch (OperationCanceledException) { RenameStatus.Text = "执行准备已取消，未移动文件。"; }
-        catch (Exception error) { RenameStatus.Text = "未开始更名：" + error.Message; }
+        catch (OperationCanceledException) { RenameStatus.Text = L10n.Message(L10n.Text("执行准备已取消，未移动文件。")); }
+        catch (Exception error) { RenameStatus.Text = L10n.Message(L10n.Text("未开始更名：") + L10n.Message(error.Message)); }
         finally { EndOperation(); }
     }
     private async void RestoreRename(object sender, RoutedEventArgs e)
@@ -319,7 +321,7 @@ public partial class MainWindow : Window
         try
         {
             var path = RenameJournalPath.Text.Trim(); var record = RenameExecutor.ReadJournal(path);
-            if (RenameHasDraft(record.Files.Select(file => file.Current))) { RenameStatus.Text = "相关文件存在草稿或未应用输入，未恢复更名。"; return; }
+            if (RenameHasDraft(record.Files.Select(file => file.Current))) { RenameStatus.Text = L10n.Message(L10n.Text("相关文件存在草稿或未应用输入，未恢复更名。")); return; }
             frozenRenamePlan = null; BeginOperation();
             try
             {
@@ -327,13 +329,13 @@ public partial class MainWindow : Window
                 renameRecoveryRequired = !result.Complete && result.Files.Any(file=>file.Current!=file.Source);
                 var reloadFailures = await RefreshRenamedPhotos(result); RenamePreview.ItemsSource = result.Files; RenameViewChanged(this,new RoutedEventArgs());
                 if (result.Journal.Length > 0) RenameJournalPath.Text = result.Journal;
-                RenameStatus.Text = result.Complete ? "按执行记录恢复完成；内容核验通过，恢复动作也有新记录。" : "恢复部分完成：" + result.Error + " 实际名称见当前记录。";
-                if (reloadFailures > 0) RenameStatus.Text += $" {reloadFailures}个上下文未能重读，磁盘文件保留，实际路径见记录。";
+                RenameStatus.Text = L10n.Message(result.Complete ? L10n.Text("按执行记录恢复完成；内容核验通过，恢复动作也有新记录。") : L10n.Text("恢复部分完成：") + result.Error + L10n.Text(" 实际名称见当前记录。"));
+                if (reloadFailures > 0) RenameStatus.Text += L10n.Message(L10n.Format(" {0}个上下文未能重读，磁盘文件保留，实际路径见记录。",reloadFailures));
             }
             finally { EndOperation(); }
         }
-        catch (OperationCanceledException) { RenameStatus.Text = "恢复准备已取消，未移动文件。"; }
-        catch (Exception error) { RenameStatus.Text = "未开始恢复：" + error.Message; }
+        catch (OperationCanceledException) { RenameStatus.Text = L10n.Message(L10n.Text("恢复准备已取消，未移动文件。")); }
+        catch (Exception error) { RenameStatus.Text = L10n.Message(L10n.Text("未开始恢复：") + L10n.Message(error.Message)); }
     }
     private IReadOnlyList<RenameRule> ReadRenameRules() { M3EnsureValid();return RenamePlan.ParseRules(RenameRules.Text); }
     private async void RenameRulesChanged(object sender, RoutedEventArgs e)
@@ -346,45 +348,45 @@ public partial class MainWindow : Window
         {
             var rules = ReadRenameRules();
             var roots=RenameSelection().Select(r=>RenameGroup.Key(r.Document.FilePath)).ToHashSet(StringComparer.OrdinalIgnoreCase); renameGroups=renameGroups.Where(g=>g.Members.Any(m=>roots.Contains(RenameGroup.Key(m.Path)))).ToArray();await RenderRenameGroupsAsync();
-            if(revision!=renameRevision)return;RenameStatus.Text = "名称预览已更新；请检查冲突并冻结计划后执行。";
+            if(revision!=renameRevision)return;RenameStatus.Text = L10n.Message(L10n.Text("名称预览已更新；请检查冲突并冻结计划后执行。"));
         }
-        catch (Exception error) { if(revision!=renameRevision)return;RenamePreview.ItemsSource = null; RenameStatus.Text = "未生成预览：" + error.Message; }
+        catch (Exception error) { if(revision!=renameRevision)return;RenamePreview.ItemsSource = null; RenameStatus.Text = L10n.Message(L10n.Text("未生成预览：") + L10n.Message(error.Message)); }
     }
     private async void FreezeRename(object sender, RoutedEventArgs e)
     {
         if (busy || renameRecoveryRequired || Selected.Length == 0) return;
         frozenRenamePlan = null; UpdateRenameButtons();
         if (Selected.Any(row => row.Document.Draft.Count > 0) || Fields.Any(field => field.Apply.IsChecked == true))
-        { RenameStatus.Text = "所选照片有草稿或未应用输入；请先保存副本并撤销源草稿，或明确撤销后再冻结。"; return; }
+        { RenameStatus.Text = L10n.Message(L10n.Text("所选照片有草稿或未应用输入；请先保存副本并撤销源草稿，或明确撤销后再冻结。")); return; }
         try
         {
             var selected = RenameSelection(); var paths = selected.Select(row => row.Document.FilePath).ToArray(); var rules = ReadRenameRules();
             var revision = ++renameRevision; BeginOperation();
             try
             {
-                await ReadRenameGroupsAsync(operation!.Token);await PrepareRenameDatesAsync(operation.Token); var included=IncludedRenameGroups();if(included.Length==0)throw new ArgumentException("筛选后无参与组。");if(included.Any(g=>g.Members.Any(m=>m.MetadataFailed)))throw new IOException("参与组元数据读取失败，不能当成缺失冻结。");var computed=ComputeRenameTargets(included,rules); var plan=await RenamePlan.BuildTargetsAsync(computed.Files.Select(f=>(f.Source,f.NewName)),operation!.Token,includeSidecars:false);var stepMap=computed.Files.ToDictionary(f=>f.Source,f=>f.Steps,StringComparer.OrdinalIgnoreCase);plan=plan with{Files=Array.AsReadOnly(plan.Files.Select(f=>f with{Steps=stepMap[f.Source]}).ToArray()),CounterUse=computed.Counters}; foreach(var member in included.SelectMany(g=>g.Members))if(plan.Files.Single(f=>f.Source.Equals(member.Path,StringComparison.OrdinalIgnoreCase)).Hash!=member.Hash)throw new IOException("预览元数据读取后源内容改变。");
+                await ReadRenameGroupsAsync(operation!.Token);await PrepareRenameDatesAsync(operation.Token); var included=IncludedRenameGroups();if(included.Length==0)throw new ArgumentException(L10n.Text("筛选后无参与组。"));if(included.Any(g=>g.Members.Any(m=>m.MetadataFailed)))throw new IOException(L10n.Text("参与组元数据读取失败，不能当成缺失冻结。"));var computed=ComputeRenameTargets(included,rules); var plan=await RenamePlan.BuildTargetsAsync(computed.Files.Select(f=>(f.Source,f.NewName)),operation!.Token,includeSidecars:false);var stepMap=computed.Files.ToDictionary(f=>f.Source,f=>f.Steps,StringComparer.OrdinalIgnoreCase);plan=plan with{Files=Array.AsReadOnly(plan.Files.Select(f=>f with{Steps=stepMap[f.Source]}).ToArray()),CounterUse=computed.Counters}; foreach(var member in included.SelectMany(g=>g.Members))if(plan.Files.Single(f=>f.Source.Equals(member.Path,StringComparison.OrdinalIgnoreCase)).Hash!=member.Hash)throw new IOException(L10n.Text("预览元数据读取后源内容改变。"));
                 if (revision != renameRevision) return;
-                if (RenameHasDraft(plan.Files.Select(file=>file.Source))) throw new InvalidOperationException("计划中的照片或旁车有草稿，未冻结。");
+                if (RenameHasDraft(plan.Files.Select(file=>file.Source))) throw new InvalidOperationException(L10n.Text("计划中的照片或旁车有草稿，未冻结。"));
                 var versions = plan.Files.ToDictionary(file=>file.Source,file=>file.Hash,StringComparer.OrdinalIgnoreCase);
                 foreach (var row in selected.Where(row=>versions.ContainsKey(row.Document.FilePath)))
                 {
-                    if (!Path.GetExtension(row.Document.FilePath).Equals(".xmp",StringComparison.OrdinalIgnoreCase) && (row.Document.SidecarPath is not null) != File.Exists(Path.ChangeExtension(row.Document.FilePath,".xmp"))) throw new IOException("同名旁车关系已改变，请重新导入。");
-                    if (versions[row.Document.FilePath] != row.Document.SourceHash) throw new IOException("照片已在外部改变，请重新导入。");
-                    if (row.Document.SidecarPath is { } sidecar && versions[sidecar] != row.Document.SidecarHash) throw new IOException("旁车已在外部改变，请重新导入。");
+                    if (!Path.GetExtension(row.Document.FilePath).Equals(".xmp",StringComparison.OrdinalIgnoreCase) && (row.Document.SidecarPath is not null) != File.Exists(Path.ChangeExtension(row.Document.FilePath,".xmp"))) throw new IOException(L10n.Text("同名旁车关系已改变，请重新导入。"));
+                    if (versions[row.Document.FilePath] != row.Document.SourceHash) throw new IOException(L10n.Text("照片已在外部改变，请重新导入。"));
+                    if (row.Document.SidecarPath is { } sidecar && versions[sidecar] != row.Document.SidecarHash) throw new IOException(L10n.Text("旁车已在外部改变，请重新导入。"));
                 }
                 RenameGroups.ItemsSource=included; frozenRenamePlan = plan; RenamePreview.ItemsSource = plan.Files; RenameViewChanged(this,new RoutedEventArgs());
-                RenameStatus.Text = $"已冻结{plan.Files.Count}个物理文件（包含旁车），冲突检查与SHA256读取通过；尚未更名。";
+                RenameStatus.Text = L10n.Message(L10n.Format("已冻结{0}个物理文件（包含旁车），冲突检查与SHA256读取通过；尚未更名。",plan.Files.Count));
             }
             finally { EndOperation(); }
         }
-        catch (OperationCanceledException) { frozenRenamePlan = null; RenameStatus.Text = "冻结已取消，未改文件。"; }
-        catch (Exception error) { frozenRenamePlan = null; RenameStatus.Text = "计划未冻结：" + error.Message; }
+        catch (OperationCanceledException) { frozenRenamePlan = null; RenameStatus.Text = L10n.Message(L10n.Text("冻结已取消，未改文件。")); }
+        catch (Exception error) { frozenRenamePlan = null; RenameStatus.Text = L10n.Message(L10n.Text("计划未冻结：") + L10n.Message(error.Message)); }
     }
     private string[] recentTrackPaths = [];
     private void LoadTrackHistory()
     {
         try { recentTrackPaths = TrackHistory.Read(TrackHistory.DefaultPath); RecentTracks.ItemsSource = recentTrackPaths; if(recentTrackPaths.Length > 0) RecentTracks.SelectedIndex = 0; }
-        catch (Exception) { TrackHistoryStatus.Text = "轨迹历史不可读取，未自动覆盖；当前会话仍可导入。"; }
+        catch (Exception) { TrackHistoryStatus.Text = L10n.Message(L10n.Text("轨迹历史不可读取，未自动覆盖；当前会话仍可导入。")); }
     }
     private async void ReadRecentTrack(object sender, RoutedEventArgs e)
     {
@@ -397,14 +399,14 @@ public partial class MainWindow : Window
             // Preserve unreadable history rather than replacing it with this session's entries.
             var updated = await Task.Run(() => TrackHistory.RememberAndSave(TrackHistory.DefaultPath,path));
             recentTrackPaths = updated; RecentTracks.ItemsSource = recentTrackPaths; RecentTracks.SelectedIndex = 0;
-            TrackHistoryStatus.Text = $"本机历史{recentTrackPaths.Length}项；重新读取会解析当前文件，不自动定位或写照片。";
+            TrackHistoryStatus.Text = L10n.Message(L10n.Format("本机历史{0}项；重新读取会解析当前文件，不自动定位或写照片。",recentTrackPaths.Length));
         }
-        catch (Exception) { TrackHistoryStatus.Text = "轨迹已导入，历史未保存；已有记录保持。"; }
+        catch (Exception) { TrackHistoryStatus.Text = L10n.Message(L10n.Text("轨迹已导入，历史未保存；已有记录保持。")); }
     }
     private static bool IsTrack(string path) => Path.GetExtension(path).ToLowerInvariant() is ".gpx" or ".kml" or ".kmz";
     private async void ReadTracks(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFileDialog { Multiselect = true, Filter = "轨迹|*.gpx;*.kml;*.kmz" };
+        var dialog = new OpenFileDialog { Multiselect = true, Filter = L10n.Text("轨迹|*.gpx;*.kml;*.kmz") };
         if (dialog.ShowDialog(this) == true) await ImportTracksAsync(dialog.FileNames);
     }
     private async Task ImportTracksAsync(IEnumerable<string> paths, bool reloadExisting = false)
@@ -420,14 +422,14 @@ public partial class MainWindow : Window
                 var full = Path.GetFullPath(path);
                 var existing = tracks.FirstOrDefault(row => row.Path.Equals(full, StringComparison.OrdinalIgnoreCase));
                 if (!IsTrack(full)) { skipped++; continue; }
-                Status.Text = "读取轨迹：" + Path.GetFileName(full);
+                Status.Text = L10n.Message(L10n.Text("读取轨迹：") + Path.GetFileName(full));
                 try
                 {
                     var source = await TrackSnapshots.ReadSourceAsync(full,operation.Token);
                     TrackSnapshot? saved=null;bool cacheReadable=true;
                     try{saved=TrackSnapshots.Read(TrackSnapshots.DefaultPath).FirstOrDefault(r=>r.Path.Equals(full,StringComparison.OrdinalIgnoreCase));}
-                    catch(Exception){cacheReadable=false;TrackAdjustmentStatus.Text="调整记录不可读取，未覆盖；当前导入仅查看源轨迹。";}
-                    if(saved is null&&cacheReadable){try{await TrackSnapshots.SaveAsync(TrackSnapshots.DefaultPath,source,source,operation.Token);}catch(OperationCanceledException){throw;}catch(Exception){TrackWorkspaceStatus.Text="轨迹已读，缓存未保存；不可声称工作区可恢复。";}}
+                    catch(Exception){cacheReadable=false;TrackAdjustmentStatus.Text=L10n.Message(L10n.Text("调整记录不可读取，未覆盖；当前导入仅查看源轨迹。"));}
+                    if(saved is null&&cacheReadable){try{await TrackSnapshots.SaveAsync(TrackSnapshots.DefaultPath,source,source,operation.Token);}catch(OperationCanceledException){throw;}catch(Exception){TrackWorkspaceStatus.Text=L10n.Message(L10n.Text("轨迹已读，缓存未保存；不可声称工作区可恢复。"));}}
                     var snapshot=existing?.Snapshot??saved??source;
                     if(snapshot.Original is null && saved is null && existing?.Snapshot.Original is null)snapshot=source;
                     var replacement = new TrackRow(snapshot){SourceUnavailable=snapshot.SourceHash!=source.SourceHash,Undo=existing?.Undo,Visible=existing?.Visible??true,MapPayload=existing is not null&&TrackAdjustment.SameCoordinates(existing.Data,snapshot.Data)?existing.MapPayload:null};
@@ -449,22 +451,22 @@ public partial class MainWindow : Window
         catch (OperationCanceledException) { cancelled = true; }
         finally { EndOperation(); }
         if (TrackList.SelectedIndex < 0 && tracks.Count > 0) TrackList.SelectedIndex = 0;
-        Status.Text = $"轨迹{(cancelled ? "已取消" : "导入完成")}：新增{added}，刷新{refreshed}，跳过{skipped}，失败{failures.Count}。未改照片。";
-        if (reloadExisting && failures.Count > 0) Status.Text += " 会话中原有轨迹保留，请勿将其当作本次成功回读。";
+        Status.Text = L10n.Message(L10n.Format("轨迹{0}：新增{1}，刷新{2}，跳过{3}，失败{4}。未改照片。",(cancelled ? L10n.Text("已取消") : L10n.Text("导入完成")),added,refreshed,skipped,failures.Count));
+        if (reloadExisting && failures.Count > 0) Status.Text += L10n.Message(L10n.Text(" 会话中原有轨迹保留，请勿将其当作本次成功回读。"));
         ShowFailures(failures);RefreshTrackWorkspaceStatus();await PostTrackAsync(false);await SaveCurrentTrackWorkspaceAsync();
     }
     private async void TrackSelected(object sender, SelectionChangedEventArgs e)
     {
         InvalidateTrackAdjustment();
         var row = TrackList.SelectedItem as TrackRow;
-        TrackInfo.Text = row is null ? "未选择轨迹。" : $"{row.Name}：{row.Data.Segments.Count}段，{row.Data.Segments.Sum(s => s.Count)}点；其中{row.Data.Segments.Sum(s => s.Count(p => p.Time is not null))}点有时间。";
-        MatchResult.Text = "轨迹已切换；请重新预览匹配。尚未写入GPS。";
+        TrackInfo.Text = L10n.Message(row is null ? L10n.Text("未选择轨迹。") : L10n.Format("{0}：{1}段，{2}点；其中{3}点有时间。",row.Name,row.Data.Segments.Count,row.Data.Segments.Sum(s => s.Count),row.Data.Segments.Sum(s => s.Count(p => p.Time is not null))));
+        MatchResult.Text = L10n.Message(L10n.Text("轨迹已切换；请重新预览匹配。尚未写入GPS。"));
         ClearMatchMarker();
         RefreshTrackControls();RefreshTrackWorkspaceStatus();if(!busy)await SaveCurrentTrackWorkspaceAsync();await PostTrackAsync();
     }
     private async void RemoveTrack(object sender, RoutedEventArgs e)
     {
-        if (!busy && TrackList.SelectedItem is TrackRow row) { tracks.Remove(row);ClearMatchMarker();RefreshTrackWorkspaceStatus();await PostTrackAsync(false);await SaveCurrentTrackWorkspaceAsync(); Status.Text = "轨迹已从会话移除，磁盘文件和历史缓存保留。"; }
+        if (!busy && TrackList.SelectedItem is TrackRow row) { tracks.Remove(row);ClearMatchMarker();RefreshTrackWorkspaceStatus();await PostTrackAsync(false);await SaveCurrentTrackWorkspaceAsync(); Status.Text = L10n.Message(L10n.Text("轨迹已从会话移除，磁盘文件和历史缓存保留。")); }
     }
     private async Task PostTrackAsync(bool fit=true)
     {
@@ -479,7 +481,7 @@ public partial class MainWindow : Window
             { MapView.CoreWebView2.PostWebMessageAsJson(fit&&!userMapMoved?payload:payload.Replace("\"type\":\"tracks\"","\"type\":\"tracks-no-fit\"")); PostPreview(); }
         }
         catch (OperationCanceledException) { }
-        catch (Exception error) { if(revision==mapRevision)TrackInfo.Text = "轨迹显示失败：" + error.Message; }
+        catch (Exception error) { if(revision==mapRevision)TrackInfo.Text = L10n.Message(L10n.Text("轨迹显示失败：") + L10n.Message(error.Message)); }
     }
     private async void MatchTrack(object sender, RoutedEventArgs e)
     {
@@ -487,20 +489,20 @@ public partial class MainWindow : Window
         ClearMatchMarker();var matchingRevision=++trackMatchRevision;trackMatchPending++;
         try
         {
-            if (TrackList.SelectedItem is not TrackRow row) throw new InvalidOperationException("请先导入并选择轨迹。");
-            if (Selected.Length != 1) throw new InvalidOperationException("请在元数据页选择一张照片。");
-            var snapshot=row.Snapshot;var revision=matchingRevision;var selection=Selected;var time=TrackReader.ParseTimestamp(MatchTimeValue.Text.Trim());
+            if (TrackList.SelectedItem is not TrackRow row) throw new InvalidOperationException(L10n.Text("请先导入并选择轨迹。"));
+            if (Selected.Length != 1) throw new InvalidOperationException(L10n.Text("请在元数据页选择一张照片。"));
+            var snapshot=row.Snapshot;var revision=matchingRevision;var selection=Selected;var time=TrackReader.ParseTimestamp(MatchTimeValue.Text.Trim());var gap=ui.MatchGapMinutes;
             await TrackSnapshots.EnsureSourceAsync(snapshot);
-            var result=await Task.Run(()=>snapshot.Data.Match(time));
+            var result=await Task.Run(()=>snapshot.Data.Match(time,TimeSpan.FromMinutes(gap)));
             await TrackSnapshots.EnsureSourceAsync(snapshot);
-            if(revision!=trackMatchRevision||currentPreview is not null||!ReferenceEquals(row.Snapshot,snapshot)||!ReferenceEquals(TrackList.SelectedItem,row)||!Selected.SequenceEqual(selection)||TrackReader.ParseTimestamp(MatchTimeValue.Text.Trim())!=time)return;
+            if(revision!=trackMatchRevision||gap!=ui.MatchGapMinutes||currentPreview is not null||!ReferenceEquals(row.Snapshot,snapshot)||!ReferenceEquals(TrackList.SelectedItem,row)||!Selected.SequenceEqual(selection)||TrackReader.ParseTimestamp(MatchTimeValue.Text.Trim())!=time)return;
             row.SourceUnavailable=false;
-            MatchResult.Text = result.Point is { } point ? $"{Selected[0].Name}：{point.Latitude:F6}, {point.Longitude:F6}，{result.Method}。仅预览，未加入GPS草稿。" : result.Reason;
+            MatchResult.Text = L10n.Message(result.Point is { } point ? L10n.Format("{0}：{1:F6}, {2:F6}，{3}。仅预览，未加入GPS草稿。",Selected[0].Name,point.Latitude,point.Longitude,result.Method) : L10n.Message(result.Reason));
             ClearPlacePreview(); clipboardGpsPreview = false; currentPreview = result.Point is { } matched ? new(matched.Longitude, matched.Latitude) : null;
             matchedTrackSource=result.Point is not null?snapshot:null;previewAltitude = result.Point?.Elevation; previewMethod = "GPS"; UpdateGpsButton();
             PostPreview();
         }
-        catch (Exception error) { if(matchingRevision==trackMatchRevision&&currentPreview is null){ClearMatchMarker(); MatchResult.Text = "匹配未执行：" + error.Message;} }
+        catch (Exception error) { if(matchingRevision==trackMatchRevision&&currentPreview is null){ClearMatchMarker(); MatchResult.Text = L10n.Message(L10n.Text("匹配未执行：") + L10n.Message(error.Message));} }
         finally{trackMatchPending--;}
     }
     private void ClearMatchMarker()
@@ -516,25 +518,25 @@ public partial class MainWindow : Window
     {
         var selected = Selected;var point=currentPreview;var revision=trackMatchRevision;
         var before=selected.Select(r=>new Dictionary<string,string>(r.Document.Draft)).ToArray();var draftRevisions=selected.Select(r=>r.Document.DraftRevision).ToArray();
-        if(currentPreview is not null&&ReferenceEquals(currentPreview,serviceQueryPoint)){Status.Text="D06：Google查询坐标仅预览，持久写入许可未确认，未应用GPS草稿。";return;}
+        if(currentPreview is not null&&ReferenceEquals(currentPreview,serviceQueryPoint)){Status.Text=L10n.Message(L10n.Text("D06：Google查询坐标仅预览，持久写入许可未确认，未应用GPS草稿。"));return;}
         bool started=false;CancellationTokenSource? request=null;
         try
         {
-            if (batchTrackViewing || busy || renameRecoveryRequired || currentPreview is null || Selected.Length == 0 || Selected.Any(row => !row.Document.CanStage)) throw new InvalidOperationException("请选择可编辑照片，并先预览定位。");
+            if (batchTrackViewing || busy || renameRecoveryRequired || currentPreview is null || Selected.Length == 0 || Selected.Any(row => !row.Document.CanStage)) throw new InvalidOperationException(L10n.Text("请选择可编辑照片，并先预览定位。"));
             BeginOperation();started=true;request=operation!;
             if(previewMethod=="GPS"&&!clipboardGpsPreview&&matchedTrackSource is {} source)await TrackSnapshots.EnsureSourceAsync(source,request.Token);
             foreach(var row in selected)await row.Document.EnsureUnchangedAsync(request.Token);
             request.Token.ThrowIfCancellationRequested();
-            if(revision!=trackMatchRevision||!ReferenceEquals(point,currentPreview)||!Selected.SequenceEqual(selected)||selected.Select((r,i)=>!r.Document.CanStage||r.Document.DraftRevision!=draftRevisions[i]).Any(x=>x))throw new InvalidOperationException("定位、选择或草稿已改变，请重新预览。");
+            if(revision!=trackMatchRevision||!ReferenceEquals(point,currentPreview)||!Selected.SequenceEqual(selected)||selected.Select((r,i)=>!r.Document.CanStage||r.Document.DraftRevision!=draftRevisions[i]).Any(x=>x))throw new InvalidOperationException(L10n.Text("定位、选择或草稿已改变，请重新预览。"));
             var changes = PhotoDocument.PositionChanges(point, previewAltitude, previewMethod);
             var frozen=selected.Select(r=>r.Document.BatchSnapshot()).ToArray();foreach(var copy in frozen)copy.SetDraft(changes);
             var drafts=frozen.Select(d=>new Dictionary<string,string>(d.Draft)).ToArray();var changed=Enumerable.Range(0,selected.Length).Where(i=>!SameDraft(before[i],drafts[i])).ToArray();
             CommitBatchDrafts(selected,before,drafts,changed,frozen);
             RefreshPhotoRows(); RefreshSelection(); _ = PostPhotosAsync();
-            Status.Text = changed.Length==0?M4("GpsUnchanged"):M4Format("GpsApplied",changed.Length);
-            MatchResult.Text=Status.Text;
+            Status.Text = L10n.Message(changed.Length==0?M4("GpsUnchanged"):M4Format("GpsApplied",changed.Length));
+            MatchResult.Text=L10n.Message(Status.Text);
         }
-        catch (Exception error) { if(revision==trackMatchRevision&&ReferenceEquals(point,currentPreview)&&Selected.SequenceEqual(selected)){ClearMatchMarker();Status.Text = "GPS草稿未应用：" + error.Message;} }
+        catch (Exception error) { if(revision==trackMatchRevision&&ReferenceEquals(point,currentPreview)&&Selected.SequenceEqual(selected)){ClearMatchMarker();Status.Text = L10n.Message(L10n.Text("GPS草稿未应用：") + L10n.Message(error.Message));} }
         finally{if(started&&ReferenceEquals(operation,request))EndOperation();}
     }
     private async Task PostPhotosAsync()
@@ -552,7 +554,7 @@ public partial class MainWindow : Window
             if (revision == photoRevision && !cancellation.IsCancellationRequested) MapView.CoreWebView2.PostWebMessageAsJson(payload);
         }
         catch (OperationCanceledException) { }
-        catch (Exception error) { Status.Text = "照片标记暂不可用：" + error.Message; }
+        catch (Exception error) { Status.Text = L10n.Message(L10n.Text("照片标记暂不可用：") + L10n.Message(error.Message)); }
     }
     private ExifToolClient Tool()
     {
@@ -566,20 +568,20 @@ public partial class MainWindow : Window
             var settings = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(config));
             tool = settings?.GetValueOrDefault("executable"); script = settings?.GetValueOrDefault("script");
         }
-        if (string.IsNullOrWhiteSpace(tool)) throw new IOException("未找到 ExifTool，请按 Windows 开发说明配置。");
+        if (string.IsNullOrWhiteSpace(tool)) throw new IOException(L10n.Text("未找到 ExifTool，请按 Windows 开发说明配置。"));
         return new(tool, script);
     }
     private async void ReadPhoto(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFileDialog { Multiselect = true, Filter = "照片与XMP|" + string.Join(";", extensions.Select(x => "*" + x)) };
+        var dialog = new OpenFileDialog { Multiselect = true, Filter = L10n.Text("照片与XMP|") + string.Join(";", extensions.Select(x => "*" + x)) };
         if (dialog.ShowDialog(this) == true) await ImportAsync(dialog.FileNames);
     }
     private async void ReadFolder(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFolderDialog { Title = "导入文件夹（按当前递归设置）" };
+        var dialog = new OpenFolderDialog { Title = L10n.Text("导入文件夹（按当前递归设置）") };
         if (dialog.ShowDialog(this) != true) return;
         try { await ImportAsync([dialog.FolderName]); }
-        catch (Exception error) { Status.Text = "文件夹无法读取：" + error.Message; }
+        catch (Exception error) { Status.Text = L10n.Message(L10n.Text("文件夹无法读取：") + L10n.Message(error.Message)); }
     }
     private async void FilesDropped(object sender, DragEventArgs e)
     {
@@ -593,7 +595,7 @@ public partial class MainWindow : Window
             if (pictures.Length > 0 && operation?.IsCancellationRequested == true) return;
             await ImportTracksAsync(await LegacyTrackInputsAsync(files));
         }
-        catch (Exception error) { Status.Text = "拖入失败：" + error.Message; }
+        catch (Exception error) { Status.Text = L10n.Message(L10n.Text("拖入失败：") + L10n.Message(error.Message)); }
     }
     private void PhotoSelected(object sender, SelectionChangedEventArgs e)
     {
@@ -609,9 +611,9 @@ public partial class MainWindow : Window
     }
     private void RefreshMatchPhoto()
     {
-        MatchPhotoInfo.Text = Selected.Length == 1 ? "匹配照片：" + Selected[0].Name + "；无时区时间须手动提供明确匹配时间。" : "单张手动时间匹配须选择一张照片；上方批量入口逐张使用照片拍摄时间。";
+        MatchPhotoInfo.Text = L10n.Message(Selected.Length == 1 ? L10n.Text("匹配照片：") + Selected[0].Name + L10n.Text("；无时区时间须手动提供明确匹配时间。") : L10n.Text("单张手动时间匹配须选择一张照片；上方批量入口逐张使用照片拍摄时间。"));
         RefreshMatchTime();
-        MatchResult.Text = "照片选择已切换；请重新预览匹配。尚未写入GPS。";
+        MatchResult.Text = L10n.Message(L10n.Text("照片选择已切换；请重新预览匹配。尚未写入GPS。"));
         ClearMatchMarker();
     }
     private void RefreshMatchTime()
@@ -647,14 +649,14 @@ public partial class MainWindow : Window
             changingPhotoView = true;
             try { PhotoSearch.Text = photoSearch; PhotoFilter.SelectedIndex = photoFilter; PhotoSort.SelectedIndex = photoSort; }
             finally { changingPhotoView = false; }
-            Status.Text = "请先结束任务或将输入加入草稿，再筛选/排序。"; return;
+            Status.Text = L10n.Message(L10n.Text("请先结束任务或将输入加入草稿，再筛选/排序。")); return;
         }
         photoSearch = PhotoSearch.Text; photoFilter = PhotoFilter.SelectedIndex; photoSort = PhotoSort.SelectedIndex;
         if(!restoringSettings && !settings.PhotoSort[0].Equals(sortOptions[photoSort])){settings=settings with{Sorts=[sortOptions[photoSort]]};SaveSettings();}
         ApplyPhotoView();
-        RefreshSelection(); Status.Text = "列表已更新；隐藏照片与草稿仍保留在会话中。";
+        RefreshSelection(); Status.Text = L10n.Message(L10n.Text("列表已更新；隐藏照片与草稿仍保留在会话中。"));
     }
-    private void RefreshPhotoCount() { RefreshM1Shell(); PhotoCount.Text = $"显示{Photos.Items.Count}／总计{photos.Count}；草稿{photos.Count(row => row.Document.Draft.Count > 0)}"; }
+    private void RefreshPhotoCount() { RefreshM1Shell(); PhotoCount.Text = L10n.Message(L10n.Format("显示{0}／总计{1}；草稿{2}",Photos.Items.Count,photos.Count,photos.Count(row => row.Document.Draft.Count > 0))); }
     private void RefreshSelection()
     {
         fillingEditor = true;
@@ -692,7 +694,7 @@ public partial class MainWindow : Window
             var values = selected.Select(p => p.Document.Value(tag)).Distinct().ToArray();
             string source=tag.StartsWith("XMP-",StringComparison.Ordinal)?"XMP实际目标":MetadataIptc.Fields.ContainsKey(tag)?"IPTC图内来源；设置须明确UTF8，清除验证剩余原始字节":"EXIF原图精确来源";
             if(MetadataIptc.Fields.ContainsKey(tag))source+=" · "+(selected.Any(p=>p.Document.Iptc?.Error.Length>0)?"原始数据集读取失败":selected.Any(p=>p.Document.Iptc is {} i&&!i.Empty&&!i.Utf8)?"编码缺失／非UTF8／冲突：设置拒绝，仅明确清除可验证":selected.All(p=>p.Document.Iptc?.Empty==true)?"无IPTC：首次设置建立UTF8声明":"明确UTF8");
-            value.ToolTip=source+" · "+tag+" · "+(selected.Any(p=>p.Document.InspectionError.Length>0)?"读取失败／过期":values.Length>1?"混合值":values.FirstOrDefault()?.Length>0?"已读":"缺失")+(allowed?"":" · 只读");
+            value.ToolTip=source+" · "+tag+" · "+(selected.Any(p=>L10n.Message(p.Document.InspectionError).Length>0)?L10n.Text("读取失败／过期"):values.Length>1?L10n.Text("混合值"):values.FirstOrDefault()?.Length>0?L10n.Text("已读"):L10n.Text("缺失"))+(allowed?"":L10n.Text(" · 只读"));
             value.Text = values.Length == 1 ? values[0] : ""; apply.IsChecked = false;
         }
         CaptureEditorBaseline();
@@ -712,11 +714,11 @@ public partial class MainWindow : Window
         if (ReferenceEquals(photo,previewDocument)&&previewOrientation==photo?.Value("IFD0:Orientation")) return;
         photoPreviewRequest?.Cancel(); photoPreviewRequest?.Dispose(); photoPreviewRequest = null; photoPreviewRevision++;
         PhotoPreviewImage.Source = null; previewDocument = null;
-        if (photo is null) { PhotoPreviewStatus.Text = "请选择一张照片；无法合法解码的格式仅显示元数据。"; return; }
+        if (photo is null) { PhotoPreviewStatus.Text = L10n.Message(L10n.Text("请选择一张照片；无法合法解码的格式仅显示元数据。")); return; }
         if (!PhotoPreviewTab.IsSelected) return;
         previewDocument = photo;previewOrientation=photo.Value("IFD0:Orientation"); var revision = photoPreviewRevision;
         photoPreviewRequest = new(); var token = photoPreviewRequest.Token;
-        PhotoPreviewStatus.Text = "正在读取本机预览…";
+        PhotoPreviewStatus.Text = L10n.Message(L10n.Text("正在读取本机预览…"));
         try
         {
             await photoPreviewGate.WaitAsync(token);
@@ -729,13 +731,13 @@ public partial class MainWindow : Window
             finally { photoPreviewGate.Release(); }
             if (!IsLoaded || token.IsCancellationRequested || revision != photoPreviewRevision) return;
             PhotoPreviewImage.Source = preview;
-            PhotoPreviewStatus.Text = $"{Path.GetFileName(photo.FilePath)} · {(ImportSource.Raw(photo.FileType) ? "内嵌JPEG预览" : "本机预览")}{preview.PixelWidth}×{preview.PixelHeight}；不修改原图。";
+            PhotoPreviewStatus.Text = L10n.Message(L10n.Format("{0} · {1}{2}×{3}；不修改原图。",Path.GetFileName(photo.FilePath),(ImportSource.Raw(photo.FileType) ? L10n.Text("内嵌JPEG预览") : L10n.Text("本机预览")),preview.PixelWidth,preview.PixelHeight));
         }
         catch (OperationCanceledException) { }
         catch (Exception error)
         {
             if (!IsLoaded || token.IsCancellationRequested || revision != photoPreviewRevision) return;
-            previewDocument = null; PhotoPreviewStatus.Text = "预览不可用：" + error.Message;
+            previewDocument = null; PhotoPreviewStatus.Text = L10n.Message(L10n.Text("预览不可用：") + L10n.Message(error.Message));
         }
     }
     private void EditorChanged(object sender, TextChangedEventArgs e)
@@ -750,7 +752,7 @@ public partial class MainWindow : Window
         if (!InspectorHasInput()) return true;
         if (confirmingEditorDiscard) return false;
         confirmingEditorDiscard = true;
-        try { return MessageBox.Show(advancedWindow ?? metadataWindow ?? this, "输入尚未加入草稿。放弃这次输入？", "PhotoTrail", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes; }
+        try { return MessageBox.Show(advancedWindow ?? metadataWindow ?? this, L10n.Text("输入尚未加入草稿。放弃这次输入？"), "PhotoTrail", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes; }
         finally { confirmingEditorDiscard = false; }
     }
     private void CopyGpsClipboard(object sender, RoutedEventArgs e)
@@ -758,59 +760,59 @@ public partial class MainWindow : Window
         if (busy || renameRecoveryRequired) return;
         try
         {
-            if (Fields.Any(field => field.Apply.IsChecked == true)) throw new InvalidOperationException("请先将输入加入草稿再复制当前值。");
+            if (Fields.Any(field => field.Apply.IsChecked == true)) throw new InvalidOperationException(L10n.Text("请先将输入加入草稿再复制当前值。"));
             var selected = Selected;
-            if (selected.Length != 1 || selected[0].Document.Position() is not { } point) throw new InvalidOperationException("请选择一张有可用WGS-84坐标的照片。");
+            if (selected.Length != 1 || selected[0].Document.Position() is not { } point) throw new InvalidOperationException(L10n.Text("请选择一张有可用WGS-84坐标的照片。"));
             Clipboard.SetText(MetadataClipboard.CopyGps(point));
-            Status.Text = "GPS坐标已复制（包含坐标草稿）；不复制海拔、测量时间或地区。";
+            Status.Text = L10n.Message(L10n.Text("GPS坐标已复制（包含坐标草稿）；不复制海拔、测量时间或地区。"));
         }
-        catch (Exception error) { Status.Text = "GPS未复制：" + error.Message; }
+        catch (Exception error) { Status.Text = L10n.Message(L10n.Text("GPS未复制：") + L10n.Message(error.Message)); }
     }
     private void PreviewGpsClipboard(object sender, RoutedEventArgs e)
     {
         if (busy || renameRecoveryRequired) return;
         try
         {
-            if (Selected.Length == 0 || Selected.Any(row => !row.Document.CanStage)) throw new InvalidOperationException("请选择可编辑的目标照片。");
-            if (Fields.Any(field => field.Apply.IsChecked == true)) throw new InvalidOperationException("请先处理未应用字段输入。");
-            if (!Clipboard.ContainsText()) throw new InvalidOperationException("剪贴板没有可用文字。");
+            if (Selected.Length == 0 || Selected.Any(row => !row.Document.CanStage)) throw new InvalidOperationException(L10n.Text("请选择可编辑的目标照片。"));
+            if (Fields.Any(field => field.Apply.IsChecked == true)) throw new InvalidOperationException(L10n.Text("请先处理未应用字段输入。"));
+            if (!Clipboard.ContainsText()) throw new InvalidOperationException(L10n.Text("剪贴板没有可用文字。"));
             var point = MetadataClipboard.ReadGps(Clipboard.GetText());
             InvalidateBatchTrack();ClearPlacePreview(); clipboardGpsPreview = false; currentPreview = point; previewAltitude = null; previewMethod = "MANUAL";
             clipboardGpsPreview = true; WorkspaceTabs.SelectedIndex = 1; UpdateGpsButton(); PostPreview(); _ = PostPhotosAsync();
-            MatchResult.Text = $"剪贴板WGS-84坐标预览：{point.Latitude:F8}, {point.Longitude:F8}；目标{Selected.Length}张。核对后明确加入GPS草稿；海拔/测量时间未知，会清除旧XMP值。";
-            Status.Text = "剪贴板GPS仅预览；尚未加入草稿或写入照片。";
+            MatchResult.Text = L10n.Message(L10n.Format("剪贴板WGS-84坐标预览：{0:F8}, {1:F8}；目标{2}张。核对后明确加入GPS草稿；海拔/测量时间未知，会清除旧XMP值。",point.Latitude,point.Longitude,Selected.Length));
+            Status.Text = L10n.Message(L10n.Text("剪贴板GPS仅预览；尚未加入草稿或写入照片。"));
         }
-        catch (Exception error) { Status.Text = "GPS剪贴板未预览：" + error.Message; }
+        catch (Exception error) { Status.Text = L10n.Message(L10n.Text("GPS剪贴板未预览：") + L10n.Message(error.Message)); }
     }
     private void CopyField(object sender, RoutedEventArgs e)
     {
         if (busy || renameRecoveryRequired) return;
         try
         {
-            if (Fields.Any(field => field.Apply.IsChecked == true)) throw new InvalidOperationException("请先将输入加入草稿再复制当前值。");
-            if (ClipboardField.SelectedValue is not string tag) throw new InvalidOperationException("请选择复制字段。");
+            if (Fields.Any(field => field.Apply.IsChecked == true)) throw new InvalidOperationException(L10n.Text("请先将输入加入草稿再复制当前值。"));
+            if (ClipboardField.SelectedValue is not string tag) throw new InvalidOperationException(L10n.Text("请选择复制字段。"));
             var value = MetadataClipboard.CommonValue(Selected.Select(row => row.Document.Value(tag)));
-            Clipboard.SetText(value); Status.Text = "原始字段值已复制到系统剪贴板；未修改照片。";
+            Clipboard.SetText(value); Status.Text = L10n.Message(L10n.Text("原始字段值已复制到系统剪贴板；未修改照片。"));
         }
-        catch (Exception error) { Status.Text = "字段未复制：" + error.Message; }
+        catch (Exception error) { Status.Text = L10n.Message(L10n.Text("字段未复制：") + L10n.Message(error.Message)); }
     }
     private async void PasteFields(object sender, RoutedEventArgs e)
     {
         if (busy || renameRecoveryRequired) return;
         try
         {
-            if (Selected.Length == 0 || Selected.Any(row => !row.Document.CanStage)) throw new InvalidOperationException("请选择可编辑照片。");
-            if (!Clipboard.ContainsText()) throw new InvalidOperationException("剪贴板没有可用文字。");
+            if (Selected.Length == 0 || Selected.Any(row => !row.Document.CanStage)) throw new InvalidOperationException(L10n.Text("请选择可编辑照片。"));
+            if (!Clipboard.ContainsText()) throw new InvalidOperationException(L10n.Text("剪贴板没有可用文字。"));
             var clipboard=Clipboard.GetText();var targets=Fields.Where(field=>field.Apply.IsChecked==true).Select(field=>field.Tag).ToArray();var selected=Selected;
             var changes=MetadataClipboard.Prepare(clipboard,targets);
             await ValidateEditorDatesAsync(changes);
-            if(!Selected.SequenceEqual(selected)||!Clipboard.ContainsText()||Clipboard.GetText()!=clipboard||!Fields.Where(field=>field.Apply.IsChecked==true).Select(field=>field.Tag).SequenceEqual(targets))throw new InvalidOperationException("剪贴板、字段或选择已改变，未填入。");
+            if(!Selected.SequenceEqual(selected)||!Clipboard.ContainsText()||Clipboard.GetText()!=clipboard||!Fields.Where(field=>field.Apply.IsChecked==true).Select(field=>field.Tag).SequenceEqual(targets))throw new InvalidOperationException(L10n.Text("剪贴板、字段或选择已改变，未填入。"));
             fillingEditor = true;
             try { foreach (var (tag, _, value) in Fields) if (changes.TryGetValue(tag, out var text)) value.Text = text; }
             finally { fillingEditor = false; }
-            Status.Text = "剪贴板文字已填入勾选字段；请核对再加入草稿，尚未写入文件。";
+            Status.Text = L10n.Message(L10n.Text("剪贴板文字已填入勾选字段；请核对再加入草稿，尚未写入文件。"));
         }
-        catch (Exception error) { Status.Text = "剪贴板未填入：" + error.Message; }
+        catch (Exception error) { Status.Text = L10n.Message(L10n.Text("剪贴板未填入：") + L10n.Message(error.Message)); }
     }
 
     private void FillEditor(IReadOnlyDictionary<string,string> changes)
@@ -829,7 +831,7 @@ public partial class MainWindow : Window
     private void ChooseXmp(object sender,RoutedEventArgs e)
     {
         if(busy)return;
-        var dialog = new OpenFileDialog { Title="选择XMP字段来源",Filter="XMP|*.xmp",CheckFileExists=true };
+        var dialog = new OpenFileDialog { Title=L10n.Text("选择XMP字段来源"),Filter="XMP|*.xmp",CheckFileExists=true };
         if(dialog.ShowDialog(this)==true)XmpPath.Text = dialog.FileName;
     }
     private async void ImportXmp(object sender,RoutedEventArgs e)
@@ -837,8 +839,8 @@ public partial class MainWindow : Window
         if(busy || renameRecoveryRequired)return;
         try
         {
-            if(Selected.Length == 0 || Selected.Any(row=>!row.Document.CanStage))throw new InvalidOperationException("请先选择可编辑照片。");
-            if(InspectorHasInput())throw new InvalidOperationException("请先将现有输入加入草稿或撤销输入。");
+            if(Selected.Length == 0 || Selected.Any(row=>!row.Document.CanStage))throw new InvalidOperationException(L10n.Text("请先选择可编辑照片。"));
+            if(InspectorHasInput())throw new InvalidOperationException(L10n.Text("请先将现有输入加入草稿或撤销输入。"));
             var path = XmpPath.Text; var selected = Selected;var frozen=selected.Select(r=>r.Document.BatchSnapshot()).ToArray(); XmpImport result;
             BeginOperation();
             try {
@@ -846,19 +848,19 @@ public partial class MainWindow : Window
                 var sourceHash=await PhotoDocument.HashAsync(path,operation!.Token);
                 result = await Task.Run(()=>MetadataXmp.ImportAsync(Tool(),path,operation!.Token));
                 foreach(var doc in frozen)await doc.EnsureUnchangedAsync(operation!.Token);
-                if(await PhotoDocument.HashAsync(path,operation!.Token)!=sourceHash||selected.Select((row,i)=>row.Document.DraftRevision!=frozen[i].DraftRevision).Any(changed=>changed))throw new IOException("XMP来源或目标草稿已改变，编辑区保持。");
+                if(await PhotoDocument.HashAsync(path,operation!.Token)!=sourceHash||selected.Select((row,i)=>row.Document.DraftRevision!=frozen[i].DraftRevision).Any(changed=>changed))throw new IOException(L10n.Text("XMP来源或目标草稿已改变，编辑区保持。"));
             }
             finally { EndOperation(); }
-            if(path != XmpPath.Text || !Selected.SequenceEqual(selected))throw new InvalidOperationException("路径或选择已改变，请重新载入。");
+            if(path != XmpPath.Text || !Selected.SequenceEqual(selected))throw new InvalidOperationException(L10n.Text("路径或选择已改变，请重新载入。"));
             FillEditor(result.Changes);
             var conflicts=selected.Sum(row=>result.Changes.Count(field=>row.Document.Value(field.Key).Length>0&&row.Document.Value(field.Key)!=field.Value));
-            XmpPreview.Text = $"目标{selected.Length}张；{conflicts}个已有字段值冲突，应用前核对替换；缺失字段保持。\n"+string.Join("\n",result.Changes.Select(field=>field.Key+" → "+field.Value))+
-                (result.IgnoredTags.Count == 0 ? "" : "\n未导入字段："+string.Join("、",result.IgnoredTags));
-            if(XmpPreview.Text.Length > 65536)XmpPreview.Text = XmpPreview.Text[..65536]+"\n显示已截短；编辑区包含全部已验证字段。";
-            Status.Text = "XMP已载入编辑区，缺失字段保持；请核对并加入草稿，尚未写照片。";
+            XmpPreview.Text = L10n.Format("目标{0}张；{1}个已有字段值冲突，应用前核对替换；缺失字段保持。\n",selected.Length,conflicts)+string.Join("\n",result.Changes.Select(field=>field.Key+" → "+field.Value))+
+                (result.IgnoredTags.Count == 0 ? "" : L10n.Text("\n未导入字段：")+string.Join("、",result.IgnoredTags));
+            if(XmpPreview.Text.Length > 65536)XmpPreview.Text = XmpPreview.Text[..65536]+L10n.Text("\n显示已截短；编辑区包含全部已验证字段。");
+            Status.Text = L10n.Message(L10n.Text("XMP已载入编辑区，缺失字段保持；请核对并加入草稿，尚未写照片。"));
         }
-        catch(OperationCanceledException){Status.Text="XMP载入已取消，编辑区未改变。";}
-        catch(Exception error){Status.Text="XMP未载入："+error.Message;}
+        catch(OperationCanceledException){Status.Text=L10n.Message(L10n.Text("XMP载入已取消，编辑区未改变。"));}
+        catch(Exception error){Status.Text=L10n.Message(L10n.Text("XMP未载入：")+L10n.Message(error.Message));}
     }
     private void ExportXmp(object sender,RoutedEventArgs e)=>ExportXmpSnapshot(true);
     private void ExportDiskXmp(object sender,RoutedEventArgs e)=>ExportXmpSnapshot(false);
@@ -867,19 +869,19 @@ public partial class MainWindow : Window
         if(busy || renameRecoveryRequired)return;
         try
         {
-            if(Selected.Length != 1)throw new InvalidOperationException("完整XMP导出请选择一个文件。");
-            if(Fields.Any(field=>field.Apply.IsChecked == true))throw new InvalidOperationException("请先将输入加入草稿，再导出。");
+            if(Selected.Length != 1)throw new InvalidOperationException(L10n.Text("完整XMP导出请选择一个文件。"));
+            if(Fields.Any(field=>field.Apply.IsChecked == true))throw new InvalidOperationException(L10n.Text("请先将输入加入草稿，再导出。"));
             var photo = Selected[0].Document.BatchSnapshot();
-            var dialog = new SaveFileDialog { Title=includeDraft?"导出含草稿XMP（不覆盖）":"导出磁盘XMP快照（不含草稿，不覆盖）",Filter="XMP|*.xmp",DefaultExt=".xmp",FileName=Path.GetFileNameWithoutExtension(photo.FilePath)+".xmp",OverwritePrompt=false };
+            var dialog = new SaveFileDialog { Title=includeDraft?L10n.Text("导出含草稿XMP（不覆盖）"):L10n.Text("导出磁盘XMP快照（不含草稿，不覆盖）"),Filter="XMP|*.xmp",DefaultExt=".xmp",FileName=Path.GetFileNameWithoutExtension(photo.FilePath)+".xmp",OverwritePrompt=false };
             if(dialog.ShowDialog(this)!=true)return;
             RequireExchangeOutput(dialog.FileName);
             BeginOperation();
             try { await Task.Run(()=>includeDraft?MetadataXmp.ExportAsync(Tool(),photo,dialog.FileName,operation!.Token):MetadataXmp.ExportDiskAsync(Tool(),photo,dialog.FileName,operation!.Token)); }
             finally { EndOperation(); }
-            Status.Text=includeDraft?"含草稿XMP已导出；原文件和会话草稿保留。":"磁盘XMP快照已导出，不含未保存草稿；原文件和会话草稿保留。";
+            Status.Text=L10n.Message(includeDraft?L10n.Text("含草稿XMP已导出；原文件和会话草稿保留。"):L10n.Text("磁盘XMP快照已导出，不含未保存草稿；原文件和会话草稿保留。"));
         }
-        catch(OperationCanceledException){Status.Text="XMP导出已取消，未交付文件。";}
-        catch(Exception error){Status.Text="XMP未导出："+error.Message;}
+        catch(OperationCanceledException){Status.Text=L10n.Message(L10n.Text("XMP导出已取消，未交付文件。"));}
+        catch(Exception error){Status.Text=L10n.Message(L10n.Text("XMP未导出：")+L10n.Message(error.Message));}
     }
 
     private CancellationTokenSource? dateRequest;
@@ -903,7 +905,7 @@ public partial class MainWindow : Window
     private void ChooseCsv(object sender, RoutedEventArgs e)
     {
         if (busy) return;
-        var dialog = new OpenFileDialog { Title = "选择PhotoTrail回导CSV", Filter = "CSV|*.csv", CheckFileExists = true };
+        var dialog = new OpenFileDialog { Title = L10n.Text("选择PhotoTrail回导CSV"), Filter = "CSV|*.csv", CheckFileExists = true };
         if (dialog.ShowDialog(this) == true) CsvPath.Text = dialog.FileName;
     }
     private void ExportRoundtripCsv(object sender, RoutedEventArgs e) => ExportCsv(false);
@@ -913,10 +915,10 @@ public partial class MainWindow : Window
         if (busy || renameRecoveryRequired) return;
         try
         {
-            if (InspectorHasInput()) throw new InvalidOperationException("请先将输入加入草稿。");
+            if (InspectorHasInput()) throw new InvalidOperationException(L10n.Text("请先将输入加入草稿。"));
             var selection=Selected;var frozen=selection.Select(r=>r.Document.BatchSnapshot()).ToArray();
             var text = MetadataCsv.Export(MetadataCsv.Snapshot(frozen), displayOnly);
-            var dialog = new SaveFileDialog { Title = "导出CSV（不覆盖）", Filter = "CSV|*.csv", DefaultExt = ".csv", FileName = displayOnly ? "PhotoTrail-display.csv" : "PhotoTrail.csv", OverwritePrompt = false };
+            var dialog = new SaveFileDialog { Title = L10n.Text("导出CSV（不覆盖）"), Filter = "CSV|*.csv", DefaultExt = ".csv", FileName = displayOnly ? "PhotoTrail-display.csv" : "PhotoTrail.csv", OverwritePrompt = false };
             if (dialog.ShowDialog(this) != true) return;
             RequireExchangeOutput(dialog.FileName);
             BeginOperation();var guards=new List<FileStream>();
@@ -924,30 +926,30 @@ public partial class MainWindow : Window
             {
                 foreach(var path in frozen.SelectMany(d=>d.SidecarPath is {} sidecar?new[]{d.FilePath,sidecar}:new[]{d.FilePath}).Distinct(StringComparer.OrdinalIgnoreCase))guards.Add(new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read));
                 foreach(var doc in frozen)await doc.EnsureUnchangedAsync(operation!.Token);
-                if(selection.Select((row,index)=>photos.Contains(row)&&row.Document.DraftRevision==frozen[index].DraftRevision).Any(ok=>!ok))throw new IOException("CSV冻结选择或草稿已改变。");
+                if(selection.Select((row,index)=>photos.Contains(row)&&row.Document.DraftRevision==frozen[index].DraftRevision).Any(ok=>!ok))throw new IOException(L10n.Text("CSV冻结选择或草稿已改变。"));
                 await Task.Run(()=>MetadataCsv.WriteNew(dialog.FileName,text,operation!.Token));
-                Status.Text=$"CSV已导出全部冻结{frozen.Length}张；未修改照片。";
+                Status.Text=L10n.Message(L10n.Format("CSV已导出全部冻结{0}张；未修改照片。",frozen.Length));
             }
             finally{foreach(var guard in guards)guard.Dispose();EndOperation();}
         }
-        catch (Exception error) { Status.Text = "CSV未导出：" + error.Message; }
+        catch (Exception error) { Status.Text = L10n.Message(L10n.Text("CSV未导出：") + L10n.Message(error.Message)); }
     }
     private void UndoDraft(object sender, RoutedEventArgs e)
     {
         if(busy||renameRecoveryRequired)return;lastApply=null;
         foreach (var row in Selected) row.Document.ClearDraft();
-        RefreshPhotoRows(); RefreshSelection(); Status.Text = "所选全部草稿已清空。原文件未修改。";
+        RefreshPhotoRows(); RefreshSelection(); Status.Text = L10n.Message(L10n.Text("所选全部草稿已清空。原文件未修改。"));
         RefreshMatchTime(); ClearMatchMarker(); _ = PostPhotosAsync();
     }
     private void ChooseOutput(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFolderDialog { Title = "选择保存副本的文件夹" };
+        var dialog = new OpenFolderDialog { Title = L10n.Text("选择保存副本的文件夹") };
         if (dialog.ShowDialog(this) == true) OutputFolder.Text = dialog.FolderName;
     }
     private void SaveCopies(object sender, RoutedEventArgs e)=>PrepareSave(Selected.Select(r=>r.Document),SaveMode.Copy,SaveScope.All);
     private void ShowFailures(List<string> failures)
     {
-        if (failures.Count > 0) MessageBox.Show(this, string.Join("\n", failures), "任务结果", MessageBoxButton.OK, MessageBoxImage.Warning);
+        if (failures.Count > 0) MessageBox.Show(this, string.Join("\n", failures), L10n.Text("任务结果"), MessageBoxButton.OK, MessageBoxImage.Warning);
     }
     private void BeginOperation()
     {
@@ -966,28 +968,29 @@ public partial class MainWindow : Window
         TrackReadButton.IsEnabled = TrackList.IsEnabled = TrackRemoveButton.IsEnabled = MatchButton.IsEnabled = true; MapRetryButton.IsEnabled = !mapInitializing;
         RefreshSelection();RefreshTrackControls();
     }
-    private void CancelRead(object sender, RoutedEventArgs e) { batchTrackCancelTicks=System.Diagnostics.Stopwatch.GetTimestamp();InvalidateBatchTrack(); InvalidateTrackAdjustment();InvalidateDates();dependencyCheck?.Cancel();importCancellation?.Cancel(); operation?.Cancel(); Status.Text=importRunning?"正在取消导入；已接纳照片与原草稿保留。":busy?"正在取消任务…":"应用已取消或失效，草稿未改变。"; }
+    private void CancelRead(object sender, RoutedEventArgs e) { batchTrackCancelTicks=System.Diagnostics.Stopwatch.GetTimestamp();InvalidateBatchTrack(); InvalidateTrackAdjustment();InvalidateDates();dependencyCheck?.Cancel();importCancellation?.Cancel(); operation?.Cancel(); Status.Text=L10n.Message(importRunning?L10n.Text("正在取消导入；已接纳照片与原草稿保留。"):busy?L10n.Text("正在取消任务…"):L10n.Text("应用已取消或失效，草稿未改变。")); }
     private void WindowClosing(object? sender, CancelEventArgs e)
     {
         if (confirmingEditorDiscard) { e.Cancel = true; return; }
-        if(photoGpxJoining){operation?.Cancel();e.Cancel=true;Status.Text="正在结束生成GPX加入任务；安全结束后可关闭。";return;}
-        if(trackWorkspacePending>0){e.Cancel=true;Status.Text="正在保存轨迹工作区；结束后可关闭。";return;}
-        if(importRunning){importCancellation?.Cancel();e.Cancel=true;Status.Text="正在取消导入；安全结束后可关闭。";return;}
-        if(batchTrackRequest is not null){batchTrackRequest.Cancel();e.Cancel=true;Status.Text="正在取消匹配任务；结束后可关闭。";return;}
-        if(datePending>0){InvalidateDates();e.Cancel=true;Status.Text="正在取消日期任务；结束后可关闭。";return;}
-        if (checkingEnvironment) { dependencyCheck?.Cancel(); e.Cancel = true; DependencyStatus.Text = "正在取消环境检查；结束后可关闭。"; return; }
-        if (busy) { operation?.Cancel(); e.Cancel = true; Status.Text = "正在取消任务；结束后可关闭。"; return; }
+        if(uiReady&&settingsWindow is not null&&!DiscardTrackPreferenceInput()){e.Cancel=true;return;}
+        if(photoGpxJoining){operation?.Cancel();e.Cancel=true;Status.Text=L10n.Message(L10n.Text("正在结束生成GPX加入任务；安全结束后可关闭。"));return;}
+        if(trackWorkspacePending>0){e.Cancel=true;Status.Text=L10n.Message(L10n.Text("正在保存轨迹工作区；结束后可关闭。"));return;}
+        if(importRunning){importCancellation?.Cancel();e.Cancel=true;Status.Text=L10n.Message(L10n.Text("正在取消导入；安全结束后可关闭。"));return;}
+        if(batchTrackRequest is not null){batchTrackRequest.Cancel();e.Cancel=true;Status.Text=L10n.Message(L10n.Text("正在取消匹配任务；结束后可关闭。"));return;}
+        if(datePending>0){InvalidateDates();e.Cancel=true;Status.Text=L10n.Message(L10n.Text("正在取消日期任务；结束后可关闭。"));return;}
+        if (checkingEnvironment) { dependencyCheck?.Cancel(); e.Cancel = true; DependencyStatus.Text = L10n.Message(L10n.Text("正在取消环境检查；结束后可关闭。")); return; }
+        if (busy) { operation?.Cancel(); e.Cancel = true; Status.Text = L10n.Message(L10n.Text("正在取消任务；结束后可关闭。")); return; }
         if(m3Ready&&RenameSchemeDirty){
             try{if(ResolveSchemeEdits()==MessageBoxResult.Cancel){e.Cancel=true;return;}}
-            catch(Exception error){e.Cancel=true;RenameStatus.Text=M3("CloseSchemeFailed")+error.Message;return;}
+            catch(Exception error){e.Cancel=true;RenameStatus.Text=L10n.Message(M3("CloseSchemeFailed")+L10n.Message(error.Message));return;}
         }
         if(presetEditorDirty||PresetChainDirty||invalidWorkflowCards.Count>0||dateEditorHasInput?.Invoke()==true){
             if(MessageBox.Show(this,WText("ExitInput"),"PhotoTrail",MessageBoxButton.YesNo,MessageBoxImage.Question,MessageBoxResult.No)!=MessageBoxResult.Yes){e.Cancel=true;return;}
         }
         if (photos.Any(p => p.Document.Draft.Count > 0) || removedPhotos.Any(batch=>batch.Rows.Any(item=>item.Row.Document.Draft.Count>0)) || InspectorHasInput())
-            e.Cancel = MessageBox.Show(this, "存在未撤销的草稿或未应用输入。放弃并退出？保存的副本仍保留。", "PhotoTrail", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes;
+            e.Cancel = MessageBox.Show(this, L10n.Text("存在未撤销的草稿或未应用输入。放弃并退出？保存的副本仍保留。"), "PhotoTrail", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes;
     }
-    private void WindowClosed(object? sender, EventArgs e) { renameDateValidation?.Cancel(); trackMatchRevision++;InvalidateTrackAdjustment(); photoPreviewRequest?.Cancel(); photoPreviewRevision++; PhotoPreviewImage.Source = null; dependencyCheck?.Cancel(); operation?.Cancel(); renameRevision++; SuspendMap(); GoogleKeyInput.Clear(); MapView.Dispose(); }
+    private void WindowClosed(object? sender, EventArgs e) { if(uiReady)SaveUi(ui with{LastWorkspace=Math.Clamp(WorkspaceTabs.SelectedIndex,0,2)}); renameDateValidation?.Cancel(); trackMatchRevision++;InvalidateTrackAdjustment(); photoPreviewRequest?.Cancel(); photoPreviewRevision++; PhotoPreviewImage.Source = null; dependencyCheck?.Cancel(); operation?.Cancel(); renameRevision++; SuspendMap(); GoogleKeyInput.Clear(); MapView.Dispose(); }
     private void MapSelected(object sender, SelectionChangedEventArgs e)
     {
         if (ReferenceEquals(e.Source, WorkspaceTabs) && IsLoaded) RefreshM1Shell();
@@ -1003,7 +1006,7 @@ public partial class MainWindow : Window
     {
         if (busy || mapInitializing) return;
         SuspendMap();
-        Status.Text = "正在重载地图；照片、轨迹和草稿保留。";
+        Status.Text = L10n.Message(L10n.Text("正在重载地图；照片、轨迹和草稿保留。"));
         try
         {
             if (mapNeedsReplacement)
@@ -1018,7 +1021,7 @@ public partial class MainWindow : Window
             if (mapConfigured) MapView.CoreWebView2.Navigate(currentMapPage);
             else { mapStarted = false; MapLoaded(sender, e); }
         }
-        catch (Exception error) { Status.Text = "地图重载失败：" + error.Message; }
+        catch (Exception error) { Status.Text = L10n.Message(L10n.Text("地图重载失败：") + L10n.Message(error.Message)); }
     }
     private async void MapLoaded(object sender, RoutedEventArgs e)
     {
@@ -1037,6 +1040,17 @@ public partial class MainWindow : Window
                 MapView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
                 MapView.CoreWebView2.Settings.AreDevToolsEnabled = false;
                 MapView.CoreWebView2.Settings.AreHostObjectsAllowed = false;
+                var mapLabels = new Dictionary<string,string>{
+                    ["loading"]=L10n.Text("正在加载地图；选点只作预览。"),
+                    ["ready"]=L10n.Text("点击地图预览坐标，照片不会自动保存。"),
+                    ["error"]=L10n.Text("地图加载失败，请检查网络后点击“重载地图”；照片读取仍可使用。"),
+                    ["preview"]=L10n.Text("位置预览；可拖动标记，加入GPS草稿后另存副本。"),
+                    ["track"]=L10n.Text("轨迹：{0}。图层留在本机，匹配只作预览。"),
+                    ["noTrack"]=L10n.Text("未选择轨迹；点击地图只作预览。"),
+                    ["googleLoading"]=L10n.Text("等待本机Google配置；不会自动查询地址。"),
+                    ["googleError"]=L10n.Text("Google地图不可用，请检查密钥、API权限、计费和网络，或切回默认地图。"),
+                    ["googleReady"]=L10n.Text("Google Maps：选点/拖动只作预览，地址查询须显式点击。")};
+                await MapView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync("window.photoTrailLabels="+JsonSerializer.Serialize(mapLabels)+";document.addEventListener('DOMContentLoaded',()=>{document.documentElement.lang="+JsonSerializer.Serialize(L10n.Language)+";},{once:true});");
                 MapView.CoreWebView2.NavigationStarting += (_, args) =>
                 {
                     args.Cancel = args.Uri != currentMapPage;
@@ -1053,7 +1067,7 @@ public partial class MainWindow : Window
                     {
                         if (!IsLoaded || !ReferenceEquals(configuredView, MapView)) return;
                         SuspendMap(); mapNeedsReplacement |= kind == CoreWebView2ProcessFailedKind.BrowserProcessExited;
-                        if (!busy) Status.Text = "地图进程异常；点击重载地图恢复。照片、轨迹和草稿保留。";
+                        if (!busy) Status.Text = L10n.Message(L10n.Text("地图进程异常；点击重载地图恢复。照片、轨迹和草稿保留。"));
                     }));
                 };
                 MapView.CoreWebView2.WebMessageReceived += (_, args) =>
@@ -1067,19 +1081,19 @@ public partial class MainWindow : Window
                             var key = GoogleKeyStore.Load(GoogleKeyStore.DefaultPath) ?? throw new InvalidOperationException();
                             MapView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "initialize", key }));
                         }
-                        catch (Exception) { if (!busy) Status.Text = "Google密钥不可读取；请重新保存或切回默认地图。"; }
+                        catch (Exception) { if (!busy) Status.Text = L10n.Message(L10n.Text("Google密钥不可读取；请重新保存或切回默认地图。")); }
                         return;
                     }
                     if (MapPlace.TryRead(args.Source, args.WebMessageAsJson, out var place) && (placeQuery.Length==0?place!.Matches(placeRequest, currentPreview):place!.MatchesQuery(placeRequest,placeQuery)) && placePending)
                     {
                         placePending = false;
-                        PlacePreview.Text = place.Status == "OK" ? "Google Maps · 地区预览：" + place.Summary : "Google Maps查询未得到地区：" + place.Status + "。未改照片。";
+                        PlacePreview.Text = place.Status == "OK" ? L10n.Text("Google Maps · 地区预览：") + place.Summary : L10n.Text("Google Maps查询未得到地区：") + place.Status + L10n.Text("。未改照片。");
                         if(place.Query is not null&&place.Status=="OK"){InvalidateBatchTrack();currentPreview=place.Point;serviceQueryPoint=currentPreview;previewAltitude=null;previewMethod="MANUAL";clipboardGpsPreview=false;UpdateGpsButton();PostPreview();}
                         return;
                     }
                     if (MapMessage.IsError(args.Source, args.WebMessageAsJson))
                     {
-                        if (!busy) Status.Text = "地图加载失败；检查网络后点击重载地图。照片和草稿保留。";
+                        if (!busy) Status.Text = L10n.Message(L10n.Text("地图加载失败；检查网络后点击重载地图。照片和草稿保留。"));
                         return;
                     }
                     if (MapMessage.IsReady(args.Source, args.WebMessageAsJson)) { mapReady = true;PostMapSettings(true); _ = PostTrackAsync(mapWorkspace?.State.OpenView is null&&!userMapMoved); _ = PostPhotosAsync();if(mapWorkspace?.State.StartWithDevice==true)LocateDevice(this,new RoutedEventArgs()); }
@@ -1091,8 +1105,8 @@ public partial class MainWindow : Window
                         foreach (var (_, apply, _) in Fields) apply.IsChecked = false;
                         Photos.SelectedItems.Clear(); fillingEditor = false; Photos.SelectedItem = photos[id];
                     }
-                    if (MapMessage.IsReady(args.Source, args.WebMessageAsJson)) Status.Text = currentMapPage == MapMessage.GooglePage ? "Google地图已加载；查询会产生Google请求。" : "默认地图已加载；点击地图只作坐标预览。";
-                    if (MapMessage.TryPoint(args.Source, args.WebMessageAsJson, out var point)) { InvalidateBatchTrack(); ClearPlacePreview(); clipboardGpsPreview = false; currentPreview = point; previewAltitude = null; previewMethod = "MANUAL"; UpdateGpsButton(); MatchResult.Text = $"手动位置预览：{point!.Latitude:F6}, {point.Longitude:F6}。仅预览，未加入GPS草稿；海拔未知。"; Status.Text = "手动位置已更新；尚未写入照片。"; }
+                    if (MapMessage.IsReady(args.Source, args.WebMessageAsJson)) Status.Text = L10n.Message(currentMapPage == MapMessage.GooglePage ? L10n.Text("Google地图已加载；查询会产生Google请求。") : L10n.Text("默认地图已加载；点击地图只作坐标预览。"));
+                    if (MapMessage.TryPoint(args.Source, args.WebMessageAsJson, out var point)) { InvalidateBatchTrack(); ClearPlacePreview(); clipboardGpsPreview = false; currentPreview = point; previewAltitude = null; previewMethod = "MANUAL"; UpdateGpsButton(); MatchResult.Text = L10n.Message(L10n.Format("手动位置预览：{0:F6}, {1:F6}。仅预览，未加入GPS草稿；海拔未知。",point!.Latitude,point.Longitude)); Status.Text = L10n.Message(L10n.Text("手动位置已更新；尚未写入照片。")); }
                 };
                 mapConfigured = true;
             }
@@ -1101,11 +1115,11 @@ public partial class MainWindow : Window
         catch (TimeoutException)
         {
             mapStarted = false; mapNeedsReplacement = true;
-            if (!busy) Status.Text = "地图初始化超时；点击重载地图重新创建地图控件。照片、轨迹和草稿保留。";
+            if (!busy) Status.Text = L10n.Message(L10n.Text("地图初始化超时；点击重载地图重新创建地图控件。照片、轨迹和草稿保留。"));
         }
         catch (WebView2RuntimeNotFoundException)
-        { if (!busy) Status.Text = "地图暂不可用：未找到WebView2 Runtime，请安装Microsoft Edge WebView2 Runtime后重试；元数据仍可使用。"; mapStarted = false; }
-        catch (Exception error) { if (!busy) Status.Text = "地图暂不可用：" + error.Message; mapStarted = false; }
+        { if (!busy) Status.Text = L10n.Message(L10n.Text("地图暂不可用：未找到WebView2 Runtime，请安装Microsoft Edge WebView2 Runtime后重试；元数据仍可使用。")); mapStarted = false; }
+        catch (Exception error) { if (!busy) Status.Text = L10n.Message(L10n.Text("地图暂不可用：") + L10n.Message(error.Message)); mapStarted = false; }
         finally { mapInitializing = false; MapRetryButton.IsEnabled = !busy; }
     }
     private sealed class TrackRow(TrackSnapshot snapshot) : INotifyPropertyChanged {
@@ -1141,9 +1155,9 @@ public partial class MainWindow : Window
         }
         public string Name => Path.GetFileName(Document.FilePath);
         public string ReadState => M1Label(Document.InspectionError.Length>0?"ReadFailed":Document.Draft.Count>0?"Draft":!Document.CanStage?"ReadOnly":"Read");
-        public string OriginalTagCount => Document.Inspection is null?"未知":Document.Inspection.Count(v=>v.Counted).ToString();
+        public string OriginalTagCount => Document.Inspection is null?L10n.Text("未知"):Document.Inspection.Count(v=>v.Counted).ToString();
         public int DraftCount => MetadataInspector.PendingFields(Document);
-        public string Summary => $"{Document.FileType} · {(Document.SidecarPath is null ? "内嵌" : "XMP旁车")} · 原标签{(Document.Inspection is null?"未知":Document.Inspection.Count(v=>v.Counted).ToString())}{(Document.InspectionError.Length>0?"（过期/失败）":"")} · {(Document.Draft.Count > 0 ? $"{MetadataInspector.PendingFields(Document)}项草稿" : "原始值")}";
+        public string Summary => Document.FileType+" · "+L10n.Text(Document.SidecarPath is null?"内嵌":"XMP旁车")+" · "+L10n.Text("原标签")+OriginalTagCount+(Document.InspectionError.Length>0?L10n.Text("（过期/失败）"):"")+" · "+(Document.Draft.Count>0?L10n.Format("{0}项草稿",MetadataInspector.PendingFields(Document)):L10n.Text("原始值"));
     }
     private static long nextPhotoOrder;
 }

@@ -14,7 +14,7 @@ public partial class MainWindow
     internal record PhotoDisplayGroup(long Id,string Label);
     private async Task ImportAsync(IEnumerable<string> paths)
     {
-        if(importRunning||busy){ImportProgress.Text="已有任务运行；本次新导入未加入，请等待安全结束。";return;}var inputs=paths.Where(p=>!p.StartsWith("--",StringComparison.Ordinal)).ToArray();if(inputs.Length==0)return;
+        if(importRunning||busy){ImportProgress.Text=L10n.Text("已有任务运行；本次新导入未加入，请等待安全结束。");return;}var inputs=paths.Where(p=>!p.StartsWith("--",StringComparison.Ordinal)).ToArray();if(inputs.Length==0)return;
         var known=photos.Select(r=>r.Document.FilePath).ToArray();var remembered=photos.Where(r=>r.PhysicalIdentity is not null).ToDictionary(r=>r.Document.FilePath,r=>r.PhysicalIdentity!,StringComparer.OrdinalIgnoreCase);var recursive=settings.RecursiveImport;importPairing=settings.PairImport;importRunning=true;importPaused=false;importAccepted=importRead=importReadFailures=0;
         importCancellation=new();var token=importCancellation.Token;using var queue=new ImportQueue();importQueue=queue;
         var clock=System.Diagnostics.Stopwatch.StartNew();importStartTicks=System.Diagnostics.Stopwatch.GetTimestamp();firstThumbnailMs=-1;importMetadataMs=importAcceptanceMs=0;var exif=Interlocked.Read(ref ExifToolClient.RequestCount);var dates=Interlocked.Read(ref DateAdapter.StartedProcesses);
@@ -28,7 +28,7 @@ public partial class MainWindow
                 while(importPaused||busy){queue.Paused=true;await Task.Delay(30,token);}token.ThrowIfCancellationRequested();
                 var acceptClock=System.Diagnostics.Stopwatch.StartNew();for(int i=0;i<readings.Count;i++){
                     var reading=readings[i];if(reading.Document is not {} doc){importReadFailures++;queue.Error(Path.GetFileName(reading.FilePath)+"："+reading.Error,false);continue;}
-                    try{await Task.Run(()=>batch[i].RequireCurrent(),token);await doc.EnsureUnchangedAsync(token);if(doc.InspectionError.Length>0||doc.DateReadFailure.Length>0)throw new IOException("完整来源／共享日期尚未准备成功，未接纳。");if(!ImportSource.Types.Values.Contains(doc.FileType))throw new IOException("实际内容类型与候选扩展名不一致，未接纳。");
+                    try{await Task.Run(()=>batch[i].RequireCurrent(),token);await doc.EnsureUnchangedAsync(token);if(doc.InspectionError.Length>0||doc.DateReadFailure.Length>0)throw new IOException(L10n.Text("完整来源／共享日期尚未准备成功，未接纳。"));if(!ImportSource.Types.Values.Contains(doc.FileType))throw new IOException(L10n.Text("实际内容类型与候选扩展名不一致，未接纳。"));
                         while(busy)await Task.Delay(30,token);token.ThrowIfCancellationRequested();batch[i].RequireCurrent();if(photos.Any(r=>r.Document.FilePath.Equals(doc.FilePath,StringComparison.OrdinalIgnoreCase))){queue.Skipped++;continue;}
                         var row=new PhotoRow(doc){PairEligible=importPairing,PhysicalIdentity=batch[i].Identity};photos.Add(row);importAccepted++;
                     }catch(OperationCanceledException){throw;}catch(Exception error)when(error is IOException or UnauthorizedAccessException or ArgumentException){importReadFailures++;queue.Error(Path.GetFileName(doc.FilePath)+"："+error.Message,false);}
@@ -39,25 +39,25 @@ public partial class MainWindow
         }catch(OperationCanceledException){cancelled=true;}catch(Exception error){queue.Error(error.Message,false);}
         finally{
             importCancellation.Cancel();try{await producer;}catch(OperationCanceledException){}catch(Exception error){queue.Error(error.Message,true);}
-            importTimer.Stop();importTimer=null;importRunning=false;importQueue=null;ImportPause.IsEnabled=false;ImportPause.Content="暂停准备";ImportPending.ItemsSource=null;ReadButton.IsEnabled=FolderButton.IsEnabled=!busy;
+            importTimer.Stop();importTimer=null;importRunning=false;importQueue=null;ImportPause.IsEnabled=false;ImportPause.Content=L10n.Text("暂停准备");ImportPending.ItemsSource=null;ReadButton.IsEnabled=FolderButton.IsEnabled=!busy;
             importMilliseconds=clock.Elapsed.TotalMilliseconds;importExifToolRequests=Interlocked.Read(ref ExifToolClient.RequestCount)-exif;importDateHostRequests=Interlocked.Read(ref DateAdapter.StartedProcesses)-dates;
         }
         if(!busy&&!InspectorHasInput()&&Photos.SelectedIndex<0&&photos.Count>0)Photos.SelectedIndex=0;
         foreach(var row in photos)if(queue.KnownFailures.TryGetValue(row.Document.FilePath,out var error))row.Document.InspectionError="来源重新核对失败，旧快照保留："+error;
         if(!busy&&!InspectorHasInput())RefreshSelection();else RefreshPhotoCount();_ = PostPhotosAsync();
-        ImportProgress.Text=$"{(cancelled?"已取消":"准备结束")}：发现{queue.Discovered}，已读{importRead}，接纳{importAccepted}，跳过{queue.Skipped}，目录失败{queue.DirectoryFailures}，文件失败{queue.FileFailures}；未接纳{Math.Max(0,queue.Discovered-importAccepted-importReadFailures)}。已接纳与原草稿保留。";
-        ImportProgress.ToolTip=string.Join("\n",queue.Errors);if(!busy)Status.Text="导入准备已结束；未修改原件、已有输入或草稿。";
+        ImportProgress.Text=L10n.Format("{0}：发现{1}，已读{2}，接纳{3}，跳过{4}，目录失败{5}，文件失败{6}；未接纳{7}。已接纳与原草稿保留。",(cancelled?L10n.Text("已取消"):L10n.Text("准备结束")),queue.Discovered,importRead,importAccepted,queue.Skipped,queue.DirectoryFailures,queue.FileFailures,Math.Max(0,queue.Discovered-importAccepted-importReadFailures));
+        ImportProgress.ToolTip=string.Join("\n",queue.Errors);if(!busy)Status.Text=L10n.Message(L10n.Text("导入准备已结束；未修改原件、已有输入或草稿。"));
     }
     void RefreshImportProgress()
     {
         RefreshM1Shell();
         if(importQueue is not {} queue)return;queue.Paused=importPaused||busy;
-        ImportProgress.Text=$"{(busy?"等待保存／应用安全节点":importPaused?"暂停等待项":queue.EnumerationComplete?"读取／接纳":"枚举中，总数未知")}：已发现{queue.Discovered}，当前读取{importReading}，已读{importRead}，已接纳{importAccepted}，等待{queue.Waiting.Length}，跳过{queue.Skipped}，目录失败{queue.DirectoryFailures}，文件失败{queue.FileFailures}。";
+        ImportProgress.Text=L10n.Format("{0}：已发现{1}，当前读取{2}，已读{3}，已接纳{4}，等待{5}，跳过{6}，目录失败{7}，文件失败{8}。",(busy?L10n.Text("等待保存／应用安全节点"):importPaused?L10n.Text("暂停等待项"):queue.EnumerationComplete?L10n.Text("读取／接纳"):L10n.Text("枚举中，总数未知")),queue.Discovered,importReading,importRead,importAccepted,queue.Waiting.Length,queue.Skipped,queue.DirectoryFailures,queue.FileFailures);
         var chosen=(ImportPending.SelectedItem as ImportSource)?.Path;ImportPending.ItemsSource=queue.Waiting;if(chosen is not null)ImportPending.SelectedItem=queue.Waiting.FirstOrDefault(s=>s.Path==chosen);
     }
-    void PauseImport(object sender,RoutedEventArgs e){if(!importRunning)return;importPaused=!importPaused;importQueue!.Paused=importPaused||busy;ImportPause.Content=importPaused?"继续准备":"暂停准备";RefreshImportProgress();}
+    void PauseImport(object sender,RoutedEventArgs e){if(!importRunning)return;importPaused=!importPaused;importQueue!.Paused=importPaused||busy;ImportPause.Content=importPaused?L10n.Text("继续准备"):L10n.Text("暂停准备");RefreshImportProgress();}
     void PrioritizeImport(object sender,SelectionChangedEventArgs e){if(ImportPending.SelectedItem is ImportSource source)importQueue?.Prioritize(source.Path);}
-    void ImportOptionsChanged(object sender,RoutedEventArgs e){if(!IsLoaded||restoringSettings)return;settings=settings with{RecursiveImport=ImportRecursive.IsChecked==true,PairImport=ImportPair.IsChecked==true};SaveSettings();ImportProgress.Text="导入选项已保存，仅作用下一次导入；当前队列和既有成员不重组。";}
+    void ImportOptionsChanged(object sender,RoutedEventArgs e){if(!IsLoaded||restoringSettings)return;settings=settings with{RecursiveImport=ImportRecursive.IsChecked==true,PairImport=ImportPair.IsChecked==true};SaveSettings();ImportProgress.Text=L10n.Text("导入选项已保存，仅作用下一次导入；当前队列和既有成员不重组。");}
     void AssignImportPairs()
     {
         foreach(var group in photos.Where(r=>r.PairEligible&&(r.Document.FileType=="JPEG"||ImportSource.Raw(r.Document.FileType))).GroupBy(r=>ImportSource.Stem(r.Document.FilePath),StringComparer.OrdinalIgnoreCase)){
