@@ -16,8 +16,11 @@ static partial class Program
  static void M2Invoke(string name,params object[] args)=>typeof(MainWindow).GetMethod(name,BindingFlags.NonPublic|BindingFlags.Instance)!.Invoke(window,args);
  static void M2FinishOwnTestInput()
  {
-  // Evidence is already saved; abandon only this checker's synthetic date parameters before shutdown.
+  // Evidence is already saved; abandon only this checker's synthetic editor parameters before shutdown.
   typeof(MainWindow).GetField("dateEditorHasInput",BindingFlags.NonPublic|BindingFlags.Instance)!.SetValue(window,(Func<bool>)(()=>false));
+  M2Invoke("FillEditor",new Dictionary<string,string>());
+  M2Invoke("SetPresetChain",new MetadataPreset("新预设",Array.Empty<MetadataOperation>()));
+  M3Set("renameSchemeBaseline",M3Call("EditedScheme",Guid.NewGuid(),null));
  }
  static async Task M2Checks()
  {

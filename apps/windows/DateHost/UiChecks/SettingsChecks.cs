@@ -14,11 +14,11 @@ using PhotoTrail.Windows;
 static partial class Program
 {
  static TabItem? SettingsTab(DependencyObject node,string header){if(ReferenceEquals(node,window))foreach(Window owned in window.OwnedWindows)if(SettingsTab(owned,header) is {} dialogTab)return dialogTab;string id=header switch{"应用设置"=>"Metadata","地图设置"=>"Map","编辑草稿"=>"tool.0","字段剪贴板"=>"tool.1","字段预设"=>"tool.2","批量日期"=>"tool.3","XMP交换"=>"tool.4","比较与交换"=>"tool.5","照片预览"=>"tool.6","保存目标"=>"tool.7","CSV"=>"tool.8",_=>header};if(node is TabItem item&&item.Tag?.ToString()==id)return item;foreach(var child in LogicalTreeHelper.GetChildren(node).OfType<DependencyObject>())if(SettingsTab(child,header)is{} found)return found;return null;}
- static void SelectMetadataTab(string header){if(header is "地图" or "地图定位"){Control<TabControl>("WorkspaceTabs").SelectedIndex=1;return;}if(header is "原始字段" or "元数据" or "元数据编辑"){Control<TabControl>("WorkspaceTabs").SelectedIndex=0;return;}var tab=SettingsTab(window,header)!;if(Control<TabControl>("MetadataToolsTabs").Items.Contains(tab))typeof(MainWindow).GetMethod("OpenMetadataTool",BindingFlags.NonPublic|BindingFlags.Instance)!.Invoke(window,[tab]);else ((TabControl)LogicalTreeHelper.GetParent(tab)).SelectedItem=tab;}
+ static void SelectMetadataTab(string header){if(header=="重命名"){Control<TabControl>("WorkspaceTabs").SelectedIndex=2;return;}if(header is "地图" or "地图定位"){Control<TabControl>("WorkspaceTabs").SelectedIndex=1;return;}if(header is "原始字段" or "元数据" or "元数据编辑"){Control<TabControl>("WorkspaceTabs").SelectedIndex=0;return;}var tab=SettingsTab(window,header)!;if(Control<TabControl>("MetadataToolsTabs").Items.Contains(tab))typeof(MainWindow).GetMethod("OpenMetadataTool",BindingFlags.NonPublic|BindingFlags.Instance)!.Invoke(window,[tab]);else ((TabControl)LogicalTreeHelper.GetParent(tab)).SelectedItem=tab;}
  static string[] RowNames()=>Control<ListBox>("Photos").Items.Cast<object>().Select(r=>Path.GetFileName(Doc(r).FilePath)).ToArray();
  static async Task RunSettings(bool restore)
  {
-  while((bool)Field("busy")!)await Task.Delay(10);
+  await ImportDone();
   var list=Control<ListBox>("Photos");Check(list.Items.Count==3,"settings-real-three-imports");
   var prefs=Environment.GetEnvironmentVariable("PHOTOTRAIL_SETTINGS_FILE")!;var history=Environment.GetEnvironmentVariable("PHOTOTRAIL_SEARCH_HISTORY_FILE")!;
   var dpi=VisualTreeHelper.GetDpi(window);evidence.Add(new{name="actual-dpi",dpi.DpiScaleX,dpi.DpiScaleY,systemFont=window.FontSize});
@@ -36,14 +36,14 @@ static partial class Program
    Action("ApplyDraft");await BatchWait();SelectMetadataTab("原始字段");Control<TextBox>("MetadataSearch").Text="XMP-exif:DateTimeOriginal";
    var grid=Control<DataGrid>("MetadataGrid");Check(grid.IsReadOnly&&grid.Items.Count==1,"hidden-full-key-search-readonly");grid.SelectedItem=grid.Items[0];Action("CopyMetadataTag");Check(Clipboard.GetText().Contains("XMP-exif:DateTimeOriginal"),"copy-full-tag-after-hide");
    grid.SelectAllCells();System.Windows.Input.ApplicationCommands.Copy.Execute(null,grid);Check(Clipboard.GetText().Contains("XMP-exif:DateTimeOriginal"),"native-grid-copy-preserves-full-name");
-   list.SelectAll();var docs=list.SelectedItems.Cast<object>().Select(Doc).ToArray();SelectMetadataTab("批量日期");Control<ComboBox>("DateMode").SelectedIndex=0;Control<TextBox>("DateSeconds").Text="1";Action("ApplyDates");await BatchWait();Check(Status.Contains("缺失时间跳过1项"),"accepted-offset-direct-path-after-settings");
+   list.SelectAll();var docs=list.SelectedItems.Cast<object>().Select(Doc).ToArray();SelectMetadataTab("批量日期");Control<ComboBox>("DateTarget").SelectedIndex=4;Control<ComboBox>("DateMode").SelectedIndex=0;Control<TextBox>("DateSeconds").Text="1";Action("ApplyDates");await BatchWait();Check(Status.Contains("缺失时间跳过1项"),"accepted-offset-direct-path-after-settings");
    Check(docs.Count(d=>d.Draft.ContainsKey("XMP-exif:DateTimeOriginal"))==2&&docs.Any(d=>d.Draft.Values.Contains("unapplied kept")),"date-and-title-drafts-not-lost");
    var copies=Path.Combine(folder,"settings-copies");Directory.CreateDirectory(copies);Control<TextBox>("OutputFolder").Text=copies;Action("SaveCopies");while((bool)Field("busy")!)await Task.Delay(10);
    Check(Status.Contains("副本成功 2，失败 0"),"settings-regression-copy-save");var client=new ExifToolClient(Environment.GetEnvironmentVariable("PHOTOTRAIL_EXIFTOOL")!);
    foreach(var doc in docs){await doc.EnsureUnchangedAsync();if(doc.Draft.Count>0){var read=await PhotoDocument.LoadAsync(client,Path.Combine(copies,Path.GetFileName(doc.FilePath)));Check(read.Value("XMP-exif:DateTimeOriginal")==doc.Value("XMP-exif:DateTimeOriginal")&&read.Value("XMP-dc:Title")==doc.Value("XMP-dc:Title"),"copy-date-title-readback");}}
    Action("UndoDraft");Check(docs.All(d=>d.Draft.Count==0),"regression-undo-with-source-protection");
    var selection=list.SelectedItems.Cast<object>().ToArray();var renameOrder=((IEnumerable)typeof(MainWindow).GetMethod("RenameSelection",BindingFlags.NonPublic|BindingFlags.Instance)!.Invoke(window,null)!).Cast<object>().ToArray();
-   Action("FreezeRename");while((bool)Field("busy")!)await Task.Delay(10);var frozen=Field("frozenRenamePlan");Check(frozen is not null,"existing-rename-plan-frozen");
+   Input("RenameRules","prefix|settings_");Action("FreezeRename");await RenameWait();var frozen=Field("frozenRenamePlan");Check(frozen is not null,"existing-rename-plan-frozen");
    Control<ComboBox>("PhotoSort").SelectedIndex=1;Check(RowNames().SequenceEqual(RowNames().OrderDescending(StringComparer.CurrentCulture))&&list.SelectedItems.Cast<object>().SequenceEqual(selection),"name-sort-selection-order-preserved");
    var after=((IEnumerable)typeof(MainWindow).GetMethod("RenameSelection",BindingFlags.NonPublic|BindingFlags.Instance)!.Invoke(window,null)!).Cast<object>().ToArray();Check(after.SequenceEqual(renameOrder)&&ReferenceEquals(frozen,Field("frozenRenamePlan")),"photo-sort-independent-frozen-rename-numbering");
    Control<ComboBox>("PhotoSort").SelectedIndex=3;Check(SettingsPreference.Read(prefs).PhotoSort.SequenceEqual(new[]{new PhotoSortPreference("captured",true)}),"captured-sort-persisted");
@@ -60,11 +60,11 @@ static partial class Program
    var readonlyFolder=Path.Combine(folder,"readonly");Directory.CreateDirectory(readonlyFolder);var png=Path.Combine(readonlyFolder,"sample.png");
    var bitmap=System.Windows.Media.Imaging.BitmapSource.Create(1,1,96,96,PixelFormats.Bgra32,null,new byte[]{0,0,0,255},4);var encoder=new System.Windows.Media.Imaging.PngBitmapEncoder();encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));using(var stream=File.Create(png))encoder.Save(stream);
    var readOnly=await PhotoDocument.LoadAsync(client,png);var rowType=list.Items[0].GetType();var readOnlyRow=Activator.CreateInstance(rowType,readOnly)!;((IList)Field("photos")!).Add(readOnlyRow);list.SelectedItem=readOnlyRow;
-   Control<ComboBox>("MetadataTextSize").SelectedIndex=0;Check(!Control<StackPanel>("Editor").IsEnabled&&!Control<TextBox>("TitleValue").IsEnabled&&Control<DataGrid>("MetadataGrid").IsReadOnly,"readonly-png-stays-readonly-after-font-change");await readOnly.EnsureUnchangedAsync();
+   Control<ComboBox>("MetadataTextSize").SelectedIndex=0;await Responsive();Check(!Control<StackPanel>("Editor").IsEnabled&&!Control<TextBox>("TitleValue").IsEnabled&&Control<DataGrid>("MetadataGrid").IsReadOnly,"readonly-png-stays-readonly-after-font-change");await readOnly.EnsureUnchangedAsync();
    Control<ComboBox>("MetadataTextSize").SelectedIndex=2;Control<ComboBox>("MetadataSpacing").SelectedIndex=0;Control<CheckBox>("FullTagNames").IsChecked=false;Control<ComboBox>("PhotoSort").SelectedIndex=3;
   }
   int passed=evidence.Count(item=>item.GetType().GetProperty("passed")?.GetValue(item)is true);
-  File.WriteAllText(Path.Combine(folder,restore?"settings-restored-results.json":"settings-ui-results.json"),JsonSerializer.Serialize(new{passed,evidence},new JsonSerializerOptions{WriteIndented=true}));Console.WriteLine("SETTINGS_WPF_CHECKS="+passed);window.Close();
+  File.WriteAllText(Path.Combine(folder,restore?"settings-restored-results.json":"settings-ui-results.json"),JsonSerializer.Serialize(new{passed,evidence},new JsonSerializerOptions{WriteIndented=true}));Console.WriteLine("SETTINGS_WPF_CHECKS="+passed);M3Set("renameSchemeBaseline",M3Call("EditedScheme",Guid.NewGuid(),null));M2Invoke("SetPresetChain",new MetadataPreset("新预设",Array.Empty<MetadataOperation>()));
  }
  static async Task SetupLocalSearch()
  {

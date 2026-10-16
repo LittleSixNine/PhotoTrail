@@ -55,7 +55,7 @@ public partial class MainWindow
         }catch(Exception error){SaveSummary.Text=Status.Text=L10n.Message(L10n.Text("保存准备失败（未写入）：")+L10n.Message(error.Message));WorkspaceTabs.SelectedIndex=0;OpenMetadataTool(SaveTargetTab);}
     }
     void CancelSavePlan(object sender,RoutedEventArgs e) {
-        if(busy){CancelRead(sender,e);return;}preparedSave=null;ExecuteSaveButton.IsEnabled=false;SaveSummary.Text+=L10n.Text("\n计划已取消，未创建文件，草稿保留。");
+        if(busy){CancelRead(sender,e);return;}preparedSave=null;ExecuteSaveButton.IsEnabled=false;Status.Text=L10n.Text("\n计划已取消，未创建文件，草稿保留。").TrimStart('\n');SaveSummary.Text+="\n"+Status.Text;
     }
     async void ExecuteSavePlan(object sender,RoutedEventArgs e) {
         if(busy||renameRecoveryRequired||preparedSave is not {} plan)return;
