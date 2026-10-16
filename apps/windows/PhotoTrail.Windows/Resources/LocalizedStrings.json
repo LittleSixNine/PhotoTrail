@@ -30859,5 +30859,14 @@
     "ko": "복원 대기",
     "es": "Pendiente de restaurar",
     "pt-BR": "Aguardando restauração"
+  },
+  "{0} · {1} 条操作": {
+    "zh-Hans": "{0} · {1} 条操作",
+    "en": "{0} · {1} operations",
+    "zh-Hant": "{0} · {1} 條操作",
+    "ja": "{0} · {1} 件の操作",
+    "ko": "{0} · {1}개 작업",
+    "es": "{0} · {1} operaciones",
+    "pt-BR": "{0} · {1} operações"
   }
 }

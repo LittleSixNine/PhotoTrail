@@ -1019,7 +1019,10 @@
        <TextBlock Text="{DynamicResource L.5AF886FECAA05055}" TextWrapping="Wrap" />
        <StackPanel x:Name="PresetControls">
         <TextBlock Text="{DynamicResource L.393C87694DC1936B}" />
-        <ListBox x:Name="MetadataPresetList" Height="110" SelectionChanged="SavedPresetSelected" AutomationProperties.Name="{DynamicResource L.349663CF4CC3BAB8}" />
+        <ListBox x:Name="MetadataPresetList" Height="110" SelectionChanged="SavedPresetSelected" AutomationProperties.Name="{DynamicResource L.349663CF4CC3BAB8}">
+         <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource LocalizedDisplay}}" TextWrapping="Wrap" /></DataTemplate></ListBox.ItemTemplate>
+         <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="AutomationProperties.Name" Value="{Binding Converter={StaticResource LocalizedDisplay}}" /></Style></ListBox.ItemContainerStyle>
+        </ListBox>
         <TextBlock x:Name="PresetLibraryStatus" Text="{DynamicResource L.E4E18D32893A30B5}" TextWrapping="Wrap" />
         <WrapPanel x:Name="PresetLibraryActions">
          <Button Content="{DynamicResource L.77402BC4BABC03D2}" Click="NewMetadataPreset" />
