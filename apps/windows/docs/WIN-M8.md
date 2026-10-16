@@ -1,0 +1,7 @@
+# WIN-M8 bounded rename parity
+
+Custom ordered photo extensions, associated extensions, pairing and capture-date priority now feed the existing real grouping, preview, sorting, freeze and execution protection paths. Empty lists stay empty; extension case and duplicates normalize without changing priority, invalid extension syntax is refused. Disabling pairing refuses a loaded or actual XMP relationship that would otherwise be split. Group members keep their extensions and share collision suffix allocation.
+
+The existing Mac version=1 preset converter carries these settings, supported date options and rule filters into execution instead of dropping fields. Disabled rules, order and counter selection are retained. Runtime counter values/revisions are never embedded in presets. Unknown fields/identities, unsupported actions, unsupported date/regex syntax and locale-dependent natural sorting still refuse the entire conversion. Local synthetic fixed-schema roundtrips are not real Mac execution or a promise of full preset equivalence.
+
+Production 3ca754d020cd5835d6c26012a4360882840f8b52. Same actual DLL passed 43 new WPF/model/execution checks, 31 affected rule-card checks and 14 existing interchange checks. The final M9 candidate must rerun affected M8 behavior. JPEG/JPEG-extension/XMP grouping and execution/record restore were exercised; no empty file was treated as a RAW format. Shared DateHost/runtime and public Mac schema remain unchanged. This stage is pending user acceptance and continues only into authorized M9.
