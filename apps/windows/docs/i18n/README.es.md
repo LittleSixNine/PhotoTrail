@@ -88,3 +88,8 @@ La pestaña permite añadir, editar, eliminar y ordenar operaciones sobre los 27
 
 
 R08a añade reglas por grafemas, regex limitada y fuentes verificadas; comprueba identidad/SHA/System/ACL, sin sobrescribir. [Límites](../RENAME-RULES.md).
+
+
+## M8 / M9
+
+Candidato M8/M9: emparejamiento y fuentes de fecha ordenados, conversión estricta de preajustes, zona horaria de sesión, guardado total o de la página actual y edición de mapa reversible. Borrar ubicación se limita a copias JPEG/JPEG+XMP verificadas. Las copias conservan borradores. Servicios, formatos, accesibilidad y aceptación del usuario siguen pendientes.

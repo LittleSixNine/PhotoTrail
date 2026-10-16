@@ -1,3 +1,7 @@
+## 2026-10-17 · WIN-M8 / WIN-M9 development candidate
+
+Custom ordered rename pairing/date sources and strict Mac v1 preset conversion now use the protected execution path. Session camera timezone, all/current-page save scope, undoable map gestures and qualified JPEG/XMP copy-only location clearing are connected. Default copy saves keep session drafts. M8: 3 suites/88 assertions; final M9 DLL: 12 suites/269 assertions. Real Mac interoperation, additional DPI/accessibility/deployment and conditional service/format gates remain unverified; user acceptance pending.
+
 ## 2026-10-16 · WIN-M2 Windows 开发候选
 
 元数据多字段选择进入真实有序操作卡，显示冻结照片范围和精确字段来源，接入现有预设库及比较交换。窄窗口切换照片列表/检查器，搜索可读，重复诊断进入详情；日期主值、时区与亚秒分层显示。应用、取消、一次撤销、副本保留草稿及来源保护沿用既有契约。

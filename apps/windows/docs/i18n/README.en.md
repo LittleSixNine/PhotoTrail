@@ -94,3 +94,8 @@ The preset tab composes, edits, deletes and reorders operations for the existing
 
 
 R08a adds grapheme rules, bounded regex, verified sources and intermediate names; freeze checks identity/SHA/System/ACL, with no overwrite. [Limits](../RENAME-RULES.md).
+
+
+## M8 / M9
+
+M8/M9 development candidate: ordered rename pairing/date sources, strict preset conversion, session camera zone, all/current-page save scope and undoable map editing. Location clearing is limited to qualified JPEG/JPEG+XMP copies. Copies retain session drafts. Service, format, accessibility/environment qualification and user acceptance remain pending.

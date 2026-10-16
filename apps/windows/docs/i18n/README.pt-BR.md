@@ -88,3 +88,8 @@ A aba permite adicionar, editar, excluir e ordenar operações nos 27 campos XMP
 
 
 R08a adiciona regras por grafemas, regex limitada e fontes verificadas; verifica identidade/SHA/System/ACL, sem sobrescrever. [Limites](../RENAME-RULES.md).
+
+
+## M8 / M9
+
+Candidato M8/M9: pareamento e fontes de data ordenados, conversão estrita de predefinições, fuso da sessão, salvamento de todos os metadados ou da página atual e edição reversível no mapa. Limpar localização limita-se a cópias JPEG/JPEG+XMP verificadas. As cópias mantêm rascunhos. Serviços, formatos, acessibilidade e aceitação do usuário continuam pendentes.
