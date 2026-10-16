@@ -30877,5 +30877,77 @@
     "ko": "저장 계획이 아직 없습니다. 기본값은 사본이며, 원본 위치에 저장하려면 먼저 백업해야 합니다.",
     "es": "Todavía no hay un plan de guardado. Se guardan copias de forma predeterminada; guardar en el original requiere una copia de seguridad previa.",
     "pt-BR": "Nenhum plano de salvamento preparado. O padrão é salvar cópias; salvar no original exige um backup prévio."
+  },
+  "有效": {
+    "zh-Hans": "有效",
+    "en": "Valid",
+    "zh-Hant": "有效",
+    "ja": "有効",
+    "ko": "유효",
+    "es": "Válido",
+    "pt-BR": "Válido"
+  },
+  "缺GPS": {
+    "zh-Hans": "缺GPS",
+    "en": "Missing GPS",
+    "zh-Hant": "缺少 GPS",
+    "ja": "GPS なし",
+    "ko": "GPS 없음",
+    "es": "Falta GPS",
+    "pt-BR": "GPS ausente"
+  },
+  "非法GPS或基准": {
+    "zh-Hans": "非法GPS或基准",
+    "en": "Invalid GPS or datum",
+    "zh-Hant": "無效 GPS 或基準",
+    "ja": "GPS または測地基準が無効",
+    "ko": "잘못된 GPS 또는 측지 기준",
+    "es": "GPS o datum no válido",
+    "pt-BR": "GPS ou datum inválido"
+  },
+  "未知基准": {
+    "zh-Hans": "未知基准",
+    "en": "Unknown datum",
+    "zh-Hant": "未知基準",
+    "ja": "不明な測地基準",
+    "ko": "알 수 없는 측지 기준",
+    "es": "Datum desconocido",
+    "pt-BR": "Datum desconhecido"
+  },
+  "缺主时间（清除不回退）": {
+    "zh-Hans": "缺主时间（清除不回退）",
+    "en": "Missing primary time (cleared values do not fall back)",
+    "zh-Hant": "缺少主要時間（清除後不回退）",
+    "ja": "主日時なし（消去後の代替なし）",
+    "ko": "기본 시간 없음(지운 값은 대체하지 않음)",
+    "es": "Falta la hora principal (sin alternativa tras borrarla)",
+    "pt-BR": "Horário principal ausente (sem alternativa após limpar)"
+  },
+  "非法主时间": {
+    "zh-Hans": "非法主时间",
+    "en": "Invalid primary time",
+    "zh-Hant": "無效主要時間",
+    "ja": "主日時が無効",
+    "ko": "잘못된 기본 시간",
+    "es": "Hora principal no válida",
+    "pt-BR": "Horário principal inválido"
+  },
+  "读取失败": {
+    "zh-Hans": "读取失败",
+    "en": "Read failed",
+    "zh-Hant": "讀取失敗",
+    "ja": "読み取り失敗",
+    "ko": "읽기 실패",
+    "es": "Error de lectura",
+    "pt-BR": "Falha na leitura"
+  },
+  "非法海拔/方向": {
+    "zh-Hans": "非法海拔/方向",
+    "en": "Invalid altitude/reference",
+    "zh-Hant": "無效海拔／方向",
+    "ja": "高度／参照が無効",
+    "ko": "잘못된 고도/기준",
+    "es": "Altitud o referencia no válida",
+    "pt-BR": "Altitude ou referência inválida"
   }
 }

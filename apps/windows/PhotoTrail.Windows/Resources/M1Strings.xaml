@@ -25,8 +25,7 @@
  <system:String x:Key="M1.Filename">文件名</system:String>
  <system:String x:Key="M1.OriginalTags">原标签</system:String>
  <system:String x:Key="M1.EditedTags">已编辑</system:String>
- <system:String x:Key="M1.EmptyImport">导入照片，开始整理
-导入或拖入照片，即可编辑元数据、添加位置或重命名。</system:String>
+ <system:String x:Key="M1.EmptyImport">导入照片，开始整理&#10;导入或拖入照片，即可编辑元数据、添加位置或重命名。</system:String>
  <system:String x:Key="M1.Splitter">调整照片表与元数据检查器宽度</system:String>
  <system:String x:Key="M1.Batch">ϟ 批量操作…</system:String>
  <system:String x:Key="M1.Metadata">元数据</system:String>
