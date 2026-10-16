@@ -11,6 +11,22 @@ using PhotoTrail.Windows;
 
 static partial class Program
 {
+ static async Task M6InteropChecks()
+ {
+  await ImportDone();var hashes=Control<ListBox>("Photos").Items.Cast<object>().Select(Doc).ToDictionary(d=>d.FilePath,d=>d.SourceHash);
+  Input("RenameRules","prefix|unsaved-closeout_");var editing=Control<TextBox>("RenameRules").Text;var library=File.ReadAllBytes(RenameSchemeLibrary.DefaultPath);var counter=Environment.GetEnvironmentVariable("PHOTOTRAIL_RENAME_COUNTERS")!;var counterBefore=File.Exists(counter)?File.ReadAllBytes(counter):null;
+  var rules=new[]{new RenameRule("action","M6_"){Action="add-begin",CaseSensitive=true},new RenameRule("action"){Action="number-end",Start=7,Step=2,Padding=4,Counter=0}};
+  var scheme=new RenameScheme(Guid.NewGuid(),"M6 mapped synthetic",string.Join("\n",rules.Select(r=>JsonSerializer.Serialize(r))),new("name",true),"M6_sample0011.jpg");
+  var export=typeof(MainWindow).Assembly.GetType("PhotoTrail.Windows.MacRenamePreset")!.GetMethod("Export",BindingFlags.Static|BindingFlags.NonPublic)!;
+  var mac=(string)export.Invoke(null,[scheme])!;File.WriteAllText(Path.Combine(folder,"windows-to-mac-v1-synthetic.json"),mac);
+  var imported=RenameSchemeLibrary.Import(mac,"synthetic Mac schema");File.WriteAllText(Path.Combine(folder,"mac-schema-imported-windows.json"),RenameSchemeLibrary.Export(imported));
+  Check(imported.Id!=scheme.Id&&imported.Order==scheme.Order&&JsonSerializer.Serialize(RenamePlan.ParseRules(imported.Rules))==JsonSerializer.Serialize(rules),"interop-mapped-rule-parameters-and-order-preserved-new-identity");
+  Check(RenamePlan.Apply("sample.jpg",RenamePlan.ParseRules(imported.Rules),2)=="M6_sample0011.jpg","interop-supported-Mac-v1-schema-real-import-result");
+  var json=JsonNode.Parse(mac)!;Check(json["version"]!.GetValue<int>()==1&&json["rules"]!.AsArray().Count==2&&json["settings"]!["pair"]!.GetValue<bool>()&&json["rules"]![1]!["counter"]!.GetValue<int>()==0,"interop-Windows-Mac-export-static-schema-default-pair-no-counter-values");
+  foreach(var mutation in new[]{"pair","datePriority","sourceExtensions"}){var bad=JsonNode.Parse(mac)!;if(mutation=="pair")bad["settings"]![mutation]=false;else bad["settings"]![mutation]="unsupported synthetic override";File.WriteAllText(Path.Combine(folder,"rejected-mac-"+mutation+".json"),bad.ToJsonString());bool refused=false;try{RenameSchemeLibrary.Import(bad.ToJsonString(),"reject");}catch(InvalidDataException){refused=true;}Check(refused,"interop-unsupported-"+mutation+"-whole-preset-refused");Check(Control<TextBox>("RenameRules").Text==editing&&library.SequenceEqual(File.ReadAllBytes(RenameSchemeLibrary.DefaultPath)),"interop-refusal-keeps-unsaved-editor-and-library-"+mutation);}
+  Check(counterBefore is null?!File.Exists(counter):counterBefore.SequenceEqual(File.ReadAllBytes(counter)),"interop-never-advances-or-copies-persistent-counter-state");foreach(var h in hashes)Check(await PhotoDocument.HashAsync(h.Key)==h.Value,"interop-import-export-never-writes-photo");
+  M3Set("renameSchemeBaseline",M3Call("EditedScheme",Guid.NewGuid(),null));File.WriteAllText(Path.Combine(folder,"m6-interop-results.json"),JsonSerializer.Serialize(new{buildSha=Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(MainWindow).Assembly.Location))),passed=evidence.Count,realMacExecution="NOT_TESTED",evidence},new JsonSerializerOptions{WriteIndented=true}));
+ }
  static async Task M6CloseoutChecks()
  {
   await ImportDone();var photos=Control<ListBox>("Photos");photos.SelectAll();await Responsive();
