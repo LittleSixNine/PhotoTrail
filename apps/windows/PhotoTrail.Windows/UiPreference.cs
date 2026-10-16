@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace PhotoTrail.Windows;
 
-public sealed record UiPreference(int Version=1,string Language="",int StartupWorkspace=-1,int LastWorkspace=0,int CoordinateFormat=0,bool HideUneditable=false,string CameraTimeZone="",string TrackColor="#1477d4",double TrackWidth=4,double MatchGapMinutes=120,decimal PhotoGpxGapSeconds=300,int BackupReminderDays=7,bool SetupCompleted=false)
+public sealed record UiPreference(int Version=1,string Language="",int StartupWorkspace=-1,int LastWorkspace=0,int CoordinateFormat=0,bool HideUneditable=false,string CameraTimeZone="",string TrackColor="#1477d4",double TrackWidth=4,double MatchGapMinutes=120,decimal PhotoGpxGapSeconds=300,int BackupReminderDays=7,bool SetupCompleted=false,bool SaveCurrentPage=false,bool SkipSaveScopePrompt=false,bool DoubleClickEdit=true,bool DragPinEdit=true,bool AutomaticRegionLookup=true,bool WriteRegionWithLocation=true)
 {
     public static string PathForSettings(string file)=>Path.Combine(Path.GetDirectoryName(Path.GetFullPath(file))!,"ui-v1.json");
     static readonly JsonSerializerOptions Json=new(){UnmappedMemberHandling=JsonUnmappedMemberHandling.Disallow};

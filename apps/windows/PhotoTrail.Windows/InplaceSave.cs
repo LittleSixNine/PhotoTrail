@@ -48,7 +48,7 @@ internal static class InplaceSave
             var residual=photo.Draft.Where(p=>!item.Fields.ContainsKey(p.Key)).ToDictionary(p=>p.Key,p=>p.Value);
             var before=photo.BatchSnapshot();before.ReplaceDraft(new Dictionary<string,string>());
             foreach(var tag in residual.Keys)if(before.Value(tag)!=next.Value(tag))throw new IOException("残余草稿的原基准改变；保留草稿并禁止盲写："+tag);
-            await next.SetDraftValidatedAsync(residual,dates,next.DraftRevision,token);await next.EnsureUnchangedAsync(token);SavePlan.Require(item,source:false);
+            await next.SetDraftValidatedAsync(residual,dates,next.DraftRevision,token);next.RestoreContext(photo.Context with{MapFields=photo.Context.MapFields.Where(residual.ContainsKey).ToArray(),ClearLocation=photo.ClearLocationRequested&&residual.ContainsKey("XMP-exif:GPSLatitude")&&residual.ContainsKey("XMP-exif:GPSLongitude")});await next.EnsureUnchangedAsync(token);SavePlan.Require(item,source:false);
             record=record with{Phase="readback"};InplaceHistory.Append(record);timings["readbackMs"]=clock.Elapsed.TotalMilliseconds;
             return new(item.Target,hash,next,"待接纳","真实目标已独立核验；备份及记录保留，尚待界面确认。",id,timings);
         }catch(Exception error) {

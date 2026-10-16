@@ -23,29 +23,30 @@ map.on('load',()=>{
  message.textContent=labels.ready||'PhotoTrail';trackMessage=message.textContent;mapFailed=false;window.chrome.webview.postMessage({type:'ready'});
 });
 map.on('error',()=>{mapFailed=true;message.textContent=labels.error||'Map unavailable';window.chrome.webview.postMessage({type:'map-error'});});
-let marker,epoch=0,gesture=0,userMoving=false;
+let marker,selectionMarker,epoch=0,photoRevision=-1,gesture=0,userMoving=false,doubleClickEdit=false,dragPinEdit=false;
 function moved(){gesture++;userMoving=true;window.chrome.webview.postMessage({type:'view-moved',epoch});}
 document.getElementById('map').addEventListener('pointerdown',moved,{passive:true});
 map.on('dragstart',moved);map.on('zoomstart',e=>{if(e.originalEvent)moved();});
 map.on('moveend',()=>{if(!userMoving)return;userMoving=false;const p=map.getCenter().wrap();window.chrome.webview.postMessage({type:'view',epoch,longitude:p.lng,latitude:p.lat,zoom:map.getZoom()});});
-function previewPoint(longitude,latitude) {
+function previewPoint(longitude,latitude,editKind=null,revision=photoRevision) {
  if (!Number.isFinite(longitude)||!Number.isFinite(latitude)||longitude < -180||longitude > 180||latitude < -90||latitude > 90) return;
  if (!marker) marker=createMarker('#dd651c',[longitude,latitude]);
  else marker.setLngLat([longitude,latitude]);
  message.textContent=labels.preview||'Preview';
- window.chrome.webview.postMessage({type:'point',longitude,latitude});
+ window.chrome.webview.postMessage({type:'point',longitude,latitude,editKind,revision,epoch});
 }
 function createMarker(color,coordinates) {
- const preview=new maplibregl.Marker({color,draggable:true}).setLngLat(coordinates).addTo(map);
+ const preview=new maplibregl.Marker({color,draggable:dragPinEdit}).setLngLat(coordinates).addTo(map);
+ let revision=photoRevision;preview.on('dragstart',()=>{revision=photoRevision;});
  preview.on('dragend',()=>{
   const point=preview.getLngLat().wrap();
-  previewPoint(point.lng,point.lat);
+  previewPoint(point.lng,point.lat,dragPinEdit?'drag':null,revision);
  });
  return preview;
 }
 window.chrome.webview.addEventListener('message',event=>{
  const data=event.data;
- if(data.type==='map-settings'){epoch=data.epoch;if(/^#[0-9a-f]{6}$/i.test(data.trackColor)&&Number.isFinite(data.trackWidth)&&data.trackWidth>0&&data.trackWidth<=1000&&map.getLayer('trail-lines')){map.setPaintProperty('trail-lines','line-color',['case',['==',['get','role'],'preview'],'#df7b20',data.trackColor]);map.setPaintProperty('trail-lines','line-width',data.trackWidth);map.setPaintProperty('trail-points','circle-color',['case',['==',['get','role'],'preview'],'#df7b20',data.trackColor]);}const v=data.view;if(v)map.jumpTo({center:[v.Longitude,v.Latitude],zoom:v.Zoom});return;}
+ if(data.type==='map-settings'){epoch=data.epoch;doubleClickEdit=data.doubleClickEdit===true;dragPinEdit=data.dragPinEdit===true;doubleClickEdit?map.doubleClickZoom.disable():map.doubleClickZoom.enable();if(marker)marker.setDraggable(dragPinEdit);if(selectionMarker)selectionMarker.setDraggable(dragPinEdit);if(/^#[0-9a-f]{6}$/i.test(data.trackColor)&&Number.isFinite(data.trackWidth)&&data.trackWidth>0&&data.trackWidth<=1000&&map.getLayer('trail-lines')){map.setPaintProperty('trail-lines','line-color',['case',['==',['get','role'],'preview'],'#df7b20',data.trackColor]);map.setPaintProperty('trail-lines','line-width',data.trackWidth);map.setPaintProperty('trail-points','circle-color',['case',['==',['get','role'],'preview'],'#df7b20',data.trackColor]);}const v=data.view;if(v)map.jumpTo({center:[v.Longitude,v.Latitude],zoom:v.Zoom});return;}
  if(data.type==='device-view'&&data.epoch===epoch&&data.view){map.jumpTo({center:[data.view.Longitude,data.view.Latitude],zoom:14});return;}
  if(data.type==='locate'&&data.epoch===epoch){const before=gesture,request=epoch;if(!navigator.geolocation){window.chrome.webview.postMessage({type:'location-error',epoch:request});return;}navigator.geolocation.getCurrentPosition(p=>{if(request!==epoch||before!==gesture)return;window.chrome.webview.postMessage({type:'located',epoch:request,longitude:p.coords.longitude,latitude:p.coords.latitude,zoom:14});},()=>{if(request===epoch&&before===gesture)window.chrome.webview.postMessage({type:'location-error',epoch:request});},{timeout:10000,maximumAge:0,enableHighAccuracy:false});return;}
  if((data.type==='tracks'||data.type==='tracks-no-fit') && map.getSource('trails')) {
@@ -60,6 +61,7 @@ window.chrome.webview.addEventListener('message',event=>{
   message.textContent=points.length?(labels.track||'Track: {0}').replace('{0}',()=>data.name):(labels.noTrack||'Preview');
   trackMessage=message.textContent;
  } else if(data.type==='photos' && map.getSource('photos')) {
+  photoRevision=data.revision;if(selectionMarker){selectionMarker.remove();selectionMarker=null;}const selected=data.geojson.features.filter(f=>f.properties.selected);if(dragPinEdit&&selected.length===1)selectionMarker=createMarker('#d95914',selected[0].geometry.coordinates);
   map.getSource('photos').setData(data.geojson);
   if(data.focus)map.easeTo({center:[data.focus.Longitude,data.focus.Latitude],zoom:14,duration:0});
  } else if(data.type==='match-preview') {
@@ -73,6 +75,7 @@ map.on('click','photo-points',event=>{
  const properties=event.features[0].properties;
  window.chrome.webview.postMessage({type:'select-photo',id:Number(properties.id),revision:Number(properties.revision)});
 });
+map.on('dblclick',event=>{if(!doubleClickEdit)return;event.preventDefault();const p=event.lngLat.wrap();previewPoint(p.lng,p.lat,'double-click');});
 map.on('click', event=>{
  if(map.getLayer('photo-points') && map.queryRenderedFeatures(event.point,{layers:['photo-points']}).length)return;
  const point=event.lngLat.wrap();

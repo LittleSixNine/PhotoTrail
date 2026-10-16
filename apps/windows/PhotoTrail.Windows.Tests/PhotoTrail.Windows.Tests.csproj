@@ -25,6 +25,7 @@
   <Compile Include="../PhotoTrail.Windows/PresetDateArguments.cs" Link="PresetDateArguments.cs" />
   <Compile Include="../PhotoTrail.Windows/MetadataTimes.cs" Link="MetadataTimes.cs" />
   <Compile Include="../PhotoTrail.Windows/BatchTrackMatch.cs" Link="BatchTrackMatch.cs" />
+  <Compile Include="../PhotoTrail.Windows/SessionTime.cs" Link="SessionTime.cs" />
   <Compile Include="../PhotoTrail.Windows/VerifiedPhotoDate.cs" Link="VerifiedPhotoDate.cs" />
   <Compile Include="../PhotoTrail.Windows/SharedMetadataDates.cs" Link="SharedMetadataDates.cs" />
   <Compile Include="../PhotoTrail.Windows/MetadataDate.cs" Link="MetadataDate.cs" />

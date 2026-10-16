@@ -54,8 +54,9 @@ internal static class BatchTrackMatch
             if(text.Length>=19&&text[4]=='-'&&text[7]=='-'&&text[10]=='T')text=text[..4]+":"+text[5..7]+":"+text[8..10]+" "+text[11..];
             date=document.VerifiedCaptureDate;if(date is null)return new(name,"非法时间",document.DateReadFailure.Length>0?document.DateReadFailure:"共享日期未验证或拒绝此输入。");
         }catch(ArgumentException error){return new(name,"非法时间",error.Message);}
-        if(date.InstantLimitation is {} limitation)return new(name,limitation,"共享日期有效，但不能无损适配轨迹时刻；不补时区、不舍入、不改原文。");
-        var time=date.Instant()!.Value;
+        var interpreted=SessionTime.Instant(date,document.SessionZoneId,out var limitation);
+        if(interpreted is null)return new(name,limitation,"共享日期有效，但当前会话无法无歧义适配轨迹时刻；不舍入、不改原文。");
+        var time=interpreted.Value;
         var candidates=new List<(TrackMatch Match,TrackSnapshot Source)>();
         foreach(var track in tracks) {
             token.ThrowIfCancellationRequested();var result=track.Data.Match(time,maximumGap,cancellation:token);

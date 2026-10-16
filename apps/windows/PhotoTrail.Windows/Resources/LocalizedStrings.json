@@ -16687,12 +16687,12 @@
   },
   "改为仅保存本页": {
     "zh-Hans": "改为仅保存本页",
-    "en": "Save only this page instead",
+    "en": "Switch to this page only",
     "zh-Hant": "改為僅儲存本頁",
-    "ja": "このページのみ保存に切り替える",
-    "ko": "이 페이지만 저장하도록 변경",
-    "es": "Guardar solo esta página",
-    "pt-BR": "Salvar apenas esta página"
+    "ja": "このページのみに変更",
+    "ko": "현재 페이지만으로 변경",
+    "es": "Cambiar solo a esta página",
+    "pt-BR": "Alterar apenas para esta página"
   },
   "改名": {
     "zh-Hans": "改名",
@@ -22431,7 +22431,7 @@
     "zh-Hans": "清除定位",
     "en": "Clear location",
     "zh-Hant": "清除定位",
-    "ja": "位置を消去",
+    "ja": "位置情報を消去",
     "ko": "위치 지우기",
     "es": "Borrar ubicación",
     "pt-BR": "Limpar localização"
@@ -30976,5 +30976,482 @@
     "ko": "각 파일의 확장자를 유지합니다. 연결 파일 순서는 기본 파일 우선순위에 영향을 주지 않습니다.",
     "es": "Se conservan las extensiones. El orden de archivos asociados no cambia la prioridad principal.",
     "pt-BR": "As extensões são mantidas. A ordem dos associados não altera a prioridade principal."
+  },
+  "保存全部副本": {
+    "zh-Hans": "保存全部副本",
+    "en": "Save all pending copies",
+    "zh-Hant": "儲存全部副本",
+    "ja": "すべての下書きをコピー保存",
+    "ko": "모든 초안 사본 저장",
+    "es": "Guardar todas las copias pendientes",
+    "pt-BR": "Salvar todas as cópias pendentes"
+  },
+  "保存本页副本": {
+    "zh-Hans": "保存本页副本",
+    "en": "Save this page's copies",
+    "zh-Hant": "儲存本頁副本",
+    "ja": "このページのコピーを保存",
+    "ko": "현재 페이지 사본 저장",
+    "es": "Guardar copias de esta página",
+    "pt-BR": "Salvar cópias desta página"
+  },
+  "保存全部元数据": {
+    "zh-Hans": "保存全部元数据",
+    "en": "Save all metadata",
+    "zh-Hant": "儲存全部中繼資料",
+    "ja": "すべてのメタデータを保存",
+    "ko": "모든 메타데이터 저장",
+    "es": "Guardar todos los metadatos",
+    "pt-BR": "Salvar todos os metadados"
+  },
+  "保存本页元数据": {
+    "zh-Hans": "保存本页元数据",
+    "en": "Save this page's metadata",
+    "zh-Hant": "儲存本頁中繼資料",
+    "ja": "このページのメタデータを保存",
+    "ko": "현재 페이지 메타데이터 저장",
+    "es": "Guardar metadatos de esta página",
+    "pt-BR": "Salvar metadados desta página"
+  },
+  "保存待保存修改 · Ctrl+S；先核对冻结摘要": {
+    "zh-Hans": "保存待保存修改 · Ctrl+S；先核对冻结摘要",
+    "en": "Save pending changes · Ctrl+S; review the frozen summary first",
+    "zh-Hant": "儲存待存修改 · Ctrl+S；先核對凍結摘要",
+    "ja": "変更を保存 · Ctrl+S、確定概要を先に確認",
+    "ko": "변경 사항 저장 · Ctrl+S, 고정 요약 먼저 확인",
+    "es": "Guardar cambios · Ctrl+S; revisar primero el resumen fijado",
+    "pt-BR": "Salvar alterações · Ctrl+S; revisar primeiro o resumo congelado"
+  },
+  "本范围没有待保存修改。": {
+    "zh-Hans": "本范围没有待保存修改。",
+    "en": "No pending changes in this scope.",
+    "zh-Hant": "本範圍沒有待存修改。",
+    "ja": "この範囲に未保存の変更はありません。",
+    "ko": "이 범위에 저장할 변경 사항이 없습니다.",
+    "es": "No hay cambios pendientes en este alcance.",
+    "pt-BR": "Não há alterações pendentes neste escopo."
+  },
+  "保存元数据编辑和地图定位两个页面的全部待保存修改，不限当前选择、搜索或筛选。": {
+    "zh-Hans": "保存元数据编辑和地图定位两个页面的全部待保存修改，不限当前选择、搜索或筛选。",
+    "en": "Save all pending metadata and map changes, regardless of selection, search or filters.",
+    "zh-Hant": "儲存中繼資料與地圖兩頁全部待存修改，不限目前選取、搜尋或篩選。",
+    "ja": "選択・検索・フィルターに関係なく、メタデータと地図の全変更を保存します。",
+    "ko": "선택, 검색, 필터와 관계없이 메타데이터와 지도 페이지의 모든 변경을 저장합니다.",
+    "es": "Guardar todos los cambios de metadatos y mapa, sin limitarse a la selección, búsqueda o filtros.",
+    "pt-BR": "Salvar todas as alterações de metadados e mapa, independentemente de seleção, busca ou filtros."
+  },
+  "默认副本保留会话草稿；下一步仍须核对冻结摘要并明确执行。": {
+    "zh-Hans": "默认副本保留会话草稿；下一步仍须核对冻结摘要并明确执行。",
+    "en": "Copies retain session drafts. Review the frozen summary and explicitly execute next.",
+    "zh-Hant": "預設副本保留工作階段草稿；下一步仍須核對凍結摘要並明確執行。",
+    "ja": "コピー後も下書きを保持します。次に確定概要を確認し、明示的に実行してください。",
+    "ko": "사본 저장 후에도 세션 초안이 유지됩니다. 고정 요약을 확인하고 명시적으로 실행하세요.",
+    "es": "Las copias conservan los borradores. Después hay que revisar el resumen fijado y ejecutar explícitamente.",
+    "pt-BR": "As cópias mantêm os rascunhos. Depois revise o resumo congelado e execute explicitamente."
+  },
+  "下次不再提示范围": {
+    "zh-Hans": "下次不再提示范围",
+    "en": "Do not show the scope reminder next time",
+    "zh-Hant": "下次不再提示範圍",
+    "ja": "次回から範囲の確認を表示しない",
+    "ko": "다음부터 범위 알림 표시 안 함",
+    "es": "No volver a mostrar el aviso de alcance",
+    "pt-BR": "Não mostrar novamente o aviso de escopo"
+  },
+  "确认保存范围": {
+    "zh-Hans": "确认保存范围",
+    "en": "Confirm save scope",
+    "zh-Hant": "確認儲存範圍",
+    "ja": "保存範囲を確認",
+    "ko": "저장 범위 확인",
+    "es": "Confirmar alcance de guardado",
+    "pt-BR": "Confirmar escopo de salvamento"
+  },
+  "继续核对保存摘要": {
+    "zh-Hans": "继续核对保存摘要",
+    "en": "Continue to save summary",
+    "zh-Hant": "繼續核對儲存摘要",
+    "ja": "保存概要の確認に進む",
+    "ko": "저장 요약 확인 계속",
+    "es": "Continuar al resumen de guardado",
+    "pt-BR": "Continuar para o resumo de salvamento"
+  },
+  "当前批次相机时区": {
+    "zh-Hans": "当前批次相机时区",
+    "en": "Current session camera time zone",
+    "zh-Hant": "目前批次相機時區",
+    "ja": "現在のセッションのカメラ時間帯",
+    "ko": "현재 세션 카메라 시간대",
+    "es": "Zona horaria de cámara de la sesión actual",
+    "pt-BR": "Fuso horário da câmera da sessão atual"
+  },
+  "当前批次相机时区…": {
+    "zh-Hans": "当前批次相机时区…",
+    "en": "Current session camera time zone…",
+    "zh-Hant": "目前批次相機時區…",
+    "ja": "現在のカメラ時間帯…",
+    "ko": "현재 세션 카메라 시간대…",
+    "es": "Zona horaria de la sesión actual…",
+    "pt-BR": "Fuso horário da sessão atual…"
+  },
+  "仅解释当前批次无偏移时间，不改原始值、草稿或新会话默认设置。重复／不存在时间将阻止匹配和GPX导出。": {
+    "zh-Hans": "仅解释当前批次无偏移时间，不改原始值、草稿或新会话默认设置。重复／不存在时间将阻止匹配和GPX导出。",
+    "en": "Interpret only this session's offset-free times. Original values, drafts and new-session defaults stay unchanged. Repeated or nonexistent times block matching and GPX export.",
+    "zh-Hant": "僅解釋目前批次無偏移時間，不改原始值、草稿或新工作階段預設。重複／不存在時間會阻止比對和GPX匯出。",
+    "ja": "このセッションのオフセットなし時刻のみ解釈します。原値・下書き・新規既定値は保持し、重複・存在しない時刻は照合とGPX出力を阻止します。",
+    "ko": "현재 세션의 오프셋 없는 시간만 해석합니다. 원본, 초안, 새 세션 기본값은 유지하며 중복되거나 존재하지 않는 시간은 매칭과 GPX 내보내기를 차단합니다.",
+    "es": "Interpretar solo las horas sin desfase de esta sesión. Se conservan originales, borradores y valores predeterminados. Las horas repetidas o inexistentes bloquean coincidencias y GPX.",
+    "pt-BR": "Interpretar apenas horários sem deslocamento desta sessão. Originais, rascunhos e padrões são preservados. Horários repetidos ou inexistentes bloqueiam correspondência e GPX."
+  },
+  "应用当前批次时区": {
+    "zh-Hans": "应用当前批次时区",
+    "en": "Apply current session time zone",
+    "zh-Hant": "套用目前批次時區",
+    "ja": "現在の時間帯を適用",
+    "ko": "현재 세션 시간대 적용",
+    "es": "Aplicar zona horaria de la sesión",
+    "pt-BR": "Aplicar fuso horário da sessão"
+  },
+  "请先应用或取消编辑输入，再调整当前批次时区。": {
+    "zh-Hans": "请先应用或取消编辑输入，再调整当前批次时区。",
+    "en": "Apply or cancel editor input before changing this session's time zone.",
+    "zh-Hant": "請先套用或取消編輯輸入，再調整目前批次時區。",
+    "ja": "編集入力を適用または取り消してから時間帯を変更してください。",
+    "ko": "현재 시간대를 바꾸기 전에 편집 입력을 적용하거나 취소하세요.",
+    "es": "Aplicar o cancelar la edición antes de cambiar la zona horaria.",
+    "pt-BR": "Aplique ou cancele a edição antes de alterar o fuso horário."
+  },
+  "当前批次时区已调整；原始值和草稿未改，旧计算结果已失效。": {
+    "zh-Hans": "当前批次时区已调整；原始值和草稿未改，旧计算结果已失效。",
+    "en": "Session time zone changed. Original values and drafts are unchanged; previous calculations are invalidated.",
+    "zh-Hant": "目前批次時區已調整；原始值和草稿未改，舊計算結果已失效。",
+    "ja": "現在の時間帯を変更しました。原値・下書きは保持し、以前の計算は無効です。",
+    "ko": "세션 시간대를 변경했습니다. 원본과 초안은 유지되며 이전 계산은 무효화되었습니다.",
+    "es": "Zona de sesión cambiada. Originales y borradores intactos; los cálculos anteriores quedan invalidados.",
+    "pt-BR": "Fuso da sessão alterado. Originais e rascunhos intactos; cálculos anteriores invalidados."
+  },
+  "清除定位…": {
+    "zh-Hans": "清除定位…",
+    "en": "Clear location…",
+    "zh-Hant": "清除定位…",
+    "ja": "位置情報を消去…",
+    "ko": "위치 지우기…",
+    "es": "Borrar ubicación…",
+    "pt-BR": "Limpar localização…"
+  },
+  "保留照片和列表项目，清除坐标、海拔、GPS基准／处理方式及关联地区；保存才写文件，可一次撤销。": {
+    "zh-Hans": "保留照片和列表项目，清除坐标、海拔、GPS基准／处理方式及关联地区；保存才写文件，可一次撤销。",
+    "en": "Keep photos and list items. Clear coordinates, elevation, GPS datum/method and associated regions. Files change only on save; undo is available.",
+    "zh-Hant": "保留照片和清單項目，清除座標、海拔、GPS基準／處理方式及關聯地區；儲存才寫檔，可一次復原。",
+    "ja": "写真と一覧を保持し、座標・高度・GPS基準/方式・関連地域を消去します。保存時のみ書き込み、元に戻せます。",
+    "ko": "사진과 목록은 유지하고 좌표, 고도, GPS 기준/처리 방식과 관련 지역을 지웁니다. 저장할 때만 파일에 쓰며 실행 취소할 수 있습니다.",
+    "es": "Conservar fotos y lista; borrar coordenadas, altitud, referencia/método GPS y regiones asociadas. Solo se escribe al guardar y se puede deshacer.",
+    "pt-BR": "Manter fotos e lista; limpar coordenadas, altitude, referência/método GPS e regiões associadas. Grava apenas ao salvar e permite desfazer."
+  },
+  "清除定位可一次撤销；仅已验证副本组合可写，其他组合保持拒绝。": {
+    "zh-Hans": "清除定位可一次撤销；仅已验证副本组合可写，其他组合保持拒绝。",
+    "en": "Location clearing can be undone. Only verified copy combinations can be written; other combinations remain blocked.",
+    "zh-Hant": "清除定位可一次復原；僅已驗證副本組合可寫，其他組合維持拒絕。",
+    "ja": "位置消去は元に戻せます。検証済みコピーの組み合わせのみ書き込み、他は拒否します。",
+    "ko": "위치 지우기는 실행 취소할 수 있습니다. 검증된 사본 조합만 쓰며 다른 조합은 차단합니다.",
+    "es": "Se puede deshacer el borrado. Solo se escriben combinaciones de copias verificadas; las demás siguen bloqueadas.",
+    "pt-BR": "A limpeza pode ser desfeita. Apenas combinações de cópias verificadas são gravadas; outras continuam bloqueadas."
+  },
+  "本格式定位清除未取得写入资格，草稿保持。": {
+    "zh-Hans": "本格式定位清除未取得写入资格，草稿保持。",
+    "en": "Location clearing is not qualified for this format; drafts are retained.",
+    "zh-Hant": "本格式定位清除未取得寫入資格，草稿保留。",
+    "ja": "この形式の位置消去は未検証です。下書きを保持します。",
+    "ko": "이 형식의 위치 지우기는 검증되지 않았습니다. 초안을 유지합니다.",
+    "es": "El borrado de ubicación no está validado para este formato; se conservan los borradores.",
+    "pt-BR": "Limpeza de localização não validada neste formato; rascunhos mantidos."
+  },
+  "原图与旁车同时清除定位的组合尚未验证，未拆开来源或放宽保护。": {
+    "zh-Hans": "原图与旁车同时清除定位的组合尚未验证，未拆开来源或放宽保护。",
+    "en": "Clearing both image and sidecar is unverified. Sources remain linked and protection is unchanged.",
+    "zh-Hant": "原圖與附屬檔同時清除定位尚未驗證，未拆開來源或放寬保護。",
+    "ja": "画像とサイドカーの同時消去は未検証です。関連付けと保護を保持します。",
+    "ko": "이미지와 사이드카 동시 지우기는 미검증입니다. 소스 연결과 보호를 유지합니다.",
+    "es": "No se ha validado el borrado conjunto de imagen y archivo auxiliar; se conserva la vinculación y protección.",
+    "pt-BR": "Limpeza conjunta de imagem e arquivo auxiliar não validada; vínculo e proteção mantidos."
+  },
+  "原图与旁车清除组合未验证，未写入。": {
+    "zh-Hans": "原图与旁车清除组合未验证，未写入。",
+    "en": "Image/sidecar clearing is unverified; nothing written.",
+    "zh-Hant": "原圖與附屬檔清除組合未驗證，未寫入。",
+    "ja": "画像/サイドカーの消去は未検証です。書き込んでいません。",
+    "ko": "이미지/사이드카 지우기 조합 미검증, 쓰지 않았습니다.",
+    "es": "Borrado conjunto no validado; no se ha escrito.",
+    "pt-BR": "Limpeza conjunta não validada; nada gravado."
+  },
+  "定位来源实例不唯一，未清除。": {
+    "zh-Hans": "定位来源实例不唯一，未清除。",
+    "en": "Location source is ambiguous; nothing cleared.",
+    "zh-Hant": "定位來源實例不唯一，未清除。",
+    "ja": "位置情報の出典が一意ではありません。消去しません。",
+    "ko": "위치 소스가 유일하지 않아 지우지 않았습니다.",
+    "es": "El origen de ubicación es ambiguo; no se ha borrado.",
+    "pt-BR": "Origem da localização ambígua; nada limpo."
+  },
+  "定位清除目前仅已验证副本；新旁车／原位保持拒绝，草稿保留": {
+    "zh-Hans": "定位清除目前仅已验证副本；新旁车／原位保持拒绝，草稿保留",
+    "en": "Location clearing is verified for copies only; new sidecars/in-place writes stay blocked and drafts retained",
+    "zh-Hant": "定位清除目前僅驗證副本；新附屬檔／原位仍拒絕，草稿保留",
+    "ja": "位置消去はコピーのみ検証済み。新規サイドカー/上書きは拒否し下書きを保持",
+    "ko": "위치 지우기는 사본만 검증됨. 새 사이드카/원위치 쓰기 차단, 초안 유지",
+    "es": "Borrado validado solo en copias; nuevos auxiliares y escritura original bloqueados, borradores conservados",
+    "pt-BR": "Limpeza validada só em cópias; novo auxiliar e escrita no original bloqueados, rascunhos mantidos"
+  },
+  "会话时区中不存在的时间": {
+    "zh-Hans": "会话时区中不存在的时间",
+    "en": "Time does not exist in the session time zone",
+    "zh-Hant": "工作階段時區中不存在的時間",
+    "ja": "セッション時間帯に存在しない時刻",
+    "ko": "세션 시간대에 존재하지 않는 시간",
+    "es": "La hora no existe en la zona de la sesión",
+    "pt-BR": "O horário não existe no fuso da sessão"
+  },
+  "会话时区中重复的时间": {
+    "zh-Hans": "会话时区中重复的时间",
+    "en": "Repeated time in the session time zone",
+    "zh-Hant": "工作階段時區中重複的時間",
+    "ja": "セッション時間帯で重複する時刻",
+    "ko": "세션 시간대에서 중복되는 시간",
+    "es": "Hora repetida en la zona de la sesión",
+    "pt-BR": "Horário repetido no fuso da sessão"
+  },
+  "会话时区或平台范围无效": {
+    "zh-Hans": "会话时区或平台范围无效",
+    "en": "Invalid session time zone or platform range",
+    "zh-Hant": "工作階段時區或平台範圍無效",
+    "ja": "無効な時間帯またはプラットフォーム範囲",
+    "ko": "세션 시간대 또는 플랫폼 범위가 잘못됨",
+    "es": "Zona horaria o rango de plataforma inválido",
+    "pt-BR": "Fuso horário ou intervalo da plataforma inválido"
+  },
+  "精度不足": {
+    "zh-Hans": "精度不足",
+    "en": "Insufficient precision",
+    "zh-Hant": "精度不足",
+    "ja": "精度不足",
+    "ko": "정밀도 부족",
+    "es": "Precisión insuficiente",
+    "pt-BR": "Precisão insuficiente"
+  },
+  "平台范围不足": {
+    "zh-Hans": "平台范围不足",
+    "en": "Outside the platform range",
+    "zh-Hant": "超出平台範圍",
+    "ja": "プラットフォームの範囲外",
+    "ko": "플랫폼 범위 초과",
+    "es": "Fuera del rango de la plataforma",
+    "pt-BR": "Fora do intervalo da plataforma"
+  },
+  "保存范围": {
+    "zh-Hans": "保存范围",
+    "en": "Save scope",
+    "zh-Hant": "儲存範圍",
+    "ja": "保存範囲",
+    "ko": "저장 범위",
+    "es": "Alcance de guardado",
+    "pt-BR": "Escopo de salvamento"
+  },
+  "所有元数据（默认）": {
+    "zh-Hans": "所有元数据（默认）",
+    "en": "All metadata (default)",
+    "zh-Hant": "所有中繼資料（預設）",
+    "ja": "すべてのメタデータ（既定）",
+    "ko": "모든 메타데이터 (기본)",
+    "es": "Todos los metadatos (predeterminado)",
+    "pt-BR": "Todos os metadados (padrão)"
+  },
+  "当前页元数据": {
+    "zh-Hans": "当前页元数据",
+    "en": "Current page metadata",
+    "zh-Hant": "目前頁面中繼資料",
+    "ja": "現在のページのメタデータ",
+    "ko": "현재 페이지 메타데이터",
+    "es": "Metadatos de la página actual",
+    "pt-BR": "Metadados da página atual"
+  },
+  "元数据页字段": {
+    "zh-Hans": "元数据页字段",
+    "en": "Metadata-page fields",
+    "zh-Hant": "中繼資料頁欄位",
+    "ja": "メタデータページの項目",
+    "ko": "메타데이터 페이지 필드",
+    "es": "Campos de la página de metadatos",
+    "pt-BR": "Campos da página de metadados"
+  },
+  "地图定位／地点／该页日期": {
+    "zh-Hans": "地图定位／地点／该页日期",
+    "en": "Map location, regions and map-page dates",
+    "zh-Hant": "地圖定位／地點／該頁日期",
+    "ja": "地図の位置・地域・日付",
+    "ko": "지도 위치, 지역 및 해당 페이지 날짜",
+    "es": "Ubicación, regiones y fechas de la página de mapa",
+    "pt-BR": "Localização, regiões e datas da página de mapa"
+  },
+  "允许双击编辑定位": {
+    "zh-Hans": "允许双击编辑定位",
+    "en": "Allow double-click location editing",
+    "zh-Hant": "允許按兩下編輯定位",
+    "ja": "ダブルクリックで位置を編集",
+    "ko": "두 번 클릭으로 위치 편집 허용",
+    "es": "Permitir editar ubicación con doble clic",
+    "pt-BR": "Permitir editar localização com clique duplo"
+  },
+  "允许拖动定位标记": {
+    "zh-Hans": "允许拖动定位标记",
+    "en": "Allow dragging location markers",
+    "zh-Hant": "允許拖曳定位標記",
+    "ja": "位置マーカーのドラッグを許可",
+    "ko": "위치 마커 끌기 허용",
+    "es": "Permitir arrastrar marcadores de ubicación",
+    "pt-BR": "Permitir arrastar marcadores de localização"
+  },
+  "位置显示查询": {
+    "zh-Hans": "位置显示查询",
+    "en": "Location display queries",
+    "zh-Hant": "位置顯示查詢",
+    "ja": "位置表示の検索",
+    "ko": "위치 표시 조회",
+    "es": "Consultas para mostrar ubicación",
+    "pt-BR": "Consultas para exibir localização"
+  },
+  "保存定位时自动补地区": {
+    "zh-Hans": "保存定位时自动补地区",
+    "en": "Fill regions automatically when saving location",
+    "zh-Hant": "儲存定位時自動補地區",
+    "ja": "位置保存時に地域を自動補完",
+    "ko": "위치 저장 시 지역 자동 채우기",
+    "es": "Completar regiones al guardar ubicación",
+    "pt-BR": "Preencher regiões ao salvar localização"
+  },
+  "两个地区偏好独立保存；真实在线永久写入受许可门限制，当前不自动查询或写地区。手动补齐只填缺失。": {
+    "zh-Hans": "两个地区偏好独立保存；真实在线永久写入受许可门限制，当前不自动查询或写地区。手动补齐只填缺失。",
+    "en": "The two region preferences are independent. Online persistence requires licensing; no automatic region queries or writes are performed. Manual fill changes missing fields only.",
+    "zh-Hant": "兩個地區偏好獨立儲存；線上永久寫入受許可限制，目前不自動查詢或寫地區。手動僅補缺失。",
+    "ja": "地域の2設定は独立です。オンライン永続保存には許可が必要で、自動検索・書き込みは行いません。手動補完は欠落項目のみです。",
+    "ko": "두 지역 설정은 독립적입니다. 온라인 영구 쓰기는 라이선스가 필요하며 자동 조회/쓰기는 하지 않습니다. 수동 채우기는 누락 필드만 적용합니다.",
+    "es": "Las dos preferencias son independientes. La persistencia en línea requiere licencia; no se consultan ni escriben regiones automáticamente. El relleno manual solo completa ausentes.",
+    "pt-BR": "As duas preferências são independentes. Persistência online exige licença; não há consulta ou gravação automática de regiões. O preenchimento manual altera apenas campos ausentes."
+  },
+  "主保存按钮与Ctrl+S使用同一范围：默认所有元数据，不受选择／搜索／筛选限制；副本保留草稿。": {
+    "zh-Hans": "主保存按钮与Ctrl+S使用同一范围：默认所有元数据，不受选择／搜索／筛选限制；副本保留草稿。",
+    "en": "The Save button and Ctrl+S share one scope: all metadata by default, regardless of selection, search or filters. Copies retain drafts.",
+    "zh-Hant": "主儲存按鈕與Ctrl+S使用相同範圍：預設所有中繼資料，不限選取／搜尋／篩選；副本保留草稿。",
+    "ja": "保存ボタンとCtrl+Sは同じ範囲を使用します。既定は選択・検索・フィルターに関係なく全項目で、コピー後も下書きを保持します。",
+    "ko": "저장 버튼과 Ctrl+S는 같은 범위를 사용합니다. 기본은 선택/검색/필터와 무관한 모든 메타데이터이며 사본 저장 후 초안은 유지됩니다.",
+    "es": "El botón Guardar y Ctrl+S comparten alcance: todos los metadatos por defecto, sin limitar selección, búsqueda o filtros. Las copias conservan borradores.",
+    "pt-BR": "O botão Salvar e Ctrl+S compartilham o escopo: todos os metadados por padrão, sem limitar seleção, busca ou filtros. Cópias mantêm rascunhos."
+  },
+  "单击仅预览；启用的双击或拖动是明确位置编辑，进入可撤销草稿，保存才写文件。": {
+    "zh-Hans": "单击仅预览；启用的双击或拖动是明确位置编辑，进入可撤销草稿，保存才写文件。",
+    "en": "Single-click previews only. Enabled double-click or drag explicitly edits location as an undoable draft; files change only on save.",
+    "zh-Hant": "單擊僅預覽；啟用的雙擊或拖曳為明確定位編輯，可復原，儲存才寫檔。",
+    "ja": "シングルクリックはプレビューのみ。有効なダブルクリックやドラッグは元に戻せる下書きを編集し、保存時のみ書き込みます。",
+    "ko": "한 번 클릭은 미리보기만 합니다. 활성화된 두 번 클릭/끌기는 취소 가능한 초안을 편집하며 저장할 때만 파일에 씁니다.",
+    "es": "Un clic solo muestra vista previa. Doble clic o arrastre habilitados editan un borrador reversible; solo se escribe al guardar.",
+    "pt-BR": "Clique simples apenas pré-visualiza. Clique duplo ou arraste habilitados editam rascunho reversível; grava só ao salvar."
+  },
+  "仅作用于随后新建会话；当前批次可独立调整，无偏移时间不被改写为UTC标签。": {
+    "zh-Hans": "仅作用于随后新建会话；当前批次可独立调整，无偏移时间不被改写为UTC标签。",
+    "en": "Applies only to new sessions. The current session can be adjusted independently; offset-free times are never relabeled as UTC.",
+    "zh-Hant": "僅用於隨後新建工作階段；目前批次可獨立調整，無偏移時間不改寫為UTC。",
+    "ja": "新規セッションのみ適用。現在のセッションは個別に調整でき、オフセットなし時刻をUTCに書き換えません。",
+    "ko": "새 세션에만 적용합니다. 현재 세션은 독립적으로 조정하며 오프셋 없는 시간을 UTC로 바꾸지 않습니다.",
+    "es": "Solo para nuevas sesiones. La sesión actual se ajusta independientemente; no se etiqueta como UTC una hora sin desfase.",
+    "pt-BR": "Só para novas sessões. A sessão atual pode ser ajustada separadamente; horários sem deslocamento não são rotulados como UTC."
+  },
+  "手动补齐只填缺失，已有地区文字保持。": {
+    "zh-Hans": "手动补齐只填缺失，已有地区文字保持。",
+    "en": "Manual fill changes missing fields only; existing region text is kept.",
+    "zh-Hant": "手動僅補缺失，已有地區文字保留。",
+    "ja": "手動補完は欠落項目のみ。既存の地域文字列を保持します。",
+    "ko": "수동 채우기는 누락 필드만 변경하며 기존 지역 텍스트는 유지합니다.",
+    "es": "El relleno manual solo completa ausentes y conserva los textos existentes.",
+    "pt-BR": "O preenchimento manual altera apenas ausentes e preserva textos existentes."
+  },
+  "共享日期有效，但当前会话无法无歧义适配轨迹时刻；不舍入、不改原文。": {
+    "zh-Hans": "共享日期有效，但当前会话无法无歧义适配轨迹时刻；不舍入、不改原文。",
+    "en": "The shared date is valid, but this session cannot map it unambiguously to a track instant. No rounding or source edits.",
+    "zh-Hant": "共用日期有效，但目前工作階段無法無歧義對應軌跡時刻；不捨入、不改原文。",
+    "ja": "共有日付は有効ですが、このセッションでは軌跡の時点に一意に対応できません。丸めや原文変更はしません。",
+    "ko": "공유 날짜는 유효하지만 세션에서 트랙 시점으로 명확히 변환할 수 없습니다. 반올림이나 원본 수정은 하지 않습니다.",
+    "es": "La fecha compartida es válida, pero esta sesión no puede asignarla sin ambigüedad a un instante de trayectoria. Sin redondear ni modificar originales.",
+    "pt-BR": "A data compartilhada é válida, mas a sessão não pode associá-la sem ambiguidade a um instante da trilha. Sem arredondar nem editar originais."
+  },
+  "定位来源尚未完整读取，未清除。": {
+    "zh-Hans": "定位来源尚未完整读取，未清除。",
+    "en": "Location sources are not fully loaded; nothing was cleared.",
+    "zh-Hant": "定位來源尚未完整讀取，未清除。",
+    "ja": "位置情報の出典が未読込のため消去しません。",
+    "ko": "위치 출처가 완전히 로드되지 않아 지우지 않았습니다.",
+    "es": "Las fuentes de ubicación no están cargadas; no se borró nada.",
+    "pt-BR": "Fontes de localização não carregadas; nada foi apagado."
+  },
+  "配对定位清除资格失效。": {
+    "zh-Hans": "配对定位清除资格失效。",
+    "en": "Paired location-clear eligibility changed.",
+    "zh-Hant": "配對定位清除資格失效。",
+    "ja": "関連位置消去の適格性が変わりました。",
+    "ko": "쌍 파일 위치 지우기 자격이 변경되었습니다.",
+    "es": "Cambió la elegibilidad del borrado emparejado.",
+    "pt-BR": "A elegibilidade da remoção do par mudou."
+  },
+  "配对原图暂存身份改变。": {
+    "zh-Hans": "配对原图暂存身份改变。",
+    "en": "Staged paired image identity changed.",
+    "zh-Hant": "配對原圖暫存身分改變。",
+    "ja": "関連画像の一時ファイルが変わりました。",
+    "ko": "임시 쌍 이미지의 식별 정보가 변경되었습니다.",
+    "es": "Cambió la identidad de la imagen emparejada temporal.",
+    "pt-BR": "A identidade da imagem temporária do par mudou."
+  },
+  "配对原图定位清除回读失败：": {
+    "zh-Hans": "配对原图定位清除回读失败：",
+    "en": "Paired image location-clear readback failed: ",
+    "zh-Hant": "配對原圖定位清除回讀失敗：",
+    "ja": "関連画像の位置消去読込検証に失敗: ",
+    "ko": "쌍 이미지 위치 지우기 재읽기 실패: ",
+    "es": "Falló la lectura del borrado en imagen emparejada: ",
+    "pt-BR": "Falha na releitura da remoção de localização do par: "
+  },
+  "配对原图非目标元数据改变：": {
+    "zh-Hans": "配对原图非目标元数据改变：",
+    "en": "Unrelated paired image metadata changed: ",
+    "zh-Hant": "配對原圖非目標中繼資料改變：",
+    "ja": "関連画像の対象外メタデータが変更: ",
+    "ko": "쌍 이미지의 대상 외 메타데이터 변경: ",
+    "es": "Cambió metadato ajeno de imagen emparejada: ",
+    "pt-BR": "Metadados não visados da imagem do par alterados: "
+  },
+  "配对原图完整非目标来源实例改变：": {
+    "zh-Hans": "配对原图完整非目标来源实例改变：",
+    "en": "Unrelated full-source paired metadata changed: ",
+    "zh-Hant": "配對原圖完整非目標來源實例改變：",
+    "ja": "関連画像の対象外ソース情報が変更: ",
+    "ko": "쌍 이미지의 전체 대상 외 출처 변경: ",
+    "es": "Cambió fuente completa ajena de imagen emparejada: ",
+    "pt-BR": "Fonte completa não visada do par alterada: "
+  },
+  "配对非目标APP13改变。": {
+    "zh-Hans": "配对非目标APP13改变。",
+    "en": "Unrelated paired APP13 payload changed.",
+    "zh-Hant": "配對非目標APP13改變。",
+    "ja": "関連画像の対象外APP13が変わりました。",
+    "ko": "쌍 이미지의 대상 외 APP13이 변경되었습니다.",
+    "es": "Cambió APP13 ajeno de imagen emparejada.",
+    "pt-BR": "O APP13 não visado do par mudou."
+  },
+  "配对照片像素或缩略图改变。": {
+    "zh-Hans": "配对照片像素或缩略图改变。",
+    "en": "Paired image pixels or thumbnail changed.",
+    "zh-Hant": "配對照片像素或縮圖改變。",
+    "ja": "関連画像の画素またはサムネイルが変わりました。",
+    "ko": "쌍 이미지 픽셀 또는 썸네일이 변경되었습니다.",
+    "es": "Cambiaron píxeles o miniatura de la imagen emparejada.",
+    "pt-BR": "Pixels ou miniatura da imagem do par mudaram."
   }
 }

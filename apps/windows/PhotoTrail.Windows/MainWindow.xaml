@@ -119,6 +119,7 @@
          <Button Content="{DynamicResource M1.AdjustDate}" Tag="3" Click="M1OpenTool" />
          <Button Content="{DynamicResource M1.PhotoGpx}" Click="M4OpenPhotoGpx" />
          <Button AutomationProperties.Name="{DynamicResource M1.GpsCopy}" Click="M1PrepareGpsCopy"><TextBlock Text="{DynamicResource M1.GpsCopy}" TextWrapping="Wrap" /></Button>
+         <Button AutomationProperties.Name="{DynamicResource M9.ClearLocation}" Click="M9ClearLocation"><TextBlock Text="{DynamicResource M9.ClearLocation}" TextWrapping="Wrap"/></Button>
          <TextBlock Text="{DynamicResource M1.GpsClearLimit}" TextWrapping="Wrap" Margin="3,9" />
          <Button Content="{DynamicResource M1.ClearDraft}" Click="UndoDraft" />
          <Button x:Name="RereadPhotosButton" Content="{DynamicResource L.44B72659D5BADE69}" AutomationProperties.Name="{DynamicResource L.945F1BCC4973C975}" Padding="8,6" Click="RereadPhotos" Margin="3" />

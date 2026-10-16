@@ -13,7 +13,7 @@ public static class TrackMapPayload
             cancellation.ThrowIfCancellationRequested();
             features.Add(new { type = "Feature", properties = new { id = marker.Id, revision, name = marker.Name, selected = marker.Selected }, geometry = new { type = "Point", coordinates = new[] { marker.Position.Longitude, marker.Position.Latitude } } });
         }
-        return JsonSerializer.Serialize(new { type = "photos", focus, geojson = new { type = "FeatureCollection", features } });
+        return JsonSerializer.Serialize(new { type = "photos", revision, focus, geojson = new { type = "FeatureCollection", features } });
     }
     public static string Many(IEnumerable<string> payloads,CancellationToken token=default){var features=new List<JsonElement>();var names=new List<string>();foreach(var payload in payloads){token.ThrowIfCancellationRequested();using var item=JsonDocument.Parse(payload);features.AddRange(item.RootElement.GetProperty("geojson").GetProperty("features").EnumerateArray().Select(f=>f.Clone()));names.Add(item.RootElement.GetProperty("name").GetString()??"");}return JsonSerializer.Serialize(new{type="tracks",name=string.Join(" / ",names),geojson=new{type="FeatureCollection",features}});}
     public static string Compare(TrackData current,TrackData preview,string name,CancellationToken cancellation=default)

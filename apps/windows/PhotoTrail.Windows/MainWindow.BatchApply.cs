@@ -12,7 +12,7 @@ public partial class MainWindow
     internal volatile bool batchCalculationStarted;
     internal long batchCalculationTicks,batchFinishedTicks;
     sealed record BatchDetails(int Missing=0,int FilenameMismatch=0,int FilenameInvalid=0,int CsvIdentity=0,int CsvUnknown=0,IReadOnlyList<Measurement>? Measurements=null,double InitialSourceMs=0,int CopyMissing=0,int OperationCount=0,int DateCandidates=0,int CsvInvalid=0,double ProjectionHostMs=0,int ProjectionRequests=0,double ParameterValidationMs=0);
-    sealed record AppliedBatch(PhotoRow[] Rows,Dictionary<string,string>[] Before,long[] Revisions);
+    sealed record AppliedBatch(PhotoRow[] Rows,Dictionary<string,string>[] Before,long[] Revisions,DraftContext[] Contexts);
     AppliedBatch? lastApply;
     bool preserveBatchEditor;
     static bool SameDraft(IReadOnlyDictionary<string,string> a,IReadOnlyDictionary<string,string> b)=>a.Count==b.Count&&a.All(p=>b.TryGetValue(p.Key,out var value)&&value==p.Value);
@@ -34,10 +34,10 @@ public partial class MainWindow
         if(dateEditorWindow is not null&&!dateEditorSelection.SequenceEqual(Selected)){Status.Text=L10n.Message(WText("SelectionChanged"));return;}
         try {
             if(InspectorHasInput())throw new InvalidOperationException(L10n.Text("请先应用编辑区输入。"));
-            var options=ReadDateInput();string input=JsonSerializer.Serialize(options);
+            var options=ReadDateInput();bool mapDateOrigin=WorkspaceTabs.SelectedIndex==1;string input=JsonSerializer.Serialize(options);
             await ApplyMetadataBatch("日期",async(docs,revision,token)=>{
                 var plan=await DatePagePreview.CalculateAsync(docs,options,revision,()=>Volatile.Read(ref dateRevision),token,()=>{if(revision==Volatile.Read(ref dateRevision)&&!token.IsCancellationRequested){batchCalculationTicks=Stopwatch.GetTimestamp();batchCalculationStarted=true;}},adapter=>{if(revision==Volatile.Read(ref dateRevision))batchDateAdapter=adapter;});
-                plan.Apply();return new(plan.MissingCount,plan.FilenameMismatchCount,plan.FilenameInvalidCount,Measurements:plan.Measurements,InitialSourceMs:plan.SourceCheckMs,ProjectionHostMs:plan.ProjectionHostMs,ProjectionRequests:plan.ProjectionRequests);
+                plan.Apply();if(mapDateOrigin)foreach(var doc in docs)doc.MarkMapDraft([options.Target??doc.MainDateTag]);return new(plan.MissingCount,plan.FilenameMismatchCount,plan.FilenameInvalidCount,Measurements:plan.Measurements,InitialSourceMs:plan.SourceCheckMs,ProjectionHostMs:plan.ProjectionHostMs,ProjectionRequests:plan.ProjectionRequests);
             },()=>!Fields.Any(f=>f.Apply.IsChecked==true)&&JsonSerializer.Serialize(ReadDateInput())==input);
         }catch(Exception error){Status.Text=L10n.Message(L10n.Text("日期未应用：")+DateFailureText(error));}
     }
@@ -89,7 +89,7 @@ public partial class MainWindow
             await Task.Run(async()=>{foreach(var path in selection.SelectMany(r=>r.Document.SidecarPath is {} sidecar?new[]{r.Document.FilePath,sidecar}:new[]{r.Document.FilePath}).Concat(inputPath is null?Array.Empty<string>():new[]{inputPath}).Distinct(StringComparer.OrdinalIgnoreCase)){request.Token.ThrowIfCancellationRequested();sourceGuards.Add(new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read));}foreach(var row in selection){request.Token.ThrowIfCancellationRequested();await row.Document.EnsureUnchangedAsync(request.Token);}if(inputSource is not null)await inputSource(request.Token);},request.Token);
             if(!Current())return;
             batchTimings["sourceMs"]=clock.Elapsed.TotalMilliseconds;ValidateState();request.Token.ThrowIfCancellationRequested();
-            var drafts=frozen.Select(d=>new Dictionary<string,string>(d.Draft)).ToArray();var changed=Enumerable.Range(0,selection.Length).Where(i=>!SameDraft(before[i],drafts[i])).ToArray();
+            var drafts=frozen.Select(d=>new Dictionary<string,string>(d.Draft)).ToArray();var changed=Enumerable.Range(0,selection.Length).Where(i=>!SameDraft(before[i],drafts[i])||selection[i].Document.Context.ClearLocation!=frozen[i].Context.ClearLocation||!selection[i].Document.Context.MapFields.ToHashSet(StringComparer.Ordinal).SetEquals(frozen[i].Context.MapFields)).ToArray();
             int items=changed.Sum(i=>before[i].Keys.Concat(drafts[i].Keys).Distinct().Count(key=>before[i].GetValueOrDefault(key)!=drafts[i].GetValueOrDefault(key)));
             clock.Restart();
             CommitBatchDrafts(selection,before,drafts,changed,frozen);
@@ -109,15 +109,16 @@ public partial class MainWindow
     }
     void CommitBatchDrafts(PhotoRow[] selection,Dictionary<string,string>[] before,Dictionary<string,string>[] drafts,int[] changed,IReadOnlyList<PhotoDocument>? frozen=null) {
         // All validation has completed: observers see the whole batch, never a half-mutated selection.
+        var contexts=selection.Select(r=>r.Document.Context).ToArray();
         foreach(int i in changed){selection[i].Document.ReplaceDraft(drafts[i]);if(frozen is not null)selection[i].Document.UsePreparedDates(frozen[i]);}
         foreach(int i in changed)selection[i].Document.NotifyDraftChanged();
-        if(changed.Length>0)lastApply=new(selection,before,selection.Select(r=>r.Document.DraftRevision).ToArray());
+        if(changed.Length>0)lastApply=new(selection,before,selection.Select(r=>r.Document.DraftRevision).ToArray(),contexts);
     }
     private void UndoLastApply(object sender,RoutedEventArgs e) {
         if(busy||renameRecoveryRequired)return;
         if(!LastApplyCurrent()){lastApply=null;RefreshSelection();Status.Text=L10n.Message(L10n.Text("最近一次应用撤销已失效，当前草稿保留。"));return;}
         var batch=lastApply!;lastApply=null;
-        foreach(var (row,i) in batch.Rows.Select((r,i)=>(r,i)))row.Document.ReplaceDraft(batch.Before[i]);
+        foreach(var (row,i) in batch.Rows.Select((r,i)=>(r,i))){row.Document.ReplaceDraft(batch.Before[i]);row.Document.RestoreContext(batch.Contexts[i]);}
         foreach(var row in batch.Rows)row.Document.NotifyDraftChanged();
         DatePlanPreview.Text=PresetPreview.Text=CsvPreview.Text=MatchResult.Text=L10n.Message(M1Text("UndoFeedback"));
         RefreshPhotoRows();RefreshSelection();RefreshMatchTime();ClearMatchMarker();_=PostPhotosAsync();Status.Text=L10n.Message(L10n.Text("已撤销最近一次应用，恢复该批之前的完整草稿；此前编辑和原文件保留。"));

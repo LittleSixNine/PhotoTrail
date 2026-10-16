@@ -26,6 +26,7 @@ public partial class MainWindow : Window
     private string previewMethod = "MANUAL";
     private CancellationTokenSource? photoMapUpdate;
     private int photoRevision;
+    int mapPhotoRevision;
     private CancellationTokenSource? operation;
     private bool busy, fillingEditor, mapStarted, mapConfigured, mapInitializing, mapNeedsReplacement;
     private PhotoRow[] previousSelection = [];
@@ -541,7 +542,7 @@ public partial class MainWindow : Window
     }
     private async Task PostPhotosAsync()
     {
-        var revision = ++photoRevision; photoMapUpdate?.Cancel(); photoMapUpdate?.Dispose(); photoMapUpdate = new();
+        var revision = ++photoRevision; mapPhotoRevision=revision; photoMapUpdate?.Cancel(); photoMapUpdate?.Dispose(); photoMapUpdate = new();
         if (!mapReady) return;
         var selected = Selected.ToHashSet(); var markers = new List<PhotoMarker>();
         for (var index = 0; index < photos.Count; index++)
@@ -622,7 +623,7 @@ public partial class MainWindow : Window
         if (Selected.Length != 1) return;
         try
         {
-            if (Selected[0].Document.VerifiedCaptureDate?.Instant() is { } time) MatchTimeValue.Text = time.ToString("O");
+            if (SessionTime.Instant(Selected[0].Document.VerifiedCaptureDate,Selected[0].Document.SessionZoneId,out _) is { } time) MatchTimeValue.Text = time.ToString("O");
         }
         catch (ArgumentException) { }
     }
@@ -677,7 +678,7 @@ public partial class MainWindow : Window
         if(dateEditorWindow is not null&&!dateEditorSelection.SequenceEqual(selected)){DatePlanApplyButton.IsEnabled=false;DatePlanPreview.Text=WText("SelectionChanged");}
         DateTarget.IsEnabled=DateMode.IsEnabled=CsvPath.IsEnabled=!busy;
         foreach(var box in new[]{DateYears,DateMonths,DateDays,DateHours,DateMinutes,DateSeconds,DateStart,DateEnd,DateStep,DateReplaceYear,DateReplaceMonth,DateReplaceDay,DateReplaceHour,DateReplaceMinute,DateReplaceSecond,DateFilenamePattern,DateFilenameTemplate})box.IsEnabled=!busy;
-        SaveButton.IsEnabled = !busy && !renameRecoveryRequired && selected.Any(p => p.Document.Draft.Count > 0);
+        M9RefreshSave();
         RemoveButton.IsEnabled = !busy && !importRunning && !renameRecoveryRequired && selected.Length > 0;
         UndoRemoveButton.IsEnabled = !busy && !importRunning && !renameRecoveryRequired && removedPhotos.Count>0;
         selectionSummaryText = selected.Length == 0 ? M1Text("EmptySelection") :
@@ -946,7 +947,7 @@ public partial class MainWindow : Window
         var dialog = new OpenFolderDialog { Title = L10n.Text("选择保存副本的文件夹") };
         if (dialog.ShowDialog(this) == true) OutputFolder.Text = dialog.FolderName;
     }
-    private void SaveCopies(object sender, RoutedEventArgs e)=>PrepareSave(Selected.Select(r=>r.Document),SaveMode.Copy,SaveScope.All);
+    private void SaveCopies(object sender, RoutedEventArgs e)=>M9RequestSave();
     private void ShowFailures(List<string> failures)
     {
         if (failures.Count > 0) MessageBox.Show(this, string.Join("\n", failures), L10n.Text("任务结果"), MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -1098,7 +1099,7 @@ public partial class MainWindow : Window
                     }
                     if (MapMessage.IsReady(args.Source, args.WebMessageAsJson)) { mapReady = true;PostMapSettings(true); _ = PostTrackAsync(mapWorkspace?.State.OpenView is null&&!userMapMoved); _ = PostPhotosAsync();if(mapWorkspace?.State.StartWithDevice==true)LocateDevice(this,new RoutedEventArgs()); }
                     if (busy || !mapReady) return;
-                    if (MapMessage.TryPhoto(args.Source, args.WebMessageAsJson, out var id, out var revision) && revision == photoRevision && id < photos.Count)
+                    if (MapMessage.TryPhoto(args.Source, args.WebMessageAsJson, out var id, out var revision) && revision == mapPhotoRevision && id < photos.Count)
                     {
                         if (!DiscardEditor()) return;
                         fillingEditor = true;
@@ -1106,7 +1107,7 @@ public partial class MainWindow : Window
                         Photos.SelectedItems.Clear(); fillingEditor = false; Photos.SelectedItem = photos[id];
                     }
                     if (MapMessage.IsReady(args.Source, args.WebMessageAsJson)) Status.Text = L10n.Message(currentMapPage == MapMessage.GooglePage ? L10n.Text("Google地图已加载；查询会产生Google请求。") : L10n.Text("默认地图已加载；点击地图只作坐标预览。"));
-                    if (MapMessage.TryPoint(args.Source, args.WebMessageAsJson, out var point)) { InvalidateBatchTrack(); ClearPlacePreview(); clipboardGpsPreview = false; currentPreview = point; previewAltitude = null; previewMethod = "MANUAL"; UpdateGpsButton(); MatchResult.Text = L10n.Message(L10n.Format("手动位置预览：{0:F6}, {1:F6}。仅预览，未加入GPS草稿；海拔未知。",point!.Latitude,point.Longitude)); Status.Text = L10n.Message(L10n.Text("手动位置已更新；尚未写入照片。")); }
+                    if (MapMessage.TryPoint(args.Source, args.WebMessageAsJson, out var point)) { InvalidateBatchTrack(); ClearPlacePreview(); clipboardGpsPreview = false; currentPreview = point; previewAltitude = null; previewMethod = "MANUAL"; UpdateGpsButton(); MatchResult.Text = L10n.Message(L10n.Format("手动位置预览：{0:F6}, {1:F6}。仅预览，未加入GPS草稿；海拔未知。",point!.Latitude,point.Longitude)); Status.Text = L10n.Message(L10n.Text("手动位置已更新；尚未写入照片。"));M9MapEdit(args.Source,args.WebMessageAsJson); }
                 };
                 mapConfigured = true;
             }

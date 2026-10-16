@@ -27,6 +27,24 @@ public sealed class PhotoDocument
     public IReadOnlyDictionary<string, string> Draft => draft;
     internal long DraftRevision { get; private set; }
     bool detachedBatch;
+    readonly HashSet<string> mapDraftFields=new(StringComparer.Ordinal);
+    internal bool ClearLocationRequested {get;private set;}
+    internal string SessionZoneId {get;private set;}=SessionTime.InitialZone;
+    internal DraftContext Context=>new(mapDraftFields.ToArray(),ClearLocationRequested);
+    internal void RestoreContext(DraftContext context){mapDraftFields.Clear();mapDraftFields.UnionWith(context.MapFields.Where(draft.ContainsKey));ClearLocationRequested=context.ClearLocation;}
+    internal bool IsMapDraft(string tag)=>SavePlan.IsGps(tag)||mapDraftFields.Contains(tag);
+    internal void MarkMapDraft(IEnumerable<string> tags){mapDraftFields.UnionWith(tags.Where(draft.ContainsKey));}
+    internal void SetSessionZone(string id){_=TimeZoneInfo.FindSystemTimeZoneById(id);if(SessionZoneId==id)return;SessionZoneId=id;ChangedDraft();}
+    internal static readonly string[] LocationRegionTags=["XMP-photoshop:Country","XMP-photoshop:State","XMP-photoshop:City","XMP-iptcCore:Location","XMP-iptcCore:CountryCode"];
+    internal static readonly string[] LocationExifTags=["GPS:GPSLatitude","GPS:GPSLongitude","GPS:GPSLatitudeRef","GPS:GPSLongitudeRef","GPS:GPSAltitude","GPS:GPSAltitudeRef","GPS:GPSMapDatum","GPS:GPSProcessingMethod"];
+    internal void StageLocationClear(){
+        if(!CanStage||NewSidecarEditing||FileType is not("JPEG" or "XMP"))throw new InvalidOperationException("本格式定位清除未取得写入资格，草稿保持。");
+        if(Inspection is null)throw new InvalidOperationException("定位来源尚未完整读取，未清除。");
+        if(Inspection?.Where(p=>LocationExifTags.Contains(p.Canonical)).GroupBy(p=>p.Canonical).Any(g=>g.Count()>1)==true)throw new InvalidOperationException("定位来源实例不唯一，未清除。");
+        var tags=new[]{"XMP-exif:GPSLatitude","XMP-exif:GPSLongitude","XMP-exif:GPSAltitude","XMP-exif:GPSAltitudeRef","XMP-exif:GPSMapDatum","XMP-exif:GPSProcessingMethod"}.Concat(LocationRegionTags).ToList();
+        if(FileType=="JPEG"&&SidecarPath is null)tags.AddRange(new[]{"IPTC:City","IPTC:Province-State","IPTC:Sub-location","IPTC:Country-PrimaryLocationName","IPTC:Country-PrimaryLocationCode"}.Where(t=>Embedded.TryGetProperty(t,out _)));
+        StageDraft(tags.ToDictionary(t=>t,_=>""));ClearLocationRequested=true;MarkMapDraft(tags);
+    }
     internal bool IsBatchSnapshot=>detachedBatch;
     IReadOnlyDictionary<string,VerifiedPhotoDate?> dateSnapshot=new Dictionary<string,VerifiedPhotoDate?>();
     internal string DateReadFailure {get;private set;}="";
@@ -40,7 +58,7 @@ public sealed class PhotoDocument
         var next=new Dictionary<string,VerifiedPhotoDate?>(dateSnapshot);
         foreach(var pair in DateCandidates)next[pair.Value]=VerifiedPhotoDate.FromValidation(pair.Value,proof);dateSnapshot=next;
     }
-    internal void UsePreparedDates(PhotoDocument frozen)=>dateSnapshot=frozen.dateSnapshot;
+    internal void UsePreparedDates(PhotoDocument frozen){dateSnapshot=frozen.dateSnapshot;RestoreContext(frozen.Context);}
     internal static async Task PrepareReadDatesAsync(IReadOnlyList<PhotoDocument> docs,CancellationToken token) {
         var revisions=docs.Select(d=>d.DraftRevision).ToArray();
         IReadOnlyDictionary<string,VerifiedPhotoDate?> result;
@@ -52,13 +70,13 @@ public sealed class PhotoDocument
     internal readonly List<KeyValuePair<string,string>> DateCandidates=[];
     internal event Action? DraftChanged;
     private void ChangedDraft() { DraftRevision++; DraftChanged?.Invoke(); }
-    public void ClearDraft() { draft.Clear(); ChangedDraft(); }
+    public void ClearDraft() { draft.Clear();mapDraftFields.Clear();ClearLocationRequested=false; ChangedDraft(); }
     internal PhotoDocument BatchSnapshot() {
         var copy=new PhotoDocument(FilePath,SidecarPath,Embedded,Sidecar,SourceHash,SidecarHash);
         foreach(var pair in draft)copy.draft.Add(pair.Key,pair.Value);
-        copy.Times=Times;copy.TimeZoneSnapshot=TimeZoneSnapshot;copy.Iptc=Iptc;copy.Inspection=Inspection;copy.InspectionError=InspectionError;copy.DraftRevision=DraftRevision;copy.dateSnapshot=dateSnapshot;copy.DateReadFailure=DateReadFailure;copy.detachedBatch=true;copy.NewSidecarEditing=NewSidecarEditing;return copy;
+        copy.RestoreContext(Context);copy.SessionZoneId=SessionZoneId;copy.Times=Times;copy.TimeZoneSnapshot=TimeZoneSnapshot;copy.Iptc=Iptc;copy.Inspection=Inspection;copy.InspectionError=InspectionError;copy.DraftRevision=DraftRevision;copy.dateSnapshot=dateSnapshot;copy.DateReadFailure=DateReadFailure;copy.detachedBatch=true;copy.NewSidecarEditing=NewSidecarEditing;return copy;
     }
-    internal void ReplaceDraft(IReadOnlyDictionary<string,string> state) { draft.Clear();foreach(var pair in state)draft.Add(pair.Key,pair.Value); }
+    internal void ReplaceDraft(IReadOnlyDictionary<string,string> state) { draft.Clear();foreach(var pair in state)draft.Add(pair.Key,pair.Value);mapDraftFields.RemoveWhere(t=>!draft.ContainsKey(t));if(!draft.TryGetValue("XMP-exif:GPSLatitude",out var lat)||lat.Length>0||!draft.TryGetValue("XMP-exif:GPSLongitude",out var lon)||lon.Length>0)ClearLocationRequested=false; }
     internal void NotifyDraftChanged()=>ChangedDraft();
     public string FileType => Embedded.TryGetProperty("File:FileType", out var type) ? type.ToString() : "";
     public bool CanEdit => InspectionError.Length==0 && (FileType is "JPEG" or "XMP" || (SidecarPath is not null &&
@@ -204,6 +222,7 @@ public sealed class PhotoDocument
         MetadataFields.Require(this,changes);
         foreach (var (tag, value) in changes)
         {
+            mapDraftFields.Remove(tag);if(tag is "XMP-exif:GPSLatitude" or "XMP-exif:GPSLongitude"&&value.Length>0)ClearLocationRequested=false;
             var original = MetadataFields.Original(this,tag);
             var normalized = MetadataFields.IsList(tag) ? MetadataFields.FormatList(MetadataFields.List(value)) : value.Length > 0 && NumericRange(tag) is not null ? CheckedNumber(tag,value).ToString(CultureInfo.InvariantCulture) : MetadataTimes.Normalize(tag,value);
             // An explicit XMP coordinate clear must override the embedded GPS fallback in this session.
@@ -222,7 +241,7 @@ public sealed class PhotoDocument
     internal void ApplyDatePage(DatePagePreview preview)
     {
         // The capability checks this exact document, source value and draft revision; no general bypass flag.
-        var tag=preview.TargetFor(this);var value=preview.ValueFor(this);var verified=VerifiedPhotoDate.FromPage(preview,this);
+        var tag=preview.TargetFor(this);mapDraftFields.Remove(tag);var value=preview.ValueFor(this);var verified=VerifiedPhotoDate.FromPage(preview,this);
         ValidateDatePageShape(tag,value);MetadataFields.Require(this,new Dictionary<string,string>{{tag,value}});
         var original=MetadataFields.Original(this,tag);
         if(value==original)draft.Remove(tag);else draft[tag]=value;
@@ -360,6 +379,11 @@ public static class MetadataCopy
         var changes=new Dictionary<string,string>(frozen);var revision=photo.DraftRevision;
         MetadataFields.Require(photo,changes);dates.Require(changes);
         var writes=MetadataFields.WriteChanges(changes).Where(p=>!MetadataTimes.IsSystem(p.Key)).ToDictionary(p=>p.Key,p=>p.Value);
+        bool clearLocation=photo.ClearLocationRequested&&changes.TryGetValue("XMP-exif:GPSLatitude",out var latitudeClear)&&latitudeClear.Length==0&&changes.TryGetValue("XMP-exif:GPSLongitude",out var longitudeClear)&&longitudeClear.Length==0;
+        if(clearLocation&&photo.FileType=="JPEG"){
+            if(photo.NewSidecarEditing)throw new InvalidOperationException("新旁车清除组合未验证，未写入。");
+            if(photo.SidecarPath is null)foreach(var tag in PhotoDocument.LocationExifTags.Where(t=>photo.Embedded.TryGetProperty(t,out _)))writes[tag]="";
+        }
         if (!Directory.Exists(folder)) throw new DirectoryNotFoundException("输出文件夹不存在。");
         var output = Path.Combine(Path.GetFullPath(folder), Path.GetFileName(photo.FilePath));
         var sidecarOutput = photo.SidecarPath is null ? null : Path.ChangeExtension(output, ".xmp");
@@ -382,6 +406,7 @@ public static class MetadataCopy
                 throw new IOException("暂存副本与导入基线不一致，未写入元数据。");
             var writable = stagedSidecar ?? stagedImage;
             var arguments = new List<string> { "-charset", "filename=UTF8", "-charset", "exif=UTF8", "-n", "-overwrite_original" };
+            if(clearLocation&&stagedSidecar is null&&photo.Embedded.TryGetProperty("GPS:GPSVersionID",out var gpsVersion))arguments.Add("-GPS:GPSVersionID="+gpsVersion.ToString());
             bool iptc=changes.Keys.Any(MetadataIptc.Fields.ContainsKey);
             if(iptc&&photo.Iptc!.Empty&&changes.Any(p=>MetadataIptc.Fields.ContainsKey(p.Key)&&p.Value.Length>0))arguments.Add("-IPTC:CodedCharacterSet=UTF8");
             if(iptc&&changes.Any(p=>MetadataIptc.Fields.ContainsKey(p.Key)&&p.Value.Length>0)) {arguments.Add("-charset");arguments.Add("IPTC=UTF8");}
@@ -407,7 +432,7 @@ public static class MetadataCopy
             }
             arguments.Add("--"); arguments.Add(writable);
             if(writes.Count>0)await client.RunAsync(arguments, cancellation,rejectWarnings:iptc||changes.Keys.Any(MetadataFields.ExifNumeric.ContainsKey));
-            if(iptc)photo.Iptc!.Verify(await MetadataIptc.ReadAsync(stagedImage,cancellation),changes);
+            if(iptc)photo.Iptc!.Verify(await MetadataIptc.ReadAsync(stagedImage,cancellation),clearLocation?writes:changes);
             var result = await client.ReadAsync(writable, cancellation);
             foreach (var (tag, expected) in writes)
             {
@@ -440,7 +465,8 @@ public static class MetadataCopy
             }
             if (stagedSidecar is not null)
             {
-                if (photo.SourceHash != await PhotoDocument.HashAsync(stagedImage, cancellation)) throw new InvalidDataException("图像副本内容改变。");
+                if(clearLocation)await ClearPairedImageLocationAsync(client,photo,stagedImage,cancellation);
+                else if (photo.SourceHash != await PhotoDocument.HashAsync(stagedImage, cancellation)) throw new InvalidDataException("图像副本内容改变。");
             }
             else if (photo.FileType == "JPEG")
             {
@@ -483,6 +509,30 @@ public static class MetadataCopy
         }
     }
 
+    static async Task ClearPairedImageLocationAsync(ExifToolClient client,PhotoDocument photo,string staged,CancellationToken token){
+        if(photo.FileType!="JPEG"||photo.SidecarPath is null||!photo.ClearLocationRequested)throw new InvalidOperationException("配对定位清除资格失效。");
+        var allowed=PhotoDocument.LocationExifTags.Concat(PhotoDocument.LocationRegionTags).Concat(new[]{"XMP-exif:GPSLatitude","XMP-exif:GPSLongitude","XMP-exif:GPSAltitude","XMP-exif:GPSAltitudeRef","XMP-exif:GPSMapDatum","XMP-exif:GPSProcessingMethod","IPTC:City","IPTC:Province-State","IPTC:Sub-location","IPTC:Country-PrimaryLocationName","IPTC:Country-PrimaryLocationCode"}).ToHashSet(StringComparer.Ordinal);
+        var changes=photo.Embedded.EnumerateObject().Where(p=>allowed.Contains(p.Name)).ToDictionary(p=>p.Name,_=>"");
+        if(changes.Count==0){if(await PhotoDocument.HashAsync(staged,token)!=photo.SourceHash)throw new IOException("配对原图暂存身份改变。");return;}
+        var iptc=changes.Keys.Any(MetadataIptc.Fields.ContainsKey);if(iptc)photo.Iptc!.Require(changes);
+        var args=new List<string>{"-charset","filename=UTF8","-n","-overwrite_original"};
+        if(photo.Embedded.TryGetProperty("GPS:GPSVersionID",out var gpsVersion))args.Add("-GPS:GPSVersionID="+gpsVersion.ToString());
+        if(iptc){var version=photo.Iptc!.Records.Where(r=>r.Record==2&&r.Id==0).ToArray();if(version.Length==1&&version[0].Value.Length==2)args.Add("-IPTC:ApplicationRecordVersion="+(version[0].Value[0]*256+version[0].Value[1]).ToString(CultureInfo.InvariantCulture));}
+        args.AddRange(changes.Keys.Select(t=>"-"+t+"="));args.Add("--");args.Add(staged);await client.RunAsync(args,token,rejectWarnings:true);
+        var result=await client.ReadAsync(staged,token);foreach(var tag in changes.Keys)if(MetadataFields.Read(result,tag).Length>0)throw new InvalidDataException("配对原图定位清除回读失败："+tag);
+        if(iptc)photo.Iptc!.Verify(await MetadataIptc.ReadAsync(staged,token),changes);
+        foreach(var field in photo.Embedded.EnumerateObject()){
+            if(changes.ContainsKey(field.Name)||field.Name=="SourceFile"||field.Name.StartsWith("System:",StringComparison.Ordinal)||field.Name.StartsWith("File:",StringComparison.Ordinal)||field.Name.StartsWith("ExifTool:",StringComparison.Ordinal)||field.Name.StartsWith("Composite:",StringComparison.Ordinal)||field.Name is "XMP-x:XMPToolkit" or "XMP-xmpNote:HasExtendedXMP" or "IFD1:ThumbnailOffset")continue;
+            if(!result.TryGetProperty(field.Name,out var after)||after.GetRawText()!=field.Value.GetRawText())throw new InvalidDataException("配对原图非目标元数据改变："+field.Name);
+        }
+        var complete=await client.ReadInspectionAsync([photo.FilePath,staged],token);static string Key(string name)=>name.Split(':')[0]+":"+name.Split(':')[^1];
+        bool Content(string name)=>name!="SourceFile"&&!(name.Split(':')[0] is "System" or "File" or "ExifTool" or "Composite")&&Key(name) is not("XMP-x:XMPToolkit" or "XMP-xmpNote:HasExtendedXMP" or "IFD1:ThumbnailOffset");
+        var target=complete[staged].EnumerateObject().Where(p=>Content(p.Name)).GroupBy(p=>Key(p.Name)).ToDictionary(g=>g.Key,g=>g.Select(p=>p.Value.GetRawText()).Order(StringComparer.Ordinal).ToArray());
+        foreach(var group in complete[photo.FilePath].EnumerateObject().Where(p=>Content(p.Name)).GroupBy(p=>Key(p.Name)))if(!changes.ContainsKey(group.Key)&&(!target.TryGetValue(group.Key,out var values)||!group.Select(p=>p.Value.GetRawText()).Order(StringComparer.Ordinal).SequenceEqual(values)))throw new InvalidDataException("配对原图完整非目标来源实例改变："+group.Key);
+        if(!iptc&&await JpegApp13Async(photo.FilePath,token)!=await JpegApp13Async(staged,token))throw new InvalidDataException("配对非目标APP13改变。");
+        var originalThumbnail=await client.RunBytesAsync(["-b","-ThumbnailImage","--",photo.FilePath],token);var clearedThumbnail=await client.RunBytesAsync(["-b","-ThumbnailImage","--",staged],token);
+        if(!originalThumbnail.SequenceEqual(clearedThumbnail)||await JpegPixelsAsync(photo.FilePath,token)!=await JpegPixelsAsync(staged,token))throw new InvalidDataException("配对照片像素或缩略图改变。");
+    }
     private static async Task CopyNewAsync(string source, string target, CancellationToken cancellation)
     {
         await using var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous);

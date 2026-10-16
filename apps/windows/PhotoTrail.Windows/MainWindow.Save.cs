@@ -50,9 +50,9 @@ public partial class MainWindow
             var plan=SavePlan.Prepare(docs.ToArray(),mode,scope,OutputFolder.Text,photos.Select(r=>r.Document));
             preparedSave=plan;preparedMode=SaveModeChoice.SelectedIndex;preparedOutput=OutputFolder.Text;preparedBackupText=BackupFolder.Text;preparedBackup=mode==SaveMode.Inplace?Path.GetFullPath(preparedBackupText):"";
             if(mode==SaveMode.Inplace&&!Directory.Exists(preparedBackup))throw new IOException(L10n.Text("原位必须先选择可用的既有备份目录。"));
-            SaveSummary.Text=plan.Summary+(mode==SaveMode.Inplace?L10n.Format("\n强制备份：{0}；本次{1}份唯一完整字节备份。",preparedBackup,plan.Items.Length):"");WorkspaceTabs.SelectedIndex=0;OpenMetadataTool(SaveTargetTab);ExecuteSaveButton.IsEnabled=plan.Items.Length>0;
+            SaveSummary.Text=plan.Summary+(mode==SaveMode.Inplace?L10n.Format("\n强制备份：{0}；本次{1}份唯一完整字节备份。",preparedBackup,plan.Items.Length):"");OpenMetadataTool(SaveTargetTab);ExecuteSaveButton.IsEnabled=plan.Items.Length>0;
             Status.Text=L10n.Message(L10n.Text("请核对冻结摘要；确认前不创建文件。"));
-        }catch(Exception error){SaveSummary.Text=Status.Text=L10n.Message(L10n.Text("保存准备失败（未写入）：")+L10n.Message(error.Message));WorkspaceTabs.SelectedIndex=0;OpenMetadataTool(SaveTargetTab);}
+        }catch(Exception error){SaveSummary.Text=Status.Text=L10n.Message(L10n.Text("保存准备失败（未写入）：")+L10n.Message(error.Message));OpenMetadataTool(SaveTargetTab);}
     }
     void CancelSavePlan(object sender,RoutedEventArgs e) {
         if(busy){CancelRead(sender,e);return;}preparedSave=null;ExecuteSaveButton.IsEnabled=false;Status.Text=L10n.Text("\n计划已取消，未创建文件，草稿保留。").TrimStart('\n');SaveSummary.Text+="\n"+Status.Text;

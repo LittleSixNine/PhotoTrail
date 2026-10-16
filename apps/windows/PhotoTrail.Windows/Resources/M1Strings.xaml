@@ -14,7 +14,7 @@
  <system:String x:Key="M1.AdjustDate">调整拍摄时间…</system:String>
  <system:String x:Key="M1.PhotoGpx">生成照片 GPX…</system:String>
  <system:String x:Key="M1.GpsCopy">导出定位副本…</system:String>
- <system:String x:Key="M1.GpsClearLimit">清除定位：GPS回退契约尚未闭合，保持安全拒绝。</system:String>
+ <system:String x:Key="M1.GpsClearLimit">清除定位可一次撤销；仅已验证副本组合可写，其他组合保持拒绝。</system:String>
  <system:String x:Key="M1.ClearDraft">清空所选草稿</system:String>
  <system:String x:Key="M1.PhotoSearch">搜索文件名 · F3</system:String>
  <system:String x:Key="M1.Sort">照片排序</system:String>
@@ -79,4 +79,5 @@
  <system:String x:Key="M8.SourceHelp">以首个实际存在的格式为主文件；逗号分隔，不加点。</system:String>
  <system:String x:Key="M8.TargetHelp">成员保留各自扩展名；附属列表顺序不影响主文件优先级。</system:String>
  <system:String x:Key="M8.Priority">拍摄时间来源优先级（每行一个标签）</system:String>
+ <system:String x:Key="M9.ClearLocation">清除定位…</system:String>
 </ResourceDictionary>

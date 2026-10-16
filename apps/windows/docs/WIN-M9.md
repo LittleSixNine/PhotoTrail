@@ -1,0 +1,11 @@
+# WIN-M9 session, map and save scope
+
+The three workspaces retain one photo collection. The main Save button and Ctrl+S use all pending metadata by default, independent of selection/search/filter; the persisted current-page option freezes metadata or map-owned fields separately. A scope reminder can cancel or change only the preference before the existing Windows frozen summary and explicit execution. Copy saves retain both-page session drafts. Existing explicit save entries and mandatory in-place backup remain.
+
+A current-session camera zone interprets shared-host-validated offset-free wall times for track matching/GPX without changing metadata. Explicit offsets take priority; ambiguous/nonexistent local times, invalid zones and unsupported precision block dependent operations. The default zone preference applies only to later sessions. Display timezone is not a write operation.
+
+Enabled double-click and marker dragging use the existing protected, undoable GPS draft path; ordinary clicks preview only. Messages require the local default map page, current photo selection generation, view epoch and enabled gesture. Google/service persistence and device qualification are unchanged. The two region preferences are independent; automatic online region queries/writes remain blocked pending licensing. Manual adoption fills only missing values.
+
+Clear location confirms, stages one undoable change and keeps photos listed. Qualified JPEG and JPEG+XMP copy saves clear known coordinate/altitude/datum/method and associated region targets, suppressing embedded fallback. GPS timestamps, capture times, unrelated metadata, pixels and original sources remain protected. Unproved formats, new-sidecar and in-place clear paths refuse safely; this is not full format qualification.
+
+This is an authorized development candidate pending final targeted verification, Mac review and user acceptance. Shared date host/runtime, Mac schema and official version are unchanged. Real 100/150% DPI, audible screen reader, high contrast, multi-monitor, clean deployment and existing conditional format/service/recovery gaps remain separately unverified. M8 historical results are not inherited as M9 passes.

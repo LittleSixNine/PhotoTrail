@@ -9,6 +9,13 @@ public static class MapMessage
     public const string Page = "https://phototrail.local/map.html";
     public const string GooglePage = "https://phototrail.local/google.html";
     private static bool IsLocalPage(string source) => source == Page || source == GooglePage;
+    internal static bool TryEdit(string source,string json,int currentRevision,int currentEpoch,bool doubleClick,bool drag){
+        if(source!=Page||!TryPoint(source,json,out _))return false;
+        try{using var doc=JsonDocument.Parse(json);var root=doc.RootElement;
+            if(root.EnumerateObject().Select(p=>p.Name).Distinct(StringComparer.Ordinal).Count()!=root.EnumerateObject().Count())return false;
+            return root.TryGetProperty("revision",out var revision)&&revision.TryGetInt32(out var r)&&r==currentRevision&&r>=0&&root.TryGetProperty("epoch",out var epoch)&&epoch.TryGetInt32(out var e)&&e==currentEpoch&&e>=0&&root.TryGetProperty("editKind",out var kind)&&kind.ValueKind==JsonValueKind.String&&((kind.GetString()=="double-click"&&doubleClick)||(kind.GetString()=="drag"&&drag));
+        }catch(Exception error)when(error is JsonException or InvalidOperationException){return false;}
+    }
     public static bool TryPhoto(string source, string json, out int id, out int revision)
     {
         id = revision = -1;

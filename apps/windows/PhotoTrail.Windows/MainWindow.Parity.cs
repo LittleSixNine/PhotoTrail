@@ -38,7 +38,7 @@ public partial class MainWindow
         MetadataNavigation.IsChecked = WorkspaceTabs.SelectedIndex == 0;
         MapNavigation.IsChecked = WorkspaceTabs.SelectedIndex == 1;
         RenameNavigation.IsChecked = WorkspaceTabs.SelectedIndex == 2;
-        SaveButton.Visibility = WorkspaceTabs.SelectedIndex == 2 ? Visibility.Collapsed : Visibility.Visible;
+        SaveButton.Visibility = WorkspaceTabs.SelectedIndex == 2 ? Visibility.Collapsed : Visibility.Visible;M9RefreshSave();
         M1TaskPanel.Visibility = busy || importRunning || checkingEnvironment ? Visibility.Visible : Visibility.Collapsed;
         ImportPending.Visibility = importRunning ? Visibility.Visible : Visibility.Collapsed;
         M1SelectionCount.Text = L10n.Message(M1Format("SelectedPhotoCount", Selected.Length, Photos.Items.Count));
@@ -147,7 +147,7 @@ public partial class MainWindow
     {
         var menu = new ContextMenu { PlacementTarget = M1MoreButton };
         void Add(string key, RoutedEventHandler action) { var item = new MenuItem { Header = M1Text(key) }; item.Click += action; menu.Items.Add(item); }
-        Add("Import", ReadPhoto); Add("ImportFolder", ReadFolder); Add("SaveAll", PrepareSaveAll); Add("SaveWorkspace", PrepareSaveWorkspace);
+        var zoneItem=new MenuItem{Header=L10n.Text("当前批次相机时区…")};zoneItem.Click+=M9OpenSessionZone;menu.Items.Add(zoneItem);Add("Import", ReadPhoto); Add("ImportFolder", ReadFolder); Add("SaveAll", PrepareSaveAll); Add("SaveWorkspace", PrepareSaveWorkspace);
         Add("SaveSummary", (_, _) => OpenMetadataTool(SaveTargetTab));
         foreach (var (key, index) in new[] { ("FieldEditor", 0), ("BatchDate", 3), ("Presets", 2), ("Compare", 5), ("Clipboard", 1), ("Xmp", 4), ("Csv", 8), ("Preview", 6) })
         { var item = new MenuItem { Header = M1Text(key) }; item.Click += (_, _) => OpenMetadataTool((TabItem)MetadataToolsTabs.Items[index]); menu.Items.Add(item); }
