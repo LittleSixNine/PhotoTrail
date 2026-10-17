@@ -23,6 +23,7 @@ if (args.FirstOrDefault()?.StartsWith("--fake-") == true)
             if(args[0]=="--fake-batch-missing")responses=responses.Take(Math.Max(0,responses.Length-1)).ToArray();
             Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(responses.Select(file=>new Dictionary<string,string>{["SourceFile"]=file,["File:FileType"]="JPEG",["File:MIMEType"]="image/jpeg",["XMP-dc:Title"]=Path.GetFileName(file)})));return;
         case "--fake-invalid": Console.WriteLine("invalid json"); return;
+        case "--fake-disk-full": Console.Error.WriteLine("Controlled test injection: insufficient disk space"); Environment.Exit(7); return;
         case "--fake-error": Console.Error.WriteLine("simulated process failure"); Environment.Exit(7); return;
         case "--fake-slow": await Task.Delay(10_000); Console.WriteLine("[]"); return;
     }

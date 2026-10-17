@@ -40,8 +40,8 @@ static class RenameSequenceChecks
   var mac=MacRenamePreset.Export(scheme);var mapped=RenameSchemeLibrary.Import(mac,"Mac");Check(RenamePlan.Apply("old.jpg",RenamePlan.ParseRules(mapped.Rules),2)=="0011.jpg"&&mapped.Order==scheme.Order,"fixed Macv1 mapped roundtrip");
   Check(mac.Contains("\"value\":\"\""),"Mac filter uses fixed source value field");
   Reject(()=>RenameSchemeLibrary.Import(mac.Replace("\"action\":46","\"action\":95"),"unsupported"),"unsupported Mac action whole reject");
-  Reject(()=>RenameSchemeLibrary.Import(mac.Replace("\"value\":\"\"","\"value\":\"filter\""),"filter"),"Mac nondefault filter whole reject");
-  Reject(()=>MacRenamePreset.Export(scheme with{Rules=JsonSerializer.Serialize(Rule("regex-replace") with{Text="old",Replacement="new"})}),"unsupported Mac export no guessed action");
+  Check(RenamePlan.ParseRules(RenameSchemeLibrary.Import(mac.Replace("\"value\":\"\"","\"value\":\"filter\""),"filter").Rules).All(r=>r.Filters.Single().Value=="filter"),"M8 Mac filename filter retained");
+  var regex=RenameSchemeLibrary.Import(MacRenamePreset.Export(scheme with{Rules=JsonSerializer.Serialize(Rule("regex-replace") with{Text="old",Replacement="new"})}),"regex");Check(RenamePlan.Apply("old.jpg",RenamePlan.ParseRules(regex.Rules),0)=="new.jpg","M8 supported regex actual execution after roundtrip");
   var raw=RenameRulesPreset.Decode(RenameRulesPreset.Encode(scheme.Rules,false,scheme.Order));Check(raw.Rules==scheme.Rules&&raw.Order==scheme.Order,"v3 raw rule settings roundtrip");
   Reject(()=>RenameSchemeLibrary.Import(RenameSchemeLibrary.Export(scheme).Replace("\"version\":3","\"version\":2"),"old"),"advanced not misread as v2");
   var old="{\"version\":1,\"rules\":\"prefix|legacy_\",\"sortByName\":false}";Check(RenameSchemeLibrary.Import(old,"old").Order.Conflict=="stop","old format preserves stop setting");

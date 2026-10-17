@@ -22,6 +22,8 @@ static partial class Program
  static SaveItem SidecarItem(PhotoDocument doc,SaveScope scope=SaveScope.All)=>SavePlan.Prepare([doc],SaveMode.NewSidecar,scope,"",[doc]).Items.Single();
  static async Task SaveTargetChecks()
  {
+  // M9 scope prompts are exercised by M9Checks; this legacy suite checks frozen physical targets.
+  M3Call("SaveUi",((UiPreference)Field("ui")!) with{SkipSaveScopePrompt=true});
   var rows=await DateCoreRows(5);var list=Control<ListBox>("Photos");var client=InspectorTool();
   var docs=rows.Select(Doc).ToArray();string raw=docs.Single(d=>Path.GetFileName(d.FilePath)=="unpaired.DNG").FilePath;string jpeg=docs.Single(d=>Path.GetFileName(d.FilePath)=="embedded.jpg").FilePath;
   var hashes=docs.SelectMany(d=>d.SidecarPath is {} side?new[]{d.FilePath,side}:new[]{d.FilePath}).Distinct().ToDictionary(x=>x,x=>File.ReadAllBytes(x));
@@ -123,12 +125,12 @@ static partial class Program
   Check(Field("lastApply") is null&&Field("trackBatch") is null,"source-change-invalidates-undo-and-track-plan");
   Check(newRaw.VerifiedCaptureDate is not null,"new-main-date-v2-read-proof");
   Control<ComboBox>("PhotoSort").SelectedIndex=2;var first=Doc(list.Items[0]);Check(first.FilePath==raw,"source-adoption-v2-main-date-sort");
-  list.SelectedItem=list.Items.Cast<object>().Single(r=>Doc(r).FilePath==raw);await Responsive();SelectMetadataTab("重命名");Input("RenameRules","prefix|m1_");Input("RenameDateFrom","1700-01-01");Input("RenameDateTo","1700-12-31");Action("RefreshRenameOrder");await RenameWait();Check(Groups().Length>=1,"source-adoption-v2-rename-date-filter: "+Control<TextBlock>("RenameStatus").Text);Input("RenameDateFrom","");Input("RenameDateTo","");
+  list.SelectedItem=list.Items.Cast<object>().Single(r=>Doc(r).FilePath==raw);await Responsive();SelectMetadataTab("重命名");Input("RenameRules","prefix|m1_");Input("RenameDatePriority","XMP-xmp:CreateDate");Input("RenameDateFrom","1700-01-01");Input("RenameDateTo","1700-12-31");Action("RefreshRenameOrder");await RenameWait();Check(Groups().Length>=1,"source-adoption-v2-rename-date-filter: "+Control<TextBlock>("RenameStatus").Text);Input("RenameDateFrom","");Input("RenameDateTo","");
   SelectMetadataTab("元数据");var mixedRow=list.Items.Cast<object>().Single(r=>Doc(r).FilePath==raw);list.SelectedItem=mixedRow;var mixed=Doc(mixedRow);
   mixed.SetDraft(PhotoDocument.PositionChanges(new MapPoint(121,31),null,"MANUAL"));EditedFields(new Dictionary<string,string>{{"XMP-dc:Rights","workspace rights"}});await Apply("ApplyDraft");
   string scopeOut=Path.Combine(folder,"workspace-copy");Directory.CreateDirectory(scopeOut);Input("OutputFolder",scopeOut);Control<ComboBox>("SaveModeChoice").SelectedIndex=0;
   Action("PrepareSaveWorkspace");Check(((SavePlan)Field("preparedSave")!).Scope==SaveScope.Metadata,"current-metadata-page-non-GPS-scope");Action("CancelSavePlan");
-  SelectMetadataTab("地图");Action("PrepareSaveWorkspace");Check(((SavePlan)Field("preparedSave")!).Scope==SaveScope.Map&&((SavePlan)Field("preparedSave")!).Items.Single().Fields.Keys.All(SavePlan.IsGps),"current-map-page-grouped-GPS-scope");Check(Control<TabControl>("WorkspaceTabs").SelectedIndex==0&&Control<TabItem>("SaveTargetTab").IsSelected,"map-summary-actually-visible-in-metadata-page");Action("ExecuteSavePlan");await BatchWait();
+  SelectMetadataTab("地图");Action("PrepareSaveWorkspace");Check(((SavePlan)Field("preparedSave")!).Scope==SaveScope.Map&&((SavePlan)Field("preparedSave")!).Items.Single().Fields.Keys.All(SavePlan.IsGps),"current-map-page-grouped-GPS-scope");Check(((System.Windows.Window)Field("advancedWindow")!).IsVisible&&Control<TextBox>("SaveSummary").IsVisible&&Control<TabItem>("SaveTargetTab").IsSelected,"map-summary-actually-visible-in-metadata-page");Action("ExecuteSavePlan");await BatchWait();
   Check(mixed.Draft.ContainsKey("XMP-dc:Rights")&&mixed.Draft.Keys.Any(SavePlan.IsGps),"copy-range-preserves-all-session-drafts");var mapCopy=await PhotoDocument.LoadAsync(client,Path.Combine(scopeOut,"unpaired.DNG"));Check(mapCopy.Position()is{Latitude:31,Longitude:121}&&mapCopy.Value("XMP-dc:Rights")!="workspace rights","only-GPS-fields-saved-other-draft-excluded");
   mixed.ClearDraft();Invoke("RefreshSelection");SelectMetadataTab("元数据");
   // Existing sidecar subsequently goes through COPY only; legacy Ctrl+S remains selected.
