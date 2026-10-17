@@ -22,6 +22,7 @@ static partial class Program
   await File.WriteAllBytesAsync(file,bytes.Take(2).Concat(app13).Concat(bytes.Skip(2)).ToArray());return file;
  }
  static async Task R04bChecks() {
+  M3Call("SaveUi",((UiPreference)Field("ui")!) with{SkipSaveScopePrompt=true});
   var rows=await DateCoreRows(5);var client=InspectorTool();var docs=rows.Select(Doc).ToArray();var jpeg=docs.Single(d=>Path.GetFileName(d.FilePath)=="embedded.jpg");
   var original=jpeg.SourceHash;var pixels=await MetadataCopy.JpegPixelsAsync(jpeg.FilePath);Check(jpeg.Iptc!.Empty,"true-absent-IPTC-raw-source");
   var list=Control<ListBox>("Photos");list.SelectedItems.Clear();list.SelectedItems.Add(rows.Single(r=>ReferenceEquals(Doc(r),jpeg)));
@@ -51,9 +52,9 @@ static partial class Program
   saved.SetDraft(new Dictionary<string,string>{{"IPTC:Caption-Abstract","line1\r\nline2"},{"IPTC:Headline","既有UTF8更新"},{"IPTC:Keywords",MetadataFields.FormatList(["duplicate","duplicate","line\nvalue"])}});var updatedFolder=Path.Combine(folder,"updated");Directory.CreateDirectory(updatedFolder);var updated=await PhotoDocument.LoadAsync(client,await MetadataCopy.SaveAsync(client,saved,updatedFolder));Check(updated.Iptc!.Utf8&&updated.Value("IPTC:Headline")=="既有UTF8更新","existing-UTF8-setting-keeps-declaration");Check(MetadataFields.List(updated.Value("IPTC:Keywords")).SequenceEqual(new[]{"duplicate","duplicate","line\nvalue"}),"IPTC-list-duplicate-order-kept");Check(updated.Value("IPTC:Caption-Abstract")=="line1\r\nline2","IPTC-CRLF-exact-byte-readback");saved.ClearDraft();
   var preset=MetadataPreset.Create("IPTC fixed",changes);var decoded=MetadataPreset.Decode(preset.Encode());var fresh=await PhotoDocument.LoadAsync(client,jpeg.FilePath);decoded.Apply(fresh);Check(fresh.Draft.Count==12&&fresh.Value("IPTC:Keywords")==changes["IPTC:Keywords"],"IPTC-preset-v1-list-boundaries-roundtrip");
   var authorized=MetadataCsv.Snapshot([await PhotoDocument.LoadAsync(client,jpeg.FilePath)]);var csv=MetadataCsv.Load(MetadataCsv.Export(MetadataCsv.Snapshot([jpeg])),authorized);Check(csv.Changes.Values.Single()["IPTC:Keywords"]==changes["IPTC:Keywords"],"IPTC-CSV-list-elements-roundtrip");
-  R04Refusal(()=>MetadataCsv.Load(MetadataCsv.Export(MetadataCsv.Snapshot([jpeg])).Replace("IPTC:Headline","IPTC:CodedCharacterSet"),authorized),"controlled-encoding-not-open-in-CSV");
+  var controlled=MetadataCsv.Load(MetadataCsv.Export(MetadataCsv.Snapshot([jpeg])).Replace("IPTC:Headline","IPTC:CodedCharacterSet"),authorized);Check(controlled.UnknownFieldCount==1&&controlled.Warnings.Count>0&&controlled.Changes.Values.All(v=>!v.ContainsKey("IPTC:CodedCharacterSet")),"R07-CSV-controlled-encoding-warned-never-imported");
   R04Refusal(()=>MetadataPreset.Create("invalid",new Dictionary<string,string>{{"IPTC:City",new string('a',33)}}),"IPTC-preset-over-byte-limit-atomic");
-  R04Refusal(()=>MetadataPreset.Validate(new("IPTC:Headline","copy","IFD0:Artist")),"no-new-cross-source-IPTC-EXIF-copy");
+  MetadataPreset.Validate(new("IPTC:Headline","copy","IFD0:Artist"));Check(true,"R07-approved-cross-source-IPTC-copy-schema");
   Check(MetadataClipboard.Prepare(changes["IPTC:Keywords"],["IPTC:Keywords"])["IPTC:Keywords"]==changes["IPTC:Keywords"],"IPTC-clipboard-list-boundaries");
   saved.SetDraft(MetadataIptc.Fields.Keys.Where(t=>!MetadataTimes.IsPartial(t)).ToDictionary(t=>t,_=>""));var clearFolder=Path.Combine(folder,"cleared");Directory.CreateDirectory(clearFolder);var cleared=await PhotoDocument.LoadAsync(client,await MetadataCopy.SaveAsync(client,saved,clearFolder));
   foreach(var tag in changes.Keys)Check(cleared.Value(tag)=="","real-clear-exact-"+tag);Check(cleared.Iptc!.Utf8,"clear-keeps-declaration");

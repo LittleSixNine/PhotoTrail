@@ -1,3 +1,5 @@
+POSTM9 evidence helpers mirror production software rendering. `PHOTOTRAIL_EVIDENCE_STEPS` pauses only the checker for reviewed original screenshots; setup driven by the checker must not be labeled native keyboard input. `--post-large-recover-checks` requires an exact isolated recovery root and refuses mismatched records. On a checker failure, request cancellation and await the existing operation safe boundary before clearing synthetic editor state; retain the window if cancellation does not settle. `--post-failure-cleanup-checks` intentionally tests that failure path.
+
 ## POSTM9-20261018
 
 POSTM9 checks: UiChecks --postm9-checks, --postm10-checks, --post-parity-checks and --post-fault-checks exercise production WPF and isolated valid test copies. The M10 deep-path chain includes real NTFS copy, TxF write, backup and restore; simulated cancellation/adoption failures are labeled. Device catalogue is byte-identical to Mac cbeccc015. DateHost production and its 38-file runtime combination are unchanged. See PORTABLE-CANDIDATE.md and THIRD-PARTY-NOTICES.md for open deployment/license gates.

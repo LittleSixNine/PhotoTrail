@@ -8,11 +8,12 @@ static partial class Program
 {
  static void R04Refusal(Action action,string name){try{action();throw new Exception("accepted invalid input: "+name);}catch(Exception e)when(e is ArgumentException or InvalidOperationException or IOException or InvalidDataException){Check(true,name);}}
  static async Task R04aChecks() {
+  M3Call("SaveUi",((UiPreference)Field("ui")!) with{SkipSaveScopePrompt=true});
   var rows=await DateCoreRows(5);var client=InspectorTool();var all=rows.Select(Doc).ToArray();
   var jpeg=all.Single(d=>Path.GetFileName(d.FilePath)=="embedded.jpg");var paired=all.Single(d=>Path.GetFileName(d.FilePath)=="paired.jpg");var raw=all.Single(d=>Path.GetFileName(d.FilePath)=="unpaired.DNG");var standalone=all.Single(d=>d.FileType=="XMP");
   var list=Control<ListBox>("Photos");list.SelectedItems.Clear();list.SelectedItems.Add(rows.Single(r=>ReferenceEquals(Doc(r),jpeg)));
   Check(Control<CheckBox>("ExifArtistApply").IsEnabled,"JPEG-exact-EXIF-control-enabled");
-  list.SelectedItems.Clear();list.SelectedItems.Add(rows.Single(r=>ReferenceEquals(Doc(r),paired)));
+  list.SelectedItems.Clear();list.SelectedItems.Add(rows.Single(r=>ReferenceEquals(Doc(r),paired)));await Responsive();
   Check(!Control<CheckBox>("ExifArtistApply").IsEnabled,"paired-EXIF-reference-readonly");
   foreach(var doc in new[]{paired,raw,standalone})R04Refusal(()=>doc.SetDraft(new Dictionary<string,string>{{"IFD0:Artist","refused"}}),"EXIF-source-refused-"+doc.FileType);
   var original=await PhotoDocument.HashAsync(jpeg.FilePath);var pixels=await MetadataCopy.JpegPixelsAsync(jpeg.FilePath);
@@ -84,7 +85,7 @@ static partial class Program
   Check(all.All(d=>d.SourceHash==awaitHash(d.FilePath)||d==jpeg),"other-imported-sources-preserved");
   static string awaitHash(string path)=>Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path)));
   await R04aConsumers(client,jpeg.FilePath,paired.FilePath);
-  File.WriteAllText(Path.Combine(folder,"r04a-results.json"),JsonSerializer.Serialize(evidence,new JsonSerializerOptions{WriteIndented=true}));
+  File.WriteAllText(Path.Combine(folder,"r04a-results.json"),JsonSerializer.Serialize(new{buildSha=await PhotoDocument.HashAsync(typeof(MainWindow).Assembly.Location),checks=evidence},new JsonSerializerOptions{WriteIndented=true}));
  }
  static async Task R04aConsumers(ExifToolClient client,string jpegPath,string sidePath) {
   var list=Control<ListBox>("Photos");var jr=list.Items.Cast<object>().Single(r=>Doc(r).FilePath==jpegPath);var sr=list.Items.Cast<object>().Single(r=>Doc(r).FilePath==sidePath);var jpeg=Doc(jr);var side=Doc(sr);
@@ -101,20 +102,22 @@ static partial class Program
   await side.SetDraftAsync(new Dictionary<string,string>{{side.MainDateTag,"2026:01:01 00:00:02"}});Check(side.VerifiedCaptureDate!.InstantLimitation is not null,"无偏移不猜UTC");
   R04Refusal(()=>MetadataPreset.Decode("{\"version\":99}"),"未知JSON版本拒绝");R04Refusal(()=>MetadataPreset.Create("bad",new Dictionary<string,string>{{"MakerNotes:OwnerName","x"}}),"非白名单JSON目标拒绝");
   R04Refusal(()=>PhotoDocument.ValidateChanges(new Dictionary<string,string>{{"IFD0:Artist",new string('x',8193)}}),"文字长度边界拒绝");R04Refusal(()=>PhotoDocument.ValidateChanges(new Dictionary<string,string>{{"IFD0:Artist","a\0b"}}),"文字NUL拒绝");
-  R04Refusal(()=>MetadataPreset.Validate(new("IFD0:Artist","copy","XMP-dc:Title")),"本批不开放跨来源复制编排");
+  jpeg.SetDraft(new Dictionary<string,string>{{"XMP-dc:Title","R07 copy source"}});var copyText=new MetadataOperation("IFD0:Artist","copy","XMP-dc:Title");MetadataPreset.Validate(copyText);await new MetadataPreset("R07 copy",[copyText]).ApplyAsync(jpeg);Check(jpeg.Value("IFD0:Artist")=="R07 copy source","R07-approved-cross-source-copy-executes");
   var inspection=jpeg.Inspection;var failure=jpeg.InspectionError;long gettersBefore=DateAdapter.StartedProcesses;for(int i=0;i<100;i++){_=jpeg.VerifiedCaptureDate;_=side.VerifiedCaptureDate;_=jpeg.Value(jpeg.MainDateTag);}Check(DateAdapter.StartedProcesses==gettersBefore,"日期getter不启动进程");
   jpeg.Inspection=[new("原图","IFD0:Artist","a"),new("原图","IFD0:Copy1:Artist","b")];R04Refusal(()=>jpeg.SetDraft(new Dictionary<string,string>{{"IFD0:Artist","new"}}),"真正重复family拒绝");jpeg.Inspection=inspection;jpeg.InspectionError="synthetic read failure";R04Refusal(()=>jpeg.SetDraft(new Dictionary<string,string>{{"IFD0:Artist","new"}}),"读取失败不当缺失");jpeg.InspectionError=failure;
-  var csv=MetadataCsv.Export(MetadataCsv.Snapshot([jpeg]));R04Refusal(()=>MetadataCsv.Load(csv.Replace("IFD0:Artist","MakerNotes:OwnerName"),MetadataCsv.Snapshot([jpeg])),"CSV未知标签整批拒绝");
+  var csv=MetadataCsv.Export(MetadataCsv.Snapshot([jpeg]));var unknownColumn=MetadataCsv.Load(csv.Replace("IFD0:Artist","MakerNotes:OwnerName"),MetadataCsv.Snapshot([jpeg]));Check(unknownColumn.UnknownFieldCount==1&&unknownColumn.Warnings.Count>0&&unknownColumn.Changes.Count==0,"R07-CSV-unknown-column-warned-without-changes");
   foreach(var mode in new[]{0,2,3,4}) {
    var options=mode switch {0=>new DatePageOptions(0,Seconds:1),2=>new DatePageOptions(2,Components:new(){["second"]=3}),3=>new DatePageOptions(3,Start:"2026:01:01 00:00:01",End:"2026:01:01 00:00:02"),_=>new DatePageOptions(4,Pattern:@"(embedded)",Template:"2026:01:01 00:00:03")};
    try{var preview=await DatePagePreview.CreateAsync([jpeg],options,0,()=>0,default);Check(preview.Values.Count==1,"日期模式定向-"+mode);}catch(ArgumentException)when(mode==4){Check(true,"文件名模式沿既有捕获模板校验");}
   }
   jpeg.ClearDraft();side.ClearDraft();list.SelectedItems.Clear();list.SelectedItems.Add(jr);list.SelectedItems.Add(sr);
-  Control<ComboBox>("RenameProcessingSort").SelectedIndex=3;Action("RefreshRenameOrder");await BatchWait();await Task.Delay(100);
-  var groups=(RenameGroup[])Field("renameGroups")!;Check(groups.Length==2&&groups.All(g=>g.Members.All(m=>m.CaptureKnown)),"重命名排序明确主来源");
-  Check(groups.Single(g=>g.Leader.Path==jpegPath).Leader.MainCapture==BatchTrackMatch.Capture(jpeg),"重命名与列表同一主日期");
+  M3Call("SetSchemeEditor",new RenameScheme(Guid.NewGuid(),"R04 date sources",RenamePlan.EncodeEditorRules([new RenameRule("prefix","R04-")]),new RenameOrderSettings("shooting"),""));await Responsive();
+  Control<ComboBox>("RenameProcessingSort").SelectedIndex=3;await Responsive();await RenameWait();Action("RefreshRenameOrder");await RenameWait();
+  File.WriteAllText(Path.Combine(folder,"rename-diagnostic.local.json"),JsonSerializer.Serialize(new{status=Control<TextBlock>("RenameStatus").Text,groups=((RenameGroup[])Field("renameGroups")!).Select(g=>new{g.Name,dates=g.Leader.ShootingTexts().ToArray()})}));
+  var groups=(RenameGroup[])Field("renameGroups")!;Check(groups.Length==2&&groups.All(g=>g.Leader.ShootingTexts().Any()),"M8-priority-rename-candidates-have-date-sources");
+  Check(groups.Single(g=>g.Leader.Path==jpegPath).Leader.ShootingTexts().Contains(RenameInput.BridgeDate(BatchTrackMatch.Capture(jpeg)!)),"M8-priority-includes-exact-list-main-date");
   jpeg.SetDraft(new Dictionary<string,string>{{jpeg.MainDateTag,""}});Action("RefreshRenameOrder");await BatchWait();await Task.Delay(100);groups=(RenameGroup[])Field("renameGroups")!;
-  Check(groups.Single(g=>g.Leader.Path==jpegPath).Leader.Shooting is null,"重命名主日期清除不回退");jpeg.ClearDraft();
+  Check(!groups.Single(g=>g.Leader.Path==jpegPath).Leader.ShootingTexts().Any(),"重命名主日期清除不回退");jpeg.ClearDraft();
   // XMP exchange preserves list elements and never imports EXIF targets.
   var packet=Path.Combine(folder,"exchange.xmp");var exchange=await PhotoDocument.LoadAsync(client,jpegPath);exchange.SetDraft(new Dictionary<string,string>{{"XMP-dc:Creator",MetadataFields.FormatList(["a,b","line1\nline2"])}});await MetadataXmp.ExportAsync(client,exchange,packet);var imported=await MetadataXmp.ImportAsync(client,packet);
   Check(MetadataFields.List(imported.Changes["XMP-dc:Creator"]).SequenceEqual(new[]{"a,b","line1\nline2"})&&imported.Changes.Keys.All(t=>t.StartsWith("XMP-",StringComparison.Ordinal)),"XMP交换列表边界及来源隔离");

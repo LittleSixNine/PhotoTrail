@@ -9,6 +9,7 @@ static partial class Program
 {
  static Dictionary<string,string> One(string tag,string text)=>new(){{tag,text}};
  static async Task R04cChecks() {
+  M3Call("SaveUi",((UiPreference)Field("ui")!) with{SkipSaveScopePrompt=true});
   var rows=await DateCoreRows(5);var client=InspectorTool();var jpeg=rows.Select(Doc).Single(d=>Path.GetFileName(d.FilePath)=="embedded.jpg");
   var original=jpeg.SourceHash;var times=SourceTimes.Read(jpeg.FilePath);var pixels=await MetadataCopy.JpegPixelsAsync(jpeg.FilePath);
   foreach(var (tag,range) in MetadataFields.ExifNumeric) {
@@ -49,9 +50,9 @@ static partial class Program
   Check(MetadataCsv.Load(MetadataCsv.Export([csv]),authorized).Changes.Count==1,"25-typed-CSV-all-or-nothing");
   foreach(var tag in MetadataTimes.Fields) {
    R04Refusal(()=>MetadataClipboard.Prepare("",[tag]),"System-clipboard-clear-refused-"+tag);
-   var cells=new Dictionary<string,string>{{"ExifIFD:ISO",JsonSerializer.Serialize("400")},{tag,"@clear"}};R04Refusal(()=>MetadataCsv.Load(MetadataCsv.Export([csv with{Cells=cells}]),authorized),"System-CSV-clear-atomic-refused-"+tag);
+   var cells=new Dictionary<string,string>{{"ExifIFD:ISO",JsonSerializer.Serialize("400")},{tag,"@clear"}};var denied=MetadataCsv.Load(MetadataCsv.Export([csv with{Cells=cells}]),authorized);Check(denied.Changes.Count==0&&denied.InvalidRowCount==1&&denied.Warnings.Count>0,"System-CSV-clear-whole-row-refused-with-warning-"+tag);
   }
-  R04Refusal(()=>MetadataCsv.Load(MetadataCsv.Export([csv]).Replace("System:FileCreateDate","System:FileAccessDate"),authorized),"unknown-system-CSV-atomic-refused");
+  var unknownSystem=MetadataCsv.Load(MetadataCsv.Export([csv]).Replace("System:FileCreateDate","System:FileAccessDate"),authorized);Check(unknownSystem.UnknownFieldCount==1&&unknownSystem.Warnings.Count>0,"R07-unknown-system-column-explicit-warning-no-silent-acceptance");
   R04Refusal(()=>MetadataPreset.Create("unknown",[new MetadataOperation("System:FileAccessDate","setText","2026:10:14 00:00:00Z")]),"unknown-system-target-preset-refused");
   jpeg.SetDraft(changes);var output=Path.Combine(folder,"all-targets");Directory.CreateDirectory(output);var copy=await MetadataCopy.SaveAsync(client,jpeg,output);var saved=await PhotoDocument.LoadAsync(client,copy,inspect:true);
   foreach(var (tag,value) in changes)Check(MetadataFields.Matches(tag,saved.Value(tag),MetadataTimes.Normalize(tag,value)),"real-target-25-"+tag);

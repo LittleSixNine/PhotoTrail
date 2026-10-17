@@ -15,9 +15,12 @@ static partial class Program
   var groups=(RenameGroup[])Field("renameGroups")!;
   Check(groups.Length==2&&groups.All(g=>g.Leader.Extension=="png"&&g.Members.Count==2),"POSTM9-valid-PNG-XMP-custom-groups");
   Check(groups.All(g=>g.Leader.ShootingTexts().Single().StartsWith("2024:01:0",StringComparison.Ordinal)),"POSTM9-sidecar-only-date-reaches-main-member");
+  await EvidenceDialog("M3InputSettings","PNG-pair-date-settings");
+  await PauseEvidence("PNG-date-preview");
   var ordered=(RenameGroup[])M3Call("OrderedRenameGroups")!;Check(ordered.Select(g=>g.Name).SequenceEqual(new[]{"b.png","a.png"}),"POSTM9-sidecar-date-orders-main-PNG");
   var preview=Control<DataGrid>("RenamePreview").Items.Cast<RenameFile>().ToArray();Check(preview.Length==4&&preview.All(f=>f.NewName.StartsWith("2024-01-0",StringComparison.Ordinal)),"POSTM9-date-preview-names-both-physical-members");
   Action("FreezeRename");await RenameWait();var plan=(RenamePlan)Field("frozenRenamePlan")!;Check(plan.Files.Count==4&&plan.Files.All(f=>f.Target.Contains("2024-01-0",StringComparison.Ordinal)),"POSTM9-freeze-retains-sidecar-date-targets");
+  await PauseEvidence("PNG-frozen-date-plan");
   Control<CheckBox>("RenameDescending").IsChecked=true;await Responsive();Check(Field("frozenRenamePlan")is null,"POSTM9-changed-sort-invalidates-freeze");
   M3Call("SetSchemeEditor",scheme);await Responsive();Action("RefreshRenameOrder");await RenameWait();Action("FreezeRename");await RenameWait();plan=(RenamePlan)Field("frozenRenamePlan")!;
   var before=plan.Files.ToDictionary(f=>f.Source,f=>new{f.Hash,Properties=PostProperties(f.Source)});var count=RenameCounters.Read(RenameCounters.DefaultPath);
