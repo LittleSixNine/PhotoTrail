@@ -137,7 +137,7 @@ public partial class MainWindow
         }
         inputs=inputs.Select(member=>{
             var imported=photos.FirstOrDefault(row=>(row.Document.FilePath.Equals(member.Path,StringComparison.OrdinalIgnoreCase)||row.Document.SidecarPath?.Equals(member.Path,StringComparison.OrdinalIgnoreCase)==true))?.Document;
-            var external=inputs.FirstOrDefault(other=>other.Extension=="xmp"&&!other.Path.Equals(member.Path,StringComparison.OrdinalIgnoreCase)&&RenameGroup.Key(other.Path)==RenameGroup.Key(member.Path));
+            var external=inputs.FirstOrDefault(other=>other.Extension=="xmp"&&!other.Path.Equals(member.Path,StringComparison.OrdinalIgnoreCase)&&RenameGroup.Key(other.Path,order)==RenameGroup.Key(member.Path,order));
             var merged=new Dictionary<string,string>(member.Tags,StringComparer.Ordinal);
             if(external?.Metadata is {} side)foreach(var tag in side.EnumerateObject().Where(p=>p.Name.StartsWith("XMP-",StringComparison.Ordinal)))merged[tag.Name]=PhotoDocument.Text(tag.Value);
             if(imported is not null)foreach(var tag in imported.Draft)merged[tag.Key]=tag.Value;

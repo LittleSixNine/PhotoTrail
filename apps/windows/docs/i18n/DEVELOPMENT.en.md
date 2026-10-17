@@ -1,3 +1,7 @@
+## POSTM9-20261018
+
+POSTM9: run UiChecks --postm9-checks, --postm10-checks, --post-parity-checks and --post-fault-checks with isolated preferences and valid synthetic copies. Bind checks to the final production DLL; distinguish real filesystem results from simulations. DateHost and its 38-file runtime combination remain pinned. Clean deployment, runtime redistribution and SwiftPM/14001 remain open gates.
+
 R10: SourceTests `--r10-gpx-checks`, affected regression `--track-adjustment-checks`, UiChecks `--r10-checks`. Isolate PHOTOTRAIL_TRACK_WORKSPACE, PHOTOTRAIL_MAP_WORKSPACE and all existing histories/preferences. UiChecks uses a local renderer substitute only in its output folder, restores it afterwards, and is not a live-map test. Bind final published DLL before final WPF acceptance; native EXE export/restart and source identity/property checks are separate. Never rebuild the pinned Swift DateHost. Track workspace stores metadata only, reusing validated adjustment snapshots; corrupt/conflicting records are preserved.
 
 R09b checks: SourceTests `--r09b-location-checks`, UiChecks `--r09b-checks`; manual synthetic values only, D06 online persistence BLOCKED. Tests use their own GPS and source guards; final EXE/copy readback is separate.

@@ -1,3 +1,7 @@
+## POSTM9-20261018
+
+POSTM9 checks: UiChecks --postm9-checks, --postm10-checks, --post-parity-checks and --post-fault-checks exercise production WPF and isolated valid test copies. The M10 deep-path chain includes real NTFS copy, TxF write, backup and restore; simulated cancellation/adoption failures are labeled. Device catalogue is byte-identical to Mac cbeccc015. DateHost production and its 38-file runtime combination are unchanged. See PORTABLE-CANDIDATE.md and THIRD-PARTY-NOTICES.md for open deployment/license gates.
+
 WIN-M1：UiChecks `--m1-checks` 使用三张获准 Mac 合成 JPEG 的独立副本，验证生产窗口/接线/草稿/撤销/保存摘要/独立回读。隔离全部 PHOTOTRAIL 偏好、历史、计数和 WebView 目录；离线测试禁止真实服务/设备定位。检查必须绑定最终候选 DLL，输出中的 buildSha 与候选逐字节核对；原生截图和键鼠验证另记，不以 UI 断言替代。DateHost 38 文件沿 R10 候选复制，不重建 Swift。
 
 R10: SourceTests `--r10-gpx-checks`, affected regression `--track-adjustment-checks`, UiChecks `--r10-checks`. Isolate PHOTOTRAIL_TRACK_WORKSPACE, PHOTOTRAIL_MAP_WORKSPACE and all existing histories/preferences. UiChecks uses a local renderer substitute only in its output folder, restores it afterwards, and is not a live-map test. Bind final published DLL before final WPF acceptance; native EXE export/restart and source identity/property checks are separate. Never rebuild the pinned Swift DateHost. Track workspace stores metadata only, reusing validated adjustment snapshots; corrupt/conflicting records are preserved.

@@ -1,3 +1,5 @@
+Desarrollo POSTM9: catálogo fijo con nombres de producto y modelos de metadatos, entrada personalizada, ocho códigos de flash y rutas Win32 extendidas para guardado y restauración cualificados. El despliegue limpio y la redistribución siguen pendientes.
+
 R10: visibilidad por pista y recuperación del espacio de trabajo. Genere GPX de las fotos seleccionadas y guarde, verifique y añada explícitamente. Se omiten fechas sin desfase y referencias desconocidas; no se guardan las fotos.
 
 R09b: regiones manuales independientes con selección congelada y sobrescritura explícita. La persistencia de resultados en línea sigue bloqueada por licencia.

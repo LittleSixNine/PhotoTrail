@@ -32,8 +32,7 @@ public static class WindowsRename
     private static extern bool SetFileInformationByHandle(SafeFileHandle handle,int information,IntPtr buffer,uint size);
     public static FileStream Open(string path)
     {
-        var full=Path.GetFullPath(path);
-        if(!full.StartsWith(@"\\?\"))full=full.StartsWith(@"\\")?@"\\?\UNC\"+full[2..]:@"\\?\"+full;
+        var full=SavePaths.NativePath(path);
         // Deny other writers/deleters; rename the same verified handle instead of reopening its path.
         var handle=CreateFileW(full,0x80010100,1,IntPtr.Zero,3,0x08000000,IntPtr.Zero);
         if(handle.IsInvalid){var error=Marshal.GetLastWin32Error();handle.Dispose();throw new IOException("无法锁定待更名文件。",new Win32Exception(error));}

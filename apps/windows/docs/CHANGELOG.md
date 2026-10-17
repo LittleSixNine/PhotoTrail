@@ -1,3 +1,7 @@
+## POSTM9-20261018
+
+POSTM9 development: fixed custom PNG/XMP rename dates and settings-aware selection; added fixed Mac device catalogue and common flash choices; corrected Win32 deep-path save/restore calls. User acceptance remains pending.
+
 ## 2026-10-17 · WIN-M8 / WIN-M9 development candidate
 
 Custom ordered rename pairing/date sources and strict Mac v1 preset conversion now use the protected execution path. Session camera timezone, all/current-page save scope, undoable map gestures and qualified JPEG/XMP copy-only location clearing are connected. Default copy saves keep session drafts. M8: 3 suites/88 assertions; final M9 DLL: 12 suites/269 assertions. Real Mac interoperation, additional DPI/accessibility/deployment and conditional service/format gates remain unverified; user acceptance pending.

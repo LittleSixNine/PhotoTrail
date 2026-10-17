@@ -306,6 +306,8 @@ public partial class MainWindow
             {
                 string[]? choices=valueTag=="XMP-xmp:Rating"?Enumerable.Range(-1,7).Select(n=>n.ToString(CultureInfo.InvariantCulture)).ToArray():PhotoDocument.NumericRange(valueTag) is {} numeric&&numeric.Integer&&numeric.Maximum-numeric.Minimum<=16?Enumerable.Range((int)numeric.Minimum,(int)(numeric.Maximum-numeric.Minimum)+1).Select(n=>n.ToString(CultureInfo.InvariantCulture)).ToArray():null;
                 if(PhotoDocument.NumericRange(valueTag) is {} range)parameters.Children.Add(WLabel(string.Format(CultureInfo.CurrentCulture,WText("NumericRange"),range.Minimum,range.Maximum,range.Integer?WText("IntegerType"):WText("NumberType"))));
+                if(valueTag=="ExifIFD:Flash")AddFlashPicker(parameters,box);
+                if(valueTag is "XMP-tiff:Make" or "XMP-tiff:Model" or "IFD0:Make" or "IFD0:Model")AddDevicePicker(parameters,valueTag,box);
                 if(choices is not null)
                 {
                     box.Visibility=Visibility.Collapsed;

@@ -1,3 +1,7 @@
+## POSTM9-20261018
+
+Custom paired rename date lookup and rule-change selection use the same pairing settings. A PNG primary can receive its date from a valid XMP sidecar. Device choices affect only the current field and do not apply drafts or write files; product-only entries never invent a metadata code. Flash presets retain numeric values, with custom input still available. Local native directory and TxF calls use the existing extended-path convention; qualification, physical identity, ACL, unknown-journal and no-overwrite checks remain required.
+
 WIN-M9当前行为：主保存与Ctrl+S默认全会话待保存字段，不受选择／过滤限制；本页范围按草稿来源区分并保留另页草稿，范围提醒后仍需冻结摘要及明确执行。当前会话时区只解释无偏移时间，显式偏移优先，歧义拒绝。双击／拖动定位为可撤销草稿，单击只预览。明确清除定位仅已验证副本组合可写，保留时间／像素／非目标字段。详见[WIN-M9](WIN-M9.md)。以下历史说明按阶段理解。
 
 > 2026-10-16 WIN-M5：六类独立设置、四步引导、七语言资源与稳定入口；语言及相机显示时区下次启动生效，轨迹匹配冻结实际间隔，照片 GPX 默认值与当前临时值分开。恢复显示默认值保留备份／导入／预设，存储摘要只读。见[当前说明](WIN-M5.md)。历史规则与未验项目不改写。

@@ -348,7 +348,7 @@ public partial class MainWindow : Window
         try
         {
             var rules = ReadRenameRules();
-            var roots=RenameSelection().Select(r=>RenameGroup.Key(r.Document.FilePath)).ToHashSet(StringComparer.OrdinalIgnoreCase); renameGroups=renameGroups.Where(g=>g.Members.Any(m=>roots.Contains(RenameGroup.Key(m.Path)))).ToArray();await RenderRenameGroupsAsync();
+            var order=ReadRenameOrder();var roots=RenameSelection().Select(r=>RenameGroup.Key(r.Document.FilePath,order)).ToHashSet(StringComparer.OrdinalIgnoreCase); renameGroups=renameGroups.Where(g=>g.Members.Any(m=>roots.Contains(RenameGroup.Key(m.Path,order)))).ToArray();await RenderRenameGroupsAsync();
             if(revision!=renameRevision)return;RenameStatus.Text = L10n.Message(L10n.Text("名称预览已更新；请检查冲突并冻结计划后执行。"));
         }
         catch (Exception error) { if(revision!=renameRevision)return;RenamePreview.ItemsSource = null; RenameStatus.Text = L10n.Message(L10n.Text("未生成预览：") + L10n.Message(error.Message)); }

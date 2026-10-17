@@ -58,7 +58,7 @@ internal static class InplaceNative
             }catch{Dispose();throw;}
         }
         void LockFile(string path,FileProperties properties,string hash,bool preserveProperties) {
-            using var handle=CreateFileTransactedW(path,0xc0010000,5,IntPtr.Zero,3,0x00200080,IntPtr.Zero,transaction,IntPtr.Zero,IntPtr.Zero);
+            using var handle=CreateFileTransactedW(SavePaths.NativePath(path),0xc0010000,5,IntPtr.Zero,3,0x00200080,IntPtr.Zero,transaction,IntPtr.Zero,IntPtr.Zero);
             if(handle.IsInvalid)throw Failure("无法排他保护文件");
             using var file=new FileStream(handle,FileAccess.ReadWrite);
             if(!GetFileInformationByHandle(handle,out var identity)||identity.Links!=1||(identity.Attributes&(uint)FileAttributes.ReparsePoint)!=0||properties.Identity!=new FileIdentity(identity.Volume,identity.High,identity.Low))throw new IOException("文件身份已改变。");
@@ -73,14 +73,14 @@ internal static class InplaceNative
         internal void Commit(string stage,string target,FileProperties stageProperties,string stageHash) {
             LockFile(stage,stageProperties,stageHash,true);
             if(Security(target)!=security||Security(stage)!=security)throw new IOException("权限已改变，拒绝替换。");
-            if(!MoveFileTransactedW(stage,target,IntPtr.Zero,IntPtr.Zero,1,transaction))throw Failure("原生暂存替换失败");
+            if(!MoveFileTransactedW(SavePaths.NativePath(stage),SavePaths.NativePath(target),IntPtr.Zero,IntPtr.Zero,1,transaction))throw Failure("原生暂存替换失败");
             if(!CommitTransaction(transaction))throw Failure("原生提交结果未确认");committed=true;
         }
         public void Dispose(){if(!transaction.IsInvalid&&!committed)RollbackTransaction(transaction);transaction.Dispose();}
     }
     static string Security(string path)=>new FileInfo(path).GetAccessControl(AccessControlSections.Access|AccessControlSections.Owner|AccessControlSections.Group).GetSecurityDescriptorSddlForm(AccessControlSections.Access|AccessControlSections.Owner|AccessControlSections.Group);
     static void RequireSingleStream(string path) {
-        var find=FindFirstStreamW(path,0,out var information,0);if(find==new IntPtr(-1))throw Failure("无法确认数据流边界");
+        var find=FindFirstStreamW(SavePaths.NativePath(path),0,out var information,0);if(find==new IntPtr(-1))throw Failure("无法确认数据流边界");
         try{do{if(information.Name!="::$DATA")throw new IOException("附加NTFS数据流未验证，拒绝原位替换以保留内容。");}while(FindNextStreamW(find,out information));if(Marshal.GetLastWin32Error()!=38)throw Failure("数据流枚举未确认");}finally{FindClose(find);}
     }
     static IOException Failure(string message)=>new(message+"；Win32="+Marshal.GetLastWin32Error());

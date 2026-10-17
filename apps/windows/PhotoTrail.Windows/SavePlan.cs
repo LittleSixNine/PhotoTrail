@@ -82,12 +82,16 @@ internal sealed record SavePlan(SaveMode Mode,SaveScope Scope,SaveItem[] Items,s
 
 internal static class SavePaths
 {
+    internal static string NativePath(string path) {
+        var full=Path.GetFullPath(path);
+        return full.StartsWith(@"\\?\")?full:full.StartsWith(@"\\")?@"\\?\UNC\"+full[2..]:@"\\?\"+full;
+    }
     [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)]static extern SafeFileHandle CreateFileW(string path,uint access,uint share,IntPtr security,uint creation,uint flags,IntPtr template);
     [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)]static extern uint GetFinalPathNameByHandleW(SafeFileHandle handle,StringBuilder path,uint length,uint flags);
     [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)]static extern bool CreateDirectoryW(string path,IntPtr security);
-    internal static void CreateOwnedDirectory(string path){if(!CreateDirectoryW(path,IntPtr.Zero))throw new IOException("唯一暂存／备份目录不能创建，不接管已有内容；Win32="+Marshal.GetLastWin32Error());}
+    internal static void CreateOwnedDirectory(string path){if(!CreateDirectoryW(NativePath(path),IntPtr.Zero))throw new IOException("唯一暂存／备份目录不能创建，不接管已有内容；Win32="+Marshal.GetLastWin32Error());}
     static SafeFileHandle OpenDirectory(string path,bool protectMetadata=false) {
-        var handle=CreateFileW(path,0,protectMetadata?1u:3u,IntPtr.Zero,3,protectMetadata?0x02200000u:0x02000000u,IntPtr.Zero);
+        var handle=CreateFileW(NativePath(path),0,protectMetadata?1u:3u,IntPtr.Zero,3,protectMetadata?0x02200000u:0x02000000u,IntPtr.Zero);
         if(handle.IsInvalid){handle.Dispose();throw new IOException("目录缺失、占用或无权访问："+path);}return handle;
     }
     internal static string Canonical(string path) {

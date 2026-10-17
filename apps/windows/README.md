@@ -1,3 +1,5 @@
+POSTM9 development: device brand/model choices use the fixed Mac catalogue; product names and metadata model codes are selectable, with custom values preserved. Flash offers eight common codes and custom input. Extended Win32 paths are used for qualified local save/restore operations. See [portable candidate requirements](docs/PORTABLE-CANDIDATE.md); deployment and redistribution gates remain open.
+
 WIN-M8→M9：自定义重命名配对／日期与受控方案互导、会话时区、地图编辑／显式清除及共用保存范围已接线；待最终定向验证、Mac审阅及用户验收。副本保留草稿，在线许可与未验证格式仍受限。见[M8](docs/WIN-M8.md)、[M9](docs/WIN-M9.md)。下方历史保留原归属。
 
 WIN-M7：Windows真实使用与适配开发完成，待Mac审阅／用户验收。修复最小大字号结果不可达、地图长按钮、设置Esc／焦点、辅助名称和生成显示翻译；最终同DLL13套558断言及四条原生合成路径。真实100/150DPI、读屏播报、高对比、多屏及部署未验。版本／标题仍沿WIN-M5，详见[M7说明](docs/WIN-M7.md)。以下历史保留原归属。
