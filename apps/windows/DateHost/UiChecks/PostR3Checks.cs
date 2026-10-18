@@ -13,11 +13,17 @@ static partial class Program
    var counter=RenameCounters.Read(RenameCounters.DefaultPath);M3Call("SetSchemeEditor",scheme);Action("RefreshRenameOrder");await RenameWait();
    Check(RenameCounters.Read(RenameCounters.DefaultPath).Revision==counter.Revision,"R3-actual-import-does-not-reset-local-counter-"+kind);
    var preview=Control<DataGrid>("RenamePreview").Items.Cast<RenameFile>().ToArray();Check(preview.Length==3,"R3-actual-three-Mac-inputs-"+kind);
+   if(kind=="numeric") {
+    Check(preview.Select(f=>f.OriginalName).SequenceEqual(new[]{"missing.jpg","plain.jpg",preview.Single(f=>f.OriginalName.EndsWith(".jpeg",StringComparison.Ordinal)).OriginalName}),"R4-ordinary-name-rank-matches-supplied-Mac-run");
+    foreach(var (f,i) in preview.Select((f,i)=>(f,i)))Check(f.NewName.StartsWith((counter.Values[1]+i).ToString("D3"),StringComparison.Ordinal),"R4-local-initial-contiguous-rank-"+i);
+   }
    if(kind=="date") {
     Check(preview.Single(f=>f.OriginalName.EndsWith(".jpeg",StringComparison.Ordinal)).NewName=="2024-01-15_04-20-30.jpeg","R3-NFD-name-NFC-prefix-real-Mac-parameters");
     Check(preview.Single(f=>f.OriginalName=="plain.jpg").NewName=="2024-01-15_04-20-50.jpg"&&preview.Single(f=>f.OriginalName=="missing.jpg").NewName=="missing.jpg","R3-Mac-zone-missing-disabled-output");
    }
    Action("FreezeRename");await RenameWait();var plan=(RenamePlan)Field("frozenRenamePlan")!;
+   Control<CheckBox>("RenameDescending").IsChecked=!scheme.Order.Descending;await Responsive();Check(Field("frozenRenamePlan") is null,"R4-sort-change-invalidates-freeze-"+kind);
+   Control<CheckBox>("RenameDescending").IsChecked=scheme.Order.Descending;Action("FreezeRename");await RenameWait();plan=(RenamePlan)Field("frozenRenamePlan")!;
    var before=plan.Files.ToDictionary(f=>f.Source,f=>(f.Hash,properties:PostProperties(f.Source)));
    var result=await RenameExecutor.ExecuteAsync(plan,Path.Combine(folder,kind+"-journal"));Check(result.Complete,"R3-actual-Mac-plan-file-execution-"+kind);
    foreach(var f in plan.Files)Check(await PhotoDocument.HashAsync(f.Target)==f.Hash,"R3-independent-output-SHA-"+kind);
