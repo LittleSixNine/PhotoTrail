@@ -7,6 +7,7 @@ namespace PhotoTrail.Windows;
 
 public record RenameRule(string Kind, string Text = "", string Replacement = "", long Start = 1, long Step = 1, int Padding = 3)
 {
+    public Guid? Id { get; init; }
     public string Action { get; init; } = "date-set";
     public bool Enabled { get; init; } = true;
     public string Part { get; init; } = "stem";
@@ -34,7 +35,7 @@ public record RenameRule(string Kind, string Text = "", string Replacement = "",
     public bool FilterAny { get; init; }
     public RenameFilterCondition[] Filters { get; init; } = [new("name","contains","")];
 }
-public sealed record RenameFilterCondition(string Field,string Comparison,string Value);
+public sealed record RenameFilterCondition(string Field,string Comparison,string Value) { public Guid? Id { get; init; } }
 public record RenameFile(string Source, string Target, string Hash)
 {
     internal FileProperties? Properties { get; init; }

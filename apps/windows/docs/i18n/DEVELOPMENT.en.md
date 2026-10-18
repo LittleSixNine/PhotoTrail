@@ -1,3 +1,7 @@
+## POSTM9-R3 targeted checks
+
+`--unicode-filter-checks` covers canonical filter comparisons. Set `PHOTOTRAIL_MAC_EXPORTS` to an isolated directory of actual Mac exports for rule/filter identity round trips. Production DLL checker routes `--r3-interop-checks` and `--r3-f09-checks` cover file execution/recovery and distinct sidecar dates across reordering; these are separate from native keyboard/mouse evidence. The preparation guard waits up to five minutes, then preserves input and cancels safely. Longer measurement waits are not performance improvements.
+
 UiChecks --tool-session-checks, --session-cancel-checks, --lifecycle-modal-checks and --snapshot-replay-checks use isolated owned test inputs; intentional failure must retain and reread drafts before cleanup. Test-Package.ps1 exports the locked Git package and changes only an isolated swift-test diagnostic copy to work around missing SxS assembly manifests. It verifies the installed tool hash remains unchanged. This is not production runtime, clean deployment or redistribution qualification.
 
 ## POSTM9-R2-20261018

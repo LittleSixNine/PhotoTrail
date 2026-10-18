@@ -1,3 +1,5 @@
+Desenvolvimento POSTM9-R3: os filtros de nome do subconjunto Mac v1 reconhecem equivalência canônica NFC/NFD. As identidades de regras e filtros são preservadas; a ordenação natural usa o comportamento local do Windows. A validação do candidato e os limites pendentes são registrados separadamente.
+
 Desenvolvimento POSTM9: catálogo fixo com nomes de produto e modelos de metadados, entrada personalizada, oito códigos de flash e caminhos Win32 estendidos para gravação e restauração qualificadas. Implantação limpa e redistribuição continuam pendentes.
 
 R10: visibilidade por trilha e recuperação do espaço de trabalho. Gere GPX das fotos selecionadas e salve, releia e adicione explicitamente. Datas sem fuso e referenciais desconhecidos são ignorados com motivo; as fotos não são salvas.

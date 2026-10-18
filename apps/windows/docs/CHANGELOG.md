@@ -1,3 +1,11 @@
+## POSTM9-R3 开发节点
+
+- 修复大小写敏感的重命名筛选无法匹配 NFC／NFD 规范等价名称；保留完整字形簇边界和原始磁盘身份。
+- Mac v1 子集往返保留规则与筛选身份，允许使用现有本地自然排序。
+- 消除保存计划跨来源冲突核对的平方级目录重复查询；减少恢复历史相同不可变路径的重复核对，并将恢复准备移至后台。
+
+开发候选验证及未验范围以本批交付为准，不代表用户验收或正式分发。
+
 ## POSTM9-R2-20261018
 
 Development: keep save-plan file checks off the UI thread and reuse the metadata worker within a protected save batch or recovery operation. Source/backup proofs, per-file rereads, cancellation and unknown-result gates remain required. No new format qualification or release status is implied.

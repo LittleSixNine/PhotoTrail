@@ -38,8 +38,10 @@ internal sealed record SavePlan(SaveMode Mode,SaveScope Scope,SaveItem[] Items,s
         var targets=items.SelectMany(i=>i.Companion is null?new[]{i.Target}:new[]{i.Target,i.Companion}).ToArray();
         var keys=targets.Select(SavePaths.Canonical).ToArray();
         if(keys.Distinct(StringComparer.OrdinalIgnoreCase).Count()!=keys.Length)throw new IOException("整批拒绝：多个照片映射到同一物理目标。");
-        var inputs=library.SelectMany(d=>d.SidecarPath is null?new[]{d.FilePath}:new[]{d.FilePath,d.SidecarPath}).Select(SavePaths.Canonical).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if(mode==SaveMode.Inplace&&items.Any(i=>library.Any(d=>!ReferenceEquals(d,i.Document)&&new[]{d.FilePath,d.SidecarPath??d.FilePath}.Any(path=>SavePaths.Canonical(path).Equals(SavePaths.Canonical(i.Target),StringComparison.OrdinalIgnoreCase)))))throw new IOException("整批拒绝：实际写入目标也作为其他照片／独立旁车导入。");
+        // Resolve every actual input once per preparation; execution repeats preparation before writing.
+        var owners=library.SelectMany(d=>(d.SidecarPath is null?new[]{d.FilePath}:new[]{d.FilePath,d.SidecarPath}).Select(path=>(Document:d,Key:SavePaths.Canonical(path)))).ToLookup(p=>p.Key,p=>p.Document,StringComparer.OrdinalIgnoreCase);
+        var inputs=owners.Select(g=>g.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if(mode==SaveMode.Inplace&&items.Where((item,index)=>owners[keys[index]].Any(d=>!ReferenceEquals(d,item.Document))).Any())throw new IOException("整批拒绝：实际写入目标也作为其他照片／独立旁车导入。");
         if(mode!=SaveMode.Inplace&&keys.Any(inputs.Contains))throw new IOException("整批拒绝：保存目标也是已导入来源。");
         if(mode!=SaveMode.Inplace&&targets.Any(t=>File.Exists(t)||Directory.Exists(t)))throw new IOException("整批拒绝：目标已存在，不会覆盖。");
         return new(mode,scope,items.ToArray(),skipped.ToArray());

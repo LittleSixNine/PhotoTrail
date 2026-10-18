@@ -1,3 +1,7 @@
+## POSTM9-R3 定向检查
+
+模型入口 `--unicode-filter-checks`；通过 `PHOTOTRAIL_MAC_EXPORTS` 指向独立 Mac 导出物目录可补规则／筛选身份往返检查。生产 DLL 检查器入口 `--r3-interop-checks`、`--r3-f09-checks` 分别覆盖固定交换样本的文件执行恢复与不同旁车日期的调序；检查器不代替真实窗口键鼠流程。保存准备的检查器等待上限为五分钟，超时仍保全输入并安全取消；延长等待不计产品性能改进。
+
 ## POSTM9-R2-20261018
 
 保存准备的资格检查在后台运行，仍保留逐文件证明、冻结摘要及执行前复核；结束忙碌状态后才打开摘要。UiChecks 的 `--tool-session-checks` 检查真实 ExifTool 会话、Unicode、状态/警告、超时及协议隔离；`--session-cancel-checks` 检查部分成功后的取消与按记录恢复；`--lifecycle-modal-checks` 故意触发范围弹窗超时，预期检查器失败退出，先保全并回读完整测试草稿；`--snapshot-replay-checks` 使用 PHOTOTRAIL_REPLAY_SNAPSHOT 在第二实例验证源绑定、空值和清除语义。仅属检查器证据，不能替代实际 EXE 原生主链。所有 run 须新建独立输入、偏好和 journal，失败材料保留。

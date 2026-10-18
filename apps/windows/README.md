@@ -1,3 +1,5 @@
+POSTM9-R3 开发：Mac v1 子集的名称筛选支持 NFC/NFD 规范等价；往返保留规则与筛选身份，自然排序使用 Windows 本地规则。详见[行为说明](docs/BEHAVIOR.md)。开发候选及未验范围以本端交付为准。
+
 POSTM9 development: device brand/model choices use the fixed Mac catalogue; product names and metadata model codes are selectable, with custom values preserved. Flash offers eight common codes and custom input. Extended Win32 paths are used for qualified local save/restore operations. See [portable candidate requirements](docs/PORTABLE-CANDIDATE.md); deployment and redistribution gates remain open.
 
 WIN-M8→M9：自定义重命名配对／日期与受控方案互导、会话时区、地图编辑／显式清除及共用保存范围已接线；待最终定向验证、Mac审阅及用户验收。副本保留草稿，在线许可与未验证格式仍受限。见[M8](docs/WIN-M8.md)、[M9](docs/WIN-M9.md)。下方历史保留原归属。

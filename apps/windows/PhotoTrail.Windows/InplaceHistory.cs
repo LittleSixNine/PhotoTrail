@@ -11,23 +11,33 @@ internal static class InplaceHistory
     internal static bool Pending(InplaceRecord record)=>record.Phase is not("saved" or "restored" or "failed" or "cancelled");
     internal static InplaceRecord[] ReadAll() {
         if(!Directory.Exists(DirectoryPath))return [];
-        return Directory.EnumerateFiles(DirectoryPath,"inplace-*.jsonl").Select(Read).OrderByDescending(r=>File.GetCreationTimeUtc(PathFor(r.Id))).ToArray();
+        var records=Directory.EnumerateFiles(DirectoryPath,"inplace-*.jsonl").Select(path=>Read(path,inspectPaths:false)).ToArray();
+        // One discovery validates every record, but a shared volume/root needs only one physical query.
+        foreach(var root in records.SelectMany(r=>new[]{r.Target,r.Photo,r.BackupRoot}).Select(path=>Path.GetPathRoot(Path.GetFullPath(path))!).Distinct(StringComparer.OrdinalIgnoreCase))InplaceNative.RequireLocalVolume(root);
+        foreach(var group in records.GroupBy(r=>r.BackupRoot,StringComparer.OrdinalIgnoreCase)) {
+            using var parents=SavePaths.LockParents(Path.Combine(group.Key,"boundary"),true);
+            var canonical=SavePaths.Canonical(Path.Combine(group.Key,"boundary"));
+            if(group.Any(r=>r.Canonical==canonical))throw new InvalidDataException("备份与目标冲突。");
+        }
+        return records.OrderByDescending(r=>File.GetCreationTimeUtc(PathFor(r.Id))).ToArray();
     }
-    internal static InplaceRecord Read(string path) {
+    internal static InplaceRecord Read(string path,bool inspectPaths=true) {
         using var input=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite);
         if((File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)throw new InvalidDataException("链接恢复记录拒绝。 ");
         if(input.Length is 0 or >2097152)throw new InvalidDataException("恢复记录为空或过大；不得当作没有待处理事务。");
         using var reader=new StreamReader(input);InplaceRecord? last=null;
-        while(reader.ReadLine() is {} line){var next=JsonSerializer.Deserialize<InplaceRecord>(line)??throw new InvalidDataException("恢复记录损坏。");Validate(next,path);if(last is not null&&(last.Version!=next.Version||last.NewHash is not null&&last.NewHash!=next.NewHash||last.NewIdentity is not null&&last.NewIdentity!=next.NewIdentity||last.SavedProperties is not null&&last.SavedProperties!=next.SavedProperties||last.Id!=next.Id||last.Target!=next.Target||last.Backup!=next.Backup||last.OriginalHash!=next.OriginalHash||last.Original!=next.Original||last.Revision!=next.Revision||!last.Fields.OrderBy(p=>p.Key).SequenceEqual(next.Fields.OrderBy(p=>p.Key))))throw new InvalidDataException("恢复记录身份改变。");last=next;}
-        return last??throw new InvalidDataException("恢复记录无有效阶段。");
+        while(reader.ReadLine() is {} line){var next=JsonSerializer.Deserialize<InplaceRecord>(line)??throw new InvalidDataException("恢复记录损坏。");if(last is not null&&(last.Photo!=next.Photo||last.Canonical!=next.Canonical||last.BackupRoot!=next.BackupRoot||last.Stage!=next.Stage||last.SourceHash!=next.SourceHash||last.SourceIdentity!=next.SourceIdentity||last.Version!=next.Version||last.NewHash is not null&&last.NewHash!=next.NewHash||last.NewIdentity is not null&&last.NewIdentity!=next.NewIdentity||last.SavedProperties is not null&&last.SavedProperties!=next.SavedProperties||last.Id!=next.Id||last.Target!=next.Target||last.Backup!=next.Backup||last.OriginalHash!=next.OriginalHash||last.Original!=next.Original||last.Revision!=next.Revision||!last.Fields.OrderBy(p=>p.Key).SequenceEqual(next.Fields.OrderBy(p=>p.Key))))throw new InvalidDataException("恢复记录身份改变。");Validate(next,path,inspectPaths:inspectPaths&&last is null);last=next;}
+        if(last is null)throw new InvalidDataException("恢复记录无有效阶段。");
+        // Paths are invariant across every validated phase; inspect them again at the read boundary.
+        Validate(last,path,inspectPaths);return last;
     }
-    static void Validate(InplaceRecord r,string path) {
-        InplaceNative.RequireLocalVolume(r.Target);InplaceNative.RequireLocalVolume(r.Photo);InplaceNative.RequireLocalVolume(r.BackupRoot);
+    static void Validate(InplaceRecord r,string path,bool inspectPaths=true) {
+        if(inspectPaths){InplaceNative.RequireLocalVolume(r.Target);InplaceNative.RequireLocalVolume(r.Photo);InplaceNative.RequireLocalVolume(r.BackupRoot);}
         bool Hash(string? value)=>value is {Length:64}&&value.All(Uri.IsHexDigit);
         if(r.Version is not(1 or 2)||!Guid.TryParseExact(r.Id,"N",out _)||Path.GetFullPath(path)!=Path.GetFullPath(PathFor(r.Id))||!Hash(r.OriginalHash)||r.NewHash is not null&&!Hash(r.NewHash)||r.RestoreHash is not null&&!Hash(r.RestoreHash))throw new InvalidDataException("恢复记录版本／任务／SHA无效。");
         if(r.Photo!=r.Target&&!r.Target.Equals(Path.ChangeExtension(r.Photo,".xmp"),StringComparison.OrdinalIgnoreCase))throw new InvalidDataException("原图与实际旁车目标关系不匹配。");
         if(!Path.IsPathFullyQualified(r.Target)||!Path.IsPathFullyQualified(r.Photo)||!Path.IsPathFullyQualified(r.BackupRoot)||Path.GetFullPath(r.Backup)!=Path.Combine(Path.GetFullPath(r.BackupRoot),r.Id,Path.GetFileName(r.Target)+".backup")||Path.GetFullPath(r.Stage)!=Path.Combine(Path.GetDirectoryName(r.Target)!,".phototrail-inplace-"+r.Id))throw new InvalidDataException("恢复记录路径边界无效。");
-        if(SavePaths.Canonical(r.BackupRoot+Path.DirectorySeparatorChar+"boundary") == r.Canonical||Path.GetFullPath(r.Target)==Path.GetFullPath(r.Backup))throw new InvalidDataException("备份与目标冲突。");
+        if(inspectPaths&&SavePaths.Canonical(r.BackupRoot+Path.DirectorySeparatorChar+"boundary") == r.Canonical||Path.GetFullPath(r.Target)==Path.GetFullPath(r.Backup))throw new InvalidDataException("备份与目标冲突。");
         if(r.Phase is not("prepared" or "backed-up" or "staged" or "committing" or "readback" or "saved" or "unknown" or "failed" or "cancelled" or "restoring" or "restore-committing" or "restored"))throw new InvalidDataException("恢复记录阶段未知。");
         if(r.Version==1&&(r.Fields.Keys.Any(MetadataTimes.IsSystem)||r.SavedProperties is not null)||r.Version==2&&!r.Fields.Keys.Any(MetadataTimes.IsSystem)||r.Version==2&&r.NewIdentity is not null&&(r.SavedProperties is null||r.SavedProperties.Identity!=r.NewIdentity))throw new InvalidDataException("恢复版本／保存后属性缺失或不匹配。");
         if(r.SavedProperties is not null&&r.SavedProperties with{Identity=r.Original.Identity}!=MetadataTimes.Requested(r.Original,r.Fields))throw new InvalidDataException("保存后属性不符合冻结字段请求。");

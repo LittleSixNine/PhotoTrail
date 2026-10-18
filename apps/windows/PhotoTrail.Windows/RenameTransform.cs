@@ -208,11 +208,21 @@ internal static class RenameTransform
     }
     internal static bool MatchesFilter(string original,RenameRule rule,Func<string,string?>? metadata,VerifiedPhotoDate? date,IReadOnlyDictionary<string,VerifiedPhotoDate?>? dates) {
         Validate(rule);
-        string Key(string text)=>rule.CaseSensitive?text:text.Normalize(NormalizationForm.FormC).ToLowerInvariant();
+        // Compare canonical values only; disk names and source identities stay untouched.
+        string Key(string text)=>rule.CaseSensitive?text.Normalize(NormalizationForm.FormC):text.Normalize(NormalizationForm.FormC).ToLowerInvariant().Normalize(NormalizationForm.FormC);
+        bool Contains(string actual,string expected,bool start=false,bool end=false) {
+            var boundaries=StringInfo.ParseCombiningCharacters(actual).Append(actual.Length).ToHashSet();
+            for(int offset=0;offset<=actual.Length;) {
+                int index=actual.IndexOf(expected,offset,StringComparison.Ordinal);if(index<0)return false;
+                if((!start||index==0)&&(!end||index+expected.Length==actual.Length)&&boundaries.Contains(index)&&boundaries.Contains(index+expected.Length))return true;
+                if(index==actual.Length)return false;offset=index+1;
+            }
+            return false;
+        }
         bool Match(RenameFilterCondition condition) {
             string? value=condition.Field switch{"name"=>original,"fileExtension"=>Split(original).Extension.TrimStart('.'),"comment"=>metadata?.Invoke("ImageUserComment"),_=>FormatDate(rule with{DateSource="shooting",DateFormat="yyyy-MM-dd HH:mm:ss"},metadata,date,dates)};
             if(condition.Comparison=="exists")return !string.IsNullOrEmpty(value);if(condition.Comparison=="missing")return string.IsNullOrEmpty(value);if(value is null)return false;
-            var actual=Key(value);var expected=Key(condition.Value);return condition.Comparison switch{"contains"=>actual.Contains(expected,StringComparison.Ordinal),"notContains"=>!actual.Contains(expected,StringComparison.Ordinal),"equals"=>actual==expected,"notEquals"=>actual!=expected,"starts"=>actual.StartsWith(expected,StringComparison.Ordinal),"ends"=>actual.EndsWith(expected,StringComparison.Ordinal),"before"=>string.CompareOrdinal(actual,expected)<0,"after"=>string.CompareOrdinal(actual,expected)>0,_=>false};
+            var actual=Key(value);var expected=Key(condition.Value);return condition.Comparison switch{"contains"=>Contains(actual,expected),"notContains"=>!Contains(actual,expected),"equals"=>actual==expected,"notEquals"=>actual!=expected,"starts"=>Contains(actual,expected,start:true),"ends"=>Contains(actual,expected,end:true),"before"=>string.CompareOrdinal(actual,expected)<0,"after"=>string.CompareOrdinal(actual,expected)>0,_=>false};
         }
         return rule.FilterAny?rule.Filters.Any(Match):rule.Filters.All(Match);
     }

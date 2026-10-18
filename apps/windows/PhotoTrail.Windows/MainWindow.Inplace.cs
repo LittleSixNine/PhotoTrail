@@ -32,7 +32,7 @@ public partial class MainWindow
         try {
             var client=Tool();await using var toolSession=client.KeepAlive();
             var record=InplaceHistory.Read(InplaceHistory.PathFor(selected.Record.Id));
-            if(restore)restoreTimings=await InplaceHistory.RestoreAsync(client,record,request.Token);
+            if(restore)restoreTimings=await Task.Run(()=>InplaceHistory.RestoreAsync(client,record,request.Token));
             var refreshClock=Stopwatch.StartNew();
             record=InplaceHistory.Read(InplaceHistory.PathFor(record.Id));
             InplaceNative.Inspect(record.Backup);
