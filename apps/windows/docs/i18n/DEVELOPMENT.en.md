@@ -1,3 +1,5 @@
+UiChecks --tool-session-checks, --session-cancel-checks, --lifecycle-modal-checks and --snapshot-replay-checks use isolated owned test inputs; intentional failure must retain and reread drafts before cleanup. Test-Package.ps1 exports the locked Git package and changes only an isolated swift-test diagnostic copy to work around missing SxS assembly manifests. It verifies the installed tool hash remains unchanged. This is not production runtime, clean deployment or redistribution qualification.
+
 ## POSTM9-R2-20261018
 
 ExifTool stays open only within one owned save/recovery operation. Text requests use independent random execute/status frames, preserve errors and warning refusal, require absolute file operands and discard a failed worker. Binary extraction and explicit working directories retain the one-shot path. Save-plan checks run off the UI thread while edits are disabled, then validate revisions and parameters again. The pinned DateHost/runtime and every file proof remain unchanged.

@@ -1,3 +1,9 @@
+## POSTM9-R2-20261018
+
+保存准备的资格检查在后台运行，仍保留逐文件证明、冻结摘要及执行前复核；结束忙碌状态后才打开摘要。UiChecks 的 `--tool-session-checks` 检查真实 ExifTool 会话、Unicode、状态/警告、超时及协议隔离；`--session-cancel-checks` 检查部分成功后的取消与按记录恢复；`--lifecycle-modal-checks` 故意触发范围弹窗超时，预期检查器失败退出，先保全并回读完整测试草稿；`--snapshot-replay-checks` 使用 PHOTOTRAIL_REPLAY_SNAPSHOT 在第二实例验证源绑定、空值和清除语义。仅属检查器证据，不能替代实际 EXE 原生主链。所有 run 须新建独立输入、偏好和 journal，失败材料保留。
+
+`DateHost/Test-Package.ps1 -OutputRoot <新的私有目录>` 从 source-lock 固定 Git 对象导出整个日期包，核对核心 SHA；仅对输出目录内 swift-test 复制品移除缺失的 SxS 依赖清单，使用原有工具链及资源运行两作业包测试。安装工具原 SHA 前后复核，保留原清单、诊断清单和日志。此诊断修复不修改生产宿主、38 运行库或日用工具链，不构成原工具链修复、干净部署或再分发许可通过。
+
 POSTM9 evidence helpers mirror production software rendering. `PHOTOTRAIL_EVIDENCE_STEPS` pauses only the checker for reviewed original screenshots; setup driven by the checker must not be labeled native keyboard input. `--post-large-recover-checks` requires an exact isolated recovery root and refuses mismatched records. On a checker failure, request cancellation and await the existing operation safe boundary before clearing synthetic editor state; retain the window if cancellation does not settle. `--post-failure-cleanup-checks` intentionally tests that failure path.
 
 ## POSTM9-20261018

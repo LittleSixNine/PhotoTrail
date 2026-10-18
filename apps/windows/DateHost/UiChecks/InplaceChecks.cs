@@ -74,16 +74,32 @@ static partial class Program
  }
  static async Task InplaceScale() {
   int count=int.Parse(Environment.GetEnvironmentVariable("PHOTOTRAIL_R02_COUNT")!);var rows=await DateCoreRows(count);var docs=rows.Select(Doc).ToArray();var backup=Path.Combine(folder,"backups");Directory.CreateDirectory(backup);Input("BackupFolder",backup);Control<ComboBox>("SaveModeChoice").SelectedIndex=2;
-  foreach(var doc in docs)doc.SetDraft(new Dictionary<string,string>{{"XMP-dc:Title","scale-save"}});
+  var originalPixels=new Dictionary<string,string>();foreach(var doc in docs){originalPixels[doc.FilePath]=await MetadataCopy.JpegPixelsAsync(doc.FilePath);doc.SetDraft(new Dictionary<string,string>{{"XMP-dc:Title","scale-save"}});}
   Control<ListBox>("Photos").SelectedItems.Clear();
   var responseClock=Stopwatch.StartNew();double previous=0,gap=0;var timer=new System.Windows.Threading.DispatcherTimer{Interval=TimeSpan.FromMilliseconds(20)};timer.Tick+=(_,_)=>{double now=responseClock.Elapsed.TotalMilliseconds;gap=Math.Max(gap,now-previous);previous=now;};timer.Start();
-  var stopwatch=Stopwatch.StartNew();Action("PrepareSaveAll");double prepare=stopwatch.Elapsed.TotalMilliseconds;long exif=ExifToolClient.RequestCount,hosts=DateAdapter.StartedProcesses;stopwatch.Restart();Action("ExecuteSavePlan");await BatchWait();double save=stopwatch.Elapsed.TotalMilliseconds;double saveGap=gap;gap=0;
+  var stopwatch=Stopwatch.StartNew();Action("PrepareSaveAll");double prepare=stopwatch.Elapsed.TotalMilliseconds;long exif=ExifToolClient.RequestCount,hosts=DateAdapter.StartedProcesses,processes=ExifToolClient.StartedProcesses;stopwatch.Restart();Action("ExecuteSavePlan");await R2SaveWait(count);double save=stopwatch.Elapsed.TotalMilliseconds;double saveGap=gap;gap=0;
   var results=((List<SidecarResult>)Field("saveResults")!).ToArray();Check(results.Length==count&&results.All(r=>r.State=="成功"),"scale-all-inplace-saved");
-  long saveExif=ExifToolClient.RequestCount-exif,saveHosts=DateAdapter.StartedProcesses-hosts;exif=ExifToolClient.RequestCount;hosts=DateAdapter.StartedProcesses;stopwatch.Restart();var restorePhases=new List<Dictionary<string,double>>();
+  long saveExif=ExifToolClient.RequestCount-exif,saveHosts=DateAdapter.StartedProcesses-hosts,saveToolProcesses=ExifToolClient.StartedProcesses-processes;
+  timer.Stop();var independentClock=Stopwatch.StartNew();var independent=new ExifToolClient(Environment.GetEnvironmentVariable("PHOTOTRAIL_EXIFTOOL")!);
+  foreach(var chunk in docs.Chunk(64)){
+   var read=await independent.ReadManyAsync(chunk.Select(d=>d.FilePath).ToArray());
+   foreach(var d in chunk){var metadata=read[d.FilePath];Check(metadata.GetProperty("XMP-dc:Title").GetString()=="scale-save"&&await MetadataCopy.JpegPixelsAsync(d.FilePath)==originalPixels[d.FilePath],"scale-separate-tool-output-title-and-pixels");foreach(var tag in new[]{"ExifIFD:DateTimeOriginal","ExifIFD:SubSecTimeOriginal","ExifIFD:OffsetTimeOriginal","GPS:GPSLatitude","GPS:GPSLongitude","IFD0:Make","IFD0:Model","IFD0:Artist","IFD0:Orientation"})if(d.Embedded.TryGetProperty(tag,out var before))Check(metadata.TryGetProperty(tag,out var after)&&before.ToString()==after.ToString(),"scale-separate-tool-nontarget-"+tag);}
+  }
+  double independentMs=independentClock.Elapsed.TotalMilliseconds;exif=ExifToolClient.RequestCount;hosts=DateAdapter.StartedProcesses;processes=ExifToolClient.StartedProcesses;previous=responseClock.Elapsed.TotalMilliseconds;gap=0;timer.Start();stopwatch.Restart();var restorePhases=new List<Dictionary<string,double>>();
   foreach(var record in InplaceHistory.ReadAll()){
    var choices=Control<ComboBox>("InplaceRecords");choices.SelectedItem=choices.Items.Cast<object>().Single(x=>((InplaceRecord)x.GetType().GetProperty("Record")!.GetValue(x)!).Id==record.Id);Action("ShowInplaceRecord");Action("RestoreInplaceRecord");await BatchWait();
    var restored=InplaceHistory.Read(InplaceHistory.PathFor(record.Id));var next=Control<ListBox>("Photos").Items.Cast<object>().Select(Doc).Single(d=>d.FilePath==record.Photo);Check(restored.Phase=="restored"&&await PhotoDocument.HashAsync(restored.Target)==restored.OriginalHash&&next.SourceHash==restored.OriginalHash&&next.InspectionError.Length==0,"scale-production-restore-byte-metadata-and-UI-adoption");restorePhases.Add(new((Dictionary<string,double>)Field("restoreTimings")!));
   }
-  timer.Stop();SaveResult("inplace-scale.json",new{count,processPeakBytes=Process.GetCurrentProcess().PeakWorkingSet64,prepareMs=prepare,saveMs=save,restoreMs=stopwatch.Elapsed.TotalMilliseconds,saveMaxDispatcherGapMs=saveGap,restoreMaxDispatcherGapMs=gap,saveExif,saveHosts,restoreExif=ExifToolClient.RequestCount-exif,restoreHosts=DateAdapter.StartedProcesses-hosts,savePhases=results.Select(r=>r.Timings),restorePhases});
+  timer.Stop();SaveResult("inplace-scale.json",new{count,processPeakBytes=Process.GetCurrentProcess().PeakWorkingSet64,prepareMs=prepare,saveMs=save,independentMs,independentReadbackFiles=count,restoreMs=stopwatch.Elapsed.TotalMilliseconds,saveMaxDispatcherGapMs=saveGap,restoreMaxDispatcherGapMs=gap,saveExif,saveHosts,saveToolProcesses,restoreToolProcesses=ExifToolClient.StartedProcesses-processes,restoreExif=ExifToolClient.RequestCount-exif,restoreHosts=DateAdapter.StartedProcesses-hosts,savePhases=results.Select(r=>r.Timings),restorePhases});
+ }
+ static async Task R2SaveWait(int count){
+  var clock=Stopwatch.StartNew();double lastProgress=0;int last=-1;
+  while((bool)Field("busy")!){
+   int done=((List<SidecarResult>)Field("saveResults")!).Count;
+   if(done!=last){last=done;lastProgress=clock.Elapsed.TotalSeconds;File.WriteAllText(Path.Combine(folder,"save-progress.local.json"),JsonSerializer.Serialize(new{count,done,elapsedMs=clock.Elapsed.TotalMilliseconds}));}
+   if(clock.Elapsed.TotalSeconds-lastProgress>60||clock.Elapsed.TotalMinutes>30){Action("CancelRead");await BatchWait();throw new TimeoutException("Observed save stalled or exceeded bounded measurement; cancellation settled, inspect retained records.");}
+   await Task.Delay(100);
+  }
+  Check(((List<SidecarResult>)Field("saveResults")!).Count==count,"observable-save-terminal-count");
  }
 }

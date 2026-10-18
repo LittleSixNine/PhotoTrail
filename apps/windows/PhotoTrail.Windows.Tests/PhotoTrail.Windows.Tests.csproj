@@ -50,6 +50,7 @@
   <FrameworkReference Include="Microsoft.WindowsDesktop.App" />
   <Compile Include="../PhotoTrail.Windows/GoogleKeyStore.cs" Link="GoogleKeyStore.cs" />
   <Compile Include="../PhotoTrail.Windows/ExifToolClient.cs" Link="ExifToolClient.cs" />
+  <Compile Include="../PhotoTrail.Windows/ExifToolSession.cs" Link="ExifToolSession.cs" />
   <Compile Include="../PhotoTrail.Windows/MapMessage.cs" Link="MapMessage.cs" />
   <Compile Include="../PhotoTrail.Windows/PhotoDocument.cs" Link="PhotoDocument.cs" />
   <Compile Include="../PhotoTrail.Windows/TrackReader.cs" Link="TrackReader.cs" />
