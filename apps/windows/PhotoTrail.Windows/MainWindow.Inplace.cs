@@ -30,8 +30,9 @@ public partial class MainWindow
         if(InspectorHasInput()){InplaceStatus.Text=L10n.Message(L10n.Text("有未应用输入；保留输入，暂不切换来源。"));return;}
         BeginOperation();++rereadSequence;var request=operation!;
         try {
+            var client=Tool();await using var toolSession=client.KeepAlive();
             var record=InplaceHistory.Read(InplaceHistory.PathFor(selected.Record.Id));
-            if(restore)restoreTimings=await InplaceHistory.RestoreAsync(Tool(),record,request.Token);
+            if(restore)restoreTimings=await InplaceHistory.RestoreAsync(client,record,request.Token);
             var refreshClock=Stopwatch.StartNew();
             record=InplaceHistory.Read(InplaceHistory.PathFor(record.Id));
             InplaceNative.Inspect(record.Backup);
@@ -46,7 +47,7 @@ public partial class MainWindow
             using var targetGuard=new FileStream(record.Target,FileMode.Open,FileAccess.Read,FileShare.Read);
             using var imageGuard=record.Photo==record.Target?null:new FileStream(record.Photo,FileMode.Open,FileAccess.Read,FileShare.Read);
             if(record.Photo!=record.Target&&(InplaceNative.Inspect(record.Photo).Identity!=record.SourceIdentity||await PhotoDocument.HashAsync(record.Photo,request.Token)!=record.SourceHash))throw new IOException(L10n.Text("旁车对应原图身份已改变。"));
-            var next=await PhotoDocument.LoadAsync(Tool(),record.Photo,request.Token,inspect:true);
+            var next=await PhotoDocument.LoadAsync(client,record.Photo,request.Token,inspect:true);
             if(next.InspectionError.Length>0)throw new IOException(L10n.Text("完整来源读取失败。"));
             var old=photos.SingleOrDefault(r=>r.Document.FilePath==record.Photo);
             if(old is not null) {

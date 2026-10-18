@@ -1,3 +1,7 @@
+## POSTM9-R2-20261018
+
+ExifTool stays open only within one owned save/recovery operation. Text requests use independent random execute/status frames, preserve errors and warning refusal, require absolute file operands and discard a failed worker. Binary extraction and explicit working directories retain the one-shot path. Save-plan checks run off the UI thread while edits are disabled, then validate revisions and parameters again. The pinned DateHost/runtime and every file proof remain unchanged.
+
 ## POSTM9-20261018
 
 POSTM9: run UiChecks --postm9-checks, --postm10-checks, --post-parity-checks and --post-fault-checks with isolated preferences and valid synthetic copies. Bind checks to the final production DLL; distinguish real filesystem results from simulations. DateHost and its 38-file runtime combination remain pinned. Clean deployment, runtime redistribution and SwiftPM/14001 remain open gates.

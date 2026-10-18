@@ -11,9 +11,14 @@ internal sealed record SidecarResult(string Path,string? Hash,PhotoDocument? Doc
 internal sealed record SavePlan(SaveMode Mode,SaveScope Scope,SaveItem[] Items,string[] Skipped)
 {
     internal static bool IsGps(string tag)=>tag.StartsWith("XMP-exif:GPS",StringComparison.Ordinal);
-    internal static SavePlan Prepare(IEnumerable<PhotoDocument> documents,SaveMode mode,SaveScope scope,string output,IEnumerable<PhotoDocument> library) {
+    internal static SavePlan Prepare(IEnumerable<PhotoDocument> documents,SaveMode mode,SaveScope scope,string output,IEnumerable<PhotoDocument> library,CancellationToken cancellation=default) {
+        cancellation.ThrowIfCancellationRequested();
+        var docs=documents.ToArray();
+        var pendingTargets=docs.Where(d=>d.Draft.Keys.Any(t=>scope==SaveScope.All||d.IsMapDraft(t)==(scope==SaveScope.Map))).SelectMany(d=>new[]{d.FilePath,d.SidecarPath??d.FilePath}).ToArray();
+        if(pendingTargets.Length>0)InplaceHistory.RequireClear(pendingTargets);
         var items=new List<SaveItem>();var skipped=new List<string>();
-        foreach(var doc in documents) {
+        foreach(var doc in docs) {
+            cancellation.ThrowIfCancellationRequested();
             var fields=doc.Draft.Where(p=>scope==SaveScope.All || doc.IsMapDraft(p.Key)==(scope==SaveScope.Map)).ToDictionary(p=>p.Key,p=>p.Value);
             MetadataFields.Require(doc,fields);
             if(fields.Count==0){skipped.Add(L10n.Format("{0}：本范围无净草稿",Path.GetFileName(doc.FilePath)));continue;}
@@ -22,7 +27,6 @@ internal sealed record SavePlan(SaveMode Mode,SaveScope Scope,SaveItem[] Items,s
             if(mode==SaveMode.Inplace&&doc.SidecarPath is null&&doc.FileType!="XMP"&&File.Exists(Path.ChangeExtension(doc.FilePath,".xmp")))reason="新旁车／来源关系尚未核实，禁止升级原位目标";
             if(mode==SaveMode.Inplace&&!InplaceSave.Supported(doc))reason="本格式没有已验证的原位目标；无旁车RAW请显式新建旁车";
             if(mode!=SaveMode.Copy&&doc.ClearLocationRequested&&fields.TryGetValue("XMP-exif:GPSLatitude",out var clearLatitude)&&clearLatitude.Length==0&&fields.TryGetValue("XMP-exif:GPSLongitude",out var clearLongitude)&&clearLongitude.Length==0)reason="定位清除目前仅已验证副本；新旁车／原位保持拒绝，草稿保留";
-            InplaceHistory.RequireClear([doc.FilePath,doc.SidecarPath??doc.FilePath]);
             if(mode==SaveMode.Inplace){InplaceNative.Inspect(doc.SidecarPath??doc.FilePath);if(doc.SidecarPath is not null)InplaceNative.Inspect(doc.FilePath);}
             if((File.GetAttributes(doc.FilePath)&FileAttributes.ReparsePoint)!=0)reason="源为链接，本批未验证";
             if(reason is not null){skipped.Add(L10n.Format("{0}：拒绝，{1}",Path.GetFileName(doc.FilePath),L10n.Message(reason)));continue;}

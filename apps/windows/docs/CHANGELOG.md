@@ -1,3 +1,7 @@
+## POSTM9-R2-20261018
+
+Development: keep save-plan file checks off the UI thread and reuse the metadata worker within a protected save batch or recovery operation. Source/backup proofs, per-file rereads, cancellation and unknown-result gates remain required. No new format qualification or release status is implied.
+
 ## POSTM9-20261018
 
 POSTM9 development: fixed custom PNG/XMP rename dates and settings-aware selection; added fixed Mac device catalogue and common flash choices; corrected Win32 deep-path save/restore calls. User acceptance remains pending.

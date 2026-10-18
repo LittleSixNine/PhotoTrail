@@ -1,3 +1,7 @@
+## POSTM9-R2-20261018
+
+保存冻结及执行前的文件检查在后台进行，可取消；完成后重新核对草稿 revision、照片成员和保存参数，再提供冻结摘要或写入。单次保存批次及单次恢复复用一个 ExifTool 进程，仍逐请求核对错误、警告及完整回读；失败或取消的工具会话不复用。备份、SHA、身份、ACL、unknown 阻写和每文件提交前检查保持。未扩大格式资格，未修改日期宿主或共享协议。
+
 ## POSTM9-20261018
 
 Custom paired rename date lookup and rule-change selection use the same pairing settings. A PNG primary can receive its date from a valid XMP sidecar. Device choices affect only the current field and do not apply drafts or write files; product-only entries never invent a metadata code. Flash presets retain numeric values, with custom input still available. Local native directory and TxF calls use the existing extended-path convention; qualification, physical identity, ACL, unknown-journal and no-overwrite checks remain required.
