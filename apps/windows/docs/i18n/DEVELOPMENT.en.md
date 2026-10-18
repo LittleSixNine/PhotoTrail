@@ -1,3 +1,5 @@
+POSTM9-R4: `--name-sort-checks` covers canonical ordinary-name keys and stable ties; only the supplied three-name vector has Mac runtime evidence. `--inplace-scale` verifies a window-owned recovery worker, unchanged per-file proofs, and explicit worker disposal. Cancellation/failure invalidates the existing worker protocol.
+
 ## POSTM9-R3 targeted checks
 
 `--unicode-filter-checks` covers canonical filter comparisons. Set `PHOTOTRAIL_MAC_EXPORTS` to an isolated directory of actual Mac exports for rule/filter identity round trips. Production DLL checker routes `--r3-interop-checks` and `--r3-f09-checks` cover file execution/recovery and distinct sidecar dates across reordering; these are separate from native keyboard/mouse evidence. The preparation guard waits up to five minutes, then preserves input and cancels safely. Longer measurement waits are not performance improvements.

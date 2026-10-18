@@ -991,7 +991,7 @@ public partial class MainWindow : Window
         if (photos.Any(p => p.Document.Draft.Count > 0) || removedPhotos.Any(batch=>batch.Rows.Any(item=>item.Row.Document.Draft.Count>0)) || InspectorHasInput())
             e.Cancel = MessageBox.Show(this, L10n.Text("存在未撤销的草稿或未应用输入。放弃并退出？保存的副本仍保留。"), "PhotoTrail", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes;
     }
-    private void WindowClosed(object? sender, EventArgs e) { if(uiReady)SaveUi(ui with{LastWorkspace=Math.Clamp(WorkspaceTabs.SelectedIndex,0,2)}); renameDateValidation?.Cancel(); trackMatchRevision++;InvalidateTrackAdjustment(); photoPreviewRequest?.Cancel(); photoPreviewRevision++; PhotoPreviewImage.Source = null; dependencyCheck?.Cancel(); operation?.Cancel(); renameRevision++; SuspendMap(); GoogleKeyInput.Clear(); MapView.Dispose(); }
+    private void WindowClosed(object? sender, EventArgs e) { CloseRecoverySession();if(uiReady)SaveUi(ui with{LastWorkspace=Math.Clamp(WorkspaceTabs.SelectedIndex,0,2)}); renameDateValidation?.Cancel(); trackMatchRevision++;InvalidateTrackAdjustment(); photoPreviewRequest?.Cancel(); photoPreviewRevision++; PhotoPreviewImage.Source = null; dependencyCheck?.Cancel(); operation?.Cancel(); renameRevision++; SuspendMap(); GoogleKeyInput.Clear(); MapView.Dispose(); }
     private void MapSelected(object sender, SelectionChangedEventArgs e)
     {
         if (ReferenceEquals(e.Source, WorkspaceTabs) && IsLoaded) RefreshM1Shell();

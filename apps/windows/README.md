@@ -1,3 +1,5 @@
+POSTM9-R4：普通 `name` 排序只对比较键做 NFC 后按 Ordinal 排序，保留原始路径和同键输入顺序。本批三文件排名对齐固定 Mac 1970 已测结果；这不是完整 Foundation 比较等价声明，更多 Mac 向量待复核。natural、input、manual 与其他排序维持原语义。恢复记录的读取工具由窗口持有并在退出时关闭，逐文件身份／SHA／备份及独立接纳保持。
+
 POSTM9-R3 开发：Mac v1 子集的名称筛选支持 NFC/NFD 规范等价；往返保留规则与筛选身份，自然排序使用 Windows 本地规则。详见[行为说明](docs/BEHAVIOR.md)。开发候选及未验范围以本端交付为准。
 
 POSTM9 development: device brand/model choices use the fixed Mac catalogue; product names and metadata model codes are selectable, with custom values preserved. Flash offers eight common codes and custom input. Extended Win32 paths are used for qualified local save/restore operations. See [portable candidate requirements](docs/PORTABLE-CANDIDATE.md); deployment and redistribution gates remain open.

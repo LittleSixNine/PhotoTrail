@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace PhotoTrail.Windows;
 
@@ -105,7 +106,8 @@ public static class RenameOrder
     public static RenameGroup[] Ordered(IEnumerable<RenameGroup> groups,RenameOrderSettings settings){
         settings.Validate();var inputs=groups.ToArray();if(settings.Sort is "input" or "manual")return settings.Descending&&settings.Sort!="manual"?inputs.Reverse().ToArray():inputs;
         string? Value(RenameGroup g){var m=g.Leader;return settings.Sort switch{"name" or "natural"=>m.Name,"fileExtension"=>m.Extension,"folder"=>m.Directory,"size"=>m.Size?.ToString(CultureInfo.InvariantCulture),"created"=>m.Tag("File:FileCreateDate") is var c?RenameInput.SystemDate(c)?.ToString(CultureInfo.InvariantCulture):null,"modified"=>RenameInput.SystemDate(m.Tag("File:FileModifyDate"))?.ToString(CultureInfo.InvariantCulture),"shooting"=>m.MetadataFailed?null:m.Shooting?.ToString(CultureInfo.InvariantCulture),"make"=>m.Tag("CameraMake"),"model"=>m.Tag("CameraModel"),"city"=>m.Tag("IPTCCity"),"rating"=>m.Tag("XMP-xmp:Rating"),"metadata"=>m.Tag(settings.MetadataSortTag??"") is var v?(RenameInput.Date(v,m.DateResults)?.ToString(CultureInfo.InvariantCulture)??v):null,_=>null};}
-        var indexed=inputs.Select((g,i)=>(g,i,v:Value(g))).ToArray();Array.Sort(indexed,(a,b)=>{
+        // shortcut: canonical ordinal matches the supplied Mac name vector; broader Foundation ordering still needs Mac vectors.
+        var indexed=inputs.Select((g,i)=>(g,i,v:settings.Sort=="name"?Value(g)?.Normalize(NormalizationForm.FormC):Value(g))).ToArray();Array.Sort(indexed,(a,b)=>{
             bool am=string.IsNullOrWhiteSpace(a.v),bm=string.IsNullOrWhiteSpace(b.v);if(am||bm)return am&&bm?a.i.CompareTo(b.i):am?1:-1;
             int compare;bool numeric=settings.Sort is "created" or "modified" or "shooting" or "size" or "rating" or "metadata";
             bool an=double.TryParse(a.v,NumberStyles.Float,CultureInfo.InvariantCulture,out var av)&&double.IsFinite(av),bn=double.TryParse(b.v,NumberStyles.Float,CultureInfo.InvariantCulture,out var bv)&&double.IsFinite(bv);

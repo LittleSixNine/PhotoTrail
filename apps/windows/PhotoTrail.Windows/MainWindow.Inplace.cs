@@ -8,6 +8,9 @@ public partial class MainWindow
     sealed record RecoveryRow(InplaceRecord Record){public string Label=>$"{Record.Id[..8]} · {Record.Phase} · {Record.Target}";}
     string? reviewedRecovery;
     internal Dictionary<string,double> restoreTimings=new();
+    ExifToolClient? recoveryClient;
+    IAsyncDisposable? recoverySession;
+    void CloseRecoverySession(){if(recoverySession is {} session)Task.Run(async()=>await session.DisposeAsync()).GetAwaiter().GetResult();recoverySession=null;recoveryClient=null;}
     void ChooseBackup(object sender,RoutedEventArgs e) {
         if(busy)return;var dialog=new OpenFolderDialog{Title=L10n.Text("选择原位保存的隔离备份目录")};if(dialog.ShowDialog(this)!=true)return;
         BackupFolder.Text=dialog.FolderName;BackupChanged(sender,e);
@@ -30,7 +33,8 @@ public partial class MainWindow
         if(InspectorHasInput()){InplaceStatus.Text=L10n.Message(L10n.Text("有未应用输入；保留输入，暂不切换来源。"));return;}
         BeginOperation();++rereadSequence;var request=operation!;
         try {
-            var client=Tool();await using var toolSession=client.KeepAlive();
+            // The window owns this read worker across explicit record operations; every file proof is still fresh.
+            var client=recoveryClient??=Tool();recoverySession??=client.KeepAlive();
             var record=InplaceHistory.Read(InplaceHistory.PathFor(selected.Record.Id));
             if(restore)restoreTimings=await Task.Run(()=>InplaceHistory.RestoreAsync(client,record,request.Token));
             var refreshClock=Stopwatch.StartNew();

@@ -1,3 +1,5 @@
+POSTM9-R4: `--name-sort-checks` covers canonical ordinary-name keys and stable ties; only the supplied three-name vector has Mac runtime evidence. `--inplace-scale` verifies a window-owned recovery worker, unchanged per-file proofs, and explicit worker disposal. Cancellation/failure invalidates the existing worker protocol.
+
 ## POSTM9-R3 定向检查
 
 模型入口 `--unicode-filter-checks`；通过 `PHOTOTRAIL_MAC_EXPORTS` 指向独立 Mac 导出物目录可补规则／筛选身份往返检查。生产 DLL 检查器入口 `--r3-interop-checks`、`--r3-f09-checks` 分别覆盖固定交换样本的文件执行恢复与不同旁车日期的调序；检查器不代替真实窗口键鼠流程。保存准备的检查器等待上限为五分钟，超时仍保全输入并安全取消；延长等待不计产品性能改进。
