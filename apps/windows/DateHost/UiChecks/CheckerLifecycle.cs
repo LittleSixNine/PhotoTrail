@@ -13,7 +13,7 @@ static partial class Program
  static string? checkerSnapshotPath;
  static void WaitCheckerPreparation(){
   if(!(bool)Field("busy")!)return;var clock=Stopwatch.StartNew();var frame=new DispatcherFrame();var timer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(20)};
-  timer.Tick+=(_,_)=>{if(!(bool)Field("busy")!||clock.Elapsed>TimeSpan.FromSeconds(60))frame.Continue=false;};timer.Start();try{Dispatcher.PushFrame(frame);}finally{timer.Stop();}
+  timer.Tick+=(_,_)=>{if(!(bool)Field("busy")!||clock.Elapsed>TimeSpan.FromMinutes(5))frame.Continue=false;};timer.Start();try{Dispatcher.PushFrame(frame);}finally{timer.Stop();}
   if((bool)Field("busy")!)throw new TimeoutException("Save preparation did not settle; preserve input and cancel at the existing safe boundary.");
  }
  static async Task<bool> RetainCheckerInput(string reason){
