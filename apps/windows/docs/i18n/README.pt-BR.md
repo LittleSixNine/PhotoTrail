@@ -1,3 +1,5 @@
+As ações musicais72–77 usam metadados das fotos e renomeação segura, sem adicionar biblioteca ou reprodutor de áudio.
+
 WIN-PRE-RELEASE-20261019: Escape fecha primeiro a lista suspensa. Ao fechar o editor, o foco volta ao controle de origem. Este pacote continua sendo um candidato de desenvolvimento local, aguardando aceitação final e autorização de publicação.
 
 Desenvolvimento POSTM9-R4: a ordenação por nome usa chaves canônicas; a amostra de três arquivos segue a ordem do Mac. A equivalência completa com Foundation ainda não foi verificada. As leituras de restauração reutilizam um processo da janela. [Behavior](../BEHAVIOR.md).

@@ -111,16 +111,16 @@ public partial class MainWindow
         else if(n is >=100 and <=111)fields.AddRange(["MetadataField","Prefix","Suffix"]);
         else if(n is >=78 and <=93){fields.AddRange(["Text","Prefix","Suffix"]);if(n>=89)fields.AddRange(["Position","Length"]);}
         else if(n is 9 or 10 or 11 or 17 or 95 or 96)fields.AddRange(["Text","Replacement"]);
-        else if(n<=19||n is >=66 and <=71 or 94 or 97)fields.Add("Text");
-        if(n is 3 or 4 or 15 or 16 or 43 or 44 or 49 or 50 or 57 or 58 or 63 or 64 or 70 or 71 or 81 or 82 or 86 or 87 or 91 or 92 or 104 or 105 or 110 or 111)fields.Add("Anchor");
-        if(n is 5 or 14 or 45 or 51 or 59 or 65 or 69 or 83 or 88 or 93 or 103 or 109)fields.Add("Position");
+        else if(n<=19||n is >=66 and <=77 or 94 or 97)fields.Add("Text");
+        if(n is 3 or 4 or 15 or 16 or 43 or 44 or 49 or 50 or 57 or 58 or 63 or 64 or 70 or 71 or 75 or 76 or 81 or 82 or 86 or 87 or 91 or 92 or 104 or 105 or 110 or 111)fields.Add("Anchor");
+        if(n is 5 or 14 or 45 or 51 or 59 or 65 or 69 or 77 or 83 or 88 or 93 or 103 or 109)fields.Add("Position");
         return fields.Distinct().ToArray();
     }
     static string[] M3ExtraFields(RenameRule r){
         if(r.Kind!="action")return[];int n=RenameTransform.Actions[r.Action];var fields=new List<string>();
-        if(n<=19||n is 43 or 44 or 49 or 50 or 52 or 53 or 57 or 58 or 63 or 64 or 70 or 71 or 81 or 82 or 86 or 87 or 91 or 92 or 94 or 95 or 96 or 104 or 105 or 110 or 111)fields.AddRange(["Occurrence","MatchNumber","CaseSensitive"]);
-        if(n is >=40 and <=45 or >=66 and <=71 or >=78 and <=93 or >=100 and <=111)fields.Add("SkipMissing");
-        if(n is >=66 and <=71)fields.AddRange(["TimeZone","NightHour"]);
+        if(n<=19||n is 43 or 44 or 49 or 50 or 52 or 53 or 57 or 58 or 63 or 64 or 70 or 71 or 75 or 76 or 81 or 82 or 86 or 87 or 91 or 92 or 94 or 95 or 96 or 104 or 105 or 110 or 111)fields.AddRange(["Occurrence","MatchNumber","CaseSensitive"]);
+        if(n is >=40 and <=45 or >=66 and <=77 or >=78 and <=93 or >=100 and <=111)fields.Add("SkipMissing");
+        if(n is >=66 and <=77)fields.AddRange(["TimeZone","NightHour"]);
         if(n is >=46 and <=51)fields.AddRange(["PerDirectory","Counter"]);
         if(n is >=54 and <=65 or 94)fields.Add("PerDirectory");
         if(n is >=54 and <=59 or 98)fields.Add("CaseSensitive");

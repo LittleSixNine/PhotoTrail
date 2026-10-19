@@ -1,3 +1,5 @@
+Pre-release checks: SourceTests `--music-template-checks` and UiChecks `--pre-release-music-checks` cover six modes, real synthetic JPEG XMP, v1 roundtrip, freeze/execution/restore and independent SHA. `--pre-release-real-formats` uses approved real camera DNG copies with isolated histories and sidecars. These checks do not qualify HEIC or grant raw image embedded-write support. See [v1 compatibility](RENAME-V1-COMPATIBILITY.md).
+
 WIN-PRE-RELEASE-20261019: `UiChecks --pre-release-keyboard-checks` checks production routed events, dropdown ownership, close veto and focus return; native keyboard evidence is separate. `packaging/Test-PortableCandidate.ps1 -Candidate <folder> -Report <new-json>` checks prerequisites and the fixed 38-file runtime lock. It never qualifies a machine as clean or grants redistribution clearance.
 
 POSTM9-R4: `--name-sort-checks` covers canonical ordinary-name keys and stable ties; only the supplied three-name vector has Mac runtime evidence. `--inplace-scale` verifies a window-owned recovery worker, unchanged per-file proofs, and explicit worker disposal. Cancellation/failure invalidates the existing worker protocol.

@@ -5,7 +5,7 @@ namespace PhotoTrail.Windows;
 // Deliberately bounded conversion: unsupported semantics reject the whole preset instead of dropping rules.
 internal static class MacRenamePreset
 {
-    static readonly int[] Supported=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,24,25,26,27,38,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,40,41,42,43,44,45,95,96,97,98];
+    static readonly int[] Supported=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,24,25,26,27,38,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,40,41,42,43,44,45,72,73,74,75,76,77,95,96,97,98];
     static readonly Dictionary<string,string> Lexical=new(){["Noun"]="title",["Verb"]="title",["Adjective"]="title",["Adverb"]="title",["Interjection"]="title",["Pronoun"]="lower",["Determiner"]="lower",["Preposition"]="lower",["Conjunction"]="lower",["Particle"]="lower",["Number"]="keep",["Classifier"]="keep",["Idiom"]="keep",["OtherWord"]="keep"};
     const string DatePriority="Composite:SubSecDateTimeOriginal\nComposite:DateTimeOriginal\nExifIFD:DateTimeOriginal\nXMP-exif:DateTimeOriginal\nExifIFD:CreateDate\nQuickTime:CreationDate\nQuickTime:DateTimeOriginal\nQuickTime:ContentCreateDate\nQuickTime:CreateDate\nQuickTime:MediaCreateDate\nID3:Date\nXMP-xmp:CreateDate";
     static void Shape(JsonElement value,string[] required,params string[] optional){if(value.ValueKind!=JsonValueKind.Object)throw new InvalidDataException("Mac方案对象类型无效。");var properties=value.EnumerateObject().ToArray();if(required.Any(k=>!value.TryGetProperty(k,out _))||properties.Select(p=>p.Name).Distinct().Count()!=properties.Length||properties.Any(p=>!required.Contains(p.Name)&&!optional.Contains(p.Name)))throw new InvalidDataException("Mac方案缺字段、重复或未知字段，未部分导入。");}

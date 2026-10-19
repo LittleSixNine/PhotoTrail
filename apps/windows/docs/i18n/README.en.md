@@ -1,3 +1,5 @@
+Music actions72–77 use existing photo metadata and safe renaming; no audio library or player is added.
+
 WIN-PRE-RELEASE-20261019: Escape closes an open dropdown first. Closing an editor returns focus to its opening control. This remains a local development candidate pending final acceptance and release approval.
 
 POSTM9-R4 development: ordinary names use canonical comparison keys; the three-file sample follows Mac order. Full Foundation parity remains unverified. Recovery reads reuse a window-owned worker. [Behavior](../BEHAVIOR.md).

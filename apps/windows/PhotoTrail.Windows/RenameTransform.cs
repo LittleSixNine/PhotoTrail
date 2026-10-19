@@ -23,6 +23,7 @@ internal static class RenameTransform
         ["roman-set"]=54,["roman-begin"]=55,["roman-end"]=56,["roman-before"]=57,["roman-after"]=58,["roman-position"]=59,
         ["alphabet-set"]=60,["alphabet-begin"]=61,["alphabet-end"]=62,["alphabet-before"]=63,["alphabet-after"]=64,["alphabet-position"]=65,
         ["template-set"]=66,["template-begin"]=67,["template-end"]=68,["template-position"]=69,["template-before"]=70,["template-after"]=71,
+        ["music-set"]=72,["music-end"]=73,["music-begin"]=74,["music-before"]=75,["music-after"]=76,["music-position"]=77,
         ["size-end"]=78,["size-begin"]=79,["size-set"]=80,["size-before"]=81,["size-after"]=82,["size-position"]=83,
         ["parent-begin"]=84,["parent-end"]=85,["parent-before"]=86,["parent-after"]=87,["parent-position"]=88,
         ["path-begin"]=89,["path-end"]=90,["path-before"]=91,["path-after"]=92,["path-position"]=93,
@@ -40,7 +41,7 @@ internal static class RenameTransform
             Validate(rule);return rule;
         } catch(JsonException error) {throw new ArgumentException("参数规则JSON无效："+error.Message);}
     }
-    internal static bool NeedsDates(RenameRule r)=>Actions.TryGetValue(r.Action,out var n)&&(n is >=40 and <=45||n==98&&r.Filters.Any(f=>f.Field=="shootingDate")||n is >=66 and <=71&&new[]{"<ShootingDate","<CreationDate","<ModificationDate","<ModDate"}.Any(r.Text.Contains));
+    internal static bool NeedsDates(RenameRule r)=>Actions.TryGetValue(r.Action,out var n)&&(n is >=40 and <=45||n==98&&r.Filters.Any(f=>f.Field=="shootingDate")||n is >=66 and <=77&&new[]{"<ShootingDate","<CreationDate","<ModificationDate","<ModDate"}.Any(r.Text.Contains));
     internal static void Validate(RenameRule r) {
         if(new[]{r.Kind,r.Action,r.Part,r.Occurrence,r.Text,r.Replacement,r.Anchor,r.Prefix,r.Suffix,r.DateSource,r.DateFormat,r.TimeZone,r.AlphabetStart,r.NumberOperation}.Any(value=>value is null))throw new ArgumentException("规则文字字段不能为null。");
         if(!Actions.TryGetValue(r.Action,out var n))throw new ArgumentException("不支持的命名动作："+r.Action);
@@ -154,7 +155,7 @@ internal static class RenameTransform
         }
         if(action is >=46 and <=65){var initial=action>=60?AlphabetIndex(r.AlphabetStart):r.Start;var number=checked(initial+checked(r.Step*index));content=action>=60?Alphabet(number):action>=54?Roman(number):Padded(number,r.Padding);if(action>=60){content=new string('A',Math.Max(0,r.AlphabetWidth-content.Length))+content;if(r.AlphabetStart==r.AlphabetStart.ToLowerInvariant())content=content.ToLowerInvariant();}else if(action>=54&&!r.CaseSensitive)content=content.ToLowerInvariant();content=r.Prefix+content+r.Suffix;mode=action>=60?action-60:action>=54?action-54:action-46;}
         else if(action is >=40 and <=45){content=FormatDate(r,metadata,date,dates);mode=action-40;if(content is null)return(name,"missingDate");}
-        else if(action is >=66 and <=71){content=Template(r.Text,r,metadata,date,dates);mode=new[]{0,1,2,5,3,4}[action-66];if(content is null)return(name,"missingTag");}
+        else if(action is >=66 and <=77){content=Template(r.Text,r,metadata,date,dates);mode=action<=71?new[]{0,1,2,5,3,4}[action-66]:new[]{0,2,1,3,4,5}[action-72];if(content is null)return(name,"missingTag");}
         else if(action is >=78 and <=83){var width=metadata?.Invoke("ImageWidth");var height=metadata?.Invoke("ImageHeight");if(width is null||height is null)return(name,"missingTag");if(!int.TryParse(width,NumberStyles.None,CultureInfo.InvariantCulture,out var w)||!int.TryParse(height,NumberStyles.None,CultureInfo.InvariantCulture,out var h)||w<1||h<1)throw new ArgumentException("尺寸快照不是合法正整数。");content=r.Prefix+width+(r.Text.Length==0?"x":r.Text)+height+r.Suffix;mode=new[]{2,1,0,3,4,5}[action-78];}
         else if(action is >=84 and <=93){content=metadata?.Invoke(action<=88?"ParentFolderName":"FilePath");if(content is null)return(name,"missingTag");if(action>=89){var dir=Path.GetDirectoryName(content)!;var components=dir[Path.GetPathRoot(dir)!.Length..].Split(Path.DirectorySeparatorChar,StringSplitOptions.RemoveEmptyEntries).Reverse().ToArray();if(r.Position>=components.Length||r.Length==0||r.SkipMissing&&components.Length-r.Position<r.Length)return(name,"missingTag");content=string.Join(r.Text.Length==0?"_":r.Text,components.Skip(r.Position).Take(r.Length).Reverse());}content=r.Prefix+content+r.Suffix;mode=action<=88?action-83:action-88;}
         else{content=metadata?.Invoke(r.MetadataField??(action<106?"CameraModel":"IPTCCity"));if(content is null)return(name,"missingTag");content=r.Prefix+content+r.Suffix;mode=new[]{0,1,2,5,3,4}[(action-100)%6];}
