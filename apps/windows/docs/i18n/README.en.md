@@ -1,3 +1,5 @@
+WIN-LAUNCH-CLOSEOUT-20261019：Music features are deferred from the Windows first release. The whole scheme is preserved but unavailable, including disabled music rules. Actions72–77 and music-only template tokens are unavailable. Existing configurations are retained. Rejected import/export/freeze/execute does not consume counters; old journals remain restorable. Photo authorship, copyright, exact metadata and general photo templates remain supported.
+
 Music actions72–77 use existing photo metadata and safe renaming; no audio library or player is added.
 
 WIN-PRE-RELEASE-20261019: Escape closes an open dropdown first. Closing an editor returns focus to its opening control. This remains a local development candidate pending final acceptance and release approval.

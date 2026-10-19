@@ -49,6 +49,7 @@ public partial class MainWindow
         RenameOrderStatus.Text=L10n.Message(L10n.Format("完整组{0}／参与{1}／读取失败{2}；参与组连续编号，查看不影响处理。",renameGroups.Length,included.Length,renameGroups.SelectMany(g=>g.Members).Count(m=>m.MetadataFailed)));UpdateRenameButtons();
     }
     (RenameFile[] Files,RenameCounterUse? Counters) ComputeRenameTargets(RenameGroup[] groups,IReadOnlyList<RenameRule> sourceRules) {
+        RenameLaunchSupport.RequireAvailable(sourceRules);
         var snapshot=sourceRules.Any(r=>r.Enabled&&r.Counter>0)?RenameCounters.Read(RenameCounters.DefaultPath):null;
         m3Steps.Clear();var rules=sourceRules.Select(r=>r.Enabled&&r.Counter>0?r with{Start=snapshot!.Values[r.Counter]}:r).ToArray();var ordinals=new Dictionary<(int Rule,string Directory),int>();var advances=new Dictionary<int,long>();var files=new List<RenameFile>();var ids=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
         foreach(var (group,index) in groups.Select((g,i)=>(g,i))){

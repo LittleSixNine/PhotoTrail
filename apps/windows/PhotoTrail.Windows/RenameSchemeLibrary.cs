@@ -60,6 +60,7 @@ public static class RenameSchemeLibrary
         SettingsPreference.WriteJson(path,JsonSerializer.SerializeToElement(state,Options));return new(state,Hash(bytes));
     }
     public static RenameSchemeSnapshot Save(string path,RenameSchemeSnapshot expected,RenameSchemeState state) {
+        foreach(var scheme in state.Schemes.Where(s=>!expected.State.Schemes.Contains(s)))RenameLaunchSupport.RequireAvailable(RenamePlan.ParseRules(scheme.Rules));
         using var gate=Guard(path);try{if(!gate.WaitOne(TimeSpan.FromSeconds(10)))throw new IOException("其他实例正在保存方案。");}catch(AbandonedMutexException){}
         try{return SaveLocked(path,expected.Revision,state);}finally{gate.ReleaseMutex();}
     }
@@ -67,7 +68,7 @@ public static class RenameSchemeLibrary
         Label(name,false,100);name=name.Trim();var names=schemes.Where(s=>s.Id!=excluding).Select(s=>s.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);var next=name;int suffix=2;
         while(names.Contains(next)){var ending=" ("+(suffix++)+")";next=name[..Math.Min(name.Length,100-ending.Length)]+ending;}return next;
     }
-    public static string Export(RenameScheme scheme) {scheme.Validate();return JsonSerializer.Serialize(new SchemeFile("phototrail-windows-rename-scheme",3,scheme),Options);}
+    public static string Export(RenameScheme scheme) {scheme.Validate();RenameLaunchSupport.RequireAvailable(RenamePlan.ParseRules(scheme.Rules));return JsonSerializer.Serialize(new SchemeFile("phototrail-windows-rename-scheme",3,scheme),Options);}
     sealed record SchemeFile(string Format,int Version,RenameScheme Scheme);
     public static RenameScheme Import(string text,string legacyName) {
         if(new UTF8Encoding(false,true).GetByteCount(text)>MaximumBytes)throw new InvalidDataException("方案超过1MiB。");
@@ -82,7 +83,7 @@ public static class RenameSchemeLibrary
             try{preset=RenameRulesPreset.Decode(text);}catch(Exception error)when(error is ArgumentException or JsonException or InvalidDataException){throw new InvalidDataException("不支持此JSON方案格式；仅支持Windows方案或旧Windows规则，Mac方案不能直接互导。",error);}
             result=new(Guid.NewGuid(),legacyName,preset.Rules,preset.Order??new(preset.SortByName?"name":"input"),"");
         }
-        result.Validate();return result with{Id=Guid.NewGuid()};
+        result.Validate();RenameLaunchSupport.RequireAvailable(RenamePlan.ParseRules(result.Rules));return result with{Id=Guid.NewGuid()};
     }
     public static RenameScheme[] Defaults() {
         RenameScheme S(string name,string rules,string example)=>new(Guid.NewGuid(),name,rules,new RenameOrderSettings("name"){Conflict="numbers"},example);

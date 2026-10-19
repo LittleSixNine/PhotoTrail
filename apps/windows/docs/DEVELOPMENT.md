@@ -1,3 +1,5 @@
+WIN-LAUNCH-CLOSEOUT-20261019: 阻写检查复用完整历史读取校验，但不执行仅界面需要的创建时间排序；每次仍新读全部记录、根路径和unknown。
+
 WIN-PRE-RELEASE-20261019 recovery: full history discovery runs on a worker and is awaited before ending save/recovery busy state. RestoreAsync still rereads the selected record and performs all per-file proofs; check-only reads remain fresh. One redundant pre-read was removed. No record cache, unknown-state bypass, DateHost change or new concurrency was added.
 
 Pre-release checks: SourceTests `--music-template-checks` and UiChecks `--pre-release-music-checks` cover six modes, real synthetic JPEG XMP, v1 roundtrip, freeze/execution/restore and independent SHA. `--pre-release-real-formats` uses approved real camera DNG copies with isolated histories and sidecars. These checks do not qualify HEIC or grant raw image embedded-write support. See [v1 compatibility](RENAME-V1-COMPATIBILITY.md).

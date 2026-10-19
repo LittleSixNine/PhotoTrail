@@ -31462,5 +31462,14 @@
     "ko": "유효한 GPS와 주 시간(초안 포함)을 고정합니다. 명시 오프셋을 우선하고 없으면 현재 세션 카메라 시간대를 사용합니다. WGS84 누락, 모호함, 정밀도 부족은 건너뛰며 이전 시간 대체나 중복점 삭제는 하지 않습니다.",
     "es": "Fijar GPS y horas válidas, incluidos borradores. Priorizar desfases explícitos; sin desfase usar la zona de cámara de esta sesión. Omitir WGS84 ausente, ambigüedad o pérdida de precisión. No recurrir a horas antiguas ni eliminar puntos duplicados.",
     "pt-BR": "Fixar GPS e horários válidos, incluindo rascunhos. Priorizar deslocamentos explícitos; sem deslocamento usar o fuso da câmera desta sessão. Ignorar WGS84 ausente, ambiguidade ou perda de precisão. Não usar horários antigos nem remover pontos duplicados."
+  },
+  "音乐相关功能本次Windows首发暂缓；整份方案保留但不可用，包括已禁用的音乐规则。": {
+    "zh-Hans": "音乐相关功能本次Windows首发暂缓；整份方案保留但不可用，包括已禁用的音乐规则。",
+    "en": "Music features are deferred from the Windows first release. The whole scheme is preserved but unavailable, including disabled music rules.",
+    "zh-Hant": "音樂相關功能本次Windows首發暫緩；整份方案保留但不可用，包括已停用的音樂規則。",
+    "ja": "音楽機能はWindows初回リリースでは延期します。無効な音楽ルールを含む設定全体を保持し、使用はできません。",
+    "ko": "음악 기능은 Windows 첫 출시에 포함되지 않습니다. 비활성 음악 규칙을 포함한 전체 구성을 보존하지만 사용할 수 없습니다.",
+    "es": "Las funciones musicales se aplazan en la primera versión de Windows. Se conserva el esquema completo, pero no está disponible, incluidas las reglas musicales desactivadas.",
+    "pt-BR": "Os recursos de música foram adiados para a primeira versão do Windows. O esquema inteiro é preservado, mas fica indisponível, inclusive com regras de música desativadas."
   }
 }

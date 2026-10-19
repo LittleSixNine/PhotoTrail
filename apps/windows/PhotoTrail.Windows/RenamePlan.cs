@@ -46,6 +46,7 @@ public record RenameFile(string Source, string Target, string Hash)
 }
 public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool ExplicitGroups=false)
 {
+    internal IReadOnlyList<RenameRule> SourceRules { get; init; } = [];
     internal RenameCounterUse? CounterUse { get; init; }
     internal RenameOrderSettings? GroupSettings {get;init;}
     public static IReadOnlyList<RenameRule> ParseRules(string text)
@@ -101,17 +102,19 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool Explic
         return !(first.Length == 4 && (first.StartsWith("COM") || first.StartsWith("LPT")) && "123456789¹²³".Contains(first[3]));
     }
     public static string Apply(string name,IReadOnlyList<RenameRule> rules,int index,Func<string,string?>? metadata=null) {
+        RenameLaunchSupport.RequireAvailable(rules);
         if(UsesDates(rules))throw new InvalidOperationException("日期命名规则须异步共享验证。");
         return ApplyVerified(name,rules,index,metadata,null);
     }
     public static async Task<string> ApplyAsync(string name,IReadOnlyList<RenameRule> rules,int index,Func<string,string?>? metadata=null,CancellationToken token=default) {
-        var frozenRules=rules.ToArray();string? captured=frozenRules.Any(r=>r.Kind is "date-set" or "date-prefix")?Required(metadata,"captured"):null;
+        var frozenRules=rules.ToArray();RenameLaunchSupport.RequireAvailable(frozenRules);string? captured=frozenRules.Any(r=>r.Kind is "date-set" or "date-prefix")?Required(metadata,"captured"):null;
         var texts=new List<string>();if(captured is not null)texts.Add(VerifiedPhotoDate.Bridge(captured));if(UsesDates(frozenRules))foreach(var key in new[]{"captured","File:FileCreateDate","File:FileModifyDate","PhotoTrail:RenameReferenceDate"})if(metadata?.Invoke(key) is {} raw)texts.Add(RenameInput.BridgeDate(raw));
         var dates=await RenameTransform.PrepareDatesAsync(texts,frozenRules,token);
         return ApplyVerified(name,frozenRules,index,metadata,captured is null?null:dates.GetValueOrDefault(VerifiedPhotoDate.Bridge(captured)),dates);
     }
     internal static string ApplyVerified(string name,IReadOnlyList<RenameRule> rules,int index,Func<string,string?>? metadata,VerifiedPhotoDate? date,IReadOnlyDictionary<string,VerifiedPhotoDate?>? dates=null,List<string>? steps=null,Func<int,int>? ordinal=null,Action<int,int,bool>? completed=null)
     {
+        RenameLaunchSupport.RequireAvailable(rules);
         if (rules.Count > 64 || index < 0) throw new ArgumentException("规则数量或序号无效。");
         var original=name;bool included=true;
         foreach (var (rule,ruleIndex) in rules.Select((r,i)=>(r,i)).Where(p=>p.r.Enabled))
@@ -173,14 +176,14 @@ public sealed record RenamePlan(ReadOnlyCollection<RenameFile> Files,bool Explic
         if(date is null||date.Text!=raw)throw new ArgumentException("拍摄时间未经本次共享验证或已改变，不能生成名称。");
         return date.NameSeconds;
     }
-    public static Task<RenamePlan> BuildAsync(IEnumerable<string> paths, IReadOnlyList<RenameRule> rules, bool sortByName, CancellationToken cancellation = default)
+    public static async Task<RenamePlan> BuildAsync(IEnumerable<string> paths, IReadOnlyList<RenameRule> rules, bool sortByName, CancellationToken cancellation = default)
     {
-        var inputs = paths.ToArray(); var frozenRules = rules.ToArray();
+        var inputs = paths.ToArray(); var frozenRules = rules.ToArray();RenameLaunchSupport.RequireAvailable(frozenRules);
         if(frozenRules.Any(r=>r.Counter>0||r.PerDirectory))throw new ArgumentException("持续计数/每目录编号须完整任务上下文冻结，不能用单文件入口执行。");
         if (inputs.Length is < 1 or > 3000) throw new ArgumentException("一次预览须为1至3000个主文件。");
         if (sortByName) inputs = inputs.OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase).ThenBy(x => x, StringComparer.Ordinal).ToArray();
         var targets = inputs.Select((path, index) => (path, Apply(Path.GetFileName(path), frozenRules, index))).ToArray();
-        return BuildTargetsAsync(targets, cancellation);
+        return (await BuildTargetsAsync(targets, cancellation)) with{SourceRules=frozenRules};
     }
     public static async Task<RenamePlan> BuildTargetsAsync(IEnumerable<(string Source, string Name)> targets, CancellationToken cancellation = default, bool includeSidecars = true)
     {

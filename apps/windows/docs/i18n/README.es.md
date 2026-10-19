@@ -1,3 +1,5 @@
+WIN-LAUNCH-CLOSEOUT-20261019：Las funciones musicales se aplazan en la primera versión de Windows. Se conserva el esquema completo, pero no está disponible, incluidas las reglas musicales desactivadas. No se ofrecen las acciones72–77 ni las plantillas exclusivas de música. Se conservan las configuraciones y los diarios; el rechazo no avanza contadores. Se mantienen autoría, copyright y plantillas generales de fotos.
+
 Las acciones musicales72–77 usan los metadatos de las fotos y el renombrado seguro; no añaden biblioteca ni reproductor de audio.
 
 WIN-PRE-RELEASE-20261019: Escape cierra primero la lista desplegable. Al cerrar el editor, el foco vuelve al control de origen. Este paquete sigue siendo un candidato de desarrollo local, pendiente de aceptación final y autorización de publicación.

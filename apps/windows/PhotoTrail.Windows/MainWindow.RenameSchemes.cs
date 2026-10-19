@@ -21,6 +21,7 @@ public partial class MainWindow
         if(RenameSchemeList is null)return;bool allowed=!busy&&!renameRecoveryRequired&&renameSchemes is not null;
         RenameSchemeList.IsEnabled=RenameSchemeActions.IsEnabled=allowed;RenameSchemeManager.IsEnabled=allowed||renameReadingPreview&&!renameRecoveryRequired&&renameSchemes is not null;
         if(renameSchemes is not null)RenameSchemeStatus.Text=L10n.Message((currentRenameScheme is null?L10n.Text("未保存方案"):renameSchemeBaseline?.Name??L10n.Text("方案"))+(RenameSchemeDirty?L10n.Text(" · 未保存修改"):L10n.Text(" · 已保存"))+L10n.Text("；方案保存只写配置。"));
+        if(renameSchemeBaseline is {} baseline&&RenamePlan.ParseRules(baseline.Rules).Any(RenameLaunchSupport.Deferred))RenameSchemeStatus.Text+="\n"+L10n.Text(RenameLaunchSupport.DeferredMessage);
     }
     void RefreshSchemeList() {
         fillingSchemes=true;try{RenameSchemeList.ItemsSource=renameSchemes?.State.Schemes;RenameSchemeList.SelectedItem=renameSchemes?.State.Schemes.FirstOrDefault(s=>s.Id==currentRenameScheme);}finally{fillingSchemes=false;}
@@ -39,7 +40,7 @@ public partial class MainWindow
     }
     void SaveScheme(bool copy) {
         if(renameSchemes is null)throw new InvalidOperationException(L10n.Text("方案库不可用。"));
-        var id=!copy&&currentRenameScheme is {} current?current:Guid.NewGuid();var name=RenameSchemeLibrary.UniqueName(RenameSchemeName.Text,renameSchemes.State.Schemes,id);var scheme=EditedScheme(id,name);scheme.Validate();
+        var id=!copy&&currentRenameScheme is {} current?current:Guid.NewGuid();var name=RenameSchemeLibrary.UniqueName(RenameSchemeName.Text,renameSchemes.State.Schemes,id);var scheme=EditedScheme(id,name);scheme.Validate();RenameLaunchSupport.RequireAvailable(RenamePlan.ParseRules(scheme.Rules));
         var entries=renameSchemes.State.Schemes.Where(s=>s.Id!=id).ToList();int position=Array.FindIndex(renameSchemes.State.Schemes,s=>s.Id==id);if(position<0)entries.Add(scheme);else entries.Insert(position,scheme);
         PersistSchemes(renameSchemes.State with{Schemes=entries.ToArray(),LastId=id});bool changedIdentity=currentRenameScheme!=id;
         currentRenameScheme=id;renameSchemeBaseline=scheme;fillingSchemes=true;try{RenameSchemeName.Text=name;}finally{fillingSchemes=false;}RefreshSchemeList();if(changedIdentity)RenameRulesChanged(this,new RoutedEventArgs());RenameStatus.Text=L10n.Message(L10n.Text("方案已保存；未执行重命名，未保存照片。"));

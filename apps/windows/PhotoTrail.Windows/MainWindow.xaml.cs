@@ -300,6 +300,7 @@ public partial class MainWindow : Window
     private async void ExecuteRename(object sender, RoutedEventArgs e)
     {
         if (busy || renameRecoveryRequired || frozenRenamePlan is not { } plan) return;
+        try{_=ReadRenameRules();RenameLaunchSupport.RequireAvailable(plan.SourceRules);}catch(Exception error){frozenRenamePlan=null;UpdateRenameButtons();RenameStatus.Text=L10n.Message(error.Message);return;}
         if (RenameHasDraft(plan.Files.Select(file => file.Source))) { RenameStatus.Text = L10n.Message(L10n.Text("存在草稿或未应用输入，未执行更名。")); return; }
         frozenRenamePlan = null; BeginOperation();
         try
@@ -339,7 +340,7 @@ public partial class MainWindow : Window
         catch (OperationCanceledException) { RenameStatus.Text = L10n.Message(L10n.Text("恢复准备已取消，未移动文件。")); }
         catch (Exception error) { RenameStatus.Text = L10n.Message(L10n.Text("未开始恢复：") + L10n.Message(error.Message)); }
     }
-    private IReadOnlyList<RenameRule> ReadRenameRules() { M3EnsureValid();return RenamePlan.ParseRules(RenameRules.Text); }
+    private IReadOnlyList<RenameRule> ReadRenameRules() { M3EnsureValid();var rules=RenamePlan.ParseRules(RenameRules.Text);RenameLaunchSupport.RequireAvailable(rules);return rules; }
     private async void RenameRulesChanged(object sender, RoutedEventArgs e)
     {
         if (RenameRules is null || RenamePreview is null || RenameStatus is null || RenameProcessingSort is null || RenameViewOrder is null || RenameViewFilter is null || fillingRenameControls) return;
@@ -366,7 +367,7 @@ public partial class MainWindow : Window
             var revision = ++renameRevision; BeginOperation();
             try
             {
-                await ReadRenameGroupsAsync(operation!.Token);await PrepareRenameDatesAsync(operation.Token); var included=IncludedRenameGroups();if(included.Length==0)throw new ArgumentException(L10n.Text("筛选后无参与组。"));if(included.Any(g=>g.Members.Any(m=>m.MetadataFailed)))throw new IOException(L10n.Text("参与组元数据读取失败，不能当成缺失冻结。"));var computed=ComputeRenameTargets(included,rules); var plan=await RenamePlan.BuildTargetsAsync(computed.Files.Select(f=>(f.Source,f.NewName)),operation!.Token,includeSidecars:false);var stepMap=computed.Files.ToDictionary(f=>f.Source,f=>f.Steps,StringComparer.OrdinalIgnoreCase);plan=plan with{Files=Array.AsReadOnly(plan.Files.Select(f=>f with{Steps=stepMap[f.Source]}).ToArray()),CounterUse=computed.Counters,GroupSettings=ReadRenameOrder()}; foreach(var member in included.SelectMany(g=>g.Members))if(plan.Files.Single(f=>f.Source.Equals(member.Path,StringComparison.OrdinalIgnoreCase)).Hash!=member.Hash)throw new IOException(L10n.Text("预览元数据读取后源内容改变。"));
+                await ReadRenameGroupsAsync(operation!.Token);await PrepareRenameDatesAsync(operation.Token); var included=IncludedRenameGroups();if(included.Length==0)throw new ArgumentException(L10n.Text("筛选后无参与组。"));if(included.Any(g=>g.Members.Any(m=>m.MetadataFailed)))throw new IOException(L10n.Text("参与组元数据读取失败，不能当成缺失冻结。"));var computed=ComputeRenameTargets(included,rules); var plan=await RenamePlan.BuildTargetsAsync(computed.Files.Select(f=>(f.Source,f.NewName)),operation!.Token,includeSidecars:false);var stepMap=computed.Files.ToDictionary(f=>f.Source,f=>f.Steps,StringComparer.OrdinalIgnoreCase);plan=plan with{Files=Array.AsReadOnly(plan.Files.Select(f=>f with{Steps=stepMap[f.Source]}).ToArray()),CounterUse=computed.Counters,GroupSettings=ReadRenameOrder(),SourceRules=rules.ToArray()}; foreach(var member in included.SelectMany(g=>g.Members))if(plan.Files.Single(f=>f.Source.Equals(member.Path,StringComparison.OrdinalIgnoreCase)).Hash!=member.Hash)throw new IOException(L10n.Text("预览元数据读取后源内容改变。"));
                 if (revision != renameRevision) return;
                 if (RenameHasDraft(plan.Files.Select(file=>file.Source))) throw new InvalidOperationException(L10n.Text("计划中的照片或旁车有草稿，未冻结。"));
                 var versions = plan.Files.ToDictionary(file=>file.Source,file=>file.Hash,StringComparer.OrdinalIgnoreCase);

@@ -1,3 +1,5 @@
+WIN-LAUNCH-CLOSEOUT-20261019：音乐相关功能本次Windows首发暂缓；整份方案保留但不可用，包括已禁用的音乐规则。 动作72—77和音乐专属模板token不提供；旧配置不被删改，拒绝导入／导出／冻结／执行不消费计数，已有记录仍可恢复。照片作者、版权、普通精确元数据和通用照片模板保持。 PRE-REL-MAC-REV-01（ARTIST／artist差额）已确认延期，非首发门；不是FIXED，Mac不改。词性32等其余发行门不因此延期。
+
 ## Pre-release review (2026-10-19)
 
 Run `packaging/Test-PortableCandidate.ps1` from PowerShell x64 before workflow testing; it only reads existing files and runtime registrations and writes a new report. Retain its fixed runtime lock beside the script. A failed prerequisite must be resolved through an approved environment, not by mixing DLLs. A successful result is local preflight only.

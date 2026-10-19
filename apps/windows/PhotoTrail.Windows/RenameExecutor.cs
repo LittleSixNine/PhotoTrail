@@ -17,9 +17,10 @@ public static class RenameExecutor
     private record Entry(string Source,string Target,string Temporary,string Hash,FileProperties? Properties=null);
     private record Header(int Version,string Id,Entry[] Files);
     private record Step(int Index,int State);
-    public static Task<RenameResult> ExecuteAsync(RenamePlan plan,string journalDirectory,CancellationToken cancellation=default,Action<int,int>? progress=null)=>plan.CounterUse is {} use?RenameCounters.ExecuteAsync(plan,use,RenameCounters.DefaultPath,journalDirectory,cancellation,progress):ExecuteCoreAsync(plan,journalDirectory,cancellation,progress,null);
+    public static Task<RenameResult> ExecuteAsync(RenamePlan plan,string journalDirectory,CancellationToken cancellation=default,Action<int,int>? progress=null) { RenameLaunchSupport.RequireAvailable(plan.SourceRules);return plan.CounterUse is {} use?RenameCounters.ExecuteAsync(plan,use,RenameCounters.DefaultPath,journalDirectory,cancellation,progress):ExecuteCoreAsync(plan,journalDirectory,cancellation,progress,null); }
     internal static async Task<RenameResult> ExecuteCoreAsync(RenamePlan plan,string journalDirectory,CancellationToken cancellation,Action<int,int>? progress,string? reservation)
     {
+        RenameLaunchSupport.RequireAvailable(plan.SourceRules);
         InplaceHistory.RequireClear(plan.Files.SelectMany(f=>new[]{f.Source,f.Target}),counterReservation:reservation);
         if(plan.Files.Count is < 1 or > 6000)throw new ArgumentException("计划为空或过大。");
         var sources=new HashSet<string>(StringComparer.OrdinalIgnoreCase);var targets=new HashSet<string>(StringComparer.OrdinalIgnoreCase);

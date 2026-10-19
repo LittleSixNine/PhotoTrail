@@ -1,3 +1,5 @@
+WIN-LAUNCH-CLOSEOUT-20261019：Os recursos de música foram adiados para a primeira versão do Windows. O esquema inteiro é preservado, mas fica indisponível, inclusive com regras de música desativadas. As ações72–77 e os modelos exclusivos de música não são oferecidos. Configurações e registros são preservados; a rejeição não avança contadores. Autoria, direitos autorais e modelos gerais de fotos são mantidos.
+
 As ações musicais72–77 usam metadados das fotos e renomeação segura, sem adicionar biblioteca ou reprodutor de áudio.
 
 WIN-PRE-RELEASE-20261019: Escape fecha primeiro a lista suspensa. Ao fechar o editor, o foco volta ao controle de origem. Este pacote continua sendo um candidato de desenvolvimento local, aguardando aceitação final e autorização de publicação.

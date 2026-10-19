@@ -1,3 +1,5 @@
+WIN-LAUNCH-CLOSEOUT-20261019: Music is deferred from the first Windows release. Actions72–77, including disabled/mixed schemes, reject the whole import/export. Local old libraries still decode without deleting or migrating entries. Music-only unqualified aliases/derived tokens in generic template actions66–71 also reject the whole scheme: ARTIST/artist, Song/Album/AlbumArtist, Track/TrackNum/NumTracks/CDNum/numCds, AudioSampleRate, derived duration and Artist/Album/Song/AlbumArtist case tokens. Ordinary `<Artist>`, family-qualified photo metadata tokens and general FileName/date/photo templates remain supported; this is not a global Artist field ban. Historical journals remain restorable. PRE-REL-MAC-REV-01 is DEFERRED, not FIXED; Mac is unchanged. The older music implementation description below is historical and unavailable in the first release.
+
 # Mac v1 / Windows compatibility
 
 Fixed behavior source: Mac `cbeccc015c416c6a82d02645eeb6ccfadb8cef99` (0.5.10/build1970). This table describes the Windows implementation, not a Mac runtime acceptance result. Unsupported actions, unknown/duplicate fields and unsupported parameter values reject the entire input. The original input file is not rewritten.
@@ -91,12 +93,12 @@ Music actions72–77 reuse the existing metadata template engine with Mac's six 
 | 69 | template-position | Windows only; v1 rejected | not inferred from Windows tests |
 | 70 | template-before | Windows only; v1 rejected | not inferred from Windows tests |
 | 71 | template-after | Windows only; v1 rejected | not inferred from Windows tests |
-| 72 | music-set | v1 explicit mapping | not inferred from Windows tests |
-| 73 | music-end | v1 explicit mapping | not inferred from Windows tests |
-| 74 | music-begin | v1 explicit mapping | not inferred from Windows tests |
-| 75 | music-before | v1 explicit mapping | not inferred from Windows tests |
-| 76 | music-after | v1 explicit mapping | not inferred from Windows tests |
-| 77 | music-position | v1 explicit mapping | not inferred from Windows tests |
+| 72 | music-set | DEFERRED; whole scheme rejected | not inferred from Windows tests |
+| 73 | music-end | DEFERRED; whole scheme rejected | not inferred from Windows tests |
+| 74 | music-begin | DEFERRED; whole scheme rejected | not inferred from Windows tests |
+| 75 | music-before | DEFERRED; whole scheme rejected | not inferred from Windows tests |
+| 76 | music-after | DEFERRED; whole scheme rejected | not inferred from Windows tests |
+| 77 | music-position | DEFERRED; whole scheme rejected | not inferred from Windows tests |
 | 78 | size-end | Windows only; v1 rejected | not inferred from Windows tests |
 | 79 | size-begin | Windows only; v1 rejected | not inferred from Windows tests |
 | 80 | size-set | Windows only; v1 rejected | not inferred from Windows tests |

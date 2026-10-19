@@ -94,6 +94,7 @@ internal static class RenameTransform
         var chars=Characters(name);if(r.Position>chars.Length)throw new ArgumentException("字形簇插入位置越界。");return(string.Concat(chars.Take(r.Position))+content+string.Concat(chars.Skip(r.Position)),null);
     }
     internal static (string Name,string? Issue,bool Skip) Apply(string name,RenameRule r,int index,Func<string,string?>? metadata,VerifiedPhotoDate? date,IReadOnlyDictionary<string,VerifiedPhotoDate?>? dates) {
+        RenameLaunchSupport.RequireAvailable([r]);
         Validate(r);var parts=Split(name);var selected=r.Part switch{"entire"=>name,"dottedExtension"=>parts.Extension,"extensionOnly"=>parts.Extension.TrimStart('.'),_=>parts.Stem};
         try {
             var changed=Transform(selected,r,index,metadata,date,dates);

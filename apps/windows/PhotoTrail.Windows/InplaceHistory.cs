@@ -9,7 +9,8 @@ internal static class InplaceHistory
     internal static string DirectoryPath=>Environment.GetEnvironmentVariable("PHOTOTRAIL_INPLACE_HISTORY")??Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"PhotoTrail","Windows","InplaceHistory");
     internal static string PathFor(string id)=>Path.Combine(DirectoryPath,"inplace-"+id+".jsonl");
     internal static bool Pending(InplaceRecord record)=>record.Phase is not("saved" or "restored" or "failed" or "cancelled");
-    internal static InplaceRecord[] ReadAll() {
+    internal static InplaceRecord[] ReadAll()=>ReadAllCore(true);
+    static InplaceRecord[] ReadAllCore(bool newestFirst) {
         if(!Directory.Exists(DirectoryPath))return [];
         var records=Directory.EnumerateFiles(DirectoryPath,"inplace-*.jsonl").Select(path=>Read(path,inspectPaths:false)).ToArray();
         // One discovery validates every record, but a shared volume/root needs only one physical query.
@@ -19,7 +20,7 @@ internal static class InplaceHistory
             var canonical=SavePaths.Canonical(Path.Combine(group.Key,"boundary"));
             if(group.Any(r=>r.Canonical==canonical))throw new InvalidDataException("备份与目标冲突。");
         }
-        return records.OrderByDescending(r=>File.GetCreationTimeUtc(PathFor(r.Id))).ToArray();
+        return newestFirst?records.OrderByDescending(r=>File.GetCreationTimeUtc(PathFor(r.Id))).ToArray():records;
     }
     internal static InplaceRecord Read(string path,bool inspectPaths=true) {
         using var input=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite);
@@ -51,7 +52,7 @@ internal static class InplaceHistory
     }
     internal static void RequireClear(IEnumerable<string> paths,string? except=null,string? counterReservation=null) {
         paths=paths.ToArray();RenameCounters.RequireClear(paths,counterReservation);
-        var records=ReadAll();var targets=paths.Select(SavePaths.Canonical).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var records=ReadAllCore(false);var targets=paths.Select(SavePaths.Canonical).ToHashSet(StringComparer.OrdinalIgnoreCase);
         if(records.Any(r=>r.Id!=except&&Pending(r)&&(targets.Contains(r.Canonical)||targets.Contains(SavePaths.Canonical(r.Photo)))))throw new IOException("目标存在持久待核对／恢复记录；禁止盲写、重读重绑定或改名。");
     }
     internal static async Task VerifyCurrent(InplaceRecord r,string hash,FileIdentity identity,CancellationToken token) {
