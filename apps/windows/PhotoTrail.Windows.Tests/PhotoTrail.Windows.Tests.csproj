@@ -41,6 +41,7 @@
   <Compile Include="../PhotoTrail.Windows/RenameOrder.cs" Link="RenameOrder.cs" />
   <Compile Include="../PhotoTrail.Windows/RenameEmoji.cs" Link="RenameEmoji.cs" />
   <Compile Include="../PhotoTrail.Windows/RenameTransform.cs" Link="RenameTransform.cs" />
+  <Compile Include="../PhotoTrail.Windows/RenameLaunchSupport.cs" Link="RenameLaunchSupport.cs" />
   <Compile Include="../PhotoTrail.Windows/MacRenamePreset.cs" Link="MacRenamePreset.cs" />
   <Compile Include="../PhotoTrail.Windows/RenameCounters.cs" Link="RenameCounters.cs" />
   <Compile Include="../PhotoTrail.Windows/RenameConflicts.cs" Link="RenameConflicts.cs" />
