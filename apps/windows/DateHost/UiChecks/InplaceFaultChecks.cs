@@ -12,7 +12,7 @@ static partial class Program
   var backup=Path.Combine(folder,"backups");Directory.CreateDirectory(backup);Input("BackupFolder",backup);Control<ComboBox>("SaveModeChoice").SelectedIndex=2;
   photo.SetDraft(new Dictionary<string,string>{{"XMP-dc:Title","isolated fault title"}});
   if(fault=="partial-ui")rows.Select(Doc).Single(d=>Path.GetFileName(d.FilePath)=="paired.jpg").SetDraft(new Dictionary<string,string>{{"XMP-dc:Title","partial success title"}});
-  Control<ListBox>("Photos").SelectedItems.Clear();Action("PrepareSaveAll");Action("ExecuteSavePlan");await BatchWait();File.WriteAllText(Path.Combine(folder,"fault-save-summary.txt"),Control<TextBox>("SaveSummary").Text+"\n"+Status);var results=((List<SidecarResult>)Field("saveResults")!).ToArray();var result=results.Single(r=>r.Path==photo.FilePath);var record=InplaceHistory.Read(InplaceHistory.PathFor(result.RecordId!));
+  Control<ListBox>("Photos").SelectedItems.Clear();Action("PrepareSaveAll");await BatchWait();Action("ExecuteSavePlan");await BatchWait();File.WriteAllText(Path.Combine(folder,"fault-save-summary.txt"),Control<TextBox>("SaveSummary").Text+"\n"+Status);var results=((List<SidecarResult>)Field("saveResults")!).ToArray();var result=results.Single(r=>r.Path==photo.FilePath);var record=InplaceHistory.Read(InplaceHistory.PathFor(result.RecordId!));
   var current=Control<ListBox>("Photos").Items.Cast<object>().Select(Doc).Single(d=>d.FilePath==photo.FilePath);
   if(fault.StartsWith("restore-")) {
    Check(result.State=="成功","fault-setup-save-real-source-and-UI-success");await SelectRecovery(record.Id);Action("RestoreInplaceRecord");await BatchWait();record=InplaceHistory.Read(InplaceHistory.PathFor(record.Id));
