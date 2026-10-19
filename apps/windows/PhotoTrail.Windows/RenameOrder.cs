@@ -19,7 +19,29 @@ public sealed record RenameInput(string Path,IReadOnlyDictionary<string,string> 
         var candidates=token switch{"Artist"=>new[]{"Artist","Creator"},"Song"=>new[]{"Title"},"AlbumArtist"=>new[]{"AlbumArtist","Band"},"Track" or "TrackNum"=>new[]{"Track","TrackNumber"},"NumTracks"=>new[]{"TrackCount","TotalTracks"},"CDNum"=>new[]{"DiscNumber","DiskNumber"},"numCds"=>new[]{"DiscCount","TotalDiscs"},"AudioSampleRate"=>new[]{"SampleRate","AudioSampleRate"},"CameraMake"=>new[]{"Make"},"CameraModel"=>new[]{"Model"},"CameraSerialNumber"=>new[]{"SerialNumber"},"IPTCCity"=>new[]{"City"},"IPTCProvinceState"=>new[]{"Province-State","State"},"IPTCSubLocation"=>new[]{"Sub-location","Location"},"IPTCCountry"=>new[]{"Country-PrimaryLocationName","Country"},"ImageCaption"=>new[]{"Caption-Abstract","Description","ImageDescription"},"ImageKeywords"=>new[]{"Keywords","Subject"},"ImageUserComment"=>new[]{"UserComment"},"Lens"=>new[]{"LensModel","LensID","Lens"},"Aperture"=>new[]{"FNumber","Aperture"},"ShutterSpeed"=>new[]{"ExposureTime","ShutterSpeed"},"FocalLength35mm"=>new[]{"FocalLengthIn35mmFormat"},"width" or "ImageWidth"=>new[]{"ImageWidth","ExifImageWidth"},"height" or "ImageHeight"=>new[]{"ImageHeight","ExifImageHeight"},_=>new[]{token}};
         foreach(var candidate in candidates){var key=Tags.Keys.Where(k=>k.Split(':').Last()==candidate).Order(StringComparer.Ordinal).FirstOrDefault();if(key is not null&&Tags[key].Length>0)return token is "TrackNum" or "CDNum"?Tags[key].Split('/')[0]:Tags[key];}
         if(token is "NumTracks" or "numCds"){var parts=Tag(token=="NumTracks"?"Track":"DiscNumber")?.Split('/');if(parts?.Length==2)return parts[1];}
-        if(token.StartsWith('0')&&long.TryParse(Tag(token[1..]),NumberStyles.Integer,CultureInfo.InvariantCulture,out var number))return number.ToString("D2",CultureInfo.InvariantCulture);
+        if(token is "DurationInSeconds" or "Duration_MM_SS" or "Duration_HH_MM_SS") {
+            var raw=Tag("Duration");
+            if(raw is null)return null;
+            var parts=raw.Split(':',StringSplitOptions.RemoveEmptyEntries);double seconds;
+            const NumberStyles durationNumber=NumberStyles.AllowLeadingSign|NumberStyles.AllowDecimalPoint|NumberStyles.AllowExponent;
+            if(parts.Length is 2 or 3) {
+                seconds=0;foreach(var part in parts){if(!double.TryParse(part,durationNumber,CultureInfo.InvariantCulture,out var value))return null;seconds=seconds*60+value;}
+            } else if(!double.TryParse(raw.Split(' ',StringSplitOptions.RemoveEmptyEntries).FirstOrDefault(),durationNumber,CultureInfo.InvariantCulture,out seconds))return null;
+            if(!double.IsFinite(seconds)||seconds<0||seconds>=1_000_000_000)return null;
+            if(token=="DurationInSeconds"){var text=seconds.ToString("R",CultureInfo.InvariantCulture).Replace('E','e');return text.IndexOfAny(['.','e'])<0?text+".0":text;}
+            int total=(int)Math.Floor(seconds);
+            return token=="Duration_MM_SS"?$"{total/60:D2}_{total%60:D2}":$"{total/3600:D2}_{total/60%60:D2}_{total%60:D2}";
+        }
+        foreach(var basis in new[]{"Artist","Album","Song","AlbumArtist","FileName","FileExtension"}) {
+            var style=token.StartsWith(basis+"_",StringComparison.Ordinal)?token[(basis.Length+1)..]:basis=="AlbumArtist"&&token=="Album_Artist_sentence_case"?"sentence_case":null;
+            if(style is not("Upper" or "Lower" or "Capitalized" or "sentence_case"))continue;
+            var value=Tag(basis);if(value is null)return null;
+            if(style=="Upper")return value.ToUpperInvariant();
+            if(style=="Lower")return value.ToLowerInvariant();
+            if(style=="Capitalized")return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(value.ToLowerInvariant());
+            var characters=RenameTransform.Characters(value);return characters.Length==0?"":characters[0].ToUpperInvariant()+string.Concat(characters.Skip(1)).ToLowerInvariant();
+        }
+        if(token.StartsWith('0')&&long.TryParse(Tag(token[1..])?.Split('/')[0],NumberStyles.Integer,CultureInfo.InvariantCulture,out var number))return number.ToString("D2",CultureInfo.InvariantCulture);
         return token switch{"FileName"=>Name,"FileNameWithoutExtension"=>RenameTransform.Split(Name).Stem,"FileExtension"=>RenameTransform.Split(Name).Extension.TrimStart('.'),"ParentFolderName"=>System.IO.Path.GetFileName(Directory),"FilePath"=>Path,"NULL"=>"",_=>null};
     }
     internal IReadOnlyDictionary<string,VerifiedPhotoDate?> DateResults {get;init;}=new Dictionary<string,VerifiedPhotoDate?>();
