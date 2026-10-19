@@ -103,11 +103,11 @@ static partial class Program
  static async Task R04cRestart() {
   await DateCoreRows(5+Directory.EnumerateFiles(folder,"*.jpg").Count());var record=InplaceHistory.ReadAll().Single(InplaceHistory.Pending);var bytes=await PhotoDocument.HashAsync(record.Target);var before=SourceTimes.Read(record.Target);
   Check(record.Version==2&&bytes==record.NewHash&&record.NewHash==record.OriginalHash,"restart-same-SHA-v2-unknown-discovered");
-  SelectRecovery(record.Id);Action("CheckInplaceRecord");await BatchWait();Check(InplaceHistory.Read(InplaceHistory.PathFor(record.Id)).Phase=="unknown"&&SourceTimes.Read(record.Target)==before,"restart-external-properties-refuse-reconciliation-no-write");
+  await SelectRecovery(record.Id);Action("CheckInplaceRecord");await BatchWait();Check(InplaceHistory.Read(InplaceHistory.PathFor(record.Id)).Phase=="unknown"&&SourceTimes.Read(record.Target)==before,"restart-external-properties-refuse-reconciliation-no-write");
   // Repair only the deliberately injected attribute in this owned synthetic fixture, never an unknown user session.
   File.SetLastWriteTimeUtc(record.Target,record.SavedProperties!.Written);
-  SelectRecovery(record.Id);Action("CheckInplaceRecord");await BatchWait();Check(InplaceHistory.Read(InplaceHistory.PathFor(record.Id)).Phase=="saved","restart-explicit-known-properties-reconciled-saved");
-  SelectRecovery(record.Id);Action("RestoreInplaceRecord");await BatchWait();Check(InplaceHistory.Read(InplaceHistory.PathFor(record.Id)).Phase=="restored"&&await PhotoDocument.HashAsync(record.Target)==record.OriginalHash&&SourceTimes.Read(record.Target)==new SourceTimes(record.Original.Created,record.Original.Written),"restart-restore-same-SHA-original-properties-UI");
+  await SelectRecovery(record.Id);Action("CheckInplaceRecord");await BatchWait();Check(InplaceHistory.Read(InplaceHistory.PathFor(record.Id)).Phase=="saved","restart-explicit-known-properties-reconciled-saved");
+  await SelectRecovery(record.Id);Action("RestoreInplaceRecord");await BatchWait();Check(InplaceHistory.Read(InplaceHistory.PathFor(record.Id)).Phase=="restored"&&await PhotoDocument.HashAsync(record.Target)==record.OriginalHash&&SourceTimes.Read(record.Target)==new SourceTimes(record.Original.Created,record.Original.Written),"restart-restore-same-SHA-original-properties-UI");
   File.WriteAllText(Path.Combine(folder,"r04c-restart.json"),JsonSerializer.Serialize(new{buildSha=await PhotoDocument.HashAsync(typeof(MainWindow).Assembly.Location),checks=evidence},new JsonSerializerOptions{WriteIndented=true}));Console.WriteLine("R04C_RESTART="+evidence.Count);
  }
 }

@@ -29,6 +29,7 @@ if (args.FirstOrDefault()?.StartsWith("--fake-") == true)
     }
 }
 static void Check(bool value, string message) { if (!value) throw new Exception(message); Console.WriteLine("PASS " + message); }
+if (args.FirstOrDefault() == "--music-template-checks") { await RenameMusicChecks.RunAsync(); return; }
 if (args.FirstOrDefault() == "--name-sort-checks") { NameSortChecks.Run(); return; }
 if (args.FirstOrDefault() == "--unicode-filter-checks") { UnicodeFilterChecks.Run(); return; }
 if (args.FirstOrDefault() == "--save-ownership-checks") { await SaveOwnershipChecks.RunAsync(); return; }

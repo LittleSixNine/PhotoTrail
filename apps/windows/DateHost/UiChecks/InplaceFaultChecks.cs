@@ -3,8 +3,8 @@ using System.Windows.Controls;
 using PhotoTrail.Windows;
 static partial class Program
 {
- static void SelectRecovery(string id) {
-  typeof(MainWindow).GetMethod("LoadInplaceRecords",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance)!.Invoke(window,null);
+ static async Task SelectRecovery(string id) {
+  await (Task)typeof(MainWindow).GetMethod("LoadInplaceRecords",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance)!.Invoke(window,null)!;
   var choice=Control<ComboBox>("InplaceRecords");choice.SelectedItem=choice.Items.Cast<object>().Single(x=>((InplaceRecord)x.GetType().GetProperty("Record")!.GetValue(x)!).Id==id);Action("ShowInplaceRecord");
  }
  static async Task InplaceFaultChecks() {
@@ -15,7 +15,7 @@ static partial class Program
   Control<ListBox>("Photos").SelectedItems.Clear();Action("PrepareSaveAll");Action("ExecuteSavePlan");await BatchWait();File.WriteAllText(Path.Combine(folder,"fault-save-summary.txt"),Control<TextBox>("SaveSummary").Text+"\n"+Status);var results=((List<SidecarResult>)Field("saveResults")!).ToArray();var result=results.Single(r=>r.Path==photo.FilePath);var record=InplaceHistory.Read(InplaceHistory.PathFor(result.RecordId!));
   var current=Control<ListBox>("Photos").Items.Cast<object>().Select(Doc).Single(d=>d.FilePath==photo.FilePath);
   if(fault.StartsWith("restore-")) {
-   Check(result.State=="成功","fault-setup-save-real-source-and-UI-success");SelectRecovery(record.Id);Action("RestoreInplaceRecord");await BatchWait();record=InplaceHistory.Read(InplaceHistory.PathFor(record.Id));
+   Check(result.State=="成功","fault-setup-save-real-source-and-UI-success");await SelectRecovery(record.Id);Action("RestoreInplaceRecord");await BatchWait();record=InplaceHistory.Read(InplaceHistory.PathFor(record.Id));
    Check(InplaceHistory.Pending(record)&&File.Exists(record.Backup),"restore-failure-persisted-stage-original-backup-kept");
    if(fault=="restore-readback")Check(File.ReadAllBytes(photo.FilePath).SequenceEqual(original)&&record.RestoreIdentity is not null,"restore-postcommit-failure-keeps-known-restored-bytes");
    else Check(await PhotoDocument.HashAsync(photo.FilePath)==record.NewHash,"restore-beforecommit-failure-preserves-saved-version");
@@ -43,8 +43,8 @@ static partial class Program
   Check(Control<TextBlock>("InplaceStatus").Text.Contains("待核对／恢复1"),"startup-discovery-does-not-auto-write");
   InplaceHistory.RequireClear(rows.Select(Doc).Where(d=>d.FilePath!=pending.Photo).Select(d=>d.FilePath));Check(true,"unrelated-safe-targets-remain-readable");
   bool blocked=false;try{InplaceHistory.RequireClear([pending.Target]);}catch(IOException){blocked=true;}Check(blocked,"restart-pending-same-target-blocked");
-  SelectRecovery(pending.Id);Action("CheckInplaceRecord");await BatchWait();Check(InplaceHistory.Read(InplaceHistory.PathFor(pending.Id)).Phase=="saved"&&await PhotoDocument.HashAsync(pending.Target)==before,"restart-explicit-reconciliation-readback-no-blind-write");
-  SelectRecovery(pending.Id);Action("RestoreInplaceRecord");await BatchWait();var restored=InplaceHistory.Read(InplaceHistory.PathFor(pending.Id));Check(restored.Phase=="restored"&&await PhotoDocument.HashAsync(restored.Target)==restored.OriginalHash,"restart-record-restore-real-original-bytes-and-UI");
+  await SelectRecovery(pending.Id);Action("CheckInplaceRecord");await BatchWait();Check(InplaceHistory.Read(InplaceHistory.PathFor(pending.Id)).Phase=="saved"&&await PhotoDocument.HashAsync(pending.Target)==before,"restart-explicit-reconciliation-readback-no-blind-write");
+  await SelectRecovery(pending.Id);Action("RestoreInplaceRecord");await BatchWait();var restored=InplaceHistory.Read(InplaceHistory.PathFor(pending.Id));Check(restored.Phase=="restored"&&await PhotoDocument.HashAsync(restored.Target)==restored.OriginalHash,"restart-record-restore-real-original-bytes-and-UI");
   SaveResult("inplace-restart-checks.json",new{pending.Id,restored.Phase});
  }
 }

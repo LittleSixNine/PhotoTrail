@@ -25,7 +25,7 @@ static partial class Program
  }
  static async Task M2Checks()
  {
-  explicitSavePlanChecks=true;
+  explicitSavePlanChecks=true; M3Call("SaveUi",((UiPreference)Field("ui")!) with{SkipSaveScopePrompt=true});
   for(int i=0;i<1200&&((bool)Field("importRunning")!||(bool)Field("busy")!);i++)await Task.Delay(25);
   var photos=Control<ListBox>("Photos");Check(photos.Items.Count==3,"m2-three-synthetic-inputs");photos.SelectAll();await Responsive();
   var docs=photos.Items.Cast<object>().Select(Doc).ToArray();var originals=docs.ToDictionary(d=>d.FilePath,d=>File.ReadAllBytes(d.FilePath));
