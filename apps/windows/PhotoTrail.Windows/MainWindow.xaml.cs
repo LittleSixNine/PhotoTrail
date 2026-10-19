@@ -126,6 +126,7 @@ public partial class MainWindow : Window
     private void WindowKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         var modifiers = System.Windows.Input.Keyboard.Modifiers;
+        if (e.Key == System.Windows.Input.Key.Escape && CloseOpenDropdown(this)) { e.Handled = true; return; }
         if (e.Key == System.Windows.Input.Key.Escape && (busy || checkingEnvironment)) { CancelRead(sender,e); e.Handled = true; return; }
         if (busy) return;
         if (e.Key == System.Windows.Input.Key.O && modifiers == System.Windows.Input.ModifierKeys.Control) { e.Handled = true; ReadPhoto(sender,e); }

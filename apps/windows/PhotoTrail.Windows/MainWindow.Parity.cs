@@ -138,7 +138,7 @@ public partial class MainWindow
         settingsWindow.ThemeMode = ThemeMode;
 #pragma warning restore WPF0001
         settingsWindow.Closing += (_, args) => {if(!DiscardTrackPreferenceInput())args.Cancel=true;};
-        settingsWindow.PreviewKeyDown += (_, args) => { if(args.Key == Key.Escape) { var picker=Keyboard.FocusedElement as ComboBox ?? (Keyboard.FocusedElement is ComboBoxItem item?ItemsControl.ItemsControlFromItemContainer(item) as ComboBox:null);if(picker?.IsDropDownOpen==true){picker.IsDropDownOpen=false;args.Handled=true;return;}settingsWindow?.Close(); args.Handled = true; } };
+        settingsWindow.PreviewKeyDown += (_, args) => { if(args.Key == Key.Escape) { if(CloseOpenDropdown(settingsWindow!)){args.Handled=true;return;}settingsWindow?.Close(); args.Handled = true; } };
         settingsWindow.ContentRendered += (_, _) => ((TabItem)SettingsPages.SelectedItem).Focus();
         settingsWindow.Closed += (_, _) => { settingsWindow!.Content = null; SettingsPages.Visibility = Visibility.Collapsed; ((Grid)WorkspaceTabs.Parent).Children.Add(SettingsPages); settingsWindow = null; Activate(); if(returnFocus is UIElement { IsVisible: true, IsEnabled: true } element)element.Focus(); };
         settingsWindow.Show();

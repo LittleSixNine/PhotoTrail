@@ -1,3 +1,9 @@
+## Pre-release review (2026-10-19)
+
+Run `packaging/Test-PortableCandidate.ps1` from PowerShell x64 before workflow testing; it only reads existing files and runtime registrations and writes a new report. Retain its fixed runtime lock beside the script. A failed prerequisite must be resolved through an approved environment, not by mixing DLLs. A successful result is local preflight only.
+
+Portable is the review candidate shape, not a decided production installer. Installer choices remain: separate-folder portable extraction (no uninstall registration), or a per-user installer with explicit settings/backup retention and upgrade rollback tests. No installation, signing or live update source is enabled by this package.
+
 # Windows x64 portable development candidate
 
 The existing version remains 0.5.10-win.m5. Batch, exact source commit and EXE/DLL/DateHost SHA256 identify each candidate. No installer, signature, release or update channel is approved by this development package.

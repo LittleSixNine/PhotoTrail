@@ -1,0 +1,201 @@
+{
+  "dateCore": {
+    "commit": "a0299e6f6c956f66ace2b85449b54db5e2eeeee4",
+    "path": "Packages/PhotoTrailDateCore/Sources/PhotoTrailDateCore/MetadataDateEdit.swift",
+    "sha256": "15e1f395ac379552b4c43892f6d70321e3c2f0fd6e0dc9d8ccadacc7bb607dc8",
+    "version": "date-core-v2",
+    "toolchain": "6.4.0"
+  },
+  "files": [
+    {
+      "path": "DateHost/_FoundationICU.dll",
+      "bytes": 38234112,
+      "sha256": "3ca21e4bea066483c81e85fda43da9f70671b435396b989f8b7676bbae24c105"
+    },
+    {
+      "path": "DateHost/BlocksRuntime.dll",
+      "bytes": 11776,
+      "sha256": "a7b0433ef9c1315388d5cd526f6a1e77506fa9570a9dc3fa9c1818add5f4e22a"
+    },
+    {
+      "path": "DateHost/concrt140.dll",
+      "bytes": 322640,
+      "sha256": "e2e4609c569c69f7b1686f6d0e81ce62187ac5df05e0247954500053b3c3de3f"
+    },
+    {
+      "path": "DateHost/DateHost.exe",
+      "bytes": 126976,
+      "sha256": "023f8eb04ee818a29d31c9682120c8be47fcc1973a0c91aa140679739da58f76"
+    },
+    {
+      "path": "DateHost/DateHost.exp",
+      "bytes": 17654,
+      "sha256": "1c03dcb66511564907c9f9eb59a1710a262163295a617ccfce6925b4a0b38847"
+    },
+    {
+      "path": "DateHost/DateHost.lib",
+      "bytes": 25368,
+      "sha256": "b5d201d10ed9220e642973629ceb682e46c46097c988ffa6d71825d2866106bf"
+    },
+    {
+      "path": "DateHost/dispatch.dll",
+      "bytes": 236032,
+      "sha256": "3b2bf951e308b135c7467477722b3ae694a518d25e5b48c93a9a78b3a7043057"
+    },
+    {
+      "path": "DateHost/Foundation.dll",
+      "bytes": 4680192,
+      "sha256": "1641656145c1cc386ffd75dbc2627a95e2ec28a492b1b565b9f02aa3db14dad0"
+    },
+    {
+      "path": "DateHost/FoundationEssentials.dll",
+      "bytes": 5712896,
+      "sha256": "c622b8aa08c4b0f2fac7bf0b6d60642c3fbb8ec1db91b3e8231ca39b012ab932"
+    },
+    {
+      "path": "DateHost/FoundationInternationalization.dll",
+      "bytes": 1473024,
+      "sha256": "26ee3761e6ced903c704eda872f15966f445b819f4b777b101f56ce7f3fcf8ab"
+    },
+    {
+      "path": "DateHost/FoundationNetworking.dll",
+      "bytes": 1477120,
+      "sha256": "d72cd188fd43dc46f7dd8c9f50e47bb35028dabb1ee9a3e993755080469ef914"
+    },
+    {
+      "path": "DateHost/FoundationXML.dll",
+      "bytes": 628224,
+      "sha256": "77ab2f2750199736e3c070f14ff2806644a99ff4447557224c0770c6998b4439"
+    },
+    {
+      "path": "DateHost/msvcp140.dll",
+      "bytes": 575592,
+      "sha256": "9057d39b36b6c7d054865ee2bf9cde7a490fe3b01ec4e82514687e24f576269f"
+    },
+    {
+      "path": "DateHost/msvcp140_1.dll",
+      "bytes": 35944,
+      "sha256": "a65249861238e1c18b84ae5d112617c438d83a76b67eddc170ad82dbc2338665"
+    },
+    {
+      "path": "DateHost/msvcp140_2.dll",
+      "bytes": 267880,
+      "sha256": "89e2e9a163165e20c540f9adea081e927ddfe4a556547b0f45f11586d4cce165"
+    },
+    {
+      "path": "DateHost/msvcp140_atomic_wait.dll",
+      "bytes": 50256,
+      "sha256": "fbf41e4b53f51bbf73fee37b6120103fea6b7d5ae29916f8ef50c50cfdedeead"
+    },
+    {
+      "path": "DateHost/msvcp140_codecvt_ids.dll",
+      "bytes": 31824,
+      "sha256": "0e1d3d76e899a89fb3893fb13abae232ff62ad4f573214dd2f02b8398166bcc6"
+    },
+    {
+      "path": "DateHost/swift_Builtin_float.dll",
+      "bytes": 22528,
+      "sha256": "9b233cc7163e8d544221573a62210ed129d816184c472ce7e832b9622e74b3cf"
+    },
+    {
+      "path": "DateHost/swift_Concurrency.dll",
+      "bytes": 522752,
+      "sha256": "b85a4f0817981a4455d5324dbd626a40206328f6066767b5483c46fd5c852ec6"
+    },
+    {
+      "path": "DateHost/swift_Differentiation.dll",
+      "bytes": 369152,
+      "sha256": "43d3172b35a7ac22e589bf82c5fa12f97123c9738a614368f2e2bc4fa110c7b8"
+    },
+    {
+      "path": "DateHost/swift_RegexParser.dll",
+      "bytes": 858624,
+      "sha256": "f518e90801a9c3af3ff541a44aad55adfdd2aac7c5d7babb744cbe358c14d682"
+    },
+    {
+      "path": "DateHost/swift_StringProcessing.dll",
+      "bytes": 700928,
+      "sha256": "4c46e0e0300a1b954892dd8e596f0d2d2f8f133c8c6d8b7a152e66aaab3cdce0"
+    },
+    {
+      "path": "DateHost/swift_Volatile.dll",
+      "bytes": 22528,
+      "sha256": "8324ce9eaafa8cdef5b75289813f4db104ecb433c24ae4ca0cbe461e239b0320"
+    },
+    {
+      "path": "DateHost/swiftCore.dll",
+      "bytes": 6064128,
+      "sha256": "3c881efbcddbca632d2dce2f4d59f6b3d53d7a02782ca1ba7a3cb5d9c698f0fa"
+    },
+    {
+      "path": "DateHost/swiftCRT.dll",
+      "bytes": 38912,
+      "sha256": "1739c6e1370812bbb78b6cb6f5a8943e23e3a23b804123141039fb7d636c94c9"
+    },
+    {
+      "path": "DateHost/swiftDispatch.dll",
+      "bytes": 145408,
+      "sha256": "e49fb75a23452e321f90fd7518e0787874e78029365f30ec18531c44cab7a4da"
+    },
+    {
+      "path": "DateHost/swiftDistributed.dll",
+      "bytes": 92672,
+      "sha256": "65d6727ce0c2749df3ccf3e4490630751c0b4f799272de98dc35d2f70371dcd8"
+    },
+    {
+      "path": "DateHost/swiftObservation.dll",
+      "bytes": 120320,
+      "sha256": "1a6616a1acb1ea1df44ea590d7944936996894de7ed481414cb37d0eb1a52166"
+    },
+    {
+      "path": "DateHost/swiftRegexBuilder.dll",
+      "bytes": 99840,
+      "sha256": "851e9fdc60d6d63207e1e9df4a7fa27ea17f92be20d6d504cf8f78c2a514ed96"
+    },
+    {
+      "path": "DateHost/swiftRemoteMirror.dll",
+      "bytes": 877056,
+      "sha256": "a8632719b573fde6805cf986068f1924704689f808c286ea2ab9dfe45e33fdd3"
+    },
+    {
+      "path": "DateHost/swiftRuntime.dll",
+      "bytes": 1285632,
+      "sha256": "b845ee6522cd0a445b8cd9368a7d93df34206222dbf2009032d8065d0b529ad3"
+    },
+    {
+      "path": "DateHost/swiftSwiftOnoneSupport.dll",
+      "bytes": 222720,
+      "sha256": "b20ed8f9f89b490015b52b4844ac13994f0f29ddecd790f3a7996ac1673f1d5f"
+    },
+    {
+      "path": "DateHost/swiftSynchronization.dll",
+      "bytes": 76288,
+      "sha256": "454420b6252d5807195f3d3ad29977c9d7c73c0f3fbeacd4653c20f0ab35c0c9"
+    },
+    {
+      "path": "DateHost/swiftWinSDK.dll",
+      "bytes": 34816,
+      "sha256": "4a8ecfbdce840fd89fa98f850a0d82619b8f97e04f43449937533c608e447ffe"
+    },
+    {
+      "path": "DateHost/vccorlib140.dll",
+      "bytes": 351824,
+      "sha256": "8903b5d88968791d2a93648a54a1ac3d1c708c579a72311ffe194f6d66903043"
+    },
+    {
+      "path": "DateHost/vcruntime140.dll",
+      "bytes": 120432,
+      "sha256": "da72e6677bd1bcd01c453c1998aaa19aeaf6659f4774cf6848409da8232a95b2"
+    },
+    {
+      "path": "DateHost/vcruntime140_1.dll",
+      "bytes": 49744,
+      "sha256": "26e470b29bed3d873e0c328186e53f95e9edbfe0b0fd0cda44743a0b1a04a828"
+    },
+    {
+      "path": "DateHost/vcruntime140_threads.dll",
+      "bytes": 38504,
+      "sha256": "326110c8c5cac836cfed1643304cb6bdc4a8737a7a535d6b1eff4d63878aef9d"
+    }
+  ]
+}

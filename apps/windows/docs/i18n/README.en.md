@@ -1,3 +1,5 @@
+WIN-PRE-RELEASE-20261019: Escape closes an open dropdown first. Closing an editor returns focus to its opening control. This remains a local development candidate pending final acceptance and release approval.
+
 POSTM9-R4 development: ordinary names use canonical comparison keys; the three-file sample follows Mac order. Full Foundation parity remains unverified. Recovery reads reuse a window-owned worker. [Behavior](../BEHAVIOR.md).
 
 POSTM9-R3 development: Mac v1 subset name filters recognize NFC/NFD canonical equivalence. Rule and filter identities survive round trips; natural sorting uses Windows local behavior. Candidate verification and remaining limits are recorded separately.

@@ -135,6 +135,7 @@ public partial class MainWindow
         if (busy || renameRecoveryRequired || metadataClosing) return;
         if (metadataWindow is not null) { metadataWindow.Activate(); return; }
         workflowSelection = Selected;
+        var returnFocus = System.Windows.Input.Keyboard.FocusedElement;
         var root = new DockPanel { Margin = new Thickness(18) };
         var heading = new StackPanel();
         heading.Children.Add(new TextBlock { Text = WText("Title"), FontSize = 24, FontWeight = FontWeights.SemiBold });
@@ -196,7 +197,7 @@ public partial class MainWindow
 #pragma warning disable WPF0001
         metadataWindow.ThemeMode = ThemeMode;
 #pragma warning restore WPF0001
-        metadataWindow.PreviewKeyDown += (_, args) => { if(args.Key==System.Windows.Input.Key.Escape) { if(busy)CancelRead(this,new RoutedEventArgs());else metadataWindow?.Close();args.Handled=true; } };
+        metadataWindow.PreviewKeyDown += (_, args) => { if(args.Key==System.Windows.Input.Key.Escape) { if(CloseOpenDropdown(metadataWindow!)){args.Handled=true;return;} if(busy)CancelRead(this,new RoutedEventArgs());else metadataWindow?.Close();args.Handled=true; } };
         metadataWindow.Loaded += (_, _) => workflowFirstInput?.Focus();
         metadataWindow.Closing += (_, args) =>
         {
@@ -218,6 +219,7 @@ public partial class MainWindow
             for (int i = 0; i < libraryChildren.Length; i++) PresetControls.Children.Insert(i, libraryChildren[i]);
             var listView=System.Windows.Data.CollectionViewSource.GetDefaultView(MetadataPresetList.ItemsSource);if(listView is not null)listView.Filter=null;
             workflowCards = null; workflowContext = null; workflowBody = null; workflowPresetSearch=null; metadataWindow = null; invalidWorkflowCards.Clear();workflowCardInputs.Clear();workflowModeInputs.Clear();
+            ReturnEditorFocus(returnFocus);
         };
         RebuildWorkflowCards(); metadataWindow.Show(); if (compare) { ComparisonTab.IsSelected = true; RefreshComparison(); }
     }
@@ -226,6 +228,7 @@ public partial class MainWindow
         if(busy||renameRecoveryRequired)return;
         if(dateEditorWindow is not null){dateEditorWindow.Activate();return;}
         dateEditorSelection=Selected;
+        var returnFocus=System.Windows.Input.Keyboard.FocusedElement;
         string Raw()=>string.Join("\0",new[]{DateTarget.SelectedIndex.ToString(CultureInfo.InvariantCulture),DateMode.SelectedIndex.ToString(CultureInfo.InvariantCulture)}.Concat(new[]{DateYears,DateMonths,DateDays,DateHours,DateMinutes,DateSeconds,DateStart,DateEnd,DateStep,DateReplaceYear,DateReplaceMonth,DateReplaceDay,DateReplaceHour,DateReplaceMinute,DateReplaceSecond,DateFilenamePattern,DateFilenameTemplate}.Select(box=>box.Text)));
         dateEditorBaseline??=Raw();dateEditorHasInput=()=>Raw()!=dateEditorBaseline;
         var content=tab.Content;tab.Content=null;
@@ -242,9 +245,9 @@ public partial class MainWindow
 #pragma warning restore WPF0001
         dateEditorWindow.AddHandler(System.Windows.Controls.Primitives.ToggleButton.CheckedEvent,new RoutedEventHandler((_,_)=>{if(!fillingEditor)InvalidateDates();}));
         dateEditorWindow.AddHandler(System.Windows.Controls.Primitives.ToggleButton.UncheckedEvent,new RoutedEventHandler((_,_)=>{if(!fillingEditor)InvalidateDates();}));
-        dateEditorWindow.PreviewKeyDown+=(_,args)=>{if(args.Key==System.Windows.Input.Key.Escape){if(busy)CancelRead(this,new RoutedEventArgs());else dateEditorWindow?.Close();args.Handled=true;}};
+        dateEditorWindow.PreviewKeyDown+=(_,args)=>{if(args.Key==System.Windows.Input.Key.Escape){if(CloseOpenDropdown(dateEditorWindow!)){args.Handled=true;return;}if(busy)CancelRead(this,new RoutedEventArgs());else dateEditorWindow?.Close();args.Handled=true;}};
         dateEditorWindow.Closing+=(_,args)=>{if(busy){CancelRead(this,new RoutedEventArgs());args.Cancel=true;return;}if(dateEditorHasInput()&&MessageBox.Show(dateEditorWindow,WText("CloseDateParameters"),"PhotoTrail",MessageBoxButton.YesNo,MessageBoxImage.Question,MessageBoxResult.No)!=MessageBoxResult.Yes)args.Cancel=true;};
-        dateEditorWindow.Closed+=(_,_)=>{body.Children.Remove((UIElement)content);tab.Content=content;dateEditorWindow=null;dateEditorContext=null;};
+        dateEditorWindow.Closed+=(_,_)=>{body.Children.Remove((UIElement)content);tab.Content=content;dateEditorWindow=null;dateEditorContext=null;ReturnEditorFocus(returnFocus);};
         dateEditorWindow.Show();
     }
     void ConfirmWorkflowDateSelection()

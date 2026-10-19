@@ -1,3 +1,5 @@
+WIN-PRE-RELEASE-20261019: `UiChecks --pre-release-keyboard-checks` checks production routed events, dropdown ownership, close veto and focus return; native keyboard evidence is separate. `packaging/Test-PortableCandidate.ps1 -Candidate <folder> -Report <new-json>` checks prerequisites and the fixed 38-file runtime lock. It never qualifies a machine as clean or grants redistribution clearance.
+
 POSTM9-R4: `--name-sort-checks` covers canonical ordinary-name keys and stable ties; only the supplied three-name vector has Mac runtime evidence. `--inplace-scale` verifies a window-owned recovery worker, unchanged per-file proofs, and explicit worker disposal. Cancellation/failure invalidates the existing worker protocol.
 
 ## POSTM9-R3 targeted checks

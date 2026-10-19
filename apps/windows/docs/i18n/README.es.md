@@ -1,3 +1,5 @@
+WIN-PRE-RELEASE-20261019: Escape cierra primero la lista desplegable. Al cerrar el editor, el foco vuelve al control de origen. Este paquete sigue siendo un candidato de desarrollo local, pendiente de aceptación final y autorización de publicación.
+
 Desarrollo POSTM9-R4: la ordenación por nombre usa claves canónicas; la muestra de tres archivos sigue el orden de Mac. La equivalencia completa con Foundation sigue sin verificarse. Las lecturas de restauración reutilizan un proceso de la ventana. [Behavior](../BEHAVIOR.md).
 
 Desarrollo POSTM9-R3: los filtros de nombres del subconjunto Mac v1 reconocen la equivalencia canónica NFC/NFD. Se conservan las identidades de reglas y filtros; el orden natural usa el comportamiento local de Windows. La validación y los límites pendientes se registran por separado.
