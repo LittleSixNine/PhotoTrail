@@ -16,8 +16,8 @@ public partial class MainWindow
         BackupFolder.Text=dialog.FolderName;BackupChanged(sender,e);
     }
     void BackupChanged(object sender,RoutedEventArgs e){if(!IsLoaded||busy)return;settings=settings with{BackupFolder=BackupFolder.Text};SaveSettings();preparedSave=null;ExecuteSaveButton.IsEnabled=false;}
-    void LoadInplaceRecords() {
-        try{var selected=(InplaceRecords.SelectedItem as RecoveryRow)?.Record.Id;var records=InplaceHistory.ReadAll();InplaceRecords.ItemsSource=records.Select(r=>new RecoveryRow(r)).ToArray();InplaceRecords.SelectedIndex=selected is null?0:Array.FindIndex(records,r=>r.Id==selected);InplaceStatus.Text=L10n.Message(L10n.Format("记录{0}；待核对／恢复{1}。启动不自动改写文件。",records.Length,records.Count(InplaceHistory.Pending)));}
+    async Task LoadInplaceRecords() {
+        try{var selected=(InplaceRecords.SelectedItem as RecoveryRow)?.Record.Id;var records=await Task.Run(InplaceHistory.ReadAll);InplaceRecords.ItemsSource=records.Select(r=>new RecoveryRow(r)).ToArray();InplaceRecords.SelectedIndex=selected is null?0:Array.FindIndex(records,r=>r.Id==selected);InplaceStatus.Text=L10n.Message(L10n.Format("记录{0}；待核对／恢复{1}。启动不自动改写文件。",records.Length,records.Count(InplaceHistory.Pending)));}
         catch(Exception error){InplaceRecords.ItemsSource=null;InplaceStatus.Text=L10n.Message(L10n.Text("恢复记录不可读取；不得视为无待处理事务，变更操作将保守拒绝：")+L10n.Message(error.Message));}
     }
     void ShowInplaceRecord(object sender,RoutedEventArgs e) {
@@ -35,7 +35,8 @@ public partial class MainWindow
         try {
             // The window owns this read worker across explicit record operations; every file proof is still fresh.
             var client=recoveryClient??=Tool();recoverySession??=client.KeepAlive();
-            var record=InplaceHistory.Read(InplaceHistory.PathFor(selected.Record.Id));
+            // RestoreAsync rereads the record before using any path or proof; check-only reads below.
+            var record=selected.Record;
             if(restore)restoreTimings=await Task.Run(()=>InplaceHistory.RestoreAsync(client,record,request.Token));
             var refreshClock=Stopwatch.StartNew();
             record=InplaceHistory.Read(InplaceHistory.PathFor(record.Id));
@@ -73,6 +74,6 @@ public partial class MainWindow
             restoreTimings["refreshMs"]=refreshClock.Elapsed.TotalMilliseconds;lastApply=null;InvalidateDates();InvalidateBatchTrack();RenameRulesChanged(this,new RoutedEventArgs());RefreshPhotoRows();RefreshMatchPhoto();_=PostPhotosAsync();
             InplaceStatus.Text=L10n.Message(phase=="restored"?L10n.Text("恢复字节、元数据、身份及属性已确认；未完成草稿按原基准保留，旧撤销失效。"):L10n.Format("实际结果已核对：{0}；未盲重试。",phase));
         }catch(Exception error){foreach(var row in photos.Where(r=>r.Document.FilePath==selected.Record.Photo))row.Document.InspectionError="过期快照：核对／恢复未确认；"+error.Message;RefreshPhotoRows();InplaceStatus.Text=L10n.Message(L10n.Text("未完成核对／恢复；目标、备份、记录和草稿保留：")+L10n.Message(error.Message));}
-        finally{EndOperation();string result=InplaceStatus.Text;LoadInplaceRecords();InplaceStatus.Text+=L10n.Message("\n"+result);reviewedRecovery=null;}
+        finally{string result=InplaceStatus.Text;await LoadInplaceRecords();InplaceStatus.Text+=L10n.Message("\n"+result);reviewedRecovery=null;EndOperation();}
     }
 }

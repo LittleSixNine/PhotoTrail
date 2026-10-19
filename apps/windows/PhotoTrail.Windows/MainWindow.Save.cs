@@ -116,7 +116,7 @@ public partial class MainWindow
         catch(Exception error){foreach(var item in plan.Items.Where(i=>saveResults.All(r=>r.Path!=i.Target)))saveResults.Add(new(item.Target,null,null,"未执行","批次准备失败，草稿保留："+error.Message));SaveSummary.Text+=L10n.Text("\n批次失败：")+L10n.Message(error.Message);}
         finally {
             saveTimings["writeAndReadbackMs"]=clock.Elapsed.TotalMilliseconds;saveTimings["exifRequests"]=Interlocked.Read(ref ExifToolClient.RequestCount)-exif;saveTimings["dateHostRequests"]=Interlocked.Read(ref DateAdapter.StartedProcesses)-hosts;
-            lastApply=null;InvalidateDates();InvalidateBatchTrack();RenameRulesChanged(this,new RoutedEventArgs());RefreshPhotoRows();RefreshMatchPhoto();_=PostPhotosAsync();EndOperation();LoadInplaceRecords();
+            lastApply=null;InvalidateDates();InvalidateBatchTrack();RenameRulesChanged(this,new RoutedEventArgs());RefreshPhotoRows();RefreshMatchPhoto();_=PostPhotosAsync();await LoadInplaceRecords();EndOperation();
             SaveSummary.Text+="\n"+string.Join("\n",saveResults.Select(r=>$"{L10n.Text(r.State)}：{r.Path} SHA={r.Hash??"unknown"}；{L10n.Message(r.Detail)}"));
             Status.Text=L10n.Message(plan.Mode==SaveMode.Copy?L10n.Format("保存结束：副本成功 {0}，失败 {1}，取消 {2}，结果未知 {3}；跳过{4}。详见摘要；原件和会话草稿保留。",saveResults.Count(r=>r.State=="成功"),saveResults.Count(r=>r.State=="失败"),saveResults.Count(r=>r.State=="取消"),saveResults.Count(r=>r.State=="结果未知"),plan.Skipped.Length):L10n.Format("保存结束：成功{0}，失败{1}，取消{2}，结果未知{3}；跳过{4}。详见摘要；备份、结果和未完成草稿保留。",saveResults.Count(r=>r.State=="成功"),saveResults.Count(r=>r.State=="失败"),saveResults.Count(r=>r.State=="取消"),saveResults.Count(r=>r.State=="结果未知"),plan.Skipped.Length));
         }

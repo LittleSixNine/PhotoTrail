@@ -144,7 +144,7 @@ public partial class MainWindow : Window
         try { ThemeChoice.SelectedIndex = ThemePreference.Read(themePreferencePath); ThemeStatus.Text = L10n.Message(L10n.Text("已读取本机外观偏好；不改变Windows设置。")); }
         catch (Exception) { ThemeStatus.Text = L10n.Message(L10n.Text("本机外观偏好不可读取，暂跟随系统；已有配置未覆盖。")); }
         finally { restoringTheme = false; }
-        LoadSettings();LoadInplaceRecords();LoadMetadataPresets();LoadMapWorkspace();
+        LoadSettings();await LoadInplaceRecords();LoadMetadataPresets();LoadMapWorkspace();
         RefreshGoogleKeyStatus();
         LoadLatestRenameJournal();LoadRenameSchemes();InitializeM3Rename();InitializeM4Map();InitializeM5Preferences();
         LoadTrackHistory();await LoadTrackSnapshotsAsync();

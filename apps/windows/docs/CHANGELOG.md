@@ -1,3 +1,5 @@
+WIN-PRE-RELEASE-20261019 recovery: full history discovery runs on a worker and is awaited before ending save/recovery busy state. RestoreAsync still rereads the selected record and performs all per-file proofs; check-only reads remain fresh. One redundant pre-read was removed. No record cache, unknown-state bypass, DateHost change or new concurrency was added.
+
 WIN-PRE-RELEASE-20261019 音乐增量：72—77复用现有模板实现设置、末尾、开头、锚点前后及位置插入，读取已导入照片的真实标签；新增必要音乐标签别名，v1明确映射同步。缺失标签保留原名并提示，不新增音频导入、音乐库或播放器。词性32与完整Foundation／Unicode等价仍未完成。详见重命名v1兼容表。
 
 WIN-PRE-RELEASE-20261019：Esc先关闭当前窗口内展开的下拉框，再按窗口原有规则取消任务或请求关闭；元数据、日期及重命名子窗口关闭后返回打开前仍可用的控件。输入保留、关窗确认及忙碌取消保护保持。部署预检脚本只检查现有依赖与固定38文件，不代表干净机、许可证或发行资格通过。
