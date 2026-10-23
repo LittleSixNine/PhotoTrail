@@ -1,3 +1,7 @@
+## 2026-10-23 · Windows发行门资料
+
+记录已批准的action32/跨端运行值迁移延期和普通name限定范围；补充兼容边界说明。复用原便携ZIP，未修改生产源码或重建候选；资格、用户验收与发行批准分别记录。
+
 WIN-LAUNCH-CLOSEOUT-20261019：音乐相关功能本次Windows首发暂缓；整份方案保留但不可用，包括已禁用的音乐规则。 动作72—77和音乐专属模板token不提供；旧配置不被删改，拒绝导入／导出／冻结／执行不消费计数，已有记录仍可恢复。照片作者、版权、普通精确元数据和通用照片模板保持。 PRE-REL-MAC-REV-01（ARTIST／artist差额）已确认延期，非首发门；不是FIXED，Mac不改。词性32等其余发行门不因此延期。
 
 WIN-PRE-RELEASE-20261019 recovery: full history discovery runs on a worker and is awaited before ending save/recovery busy state. RestoreAsync still rereads the selected record and performs all per-file proofs; check-only reads remain fresh. One redundant pre-read was removed. No record cache, unknown-state bypass, DateHost change or new concurrency was added.

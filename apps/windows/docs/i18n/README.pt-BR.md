@@ -1,3 +1,5 @@
+WIN-RELEASE-GATES-20261023: A ação lexical32 e a transferência dos valores de contadores de execução ficam para depois do primeiro lançamento Windows. A ordenação name é aceita no escopo FIXED_WITH_LIMITS existente, sem equivalência completa com Foundation. As predefinições transferem regras e parâmetros; os valores ficam locais. Os demais limites v1 aguardam decisão separada. O ZIP portátil sem alterações é reutilizado; implantação, licenças, desempenho e as verificações nativas/de ambiente restantes continuam pendentes. [Escopo v1](../RENAME-V1-COMPATIBILITY.md).
+
 WIN-LAUNCH-CLOSEOUT-20261019：Os recursos de música foram adiados para a primeira versão do Windows. O esquema inteiro é preservado, mas fica indisponível, inclusive com regras de música desativadas. As ações72–77 e os modelos exclusivos de música não são oferecidos. Configurações e registros são preservados; a rejeição não avança contadores. Autoria, direitos autorais e modelos gerais de fotos são mantidos.
 
 As ações musicais72–77 usam metadados das fotos e renomeação segura, sem adicionar biblioteca ou reprodutor de áudio.

@@ -1,3 +1,5 @@
+WIN-RELEASE-GATES-20261023: The first Windows release defers lexical action32 and transfer of runtime counter values. Ordinary name sorting is accepted as FIXED_WITH_LIMITS, without full Foundation equivalence. Presets transfer rules and parameters; counters remain local. Other v1 restrictions still require a separate decision. The unchanged portable ZIP candidate is reused; deployment, licensing, performance and remaining native/environment qualification gates are open. See [v1 scope](docs/RENAME-V1-COMPATIBILITY.md).
+
 WIN-LAUNCH-CLOSEOUT-20261019：音乐相关功能本次Windows首发暂缓；整份方案保留但不可用，包括已禁用的音乐规则。 动作72—77和音乐专属模板token不提供；旧配置不被删改，拒绝导入／导出／冻结／执行不消费计数，已有记录仍可恢复。照片作者、版权、普通精确元数据和通用照片模板保持。
 
 WIN-PRE-RELEASE-20261019 音乐增量：72—77复用现有模板实现设置、末尾、开头、锚点前后及位置插入，读取已导入照片的真实标签；新增必要音乐标签别名，v1明确映射同步。缺失标签保留原名并提示，不新增音频导入、音乐库或播放器。词性32与完整Foundation／Unicode等价仍未完成。详见重命名v1兼容表。

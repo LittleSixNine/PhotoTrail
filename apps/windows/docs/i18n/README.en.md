@@ -1,3 +1,5 @@
+WIN-RELEASE-GATES-20261023: Lexical action32 and runtime counter transfer are deferred until after the first Windows release. Ordinary name sorting is accepted with its existing FIXED_WITH_LIMITS scope, without full Foundation equivalence. Presets carry rules and parameters; runtime counters stay local. Other v1 limits await a separate decision. The unchanged portable ZIP is reused; deployment, licensing, performance and remaining native/environment gates stay open. [v1 scope](../RENAME-V1-COMPATIBILITY.md).
+
 WIN-LAUNCH-CLOSEOUT-20261019：Music features are deferred from the Windows first release. The whole scheme is preserved but unavailable, including disabled music rules. Actions72–77 and music-only template tokens are unavailable. Existing configurations are retained. Rejected import/export/freeze/execute does not consume counters; old journals remain restorable. Photo authorship, copyright, exact metadata and general photo templates remain supported.
 
 Music actions72–77 use existing photo metadata and safe renaming; no audio library or player is added.
