@@ -1,8 +1,10 @@
+WIN-RELEASE-PREP-20261023 approval correction (2026-10-23): the user explicitly accepts all remaining listed v1 restrictions as the first-release interoperability boundary: Windows-only actions17–23,28–31,33–37,39,78–94,100–111; the listed date/timezone/regex/filter/settings subsets; structural/resource/counter limits; and no guessed legacy Windows-to-Mac conversion. Existing parameter retention and bounded actions66–71 remain unchanged. Acceptance is not a fix, full equivalence, Mac consumption, user acceptance, or a waiver of safety regressions. Production remains3e80305ad4b7fe48e0cd6b16f318f575b5bd1e59; this is documentation only. Earlier pending-decision wording is historical and superseded by this user decision.
+
 WIN-V1-TIMING-20261023: Mac v1 actions66–71 now accept the bounded non-music photo/file/date template subset documented below. Legal unused lexical dictionaries, caseSensitive on pure insertion actions1/2/5, and an unused timeZone are retained through import, local save/reload and export. Matching actions still reject unproved case folding; unknown template tokens reject the whole preset. This is Windows validation; final Mac consumption remains PENDING. No performance optimization is included.
 
 ## 2026-10-23 · 已批准首发范围记录
 
-词性action32及跨端运行计数值迁移首发后处理，保持整份拒绝和原输入；不计已实现或修复。普通name接受现有FIXED_WITH_LIMITS，NFC比较键/Ordinal及已证范围不代表Foundation全域等价。其他非音乐v1限制仍需单独接受，不因上述决定自动豁免。规则、运行计数保护、序列化和产品二进制均未变。
+词性action32及跨端运行计数值迁移首发后处理，保持整份拒绝和原输入；不计已实现或修复。普通name接受现有FIXED_WITH_LIMITS，NFC比较键/Ordinal及已证范围不代表Foundation全域等价。2026-10-23审批勘误：其余已列非音乐v1限制已由用户明确接受为首发边界，不再待批；不豁免新安全问题或承诺范围回归。规则、运行计数保护、序列化和产品二进制均未变。
 
 WIN-LAUNCH-CLOSEOUT-20261019：音乐相关功能本次Windows首发暂缓；整份方案保留但不可用，包括已禁用的音乐规则。 动作72—77和音乐专属模板token不提供；旧配置不被删改，拒绝导入／导出／冻结／执行不消费计数，已有记录仍可恢复。照片作者、版权、普通精确元数据和通用照片模板保持。 PRE-REL-MAC-REV-01（ARTIST／artist差额）已确认延期，非首发门；不是FIXED，Mac不改。词性32等其余发行门不因此延期。
 
