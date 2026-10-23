@@ -1,3 +1,5 @@
+WIN-V1-TIMING-20261023: Mac v1 actions66–71 now accept the bounded non-music photo/file/date template subset documented below. Legal unused lexical dictionaries, caseSensitive on pure insertion actions1/2/5, and an unused timeZone are retained through import, local save/reload and export. Matching actions still reject unproved case folding; unknown template tokens reject the whole preset. This is Windows validation; final Mac consumption remains PENDING. No performance optimization is included.
+
 ## 2026-10-23 · Windows发行门资料
 
 记录已批准的action32/跨端运行值迁移延期和普通name限定范围；补充兼容边界说明。复用原便携ZIP，未修改生产源码或重建候选；资格、用户验收与发行批准分别记录。

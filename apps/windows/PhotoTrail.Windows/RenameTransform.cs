@@ -36,6 +36,7 @@ internal static class RenameTransform
         try {
             using var json=JsonDocument.Parse(text,new(){MaxDepth=4});
             if(json.RootElement.ValueKind!=JsonValueKind.Object||json.RootElement.EnumerateObject().Select(p=>p.Name).Distinct(StringComparer.Ordinal).Count()!=json.RootElement.EnumerateObject().Count())throw new ArgumentException("参数规则字段重复或类型错误。");
+            if(json.RootElement.TryGetProperty("LexicalCases",out var lexical)&&lexical.ValueKind==JsonValueKind.Object&&lexical.EnumerateObject().Select(p=>p.Name).Distinct(StringComparer.Ordinal).Count()!=lexical.EnumerateObject().Count())throw new ArgumentException("词性参数键重复。");
             var rule=JsonSerializer.Deserialize<RenameRule>(text,Options)??throw new ArgumentException("空规则。");
             if(rule.Kind!="action")throw new ArgumentException("参数规则Kind须为action；不直接读取Mac动作编号。");
             Validate(rule);return rule;
@@ -47,15 +48,16 @@ internal static class RenameTransform
         if(!Actions.TryGetValue(r.Action,out var n))throw new ArgumentException("不支持的命名动作："+r.Action);
         if(r.Part is not("stem" or "entire" or "dottedExtension" or "extensionOnly")||r.Occurrence is not("all" or "first" or "last" or "nth")||r.MatchNumber<1||r.Position<0||r.Length<0||r.Position>4096||r.Length>4096||n==27&&r.Start<0)throw new ArgumentException("匹配域、出现次数或字形簇位置无效。");
         if(r.Padding is <0 or >32||r.AlphabetWidth is <1 or >32||r.Counter is <0 or >10||r.Counter>0&&(n is <46 or >51||r.Step<=0||r.Start<0)||r.NumberOperation is not("add" or "subtract" or "multiply" or "divide" or "set")||n==52&&r.NumberOperation=="divide"&&r.NumberValue==0)throw new ArgumentException("序列/计数器/运算参数无效；持续计数只支持向前非负数字规则。");
+        if(r.LexicalCases is null||r.LexicalCases.Any(p=>p.Value is not("keep" or "lower" or "upper" or "title")))throw new ArgumentException("词性参数结构或值无效。");
         if(n is >=60 and <=65)_=AlphabetIndex(r.AlphabetStart);
-        foreach(var (value,multiline) in new[]{(r.Text,n==94),(r.Replacement,false),(r.Anchor,false),(r.Prefix,false),(r.Suffix,false),(r.MetadataField??"",false),(r.DateFormat,false)}) {
+        foreach(var (value,multiline) in new[]{(r.Text,n==94),(r.Replacement,false),(r.Anchor,false),(r.Prefix,false),(r.Suffix,false),(r.MetadataField??"",false),(r.DateFormat,false),(r.TimeZone,false)}) {
             if(value.Length>(multiline?16384:1024)||value.Any(c=>char.IsControl(c)&&!(multiline&&c is '\n' or '\r' or '\t')))throw new ArgumentException("参数过长或含控制字符。");
             try{_=new UTF8Encoding(false,true).GetByteCount(value);}catch(EncoderFallbackException){throw new ArgumentException("参数Unicode无效。");}
         }
         if(r.DateSource is not("shooting" or "created" or "modified" or "now")||r.TimeZone.Length is <1 or >128||r.NightHour is <0 or >23)throw new ArgumentException("日期来源、时区或夜间归日参数无效。");
-        if(r.TimeZone is not("source" or "local"))try{_=TimeZoneInfo.FindSystemTimeZoneById(r.TimeZone);}catch(Exception error)when(error is TimeZoneNotFoundException or InvalidTimeZoneException){throw new ArgumentException("平台不能解析命名时区。");}
         if(r.Filters is null||r.Filters.Length is <1 or >32||r.Filters.Any(f=>f is null||f.Field is not("name" or "fileExtension" or "shootingDate" or "comment")||f.Comparison is not("contains" or "notContains" or "equals" or "notEquals" or "starts" or "ends" or "before" or "after" or "exists" or "missing")||f.Value is null||f.Value.Length>1024||f.Value.Any(char.IsControl)))throw new ArgumentException("筛选条件数量、字段、比较或参数无效。");
         foreach(var condition in r.Filters)try{_=new UTF8Encoding(false,true).GetByteCount(condition.Value);}catch(EncoderFallbackException){throw new ArgumentException("筛选参数Unicode无效。");}
+        if(NeedsDates(r)&&r.TimeZone is not("source" or "local"))try{_=TimeZoneInfo.FindSystemTimeZoneById(r.TimeZone);}catch(Exception error)when(error is TimeZoneNotFoundException or InvalidTimeZoneException){throw new ArgumentException("平台不能解析命名时区。");}
         if(n is 95 or 96){_=Expression(r.Text,r.CaseSensitive);ValidateReplacement(r.Replacement);}
         if(n==94)_=ListLines(r);
         if(n is >=40 and <=45)ValidateDateFormat(r.DateFormat);

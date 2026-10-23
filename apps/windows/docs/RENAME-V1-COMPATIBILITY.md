@@ -1,4 +1,6 @@
-WIN-RELEASE-GATES-20261023 approved scope: action32 is unimplemented and deferred until after launch; runtime counter-value migration is also deferred, with local values and existing safeguards retained. Ordinary name sorting is accepted as FIXED_WITH_LIMITS; this is not full Foundation equivalence. These items are no longer pending launch-scope decisions. Other action/parameter restrictions below have not been collectively accepted or deferred. No mapping, strict rejection or serialization changed in this documentation batch.
+WIN-V1-TIMING-20261023: Mac v1 actions66–71 now accept the bounded non-music photo/file/date template subset documented below. Legal unused lexical dictionaries, caseSensitive on pure insertion actions1/2/5, and an unused timeZone are retained through import, local save/reload and export. Matching actions still reject unproved case folding; unknown template tokens reject the whole preset. This is Windows validation; final Mac consumption remains PENDING. No performance optimization is included.
+
+WIN-RELEASE-GATES-20261023 approved scope: action32 is unimplemented and deferred until after launch; runtime counter-value migration is also deferred, with local values and existing safeguards retained. Ordinary name sorting is accepted as FIXED_WITH_LIMITS; this is not full Foundation equivalence. These items are no longer pending launch-scope decisions. Other action/parameter restrictions below have not been collectively accepted or deferred. That preceding documentation-only batch did not change mappings; the current entry above supersedes its parameter/template restrictions.
 
 WIN-LAUNCH-CLOSEOUT-20261019: Music is deferred from the first Windows release. Actions72–77, including disabled/mixed schemes, reject the whole import/export. Local old libraries still decode without deleting or migrating entries. Music-only unqualified aliases/derived tokens in generic template actions66–71 also reject the whole scheme: ARTIST/artist, Song/Album/AlbumArtist, Track/TrackNum/NumTracks/CDNum/numCds, AudioSampleRate, derived duration and Artist/Album/Song/AlbumArtist case tokens. Ordinary `<Artist>`, family-qualified photo metadata tokens and general FileName/date/photo templates remain supported; this is not a global Artist field ban. Historical journals remain restorable. PRE-REL-MAC-REV-01 is DEFERRED, not FIXED; Mac is unchanged. The older music implementation description below is historical and unavailable in the first release.
 
@@ -11,10 +13,10 @@ Fixed behavior source: Mac `cbeccc015c416c6a82d02645eeb6ccfadb8cef99` (0.5.10/bu
 | root id/version/name/rules/settings/example | v1 only; nonempty UUID; at most 64 ordered rules; optional example retained; imported local scheme gets a new local identity |
 | rule id/enabled/part | nested unique UUID and enable flag retained; stem/entire/dottedExtension/extensionOnly validated |
 | action | explicit mapping below; unsupported actions reject even when disabled |
-| text/replacement/anchor/position/length/occurrence/matchNumber/caseSensitive | copied and strictly validated; positions use grapheme clusters; case-insensitive actions 1–16 reject because broad Unicode equivalence is unproven |
+| text/replacement/anchor/position/length/occurrence/matchNumber/caseSensitive | copied and strictly validated; positions use grapheme clusters; case-insensitive matching actions3/4/6–16 reject because broad Unicode equivalence is unproven; actions1/2/5 retain the unused switch |
 | start/counter/step/padding/alphabetStart/alphabetWidth/prefix/suffix/numberOperation/numberValue | validated ranges and checked arithmetic; counters are local state, not runtime values embedded in a preset |
-| lexicalCases | exact default dictionary only; nondefault lexical parameters reject; action32 is unavailable |
-| dateSource/dateFormat/timeZone/nightHour/skipMissing/fullMatch/perDirectory | copied; platform-unsupported zones/date patterns reject; missing metadata produces an explicit skipped preview, preserving the original name |
+| lexicalCases | legal string-to-keep/lower/upper/title dictionaries, including empty and custom-key dictionaries, retained unchanged; unused for supported actions; action32 remains unavailable |
+| dateSource/dateFormat/timeZone/nightHour/skipMissing/fullMatch/perDirectory | copied; zones used by the action must resolve; unused zone strings are retained; executing date patterns remain bounded; missing metadata produces an explicit skipped preview, preserving the original name |
 | filterAny/filters | 1–32 conditions; nested UUID/order retained; known fields/operators and Unicode parameters validated |
 | metadataField | optional field token retained, no guessed metadata injected |
 | settings | conflict/sort/descending/keepFirst/pair/sourceExtensions/targetExtensions/datePriority retained; optional metadataSortTag/numberSuffixFormat/letterSuffixFormat/conflictDigits validated |
@@ -89,12 +91,12 @@ Music actions72–77 reuse the existing metadata template engine with Mac's six 
 | 63 | alphabet-before | v1 explicit mapping | not inferred from Windows tests |
 | 64 | alphabet-after | v1 explicit mapping | not inferred from Windows tests |
 | 65 | alphabet-position | v1 explicit mapping | not inferred from Windows tests |
-| 66 | template-set | Windows only; v1 rejected | not inferred from Windows tests |
-| 67 | template-begin | Windows only; v1 rejected | not inferred from Windows tests |
-| 68 | template-end | Windows only; v1 rejected | not inferred from Windows tests |
-| 69 | template-position | Windows only; v1 rejected | not inferred from Windows tests |
-| 70 | template-before | Windows only; v1 rejected | not inferred from Windows tests |
-| 71 | template-after | Windows only; v1 rejected | not inferred from Windows tests |
+| 66 | template-set | bounded non-music v1 subset | not inferred from Windows tests |
+| 67 | template-begin | bounded non-music v1 subset | not inferred from Windows tests |
+| 68 | template-end | bounded non-music v1 subset | not inferred from Windows tests |
+| 69 | template-position | bounded non-music v1 subset | not inferred from Windows tests |
+| 70 | template-before | bounded non-music v1 subset | not inferred from Windows tests |
+| 71 | template-after | bounded non-music v1 subset | not inferred from Windows tests |
 | 72 | music-set | DEFERRED; whole scheme rejected | not inferred from Windows tests |
 | 73 | music-end | DEFERRED; whole scheme rejected | not inferred from Windows tests |
 | 74 | music-begin | DEFERRED; whole scheme rejected | not inferred from Windows tests |
@@ -135,3 +137,13 @@ Music actions72–77 reuse the existing metadata template engine with Mac's six 
 | 109 | location-position | Windows only; v1 rejected | not inferred from Windows tests |
 | 110 | location-before | Windows only; v1 rejected | not inferred from Windows tests |
 | 111 | location-after | Windows only; v1 rejected | not inferred from Windows tests |
+
+## Current template transfer boundary
+
+66 replaces the selected part;67 prepends;68 appends;69 inserts at a zero-based grapheme position;70 inserts before matched anchors;71 after. All four parts, occurrence all/first/last/nth, matchNumber, position, anchor, enabled and skipMissing are retained. Actions70/71 require caseSensitive=true for transfer. Prefix/suffix and other unused legal parameters are carried without being applied.
+
+Accepted tokens (case sensitive): FileName, FileNameWithoutExtension, FileExtension, ParentFolderName, NULL, Artist, CameraMake, CameraModel, CameraSerialNumber, ImageCaption, ImageKeywords, ImageUserComment, Lens, Aperture, ShutterSpeed, FocalLength35mm, IPTCCity, IPTCProvinceState, IPTCSubLocation, IPTCCountry, ImageWidth, ImageHeight, width, height; exact family-qualified tags matching `[A-Za-z0-9][A-Za-z0-9-]*:[A-Za-z0-9][A-Za-z0-9:_-]*` use exact lookup. Ordinary photo Artist is retained.
+
+Date token prefixes ShootingDate/CreationDate/ModificationDate/ModDate accept Day,0Day,Month,0Month,2DigitYear,4DigitYear,Hour24,0Hour24,Hour12,0Hour12,Minute,0Minute,Second,0Second,SubSecond,0SubSecond,am_pm,AM_PM. Existing fixed DateHost proof and date/timezone safeguards remain. DateSource/dateFormat are retained but a date token selects its explicit source/format. NULL is empty; missing/empty tags yield missingTag. With skipMissing=true the chain keeps the original filename; false keeps the current intermediate name and proceeds. Missing anchors keep the current part and issue missingAnchor. Invalid final Windows names still refuse. Literal text and unmatched angle fragments follow the pinned literal/regex behavior; unknown matched tokens, UUID, FilePath, case-conversion tokens and zero-padding aliases remain refused, including disabled or mixed schemes. Music gates are unchanged.
+
+Validation: `PhotoTrail.Windows.Tests --v1-subset-checks` covers source-shaped v1 input, lossless import/local library reload/export, token/date vectors, cancellation and real rename/restore SHA. This fixture is transcribed from the fixed source; it is not a new Mac-generated sample or a Mac runtime result.

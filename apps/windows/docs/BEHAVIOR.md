@@ -1,3 +1,5 @@
+WIN-V1-TIMING-20261023: Mac v1 actions66–71 now accept the bounded non-music photo/file/date template subset documented below. Legal unused lexical dictionaries, caseSensitive on pure insertion actions1/2/5, and an unused timeZone are retained through import, local save/reload and export. Matching actions still reject unproved case folding; unknown template tokens reject the whole preset. This is Windows validation; final Mac consumption remains PENDING. No performance optimization is included.
+
 ## 2026-10-23 · 已批准首发范围记录
 
 词性action32及跨端运行计数值迁移首发后处理，保持整份拒绝和原输入；不计已实现或修复。普通name接受现有FIXED_WITH_LIMITS，NFC比较键/Ordinal及已证范围不代表Foundation全域等价。其他非音乐v1限制仍需单独接受，不因上述决定自动豁免。规则、运行计数保护、序列化和产品二进制均未变。

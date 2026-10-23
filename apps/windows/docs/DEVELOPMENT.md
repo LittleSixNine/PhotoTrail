@@ -1,3 +1,5 @@
+WIN-V1-TIMING-20261023: run `--v1-subset-checks`, `--r08a-rule-checks`, `--rename-preset-checks`, and `--launch-scope-checks` with isolated preferences, counters, history and synthetic files. Bind final-DLL checks separately. Performance probes are private diagnostic copies only; production scheduling and refresh are unchanged.
+
 WIN-LAUNCH-CLOSEOUT-20261019: 阻写检查复用完整历史读取校验，但不执行仅界面需要的创建时间排序；每次仍新读全部记录、根路径和unknown。
 
 WIN-PRE-RELEASE-20261019 recovery: full history discovery runs on a worker and is awaited before ending save/recovery busy state. RestoreAsync still rereads the selected record and performs all per-file proofs; check-only reads remain fresh. One redundant pre-read was removed. No record cache, unknown-state bypass, DateHost change or new concurrency was added.

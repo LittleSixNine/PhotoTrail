@@ -1,0 +1,74 @@
+{
+  "id": "33333333-3333-4333-8333-333333333333",
+  "version": 1,
+  "name": "Source-shaped template fixture",
+  "rules": [
+    {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "action": 66,
+      "enabled": true,
+      "part": "stem",
+      "text": "<ShootingDate4DigitYear>_<CameraModel>",
+      "replacement": "unused",
+      "anchor": "old",
+      "position": 1,
+      "length": 1,
+      "occurrence": "all",
+      "matchNumber": 1,
+      "caseSensitive": true,
+      "start": 1,
+      "counter": 0,
+      "step": 1,
+      "padding": 3,
+      "alphabetStart": "A",
+      "alphabetWidth": 1,
+      "lexicalCases": {
+        "Noun": "title",
+        "Verb": "title",
+        "Adjective": "title",
+        "Adverb": "title",
+        "Interjection": "title",
+        "Pronoun": "lower",
+        "Determiner": "lower",
+        "Preposition": "lower",
+        "Conjunction": "lower",
+        "Particle": "lower",
+        "Number": "keep",
+        "Classifier": "keep",
+        "Idiom": "keep",
+        "OtherWord": "keep"
+      },
+      "prefix": "unused-prefix",
+      "suffix": "unused-suffix",
+      "numberOperation": "add",
+      "numberValue": 1,
+      "dateSource": "shooting",
+      "dateFormat": "unused-format",
+      "timeZone": "source",
+      "nightHour": 0,
+      "skipMissing": true,
+      "fullMatch": false,
+      "perDirectory": false,
+      "filterAny": false,
+      "filters": [
+        {
+          "id": "22222222-2222-4222-8222-222222222222",
+          "field": "name",
+          "comparison": "contains",
+          "value": ""
+        }
+      ]
+    }
+  ],
+  "settings": {
+    "conflict": "stop",
+    "sort": "input",
+    "descending": false,
+    "keepFirst": false,
+    "pair": false,
+    "sourceExtensions": "jpg,jpeg,heic,cr3,cr2,nef,arw,dng,raf",
+    "targetExtensions": "xmp",
+    "datePriority": "Composite:SubSecDateTimeOriginal\nComposite:DateTimeOriginal\nExifIFD:DateTimeOriginal\nXMP-exif:DateTimeOriginal\nExifIFD:CreateDate\nQuickTime:CreationDate\nQuickTime:DateTimeOriginal\nQuickTime:ContentCreateDate\nQuickTime:CreateDate\nQuickTime:MediaCreateDate\nID3:Date\nXMP-xmp:CreateDate"
+  },
+  "example": "old.jpg"
+}

@@ -30,6 +30,7 @@ if (args.FirstOrDefault()?.StartsWith("--fake-") == true)
 }
 static void Check(bool value, string message) { if (!value) throw new Exception(message); Console.WriteLine("PASS " + message); }
 if (args.FirstOrDefault() == "--tool-failure-checks") { await ToolFailureChecks.RunAsync(); return; }
+if (args.FirstOrDefault() == "--v1-subset-checks") { await V1SubsetChecks.RunAsync(); return; }
 if (args.FirstOrDefault() == "--launch-scope-checks") { await LaunchScopeChecks.RunAsync(); return; }
 if (args.FirstOrDefault() == "--music-template-checks") { await RenameMusicChecks.RunAsync(); return; }
 if (args.FirstOrDefault() == "--name-sort-checks") { NameSortChecks.Run(); return; }

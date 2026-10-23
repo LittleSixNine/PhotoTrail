@@ -14,6 +14,7 @@ public record RenameRule(string Kind, string Text = "", string Replacement = "",
     public string Occurrence { get; init; } = "all";
     public int MatchNumber { get; init; } = 1;
     public bool CaseSensitive { get; init; } = true;
+    public Dictionary<string,string> LexicalCases { get; init; } = new(MacRenamePreset.Lexical);
     public string Anchor { get; init; } = "";
     public int Position { get; init; }
     public int Length { get; init; } = 1;
