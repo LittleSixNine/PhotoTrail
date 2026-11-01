@@ -138,3 +138,13 @@ PhotoTrail 基于 GeoTag v6.0.2 派生，仍使用其部分应用基础设施与
 ## 直接应用定向检查
 
 `MetadataDirectApplyTests` 覆盖 530 张草稿提交／一次撤销、开始计算后的取消、选择／草稿／跳过来源变化与迟到请求隔离；`MetadataDirectApplyValidationTests` 覆盖请求内 IPTC 编码读取复用及版本变化。运行规模基准：`PHOTOTRAIL_DIRECT_APPLY_BENCH=1 swift test --package-path Packages/ImageData --filter MetadataDirectApplyPerformanceTests`；XMP 计算基准使用 `PHOTOTRAIL_DIRECT_XMP_BENCH=1`。基准使用合成临时输入与稳定快照，区分计算、来源复核及应用提交；不代表私人照片耗时或 UI 验收。
+
+
+`MetadataBatchEditingTests` 验证多字段保持／显式清除、精确值分布与关键词覆盖、范围缩小、整批时间间距的 3 张示例、重复文件名的稳定跳过身份、一次撤销及退出输入保护。`MetadataBatchEditSession` 的输入跨工作区保留，不写入持久预设或照片；`MetadataWorkflowPreview.skipDetails` 仅携带照片 ID、名称、字段与原因，原字符串结果保留兼容。
+
+`MetadataBatchEditingTests` 补充有序逐项计数分区、同字段重复任务／删除、切换选择后单张应用、清空及无效／过期输入保护。`MetadataDraftRequest.requiresSelection` 默认仍为 true；只有单张原位编辑放宽选择／排序检查，保留固定照片、草稿、来源及文件版本校验。
+
+批量项把多接收字段展开为既有 v1 复制动作；逐项统计按照片合并目标结果，优先修改、其次跳过、最后不变。回归覆盖逐照片不同日期、部分目标跳过、预设回读，以及副本立即插入和独立 ID／参数。
+
+
+`MetadataWorkflowCardTests` 覆盖常用预设默认前三项、持久选择、去重及删除名称过滤；`MetadataBatchEditingTests` 覆盖隐藏规则与单字段输入分离时的退出保护。界面卡片、覆盖动画和分隔线稳定性另做原生交互验收，不以逻辑测试代替。

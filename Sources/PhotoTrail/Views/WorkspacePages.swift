@@ -234,6 +234,7 @@ final class PhotoThumbnailCache {
 struct WorkspaceSaveButton: View {
     @AppStorage(SettingsPreferences.saveCurrentPageKey) private var saveCurrentPage = false
     @AppStorage(SettingsPreferences.lastWorkspaceKey) private var page = "metadata"
+    @Environment(\.metadataEditSession) private var metadataEditSession
     @Environment(LocationWorkspace.self) private var locationWorkspace
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
     @State private var showCompletedRing = false
@@ -251,7 +252,10 @@ struct WorkspaceSaveButton: View {
         Button {
             saveHovered = false
             showSaveHint = false
-            SaveHelper.requestSave(store, workspace: locationWorkspace)
+            Task { @MainActor in
+                if let metadataEditSession { await metadataEditSession.requestSave(in: store, workspace: locationWorkspace) }
+                else { SaveHelper.requestSave(store, workspace: locationWorkspace) }
+            }
         } label: {
             HStack(spacing: 7) {
                 Image(systemName: "square.and.arrow.down")
@@ -260,10 +264,13 @@ struct WorkspaceSaveButton: View {
                      : L10n.text(saveCurrentPage ? "写入当前页元数据" : "写入所有元数据"))
                     .monospacedDigit()
                     .frame(minWidth: 110, alignment: .leading)
+                if !store.saveInProgress && targets.total > 0 {
+                    Text(L10n.text("%1$@ 张", targets.total)).font(.caption).monospacedDigit()
+                }
             }
         }
         .buttonStyle(WorkspaceToolbarButtonStyle(prominent: true))
-        .disabled(store.saveInProgress || (targets.total == 0 && targets.conflicts.isEmpty))
+        .disabled(store.saveInProgress || (targets.total == 0 && targets.conflicts.isEmpty && !(metadataEditSession?.inline == true && metadataEditSession?.hasInput == true)))
         .overlay {
             if store.saveInProgress || showCompletedRing {
                 ZStack {
@@ -357,166 +364,6 @@ struct TrackMatchSummary: View {
     }
 }
 
-struct PhotoActionSidebar: View {
-    @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
-    @Environment(LocationWorkspace.self) private var workspace
-    @AppStorage(SettingsView.extendedTimeKey) private var extendedTime = 120.0
-    @State private var timePresented = false
-    @State private var photoGPXPresented = false
-    @State private var overwriteExisting = false
-    @State private var trackOptionsPresented = false
-    @State private var gpxError: String?
-    @State private var choosingCopyDestination = false
-    @State private var copyExportInProgress = false
-    @State private var copyExportNotice: String?
-
-    private var editable: Bool {
-        !store.selection.isEmpty && !store.saveInProgress && store.selection.allSatisfy { store[$0].updatable }
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-        ScrollView {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(L10n.text("照片操作")).font(.title3.bold())
-            Text(L10n.text("已选择 %1$@ 张照片", store.selection.count)).font(.subheadline).foregroundStyle(.secondary)
-            Menu {
-                if workspace.favorites.isEmpty { Text(L10n.text("暂无收藏，请在详情页添加")) }
-                ForEach(workspace.favorites) { favorite in
-                    Button(favorite.name) {
-                        store.send(.confirmedWGS84Location(Coords(latitude: favorite.coordinate.latitude,
-                                                                 longitude: favorite.coordinate.longitude)),
-                                   description: L10n.text("应用收藏地点"))
-                    }
-                }
-            } label: { actionLabel(L10n.text("应用收藏"), "star") }
-            .disabled(!editable)
-            DisclosureGroup(L10n.text("轨迹匹配"), isExpanded: $trackOptionsPresented) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(L10n.text("匹配范围：含时间轨迹（%1$@ 条）", store.gpxTracks.filter(\.hasRecordedTimes).count))
-                        .font(.caption).foregroundStyle(.secondary)
-                    Text(L10n.text("相机时区：%1$@", store.timeZone.identifier))
-                        .font(.caption).foregroundStyle(.secondary)
-                    Text(L10n.text("轨迹端点容差：%1$@ 秒，可在设置中调整", Int(extendedTime)))
-                        .font(.caption).foregroundStyle(.secondary)
-                    Toggle(L10n.text("覆盖已有定位"), isOn: $overwriteExisting).font(.caption)
-                    Button(L10n.text("预览所选照片的匹配结果")) {
-                        LocationHelper.locationFromTrack(store, extendedTime: extendedTime,
-                                                         overwriteExisting: overwriteExisting)
-                    }.disabled(!editable || !store.gpxTracks.contains(where: \.hasRecordedTimes))
-                    TrackMatchSummary()
-                }.padding(.top, 8)
-            }
-            Button { timePresented = true } label: { actionLabel(L10n.text("调整拍摄时间"), "clock") }
-                .disabled(!editable)
-            Button {
-                photoGPXPresented = true
-            } label: { actionLabel(L10n.text("生成照片 GPX"), "point.topleft.down.to.point.bottomright.curvepath") }
-            .disabled(!hasGPXPoints)
-            Button { choosingCopyDestination = true } label: {
-                actionLabel(L10n.text("导出定位副本"), "square.and.arrow.up.on.square")
-            }.disabled(!hasCopyCandidates || copyExportInProgress)
-            if copyExportInProgress { ProgressView(L10n.text("正在写入并回读验证…")).controlSize(.small) }
-            if let copyExportNotice {
-                Text(copyExportNotice).font(.caption).foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Button { store.send(.deleteRequest, description: L10n.text("清除定位")) } label: {
-                actionLabel(L10n.text("清除定位"), "mappin.slash")
-            }.disabled(!editable || store.selection.allSatisfy { store[$0].metadata.location == nil })
-        }
-        .padding(12)
-        }.background(SubtleScrollbars())
-        VStack(spacing: 10) {
-            Divider()
-            Button { store.undo() } label: { actionLabel(L10n.text("撤销"), "arrow.uturn.backward") }
-                .disabled(!store.canUndo || store.saveInProgress || store.textfieldActive)
-        }
-        .padding(12)
-        }
-        .buttonStyle(WorkspaceToolbarButtonStyle(outlined: true)).controlSize(.large)
-        .frame(width: 200).frame(maxHeight: .infinity)
-        .background(Color(nsColor: .windowBackgroundColor))
-        .onAppear { trackOptionsPresented = !store.trackMatches.isEmpty }
-        .onChange(of: store.trackMatches) {
-            if !store.trackMatches.isEmpty { trackOptionsPresented = true }
-        }
-        .sheet(isPresented: $photoGPXPresented) {
-            PhotoGPXOptionsView(timeZone: store.timeZone) { minutes in
-                let images = store.imageData.filter { store.selection.contains($0.id) }
-                createPhotoTrack(images, minutes: minutes)
-            }
-        }
-        .sheet(isPresented: $timePresented) {
-            VStack(alignment: .leading, spacing: 16) {
-                Text(L10n.text("调整拍摄时间")).font(.title2)
-                Text(L10n.text("多选时，将相同的时间差应用到全部选中照片。")).font(.callout)
-                DateTimeSectionView(image: store[store.mostSelected])
-                HStack { Spacer(); Button(L10n.text("完成")) { timePresented = false } }
-            }.padding(24).frame(width: 460)
-                .onDisappear { store.send(.textfieldFocusChanged(false), undoable: false) }
-        }
-        .alert(L10n.text("生成照片 GPX 失败"), isPresented: Binding(get: { gpxError != nil }, set: {
-            if !$0 { gpxError = nil }
-        })) { Button(L10n.text("好")) { gpxError = nil } } message: { Text(gpxError ?? "") }
-        .fileImporter(isPresented: $choosingCopyDestination,
-                      allowedContentTypes: [.folder], allowsMultipleSelection: false) { result in
-            guard case .success(let urls) = result, let destination = urls.first else { return }
-            let images = store.imageData.filter { store.selection.contains($0.id) }
-            copyExportInProgress = true
-            copyExportNotice = nil
-            Task {
-                let scoped = destination.startAccessingSecurityScopedResource()
-                defer { if scoped { destination.stopAccessingSecurityScopedResource() } }
-                do {
-                    let report = try await PhotoCopyExporter.export(
-                        images: images, destination: destination, timeZone: store.timeZone)
-                    copyExportNotice = L10n.text("导出完成：成功 %1$@，跳过 %2$@，失败 %3$@。报告保存在输出目录。", report.written, report.skipped, report.failed)
-                } catch {
-                    copyExportNotice = L10n.text("导出失败：%1$@", error.localizedDescription)
-                }
-                copyExportInProgress = false
-            }
-        }
-    }
-
-    private func createPhotoTrack(_ images: [ImageData], minutes: Double) {
-        do {
-            let url = try PhotoGPXDocument(images: images, timeZone: store.timeZone, segmentGap: minutes * 60)
-                .saveToCache(timeZone: store.timeZone)
-            importPhotoTrack(url, store: store, workspace: workspace)
-        } catch { gpxError = error.localizedDescription }
-    }
-
-    private var hasGPXPoints: Bool {
-        store.selection.contains { id in
-            let metadata = store[id].metadata
-            return metadata.location != nil && metadata.canDisplayAsWGS84
-                && metadata.parsedDate(timeZone: store.timeZone) != nil
-        }
-    }
-
-    private var hasCopyCandidates: Bool {
-        store.selection.contains { id in
-            let image = store[id]
-            guard image.metadata.location != nil, image.metadata.canDisplayAsWGS84 else { return false }
-            switch image.metadata.source {
-            case .image, .xmp: return true
-            case .photos, .copy: return false
-            }
-        }
-    }
-
-    private func actionLabel(_ title: String, _ icon: String) -> some View {
-        HStack(spacing: 7) {
-            Image(systemName: icon).frame(width: 16)
-            Text(title).fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 5)
-    }
-}
-
 struct PhotoDetailPage: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
     @Environment(LocationWorkspace.self) private var workspace
@@ -534,6 +381,7 @@ struct PhotoDetailPage: View {
     @State private var confirmClearLocations = false
     @State private var gpxError: String?
     @State private var photoGPXPresented = false
+    @State private var timePresented = false
     @State private var selectionAnchor: ImageData.ID?
     @State private var choosingCopyDestination = false
     @State private var copyExportNotice: String?
@@ -655,6 +503,15 @@ struct PhotoDetailPage: View {
                     }
                 }.frame(height: max(132, geometry.size.height * stripRatio))
             }.frame(width: geometry.size.width, height: geometry.size.height)
+        }
+        .sheet(isPresented: $timePresented) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(L10n.text("调整拍摄时间")).font(.title2)
+                Text(L10n.text("多选时，将相同的时间差应用到全部选中照片。")).font(.callout)
+                DateTimeSectionView(image: store[store.mostSelected])
+                HStack { Spacer(); Button(L10n.text("完成")) { timePresented = false } }
+            }.padding(24).frame(width: 460)
+                .onDisappear { store.send(.textfieldFocusChanged(false), undoable: false) }
         }
         .sheet(isPresented: $photoGPXPresented) {
             PhotoGPXOptionsView(timeZone: store.timeZone) { minutes in
@@ -843,6 +700,8 @@ fileprivate extension PhotoDetailPage {
         Button(L10n.text("使用轨迹为所选照片匹配位置"), systemImage: "point.3.connected.trianglepath.dotted") {
             LocationHelper.locationFromTrack(store, extendedTime: extendedTime)
         }.disabled(!editableSelection || !store.gpxTracks.contains(where: \.hasRecordedTimes))
+        Button(L10n.text("调整拍摄时间"), systemImage: "clock") { timePresented = true }
+            .disabled(!editableSelection)
         Button(L10n.text("从所选照片新建 GPX 轨迹"), systemImage: "point.topleft.down.to.point.bottomright.curvepath") {
             photoGPXPresented = true
         }.disabled(!hasGPXPoints)

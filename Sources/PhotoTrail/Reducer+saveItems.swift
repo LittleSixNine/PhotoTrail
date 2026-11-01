@@ -71,6 +71,8 @@ extension PhotoTrailReducer {
                 if newState.imageData[index].original?.location != result.metadata.location {
                     newState.locationSavedPhotoIDs.insert(result.id)
                 }
+                // Saving can resolve region fields that were not present in the editable snapshot.
+                newState.imageData[index].metadata.restore(from: result.metadata)
                 newState.imageData[index].original = Metadata(copying: result.metadata)
             }
         }

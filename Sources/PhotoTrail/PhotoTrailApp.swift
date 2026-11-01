@@ -9,6 +9,8 @@ struct PhotoTrailApp: App {
     @State private var store: Store<PhotoTrailState, PhotoTrailEvent>
     @State private var locationWorkspace = LocationWorkspace()
     @State private var mainWindow: NSWindow?
+    @State private var metadataEditSession: MetadataBatchEditSession?
+    @State private var metadataRuleSession: MetadataBatchEditSession?
     @AppStorage(AppAppearance.preferenceKey) private var appearance: AppAppearance = .system
 
     @AppStorage(L10n.languageKey) private var language = L10n.language.rawValue
@@ -43,11 +45,14 @@ struct PhotoTrailApp: App {
                 // Unit tests use the app bundle, not its interactive window or private state.
                 Color.clear.frame(width: 1, height: 1)
             } else {
-            ContentView()
+            ContentView(metadataEditSession: $metadataEditSession, metadataRuleSession: $metadataRuleSession)
+                .environment(\.metadataEditSession, metadataEditSession)
                 .preferredColorScheme(appearance.colorScheme)
                 .background(WindowAccessor(window: $mainWindow))
                 .frame(minWidth: windowWidth, minHeight: windowHeight)
                 .onAppear { appDelegate.store = store }
+                .onChange(of: metadataEditSession?.id) { appDelegate.metadataEditSession = metadataEditSession }
+                .onChange(of: metadataRuleSession?.id) { appDelegate.metadataRuleSession = metadataRuleSession }
                 .onChange(of: mainWindow) {
                     appDelegate.logger.debug("mainWindow changed")
                     mainWindow?.delegate = appDelegate
@@ -80,7 +85,7 @@ struct PhotoTrailApp: App {
                 AutomaticUpdateDownloadsToggle()
             }
             NewItemCommands(store: store)
-            SaveItemCommands(store: store, locationWorkspace: locationWorkspace)
+            SaveItemCommands(store: store, locationWorkspace: locationWorkspace, metadataEditSession: metadataEditSession)
             UndoRedoCommands(store: store)
             PasteboardCommands(store: store)
             ToolbarCommands(store: store)

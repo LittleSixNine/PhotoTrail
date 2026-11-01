@@ -8,7 +8,6 @@ struct ContextMenuView: View {
     let targets: Set<ImageData.ID>
     @Binding var inspectorPresented: Bool
     var openDetail: () -> Void
-    var showBatchActions: () -> Void
     var remove: () -> Void
     var clearLocations: () -> Void
 
@@ -52,7 +51,7 @@ struct ContextMenuView: View {
             .flatMap { ImageData.decodeStringRep(value: $0) } == nil)
         Button(L10n.text("预览这 %1$@ 张照片的轨迹匹配", images.count)) {
             selectTargets()
-            showBatchActions()
+            openDetail()
             LocationHelper.locationFromTrack(store, extendedTime: extendedTime)
         }.disabled(!editable || !store.gpxTracks.contains(where: \.hasRecordedTimes))
         Divider()

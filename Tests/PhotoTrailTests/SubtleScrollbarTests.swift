@@ -15,7 +15,7 @@ struct SubtleScrollbarTests {
             ScrollView(.horizontal) {
                 Color.clear.frame(width: 2000, height: 60)
             }.background(SubtleScrollbars()).frame(height: 100)
-            ImageTableView(inspectorPresented: .constant(false), batchActionsPresented: .constant(false))
+            ImageTableView(inspectorPresented: .constant(false))
                 .environment(store).environment(LocationWorkspace()).environment(MetadataLoadingQueue())
         }
         let host = NSHostingView(rootView: content)

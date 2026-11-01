@@ -80,7 +80,7 @@ public enum MetadataFieldEditAction: Equatable, Codable, Sendable {
             case .text(let value): existing = value
             default: throw MetadataFieldEditError.invalidValue
             }
-            return .set(.text(existing + text))
+            return .set(.text(try tag.checkedText(existing + text)))
         case (_, .replaceKeywords(let words)) where tag.isList && tag != .creator:
             let final = try Self.unique(words).map(tag.checkedText)
             if final.isEmpty { return current == nil ? nil : .remove }
@@ -244,13 +244,14 @@ public struct MetadataCreatorEditPlan: Sendable {
         var items: [Item] = []
         for reading in readings {
             try Task.checkCancellation()
+            guard reading.image.supportsMetadataEditing(tag) else { throw MetadataCreatorPlanError.unavailableTarget }
             let imageURL: URL
             let sidecar: Bool
             switch reading.image.metadata.source {
             case .xmp(let url):
                 imageURL = url
                 sidecar = true
-            case .image(let url) where ["jpg", "jpeg"].contains(url.pathExtension.lowercased()):
+            case .image(let url):
                 imageURL = url
                 sidecar = false
             default:

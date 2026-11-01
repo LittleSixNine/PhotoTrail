@@ -4,9 +4,12 @@
 
 # PhotoTrail
 
+Dos tarjetas compactas, «Reglas de lote avanzadas» y «Aplicar preajuste de lote», aparecen sobre los campos. El menú de preajustes permite elegir accesos individuales. Las reglas se deslizan sobre el panel sin cambiar su anchura; al volver se conservan la posición de la lista y las reglas sin aplicar. Las acciones de ubicación permanecen en Mapa y se elimina la barra lateral independiente de acciones de fotos.
+
+
 Organiza ubicaciones, metadatos y nombres de fotos en macOS.
 
-Los campos de metadatos y los ajustes por lotes usan Aplicar para calcular en segundo plano y añadir cambios pendientes. Abrir el editor ya no genera una vista previa. Puedes cancelar el procesamiento y volver a la lista para editar, deshacer o guardar explícitamente.
+En una foto, pulsa un campo editable para escribir directamente; al salir se añade un borrador. Para lotes, añade cambios a una lista vacía, configúralos y aplícalos juntos. Guardar escribe los archivos.
 
 PhotoTrail reúne **la asociación de fotos con recorridos, la edición de metadatos y el renombrado por lotes**. Añade ubicaciones de un viaje, corrige fechas y datos y aplica un criterio común a los nombres. Puedes combinar estos flujos o usarlos por separado. Parte del procesamiento de fotos procede de [GeoTag](https://github.com/marchyman/GeoTag).
 
@@ -53,7 +56,11 @@ Los campos comunes y completos comparten lista y controles de edición. Las fech
 - **Copia y pega campos:** ⌘C/⌘V o Ctrl+C/Ctrl+V pegan el valor original en varios campos editables. Los valores modificados aparecen en naranja; hay que guardar para escribir los archivos.
 - **Fechas e intercambio:** aumenta o reduce años, meses, días, horas, minutos y segundos por separado. Cambia una parte de la fecha, usa intervalos fijos o distribuye fechas uniformemente; conserva el intercambio controlado CSV/XMP y la comparación por foto.
 
-**No todo campo legible es editable.** Los campos admitidos en JPEG y XMP existentes dependen del origen y formato. También se editan fechas de creación y modificación de JPEG locales. Las etiquetas estructurales, calculadas o no verificadas siguen bloqueadas. RAW originales, HEIC y Fotos de Apple no usan estos nuevos editores; se conservan las herramientas anteriores de fecha y ubicación. [Destinos y límites](../BEHAVIOR.md) (chino).
+**No todo campo legible es editable.** Se pueden editar campos admitidos en JPEG, RAW compatibles (incluido ARW) y XMP existentes. RAW no requiere un JPEG emparejado ni un nuevo XMP. Las selecciones mixtas omiten archivos o campos no compatibles e indican el motivo; los fallos de escritura quedan pendientes. HEIC, Fotos de Apple y campos estructurales o calculados quedan fuera. Consulta [formatos, límites y compatibilidad con Sony Imaging Edge](../BEHAVIOR.md) (chino).
+
+Edita una foto en el propio campo; al salir se añade un borrador y las entradas no válidas se conservan. Guardar o ⌘S termina la entrada antes de escribir. Los lotes empiezan con una lista vacía: configura cada cambio en un diálogo, edítalo, elimínalo, repite un campo o cambia el orden. Cada fila muestra modificados/total, sin cambios y omitidos, usando los resultados anteriores. Los recuentos y ejemplos no modifican fotos. Se conservan el alcance fijo, las distribuciones, deshacer el lote, los ajustes y la comparación/intercambio.
+
+Puedes copiar desde otro campo o copiar el campo actual de cada foto a varios destinos. Duplicar inserta una copia independiente justo debajo para ajustarla. El desplazamiento temporal, los intervalos por foto y el reparto entre inicio y fin tienen nombres y explicaciones distintos.
 
 ### 3. Renombrado por lotes
 

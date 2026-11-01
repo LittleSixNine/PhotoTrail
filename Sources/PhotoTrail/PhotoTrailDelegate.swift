@@ -8,6 +8,8 @@ import UDF
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var store: Store<PhotoTrailState, PhotoTrailEvent>?
+    weak var metadataEditSession: MetadataBatchEditSession?
+    weak var metadataRuleSession: MetadataBatchEditSession?
     let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "PhotoTrail",
                         category: "AppDelegate")
 
@@ -50,6 +52,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         logger.info("\(#function, privacy: .public)")
         if let store {
+            if (metadataEditSession?.hasInput == true || metadataRuleSession?.hasInput == true) {
+                store.send(.quitWithMetadataInputRequested, undoable: false)
+                return .terminateCancel
+            }
             if store.saveInProgress || store.unsavedChanges {
                 store.send(.quitRequested, undoable: false)
                 return .terminateCancel
@@ -70,6 +76,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     // Closing the main window follows the same quit flow as the app menu.
     func windowShouldClose(_ sender: NSWindow) -> Bool {
+        if let store, (metadataEditSession?.hasInput == true || metadataRuleSession?.hasInput == true) {
+            store.send(.quitWithMetadataInputRequested, undoable: false)
+            return false
+        }
         if let store, store.saveInProgress || store.unsavedChanges {
             store.send(.quitRequested, undoable: false)
             return false

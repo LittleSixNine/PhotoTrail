@@ -4,9 +4,12 @@
 
 # PhotoTrail
 
+Two compact cards, “Advanced batch rules” and “Apply batch preset”, sit above the fields. Choose individual preset shortcuts in the preset menu. Rules slide over the inspector without changing its width; returning keeps the field-list position and unapplied rules. Location actions use the Map workspace; the separate Photo Actions sidebar is removed.
+
+
 Organize photo locations, metadata and file names on macOS.
 
-Metadata fields and batch presets use Apply to calculate in the background and add pending changes. Opening an editor no longer generates a preview. You can cancel processing, then return to the list to edit, undo, or explicitly save.
+Click an editable field on a single photo to type in place. Leaving the input adds a pending draft. For batches, add and configure changes in an empty list, then apply together. Saving writes the files.
 
 PhotoTrail brings together **track matching, metadata editing and batch renaming**. Add locations from a trip, correct dates and photo details, then apply a consistent naming scheme. Use these workflows together or independently. Some photo-processing capabilities are derived from [GeoTag](https://github.com/marchyman/GeoTag).
 
@@ -53,7 +56,11 @@ Common and complete fields use the same list and editing controls. Dates identif
 - **Copy and paste fields:** use ⌘C/⌘V or Ctrl+C/Ctrl+V to copy one field’s raw value into multiple writable fields. Edited values appear in orange; saving is still required to write files.
 - **Dates and exchange:** choose increase or decrease separately for years, months, days, hours, minutes and seconds. Change a specific date component, set fixed intervals or distribute dates evenly; controlled CSV/XMP exchange and per-photo comparisons remain available.
 
-**Readable fields are not all writable.** Supported JPEG and existing XMP fields depend on source and format. Local JPEG creation and modification times are editable. Structural, calculated and unverified tags remain locked. RAW originals, HEIC and Apple Photos do not expose these new editors; existing date/location tools remain available. See [targets and limits](../BEHAVIOR.md) (Chinese).
+**Readable fields are not all writable.** Controlled fields can be edited in JPEG, supported RAW formats (including ARW), and existing XMP sidecars. RAW needs neither a paired JPEG nor a new sidecar. Mixed selections skip unsupported files/fields with an explanation; write failures remain unresolved. HEIC, Apple Photos, structural and computed fields remain outside this editor. See [supported formats, field limits and Sony Imaging Edge compatibility](../BEHAVIOR.md) (Chinese).
+
+Edit a single photo in place; leaving the field adds a draft, while invalid input stays available. Save or ⌘S writes the file after finishing the current input. Batch editing starts with an empty list of changes. Configure each in a dialog, edit or remove it, repeat a field, and change the order. Each row shows changed/total, unchanged and skipped photos, using the results of earlier actions. Counts and examples do not modify photos. Fixed scope, value distributions, batch undo, presets and comparison/exchange remain available.
+
+Batch actions support copying from another field or copying each photo’s current field to multiple destinations. Duplicate inserts an independent copy immediately below the row for quick adjustments. Time offset, per-photo intervals and start/end distribution have distinct labels and explanations.
 
 ### 3. Batch renaming
 

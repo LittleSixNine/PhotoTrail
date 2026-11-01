@@ -452,3 +452,41 @@ extension SaveHelperTests {
         #expect(abs(saved.latitude - 31.2) < 0.00000001)
     }
 }
+
+@MainActor
+struct RegionSaveStateTests {
+    @Test func regionSaveSynchronizesCurrentMetadataAndDoesNotScheduleASecondWrite() {
+        for sidecar in [false, true] {
+            for outcome in [SaveHelper.FileSaveOutcome.saved, .savedWithoutTag, .failed] {
+                for city in ["新城市", nil] as [String?] {
+                    var original = Metadata(source: .image(URL(fileURLWithPath: "/tmp/region-result.jpg")))
+                    original.location = Coords(latitude: 30, longitude: 120)
+                    original.city = "旧城市"
+                    var image = ImageData(metadata: original, name: "region-result.jpg")
+                    image.metadata.location = Coords(latitude: 31, longitude: 121)
+                    var saved = sidecar ? image.metadata.xmp() : image.metadata
+                    saved.city = city
+                    saved.state = city == nil ? nil : "新省份"
+                    saved.sublocation = city == nil ? nil : "新区"
+                    saved.country = city == nil ? nil : "中国"
+                    saved.countryCode = city == nil ? nil : "CN"
+                    var state = PhotoTrailState()
+                    state.imageData = [image]
+                    let reducer = PhotoTrailReducer()
+                    reducer.save(&state)
+                    let result = reducer.reduce(state, .localSaveBatch([
+                        .init(id: image.id, metadata: saved, sidecarCreated: sidecar, outcome: outcome)
+                    ]))
+                    let completed = reducer.reduce(result, .saveComplete(outcome == .failed ? .saveError : .saveOK))
+                    #expect(completed[image.id].metadata == (outcome.metadataSaved ? saved : image.metadata))
+                    #expect(completed[image.id].original == (outcome.metadataSaved ? Metadata(copying: saved) : image.original))
+                    #expect(completed[image.id].metadata.source == saved.source)
+                    #expect(completed[image.id].hasPendingChanges == !outcome.metadataSaved)
+                    #expect(completed.unsavedChanges == !outcome.metadataSaved)
+                    #expect(SaveTargets(images: completed.imageData, scope: .all).total == (outcome.metadataSaved ? 0 : 1))
+                }
+            }
+        }
+    }
+
+}

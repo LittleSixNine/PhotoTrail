@@ -265,6 +265,9 @@ struct PhotoTrailReducer: Reducer, Sendable {
         case .quitRequested:
             quitRequested(&newState)
 
+        case .quitWithMetadataInputRequested:
+            quitRequested(&newState, hasMetadataInput: true)
+
         case .readTrackLog(let path, let tracklog):
             addTrackLog(&newState, path: path, tracklog: tracklog)
 

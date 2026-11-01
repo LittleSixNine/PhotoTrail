@@ -90,3 +90,13 @@ Stable requirement IDs, defaults, geographic algorithm and nonprivate synthetic 
 ## Direct-apply checks
 
 `MetadataDirectApplyTests` covers 530-photo draft commit/undo, cancellation after calculation starts, selection/draft/skipped-source changes and late-result isolation. `MetadataDirectApplyValidationTests` checks request-scoped IPTC encoding-read reuse and version changes. Run the scale benchmark with `PHOTOTRAIL_DIRECT_APPLY_BENCH=1 swift test --package-path Packages/ImageData --filter MetadataDirectApplyPerformanceTests`; use `PHOTOTRAIL_DIRECT_XMP_BENCH=1` for XMP calculations. Benchmarks use synthetic temporary inputs and frozen snapshots; calculation, source recheck and draft commit are distinct stages. These results do not establish private-photo timings or UI acceptance.
+
+
+`MetadataBatchEditingTests` covers independent fields, explicit clearing, exact value groups, keyword membership, scope narrowing, three-photo samples using full-batch timing, stable skip identity for duplicate filenames, one-step undo and unapplied-input quit protection. `MetadataBatchEditSession` preserves input across workspaces without adding photos or scope to presets. `MetadataWorkflowPreview.skipDetails` adds stable photo IDs, names, fields and reasons while retaining legacy string results.
+
+`MetadataBatchEditingTests` additionally covers ordered per-action count partitions, repeated-field task identities and deletion, single-photo completion after selection changes, explicit clearing, and invalid/stale input protection. `MetadataDraftRequest.requiresSelection` defaults to true; only inline single-photo editing relaxes selection/order checks while retaining frozen photo, draft, source and file validation.
+
+The batch field model expands copy-out destinations into existing v1 copy operations. Per-item counts combine destination results by photo (changed, then skipped, then unchanged). Regression tests cover distinct per-photo dates, partial destination skips, preset round trips, and immediate duplicate insertion with independent IDs and parameters.
+
+
+`MetadataWorkflowCardTests` covers the first-three default, persisted preset shortcuts, deduplication and deleted-name filtering. `MetadataBatchEditingTests` covers quit protection when retained rules and inline input are separate. Cards, overlay animation and divider stability require separate native interaction checks.

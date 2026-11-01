@@ -4,6 +4,14 @@ import UDF
 import UniformTypeIdentifiers
 
 struct ContentView: View {
+    @Binding var metadataEditSession: MetadataBatchEditSession?
+    @Binding var metadataRuleSession: MetadataBatchEditSession?
+
+    init(metadataEditSession: Binding<MetadataBatchEditSession?>,
+         metadataRuleSession: Binding<MetadataBatchEditSession?> = .constant(nil)) {
+        _metadataEditSession = metadataEditSession
+        _metadataRuleSession = metadataRuleSession
+    }
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) var store
     @Environment(\.openWindow) var openWindow
 
@@ -21,14 +29,21 @@ struct ContentView: View {
     @State private var renameSelected = false
     @State private var startupApplied = false
     @State private var renameWorkspace = RenameWorkspace()
-    @State private var batchActionsPresented = false
     @State private var setupPresented = false
+    @State private var visiblePhotoIDs: Set<Int>?
     @AppStorage(SetupGuideView.completedKey) private var setupCompleted = false
 
     private let testIDs = TestIDs.ContentView.self
 
     private var workspaceContent: some View {
         VStack(spacing: 0) {
+            if (metadataEditSession?.hasInput == true || metadataRuleSession?.hasInput == true) && (alternateLayout || renameSelected) {
+                HStack {
+                    Text(L10n.text("批量编辑还有尚未应用的输入。"))
+                    Spacer()
+                    Button(L10n.text("返回批量编辑")) { renameSelected = false; alternateLayout = false }
+                }.font(.callout).padding(12)
+            }
             if let ignoredFileNotice {
                 HStack(spacing: 10) {
                     Label(L10n.text("本次已跳过 %1$@ 个不支持的文件。支持导入图片及 GPX、KML、KMZ 轨迹。", ignoredFileNotice),
@@ -83,17 +98,12 @@ struct ContentView: View {
                     PhotoDetailPage()
                 } else {
                     HSplitView {
-                        HStack(spacing: 0) {
-                            ImageTableView(inspectorPresented: $inspectorPresented,
-                                           batchActionsPresented: $batchActionsPresented) { alternateLayout = true }
-                                .accessibilityIdentifier(testIDs.imageTableViewID)
-                            if batchActionsPresented {
-                                Divider()
-                                PhotoActionSidebar()
-                            }
-                        }.frame(minWidth: 380, maxWidth: .infinity, maxHeight: .infinity)
-                        MetadataListInspectorView()
-                            .frame(minWidth: 380, idealWidth: 540, maxWidth: .infinity, maxHeight: .infinity)
+                        ImageTableView(inspectorPresented: $inspectorPresented,
+                                       visibleIDsChanged: { visiblePhotoIDs = $0 }) { alternateLayout = true }
+                            .accessibilityIdentifier(testIDs.imageTableViewID)
+                            .frame(minWidth: 380, maxWidth: .infinity, maxHeight: .infinity)
+                        MetadataListInspectorView(editSession: $metadataEditSession, ruleSession: $metadataRuleSession, visiblePhotoIDs: visiblePhotoIDs)
+                            .frame(minWidth: 540, idealWidth: 540, maxWidth: .infinity, maxHeight: .infinity)
                             .accessibilityIdentifier(testIDs.imageInspectorViewID)
                     }
                 }
@@ -216,7 +226,7 @@ struct ContentView: View {
         .sheet(item: $sheetType, onDismiss: sheetDismissed) { sheet in
             sheet
         }
-        .areYouSure()  // confirmations
+        .areYouSure { metadataEditSession?.discardInput(); metadataRuleSession?.discardInput() }
         .removeBackupsAlert()  // Alert: Remove Old Backup files
         .inspector(isPresented: Binding(get: { !renameSelected && alternateLayout && inspectorPresented },
                                         set: { inspectorPresented = $0 })) {
@@ -321,7 +331,8 @@ extension ContentView {
 
 @available(macOS 15, *)
 #Preview(traits: .store) {
-    ContentView()
+    @Previewable @State var metadataEditSession: MetadataBatchEditSession?
+    ContentView(metadataEditSession: $metadataEditSession)
         .environment(LocationWorkspace())
         .frame(width: 800, height: 1000)
 }

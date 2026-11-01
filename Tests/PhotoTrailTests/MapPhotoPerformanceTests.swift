@@ -95,6 +95,13 @@ import UDF
                 == "12:34:56\n" + L10n.text("仅时间") + " · UTC+08:00")
         #expect(MetadataInspectorDateDisplay.text("2024:02:30 12:34:56", timeZone: zone) == nil)
         #expect(MetadataInspectorDateDisplay.text("ExifIFD: 2024:02:29 12:34:56", timeZone: zone) == nil)
+        for fraction in ["", ".1", ".123456", ".123456789"] {
+            let text = MetadataInspectorDateDisplay.text("2024:02:29 12:34:56" + fraction + "+08:00", timeZone: zone)
+            #expect(text?.components(separatedBy: "\n").first == "2024-02-29 12:34:56")
+            if !fraction.isEmpty { #expect(text?.contains("0" + fraction) == true) }
+        }
+        #expect(MetadataInspectorDateDisplay.text("12:34:56.123456789+08:00", timeZone: zone)
+            == "12:34:56\n" + L10n.text("仅时间") + " · UTC+08:00 · " + L10n.text("亚秒 %1$@ 秒", "0.123456789"))
     }
 
     @Test func mapSidebarKeepsContentWidthAcrossOverflowBoundary() {

@@ -4,6 +4,18 @@ import ImageData
 import SwiftUI
 import UDF
 
+extension MetadataFieldEditAction {
+    var hasEmptyInput: Bool {
+        switch self {
+        case .replaceAuthors(let values), .fillMissingAuthors(let values),
+             .replaceKeywords(let values), .appendKeywords(let values), .removeKeywords(let values):
+            values.isEmpty || values.contains(where: \.isEmpty)
+        case .setText(let value), .fillMissingText(let value), .appendText(let value): value.isEmpty
+        default: false
+        }
+    }
+}
+
 enum MetadataCreatorEditorMode: Hashable, CaseIterable {
     case set, fillMissing, append, removeKeywords, offset, remove
 
@@ -128,7 +140,8 @@ struct MetadataCreatorEditorView: View {
                 Button(L10n.text(application.busy ? "取消" : "关闭")) { application.cancel(); dismiss() }.keyboardShortcut(.cancelAction)
                 Button(L10n.text("应用")) { apply() }.keyboardShortcut(.defaultAction)
                     .buttonStyle(.borderedProminent)
-                    .disabled(application.busy || application.applied || store.saveInProgress)
+                    .disabled(application.busy || application.applied || store.saveInProgress
+                              || (try? editAction().hasEmptyInput) != false)
                     .accessibilityIdentifier("metadataApplyDraft")
             }.controlSize(.large)
         }
@@ -195,7 +208,9 @@ struct MetadataCreatorEditorView: View {
     private func apply() {
         do {
             error = nil
-            application.apply(readings: readings, operations: [MetadataOperation(tag: tag, action: try editAction())], store: store)
+            let action = try editAction()
+            guard !action.hasEmptyInput else { throw MetadataFieldEditError.invalidValue }
+            application.apply(readings: readings, operations: [MetadataOperation(tag: tag, action: action)], store: store)
         } catch { self.error = L10n.text("操作失败：%1$@", String(describing: error)) }
     }
 

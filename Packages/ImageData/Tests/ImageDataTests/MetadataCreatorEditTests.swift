@@ -5,6 +5,23 @@ import Testing
 @testable import ImageData
 
 struct MetadataCreatorEditTests {
+    @Test func appendedTextValidatesTheCompleteResultBeforeDrafting() throws {
+        #expect(try MetadataFieldEditAction.appendText("b").change(for: .iptcCity,
+            from: .text(String(repeating: "a", count: 31)))
+            == .set(.text(String(repeating: "a", count: 31) + "b")))
+        #expect(throws: (any Error).self) {
+            try MetadataFieldEditAction.appendText("b").change(for: .iptcCity,
+                from: .text(String(repeating: "a", count: 32)))
+        }
+        #expect(throws: (any Error).self) {
+            try MetadataFieldEditAction.appendText("国").change(for: .iptcCity,
+                from: .text(String(repeating: "a", count: 30)))
+        }
+        #expect(throws: (any Error).self) {
+            try MetadataFieldEditAction.appendText("A").change(for: .iptcCountryCode, from: .text("CHN"))
+        }
+    }
+
     @Test func descriptiveActionsKeepExactKeywordIdentity() throws {
         #expect(try MetadataFieldEditAction.setText("标题")
             .change(for: .titleDefault, from: nil) == .set(.text("标题")))

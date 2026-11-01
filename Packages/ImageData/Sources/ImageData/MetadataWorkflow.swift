@@ -32,12 +32,27 @@ public struct MetadataWorkflowPreview: Sendable {
     public let items: [MetadataCreatorEditPlan.Item]
     public let steps: [MetadataCreatorEditPlan.Item]
     public let skipped: [String]
-    public enum SkipReason: Sendable { case missingValue, filenameMismatch }
+    public enum SkipReason: Equatable, Sendable { case missingValue, filenameMismatch, unsupportedField }
+    public struct SkippedItem: Equatable, Sendable {
+        public let photoID: ImageData.ID
+        public let filename: String
+        public let tag: MetadataTag
+        public let reason: SkipReason
+    }
+    public struct OperationResult: Sendable {
+        public let tag: MetadataTag
+        public let changed: Set<ImageData.ID>
+        public let unchanged: Set<ImageData.ID>
+        public let skipped: Set<ImageData.ID>
+    }
+    public let operationResults: [OperationResult]
+    public let skipDetails: [SkippedItem]
     public let skipReasons: [String: SkipReason]
 
     public init(items: [MetadataCreatorEditPlan.Item], steps: [MetadataCreatorEditPlan.Item], skipped: [String],
-                skipReasons: [String: SkipReason] = [:]) {
-        self.items = items; self.steps = steps; self.skipped = skipped; self.skipReasons = skipReasons
+                skipReasons: [String: SkipReason] = [:], skipDetails: [SkippedItem] = [], operationResults: [OperationResult] = []) {
+        self.items = items; self.steps = steps; self.skipped = skipped; self.skipReasons = skipReasons; self.skipDetails = skipDetails
+        self.operationResults = operationResults
     }
 
     public static func prepare(
@@ -45,19 +60,19 @@ public struct MetadataWorkflowPreview: Sendable {
         operations: [MetadataOperation]
     ) throws -> Self {
         guard !operations.isEmpty else { throw MetadataFieldEditError.invalidAction }
-        var seen = Set<String>()
-        for reading in readings {
-            guard case .file(let device, let inode, _, _, _, _, _) = reading.snapshot.version,
-                  seen.insert("\(device):\(inode)").inserted else { throw MetadataCreatorPlanError.duplicateTarget }
-        }
+        try validateSources(readings)
         let validation = MetadataEditValidation()
         var working = readings
         var steps: [MetadataCreatorEditPlan.Item] = []
         var skipped: [String] = []
         var skipReasons: [String: SkipReason] = [:]
+        var skipDetails: [SkippedItem] = []
+        var operationResults: [OperationResult] = []
         for operation in operations {
+            var changedIDs = Set<ImageData.ID>(), unchangedIDs = Set<ImageData.ID>(), skippedIDs = Set<ImageData.ID>()
             try Task.checkCancellation()
-            try MetadataCreatorEditPlan.validate(working, tag: operation.tag, validation: validation)
+            try MetadataCreatorEditPlan.validate(working.filter { $0.image.supportsMetadataEditing(operation.tag) },
+                                                tag: operation.tag, validation: validation)
             try validateDateParameters(operation)
             let sequence: [String]?
             switch operation.action {
@@ -72,6 +87,14 @@ public struct MetadataWorkflowPreview: Sendable {
             for index in working.indices {
                 try Task.checkCancellation()
                 let reading = working[index]
+                guard reading.image.supportsMetadataEditing(operation.tag) else {
+                    let entry = "\(reading.image.name) · \(operation.tag.rawValue)"
+                    skipped.append(entry); skipReasons[entry] = .unsupportedField
+                    skipDetails.append(SkippedItem(photoID: reading.image.id, filename: reading.image.name,
+                                                   tag: operation.tag, reason: .unsupportedField))
+                    skippedIDs.insert(reading.image.id)
+                    continue
+                }
                 var action = operation.action
                 func value(_ tag: MetadataTag) -> MetadataTagValue? {
                     if let pending = reading.image.creatorDraft?.changes[tag] {
@@ -89,6 +112,9 @@ public struct MetadataWorkflowPreview: Sendable {
                           let parsed = try? MetadataDate(expression.replacementString(for: match, in: name, offset: 0, template: template)) else {
                         let entry = "\(name) · \(operation.tag.rawValue)"
                         skipped.append(entry); skipReasons[entry] = .filenameMismatch
+                        skipDetails.append(SkippedItem(photoID: reading.image.id, filename: reading.image.name,
+                                                       tag: operation.tag, reason: .filenameMismatch))
+                        skippedIDs.insert(reading.image.id)
                         continue
                     }
                     action = .setText(parsed.text)
@@ -97,6 +123,9 @@ public struct MetadataWorkflowPreview: Sendable {
                     guard let original = value(source) else {
                         let entry = "\(reading.image.name) · \(source.rawValue)"
                         skipped.append(entry); skipReasons[entry] = .missingValue
+                        skipDetails.append(SkippedItem(photoID: reading.image.id, filename: reading.image.name,
+                                                       tag: operation.tag, reason: .missingValue))
+                        skippedIDs.insert(reading.image.id)
                         continue
                     }
                     switch (operation.tag, original) {
@@ -109,6 +138,9 @@ public struct MetadataWorkflowPreview: Sendable {
                     guard let current = value(operation.tag) else {
                         let entry = "\(reading.image.name) · \(operation.tag.rawValue)"
                         skipped.append(entry); skipReasons[entry] = .missingValue
+                        skipDetails.append(SkippedItem(photoID: reading.image.id, filename: reading.image.name,
+                                                       tag: operation.tag, reason: .missingValue))
+                        skippedIDs.insert(reading.image.id)
                         continue
                     }
                     guard case .text(let text) = current else { throw MetadataFieldEditError.invalidValue }
@@ -128,14 +160,27 @@ public struct MetadataWorkflowPreview: Sendable {
                     if value(operation.tag) == nil {
                         let entry = "\(reading.image.name) · \(operation.tag.rawValue)"
                         skipped.append(entry); skipReasons[entry] = .missingValue
+                        skipDetails.append(SkippedItem(photoID: reading.image.id, filename: reading.image.name,
+                                                       tag: operation.tag, reason: .missingValue))
+                        skippedIDs.insert(reading.image.id)
                         continue
                     }
                 default: break
                 }
                 let item = try MetadataCreatorEditPlan.prepare([reading], tag: operation.tag, action: action, validation: validation).items[0]
+                let before = value(operation.tag)
                 working[index].image.applyMetadataDraft(item)
+                let after: MetadataTagValue?
+                switch item.changes[operation.tag] {
+                case .set(let value): after = value
+                case .remove: after = nil
+                case nil: after = reading.snapshot.values[operation.tag]
+                }
+                if before == after { unchangedIDs.insert(reading.image.id) }
+                else { changedIDs.insert(reading.image.id) }
                 steps.append(item)
             }
+            operationResults.append(OperationResult(tag: operation.tag, changed: changedIDs, unchanged: unchangedIDs, skipped: skippedIDs))
         }
         let items = zip(readings, working).compactMap { original, final -> MetadataCreatorEditPlan.Item? in
             guard let draft = final.image.creatorDraft else { return nil }
@@ -150,7 +195,19 @@ public struct MetadataWorkflowPreview: Sendable {
             let tags = Set(before.keys).union(draft.changes.keys)
             return tags.contains { value($0, changes: before) != value($0, changes: draft.changes) } ? draft : nil
         }
-        return Self(items: items, steps: steps, skipped: skipped, skipReasons: skipReasons)
+        return Self(items: items, steps: steps, skipped: skipped, skipReasons: skipReasons, skipDetails: skipDetails, operationResults: operationResults)
+    }
+
+    public static func validateSources(_ readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)]) throws {
+        var seen = Set<String>()
+        for reading in readings {
+            guard reading.image.metadataInspectionURL?.standardizedFileURL == reading.snapshot.url.standardizedFileURL,
+                  MetadataInspectionFileVersion.read(reading.snapshot.url) == reading.snapshot.version,
+                  case .file(let device, let inode, _, _, _, _, _) = reading.snapshot.version else {
+                throw MetadataCreatorPlanError.sourceChanged
+            }
+            guard seen.insert("\(device):\(inode)").inserted else { throw MetadataCreatorPlanError.duplicateTarget }
+        }
     }
 
     private static func validateDateParameters(_ operation: MetadataOperation) throws {

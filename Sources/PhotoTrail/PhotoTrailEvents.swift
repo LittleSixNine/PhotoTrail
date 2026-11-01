@@ -64,6 +64,7 @@ enum PhotoTrailEvent: Equatable {
     case pasteRequest
     case placeSelection(Place)
     case quitRequested
+    case quitWithMetadataInputRequested
     case readTrackLog(String, GpxTrackLog?)
     case removeOldFiles
     case saveComplete(SaveHelper.SaveStatus)
@@ -145,6 +146,7 @@ extension PhotoTrailEvent: CustomStringConvertible {
         case .pasteRequest: "pasteRequest"
         case .placeSelection: "placeSelection"
         case .quitRequested: "quitRequested"
+        case .quitWithMetadataInputRequested: "quitWithMetadataInputRequested"
         case .readTrackLog: "readTrackLog"
         case .removeOldFiles: "removeOldFiles"
         case .saveComplete: "saveComplete"

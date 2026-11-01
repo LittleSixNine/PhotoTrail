@@ -6,11 +6,15 @@ import UDF
 struct SaveItemCommands: Commands {
     var store: Store<PhotoTrailState, PhotoTrailEvent>
     var locationWorkspace: LocationWorkspace
+    var metadataEditSession: MetadataBatchEditSession? = nil
 
     var body: some Commands {
         CommandGroup(after: .saveItem) {
             Button(L10n.text("Save…"), systemImage: "square.and.arrow.down.on.square") {
-                SaveHelper.requestSave(store, workspace: locationWorkspace)
+                Task { @MainActor in
+                    if let metadataEditSession { await metadataEditSession.requestSave(in: store, workspace: locationWorkspace) }
+                    else { SaveHelper.requestSave(store, workspace: locationWorkspace) }
+                }
             }
             .keyboardShortcut("s")
             .disabled(saveDisabled())
@@ -42,7 +46,7 @@ struct SaveItemCommands: Commands {
 
 extension SaveItemCommands {
     private func saveDisabled() -> Bool {
-        return store.saveInProgress || !store.unsavedChanges
+        return store.saveInProgress || (!store.unsavedChanges && !(metadataEditSession?.inline == true && metadataEditSession?.hasInput == true))
     }
 
     private func discardChangesDisabled() -> Bool {

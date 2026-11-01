@@ -16,7 +16,7 @@ struct ImageTableView: View {
     @State private var sortOrder = [KeyPathComparator(\ImageData.name)]
     @FocusState private var searchFocused: Bool
     @Binding var inspectorPresented: Bool
-    @Binding var batchActionsPresented: Bool
+    var visibleIDsChanged: (Set<ImageData.ID>) -> Void = { _ in }
     var openDetail: () -> Void = {}
 
     @State private var projection = PhotoListProjection()
@@ -70,8 +70,6 @@ struct ImageTableView: View {
                 Spacer()
                 Text(L10n.text("已选择 %1$@ 张（当前显示 %2$@ 张）", store.selection.count, store.selection.intersection(snapshot.ids).count))
                     .foregroundStyle(.secondary)
-                Button(batchActionsPresented ? L10n.text("收起照片操作") : L10n.text("照片操作")) { batchActionsPresented.toggle() }
-                    .disabled(store.selection.isEmpty && !batchActionsPresented)
             }.font(.callout).padding(10)
             photoTable(images: images)
             Divider()
@@ -85,6 +83,7 @@ struct ImageTableView: View {
         .onChange(of: selection) {
             if selection != store.selection { store.send(.selectionChanged(selection), undoable: false) }
         }
+        .onChange(of: snapshot.ids, initial: true) { visibleIDsChanged(snapshot.ids) }
         .onChange(of: store.selection) { selection = store.selection }
         .onChange(of: filter) { retainVisibleSelection() }
         .onChange(of: store.searchText) { retainVisibleSelection() }
@@ -119,7 +118,6 @@ struct ImageTableView: View {
                     .contextMenu {
                         ContextMenuView(targets: [image.id], inspectorPresented: $inspectorPresented,
                                         openDetail: openDetail,
-                                        showBatchActions: { batchActionsPresented = true },
                                         remove: { pendingRemoval = [image.id] },
                                         clearLocations: { pendingClear = [image.id] })
                     }
@@ -139,7 +137,7 @@ struct ImageTableView: View {
         .background(SubtleScrollbars())
         .contextMenu(forSelectionType: ImageData.ID.self) { ids in
             ContextMenuView(targets: ids, inspectorPresented: $inspectorPresented,
-                            openDetail: openDetail, showBatchActions: { batchActionsPresented = true },
+                            openDetail: openDetail,
                             remove: { pendingRemoval = ids }, clearLocations: { pendingClear = ids })
         } primaryAction: { ids in
             guard let id = ids.first else { return }

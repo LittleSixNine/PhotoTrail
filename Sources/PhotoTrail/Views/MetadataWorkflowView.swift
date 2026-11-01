@@ -12,6 +12,7 @@ struct MetadataWorkflowView: View {
     var initialBatchMode = "copy"
     var initialBatchInput = ""
     var quickPreset: MetadataPreset?
+    var initialTab = "actions"
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
     @Environment(\.dismiss) private var dismiss
     @AppStorage("PhotoTrail.MetadataPresets") private var presetData = Data()
@@ -29,7 +30,9 @@ struct MetadataWorkflowView: View {
         get { cards.flatMap(\.operations) }
         nonmutating set { cards = MetadataWorkflowCard.cards(from: newValue); importedPlan = nil }
     }
-    private var incompleteCards: Bool { cards.contains { $0.operations.isEmpty } }
+    private var incompleteCards: Bool {
+        cards.contains { $0.operations.isEmpty } || activeOperations.contains { $0.action.hasEmptyInput }
+    }
     @State private var importedPlan: MetadataWorkflowPreview?
     @State private var application = MetadataDraftApplication()
     @State private var presetName = ""
@@ -39,78 +42,70 @@ struct MetadataWorkflowView: View {
 
     private var availableTags: [MetadataTag] {
         MetadataTag.allCases.filter { tag in
-            tag.supportsSidecar || readings.allSatisfy { if case .image = $0.image.metadata.source { true } else { false } }
+            readings.contains { $0.image.supportsMetadataEditing(tag) }
         }
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(quickPreset?.name ?? (isBatch ? L10n.text("批量编辑字段") : L10n.text("编辑预设…")))
+                    Text(quickPreset?.name ?? (isBatch ? L10n.text("批量编辑字段") : L10n.text(workflowTab == "presets" ? "管理预设…" : workflowTab == "exchange" ? "比较与交换" : "高级操作…")))
                         .font(.system(size: 24, weight: .semibold))
                     Text(L10n.text("已选择 %1$@ 张照片", readings.count)).foregroundStyle(.secondary)
                 }
                 Spacer()
                 Text(L10n.text("编辑 → 应用 → 保存照片")).font(.callout).foregroundStyle(.secondary)
             }
-            HStack(alignment: .top, spacing: 18) {
-                VStack(alignment: .leading, spacing: 12) {
-                    if isBatch {
-                        ScrollView { batchForm.padding(18) }
+            if !isBatch {
+                HStack {
+                    if workflowTab == "actions" {
+                        Button(L10n.text("载入预设")) { workflowTab = "presets" }
+                        Button(L10n.text("存为预设…")) {
+                            renamingPreset = nil; presetName = ""; namingPreset = true
+                        }.disabled(operations.isEmpty || incompleteCards)
                     } else {
-                        Picker(L10n.text("批量预设…"), selection: $workflowTab) {
-                            Text(L10n.text("编排操作")).tag("actions")
-                            Text(L10n.text("比较与交换")).tag("exchange")
-                        }.pickerStyle(.segmented).padding([.top, .horizontal], 18)
-                        ZStack(alignment: .topLeading) {
-                            ScrollView { actionForm.padding(18) }
-                                .opacity(workflowTab == "actions" ? 1 : 0)
-                                .allowsHitTesting(workflowTab == "actions")
-                                .accessibilityHidden(workflowTab != "actions")
-                            if workflowTab == "exchange" {
-                                exchangeForm.padding(18)
-                            }
-                        }
+                        Button(L10n.text("编排操作"), systemImage: "arrow.left") { workflowTab = "actions" }
                     }
-                }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 10))
-                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.quaternary))
-                if isBatch {
-                    applicationInfo.frame(width: 270)
-                } else {
-                    Button {
-                        renamingPreset = nil; presetName = ""; namingPreset = true
-                    } label: {
-                        Image(systemName: "arrow.right").font(.title2).frame(width: 30, height: 44)
-                    }.buttonStyle(.borderless)
-                        .help(L10n.text("将当前操作链新建为预设"))
-                        .accessibilityLabel(L10n.text("将当前操作链新建为预设"))
-                        .disabled(operations.isEmpty || incompleteCards)
-                        .frame(maxHeight: .infinity)
-                    presetForm.padding(18)
-                        .frame(width: 270, alignment: .topLeading)
-                        .frame(maxHeight: .infinity)
-                        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
-                        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.quaternary))
+                    Spacer()
                 }
-            }.frame(maxHeight: .infinity).disabled(application.busy || application.applied)
-            if !application.notice.isEmpty { Text(application.notice).font(.callout).textSelection(.enabled) }
+            }
+            Group {
+                if isBatch { ScrollView { batchForm.padding(18) } }
+                else if workflowTab == "presets" { presetForm.padding(18) }
+                else if workflowTab == "exchange" { exchangeForm.padding(18) }
+                else { ScrollView { actionForm.padding(18) } }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(.background, in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.quaternary))
+            .disabled(application.busy || application.applied)
+            if application.result != nil {
+                ScrollView {
+                    MetadataBatchResultView(application: application, readings: readings,
+                        select: { store.send(.selectionChanged($0), undoable: false) })
+                }.frame(maxHeight: 160)
+            } else if !application.notice.isEmpty {
+                Text(application.notice).font(.callout).textSelection(.enabled)
+            }
             if !notice.isEmpty { Text(notice).font(.callout).foregroundStyle(.orange).textSelection(.enabled) }
             Divider()
             HStack(spacing: 12) {
                 if application.busy { ProgressView().controlSize(.small) }
                 Spacer()
                 Button(L10n.text(application.busy ? "取消" : "关闭")) { application.cancel(); dismiss() }.keyboardShortcut(.cancelAction)
+                if isBatch || workflowTab != "presets" {
                 Button(L10n.text("应用")) { apply() }.keyboardShortcut(.defaultAction)
                     .accessibilityIdentifier("metadataApplyDraft")
                     .buttonStyle(.borderedProminent)
                     .disabled((importedPlan == nil && (activeOperations.isEmpty || incompleteCards)) || application.busy || application.applied || busy || store.saveInProgress)
+                }
             }.controlSize(.large)
         }.font(.system(size: 15)).controlSize(.large).textFieldStyle(.roundedBorder)
             .padding(24)
             .frame(width: min(1120, (NSScreen.main?.visibleFrame.width ?? 1200) - 80),
                    height: min(800, (NSScreen.main?.visibleFrame.height ?? 900) - 100))
             .onAppear {
+                workflowTab = initialTab
                 if let quickPreset {
                     operations = quickPreset.operations
                 }
@@ -282,6 +277,7 @@ private extension MetadataWorkflowView {
 
     private func apply() {
         notice = ""
+        guard importedPlan != nil || !incompleteCards else { return }
         application.apply(readings: readings, operations: activeOperations, imported: importedPlan, store: store)
     }
     private func records() throws -> [MetadataCSVRecord] {
@@ -309,15 +305,20 @@ private extension MetadataWorkflowView {
             let records = try records()
             let imported = try MetadataCSV.load(String(contentsOf: url, encoding: .utf8), authorized: records)
             var items: [MetadataCreatorEditPlan.Item] = [], steps: [MetadataCreatorEditPlan.Item] = []
+            var warnings = imported.warnings
+            var skipDetails: [MetadataWorkflowPreview.SkippedItem] = []
             for (record, reading) in zip(records, readings) {
                 guard let actions = imported.operations[record.id], !actions.isEmpty else { continue }
                 let plan = try MetadataWorkflowPreview.prepare([reading], operations: actions)
-                items += plan.items; steps += plan.steps
+                items += plan.items; steps += plan.steps; skipDetails += plan.skipDetails
+                warnings += plan.skipped.filter { plan.skipReasons[$0] == .unsupportedField }.map {
+                    L10n.text("已跳过不支持的文件或字段") + ": " + $0
+                }
             }
             // The original selection is also validated as a whole to reject shared physical targets.
-            _ = try MetadataCreatorEditPlan.prepare(readings, action: .fillMissing(["validation"]))
-            importedPlan = MetadataWorkflowPreview(items: items, steps: steps, skipped: imported.warnings)
-            notice = imported.warnings.joined(separator: "\n")
+            try MetadataWorkflowPreview.validateSources(readings)
+            importedPlan = MetadataWorkflowPreview(items: items, steps: steps, skipped: warnings, skipDetails: skipDetails)
+            notice = warnings.joined(separator: "\n")
         }
     }
     private func exportXMP() {
@@ -667,8 +668,8 @@ private struct MetadataOperationCardView: View {
     @State private var offsetNegative = Array(repeating: false, count: 6)
     private let actionLabels = ["set": "设为", "fill": "仅补空值", "clear": "清除字段", "append": "追加文字",
                                 "keywords": "追加关键词", "removeKeywords": "移除指定关键词", "shift": "整体偏移（秒）",
-                                "offset": "时间偏移", "days": "日历增加天数", "component": "修改时间中的指定部分", "sequence": "按固定间隔设置时间",
-                                "filename": "从文件名解析日期", "distribute": "在时间范围内均匀分配", "copy": "把值复制到字段"]
+                                "offset": "时间偏移", "days": "日历增加天数", "component": "修改时间中的指定部分", "sequence": "逐张设置时间（固定间隔）",
+                                "filename": "从文件名解析日期", "distribute": "在起止时间之间平均分配", "copy": "把值复制到字段"]
     private var modes: [String] {
         if tag.isFileTime { return ["set", "offset", "component", "sequence", "distribute", "filename", "copy"] }
         if tag.isDate { return ["set", "clear", "offset", "component", "sequence", "distribute", "filename", "copy"] }
@@ -732,7 +733,7 @@ private struct MetadataOperationCardView: View {
             Picker(mode == "copy" ? L10n.text("来源字段") : L10n.text("目标字段"), selection: $tag) {
                 ForEach(availableTags, id: \.self) { Text("\($0.displayName) · \($0.rawValue)").tag($0) }
             }
-            Text(L10n.text("当前值：%1$@", display(value(readings[0], tag: tag)))).font(.caption).textSelection(.enabled)
+            Text(L10n.text("当前值：%1$@", currentValue)).font(.caption).textSelection(.enabled)
             Picker(L10n.text("字段操作"), selection: $mode) {
                 ForEach(modes + (["shift", "days"].contains(mode) ? [mode] : []), id: \.self) { Text(L10n.text(actionLabels[$0]!)).tag($0) }
             }
@@ -853,6 +854,17 @@ private struct MetadataOperationCardView: View {
         }
         return reading.snapshot.values[tag]
     }
+    private var currentValue: String {
+        let values = readings.map { reading -> [MetadataTag: MetadataTagValue] in
+            guard let value = value(reading, tag: tag) else { return [:] }
+            return [tag: value]
+        }
+        switch MetadataSelectionValue.summarize(values, tag: tag) {
+        case .uniform(let value): return display(value)
+        case .mixed(let present, let total): return L10n.text("多个值（%1$@/%2$@ 张有值）", present, total)
+        default: return L10n.text("未填写")
+        }
+    }
     private func display(_ value: MetadataTagValue?) -> String {
         switch value { case nil: L10n.text("未填写"); case .text(let text): text; case .list(let values): values.joined(separator: " / ") }
     }
@@ -900,4 +912,19 @@ private struct MetadataOperationCardView: View {
         })
     }
 
+}
+
+// Names follow the existing preset identity; removed or renamed presets cannot leave dead buttons.
+enum MetadataPresetShortcuts {
+    static func names(in presets: [MetadataPreset], data: Data) -> [String] {
+        let saved = (try? JSONDecoder().decode([String].self, from: data)) ?? Array(presets.prefix(3).map(\.name))
+        var seen = Set<String>()
+        return saved.filter { name in presets.contains { $0.name == name } && seen.insert(name).inserted }
+    }
+
+    static func updating(_ name: String, enabled: Bool, in presets: [MetadataPreset], data: Data) -> Data {
+        var names = names(in: presets, data: data).filter { $0 != name }
+        if enabled && presets.contains(where: { $0.name == name }) { names.append(name) }
+        return (try? JSONEncoder().encode(names)) ?? data
+    }
 }
