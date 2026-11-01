@@ -125,6 +125,7 @@ struct PhotoTrailReducer: Reducer, Sendable {
         case .removeImages(let ids):
             let removed = ids.union(state.imageData.filter { ids.contains($0.id) }.compactMap(\.pairedID))
             newState.imageData.removeAll { removed.contains($0.id) }
+            newState.trackMatches.removeAll { removed.contains($0.id) }
             newState.pairingEligibleIDs?.subtract(removed)
             newState.locationSavedPhotoIDs.subtract(removed)
             newState.creatorSaveResults = newState.creatorSaveResults.filter {
@@ -222,7 +223,8 @@ struct PhotoTrailReducer: Reducer, Sendable {
             }
 
         case .locationFromTrack(let updates):
-            newState.trackMatches = updates
+            let photoIDs = Set(state.imageData.map(\.id))
+            newState.trackMatches = updates.filter { photoIDs.contains($0.id) }
 
         case .applyTrackMatches:
             for entry in state.trackMatches where entry.status == .matched {

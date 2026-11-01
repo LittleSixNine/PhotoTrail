@@ -6,11 +6,14 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     @Binding var metadataEditSession: MetadataBatchEditSession?
     @Binding var metadataRuleSession: MetadataBatchEditSession?
+    @Binding var clearListRequested: Bool
 
     init(metadataEditSession: Binding<MetadataBatchEditSession?>,
-         metadataRuleSession: Binding<MetadataBatchEditSession?> = .constant(nil)) {
+         metadataRuleSession: Binding<MetadataBatchEditSession?> = .constant(nil),
+         clearListRequested: Binding<Bool> = .constant(false)) {
         _metadataEditSession = metadataEditSession
         _metadataRuleSession = metadataRuleSession
+        _clearListRequested = clearListRequested
     }
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) var store
     @Environment(\.openWindow) var openWindow
@@ -250,13 +253,18 @@ struct ContentView: View {
                     "file import: \(error.localizedDescription, privacy: .public)")
             }
         }
+        .alert(L10n.text("从列表移除全部 %1$@ 张照片？", store.imageData.count), isPresented: $clearListRequested) {
+            Button(L10n.text("取消"), role: .cancel) {}
+            Button(L10n.text("清空列表"), role: .destructive) { clearPhotoList() }
+                .disabled(!OpenHelper.canClearPhotoList(store.state))
+        } message: { Text(clearPhotoListMessage) }
         .toolbar {
             ToolbarItem(placement: .principal) {
                 WorkspacePageSwitch(selection: $alternateLayout, renameSelected: $renameSelected, showsRename: true)
                     .disabled(store.renameInProgress)
             }
             ToolbarItem(placement: .primaryAction) {
-                HStack(spacing: 8) {
+                HStack(spacing: 4) {
                 if !renameSelected {
                     WorkspaceSaveButton().fixedSize()
                 }
@@ -268,12 +276,28 @@ struct ContentView: View {
                 }
                 .labelStyle(.titleAndIcon)
                 .disabled(store.saveInProgress)
+                Button { clearListRequested = true } label: {
+                    Label(L10n.text("清空列表"), systemImage: "rectangle.stack.badge.minus").fixedSize()
+                }
+                .labelStyle(.titleAndIcon)
+                .disabled(!OpenHelper.canClearPhotoList(store.state))
+                .help(L10n.text("移除三个页面中的全部照片，不删除原文件。"))
+                .accessibilityIdentifier("clearPhotoList")
                 PhotoPickerView()
+                    .fixedSize()
                     .disabled(store.saveInProgress)
                     .accessibilityIdentifier(testIDs.photoPickerViewID)
                 }.buttonStyle(WorkspaceToolbarButtonStyle())
             }
         }
+    }
+
+    private func clearPhotoList() {
+        guard OpenHelper.clearPhotoList(store, inline: metadataEditSession, rules: metadataRuleSession) else { return }
+        metadataEditSession = nil
+        metadataRuleSession = nil
+        locationWorkspace.listMatchResults = []
+        Task { @MainActor in store.mainWindow?.makeFirstResponder(nil) }
     }
 
     // when a sheet is dismissed check if there are more sheets to display
@@ -349,5 +373,17 @@ private struct CredentialChangeObserver: View {
                     workspace.reload()
                 }
             }
+    }
+}
+
+private extension ContentView {
+    var clearPhotoListMessage: String {
+        var lines = [L10n.text("不会删除磁盘文件或照片图库中的原片。三个页面的照片列表将同时清空，可撤销恢复照片及已有草稿。")]
+        let pending = store.imageData.filter(\.hasPendingChanges).count
+        if pending > 0 { lines.append(L10n.text("其中 %1$@ 张有尚未保存的修改。", pending)) }
+        if metadataEditSession?.hasInput == true || metadataRuleSession?.hasInput == true {
+            lines.append(L10n.text("尚未应用的编辑输入将被放弃，无法通过撤销恢复。"))
+        }
+        return lines.joined(separator: "\n\n")
     }
 }

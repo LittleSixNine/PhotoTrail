@@ -11,6 +11,7 @@ struct PhotoTrailApp: App {
     @State private var mainWindow: NSWindow?
     @State private var metadataEditSession: MetadataBatchEditSession?
     @State private var metadataRuleSession: MetadataBatchEditSession?
+    @State private var clearListRequested = false
     @AppStorage(AppAppearance.preferenceKey) private var appearance: AppAppearance = .system
 
     @AppStorage(L10n.languageKey) private var language = L10n.language.rawValue
@@ -45,7 +46,8 @@ struct PhotoTrailApp: App {
                 // Unit tests use the app bundle, not its interactive window or private state.
                 Color.clear.frame(width: 1, height: 1)
             } else {
-            ContentView(metadataEditSession: $metadataEditSession, metadataRuleSession: $metadataRuleSession)
+            ContentView(metadataEditSession: $metadataEditSession, metadataRuleSession: $metadataRuleSession,
+                        clearListRequested: $clearListRequested)
                 .environment(\.metadataEditSession, metadataEditSession)
                 .preferredColorScheme(appearance.colorScheme)
                 .background(WindowAccessor(window: $mainWindow))
@@ -85,7 +87,8 @@ struct PhotoTrailApp: App {
                 AutomaticUpdateDownloadsToggle()
             }
             NewItemCommands(store: store)
-            SaveItemCommands(store: store, locationWorkspace: locationWorkspace, metadataEditSession: metadataEditSession)
+            SaveItemCommands(store: store, locationWorkspace: locationWorkspace, metadataEditSession: metadataEditSession,
+                             requestClearList: { clearListRequested = true })
             UndoRedoCommands(store: store)
             PasteboardCommands(store: store)
             ToolbarCommands(store: store)

@@ -17,6 +17,8 @@ O PhotoTrail reúne **correspondência com trajetos, edição de metadados e ren
 | Informações das fotos | Consulta e edição de metadados | Datas, autoria, palavras-chave e equipamento |
 | Nomes dos arquivos | Renomeação em lote | Data e sequência, substituição de texto e arquivos associados |
 
+Os três espaços incluem Limpar lista para remover também fotos ocultas e não selecionadas sem excluir originais. A confirmação avisa sobre alterações pendentes e entradas não aplicadas; Desfazer restaura fotos e rascunhos existentes. O botão da fototeca é Importar do Fotos. Complete regiões manualmente em Avançado → Completar dados da região pela localização… no Mapa.
+
 ## Novidades no 0.5.11
 
 Dois cartões compactos, “Regras de lote avançadas” e “Aplicar predefinição em lote”, ficam acima dos campos. Escolha atalhos individuais no menu de predefinições. As regras deslizam sobre o painel sem alterar sua largura; ao voltar, a posição da lista e as regras não aplicadas são mantidas. As ações de localização ficam no Mapa; a barra lateral separada de ações de fotos foi removida.

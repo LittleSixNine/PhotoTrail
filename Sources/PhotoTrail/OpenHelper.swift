@@ -5,6 +5,20 @@ import SwiftUI
 import UDF
 
 enum OpenHelper {
+    @MainActor static func canClearPhotoList(_ state: PhotoTrailState) -> Bool {
+        !state.imageData.isEmpty && !state.saveInProgress && !state.renameInProgress && !state.importProgress.isActive
+    }
+
+    @MainActor @discardableResult
+    static func clearPhotoList(_ store: Store<PhotoTrailState, PhotoTrailEvent>,
+                               inline: MetadataBatchEditSession?, rules: MetadataBatchEditSession?) -> Bool {
+        guard canClearPhotoList(store.state) else { return false }
+        inline?.discardInput()
+        rules?.discardInput()
+        store.send(.removeImages(Set(store.imageData.map(\.id))), description: L10n.text("清空列表"))
+        return true
+    }
+
 
     @MainActor @discardableResult
     static func importFiles(_ store: Store<PhotoTrailState, PhotoTrailEvent>, urls: [URL],

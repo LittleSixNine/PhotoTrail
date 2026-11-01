@@ -17,6 +17,8 @@ PhotoTrail reúne **la asociación de fotos con recorridos, la edición de metad
 | Información de las fotos | Consulta y edición de metadatos | Fechas, autoría, palabras clave y datos del equipo |
 | Nombres de archivos | Renombrado por lotes | Fecha y secuencia, sustitución de texto y archivos asociados |
 
+Los tres espacios incluyen Vaciar lista para quitar también fotos ocultas y no seleccionadas sin borrar originales. La confirmación avisa de cambios pendientes y datos sin aplicar; Deshacer restaura fotos y borradores existentes. El botón de fototeca es Importar de Fotos. Completa regiones manualmente desde Avanzado → Completar datos de región desde la ubicación… en Mapa.
+
 ## Novedades en 0.5.11
 
 Dos tarjetas compactas, «Reglas de lote avanzadas» y «Aplicar preajuste de lote», aparecen sobre los campos. El menú de preajustes permite elegir accesos individuales. Las reglas se deslizan sobre el panel sin cambiar su anchura; al volver se conservan la posición de la lista y las reglas sin aplicar. Las acciones de ubicación permanecen en Mapa y se elimina la barra lateral independiente de acciones de fotos.

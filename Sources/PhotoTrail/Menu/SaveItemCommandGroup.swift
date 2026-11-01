@@ -7,6 +7,7 @@ struct SaveItemCommands: Commands {
     var store: Store<PhotoTrailState, PhotoTrailEvent>
     var locationWorkspace: LocationWorkspace
     var metadataEditSession: MetadataBatchEditSession? = nil
+    var requestClearList: () -> Void
 
     var body: some Commands {
         CommandGroup(after: .saveItem) {
@@ -34,10 +35,7 @@ struct SaveItemCommands: Commands {
 
             Divider()
 
-            Button(L10n.text("Clear Image List"), systemImage: "rectangle.stack.slash") {
-                store.send(.clearImagesRequest,
-                           description: "clear image list")
-            }
+            Button(L10n.text("清空列表"), systemImage: "rectangle.stack.badge.minus") { requestClearList() }
             .keyboardShortcut("k")
             .disabled(clearDisabled())
         }
@@ -58,6 +56,6 @@ extension SaveItemCommands {
     }
 
     private func clearDisabled() -> Bool {
-        return store.saveInProgress || store.imageData.isEmpty || store.unsavedChanges
+        return !OpenHelper.canClearPhotoList(store.state)
     }
 }

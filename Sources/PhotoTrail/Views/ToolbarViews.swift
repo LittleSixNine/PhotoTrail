@@ -3,7 +3,6 @@ import SwiftUI
 import UDF
 
 struct PhotoPickerView: View {
-    private static let photosIcon = NSWorkspace.shared.icon(forFile: "/System/Applications/Photos.app")
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) var store
     @State private var photoLibrary = PhotoLibrary.shared
     @State private var pickerItems: [PhotosPickerItem] = []
@@ -16,8 +15,7 @@ struct PhotoPickerView: View {
                 PhotosPicker(selection: $pickerItems,
                              matching: .images,
                              photoLibrary: .shared()) {
-                    Image(nsImage: Self.photosIcon).resizable().frame(width: 24, height: 24)
-                        .accessibilityLabel(L10n.text("照片图库"))
+                    Label(L10n.text("从图库导入"), systemImage: "photo.on.rectangle").fixedSize()
                 }
                 .keyboardShortcut("i", modifiers: [.shift, .command])
             } else {
@@ -32,11 +30,12 @@ struct PhotoPickerView: View {
                         }
                     }
                 } label: {
-                    Image(nsImage: Self.photosIcon).resizable().frame(width: 24, height: 24)
-                        .accessibilityLabel(L10n.text("照片图库"))
+                    Label(L10n.text("从图库导入"), systemImage: "photo.on.rectangle").fixedSize()
                 }
             }
         }
+        .labelStyle(.titleAndIcon)
+        .help(L10n.text("从 macOS「照片」图库选择照片。"))
         .onChange(of: pickerItems) {
             if !pickerItems.isEmpty {
                 let selectedItems = pickerItems
@@ -68,7 +67,7 @@ struct WorkspaceToolbarButtonStyle: ButtonStyle {
         configuration.label
             .font(.system(size: 13, weight: .medium))
             .foregroundStyle(isEnabled ? (prominent ? Color.white : Color.primary) : Color.secondary)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 6)
             .frame(minHeight: 34)
             .background(prominent && isEnabled ? Color.blue : Color(nsColor: .controlBackgroundColor), in: Capsule())
             .overlay {

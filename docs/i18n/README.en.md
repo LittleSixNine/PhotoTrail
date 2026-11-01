@@ -17,6 +17,8 @@ PhotoTrail brings together **track matching, metadata editing and batch renaming
 | Complete photo information | Metadata viewing and editing | Correct dates; add credits, keywords and device details |
 | Organize file names | Batch renaming | Capture date and sequence; text replacement; paired sidecars |
 
+All three workspaces offer Clear list, including hidden and unselected photos, without deleting originals. Confirmation explains unsaved changes and discarded unapplied input; Undo restores photos and existing drafts. The library button is Import from Photos. Manual region filling is under Advanced → Fill missing region details from location… in Map.
+
 ## New in 0.5.11
 
 Two compact cards, “Advanced batch rules” and “Apply batch preset”, sit above the fields. Choose individual preset shortcuts in the preset menu. Rules slide over the inspector without changing its width; returning keeps the field-list position and unapplied rules. Location actions use the Map workspace; the separate Photo Actions sidebar is removed.

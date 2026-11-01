@@ -16,6 +16,7 @@ struct LocationPanel: View {
     @State private var manualLookup = 0
     @State private var manualLookupKey = ""
     @State private var fillingRegions = false
+    @State private var regionOptionsPresented = false
     @State private var favoritesExpanded = true
     @State private var showsAllFavorites = false
 
@@ -76,6 +77,7 @@ struct LocationPanel: View {
             .onAppear { store.send(.textfieldFocusChanged(true), undoable: false) }
             .onDisappear { store.send(.textfieldFocusChanged(false), undoable: false) }
         }
+        .sheet(isPresented: $regionOptionsPresented) { regionOptions }
         .sheet(item: $workspace.favoriteDraft) { favorite in
             FavoriteEditor(favorite: favorite)
         }
@@ -145,6 +147,12 @@ private extension LocationPanel {
                     .buttonStyle(.borderless).fixedSize()
                     .disabled(store.mostSelected == nil || store[store.mostSelected].metadata.location == nil)
                     .help(L10n.text("收藏当前预览照片的位置"))
+                Menu(L10n.text("高级")) {
+                    Button(L10n.text("根据定位补齐地区信息…")) { regionOptionsPresented = true }
+                }
+                .menuStyle(.borderlessButton).fixedSize()
+                .disabled(fillingRegions || store.saveInProgress || store.importProgress.isActive || store.renameInProgress)
+                .accessibilityIdentifier("locationAdvancedOptions")
             }
             if selection.total == 0 {
                 Text(L10n.text("选择照片以查看定位")).foregroundStyle(.secondary)
@@ -167,25 +175,9 @@ private extension LocationPanel {
                         .font(.caption).foregroundStyle(.orange)
                 }
             }
-            Button {
-                fillingRegions = true
-                Task {
-                    await LocationHelper.fillRegions(store, workspace: workspace)
-                    fillingRegions = false
-                }
-            } label: {
-                Text(L10n.text("为已有定位的图片写入城市数据"))
-                    .font(.system(size: 14, weight: .semibold))
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity, minHeight: 29)
+            if fillingRegions {
+                ProgressView(L10n.text("正在补齐地区信息…")).controlSize(.small)
             }
-            .buttonStyle(RegionFillButtonStyle())
-            .disabled(fillingRegions || store.saveInProgress || store.importProgress.isActive
-                      || !store.imageData.contains { store.selection.contains($0.id) && LocationHelper.canFillRegion($0) })
-            .accessibilityIdentifier("fillPhotoRegions")
-            Text(L10n.text("补齐省、市、区县等地区信息，可用于按城市重命名。"))
-                .font(.system(size: 11)).foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
             if !workspace.status.isEmpty,
                !workspace.status.hasPrefix(L10n.text("高德地图已就绪")),
                !workspace.status.hasPrefix(L10n.text("选择照片后")),
@@ -194,6 +186,37 @@ private extension LocationPanel {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }.textSelection(.enabled)
+    }
+
+    private var regionOptions: some View {
+        let images = store.imageData.filter { store.selection.contains($0.id) }
+        let eligible = images.filter(LocationHelper.canFillRegion).count
+        return VStack(alignment: .leading, spacing: 14) {
+            Text(L10n.text("根据定位补齐地区信息")).font(.title2)
+            Text(L10n.text("补齐省、市、区县等地区信息，可用于按城市重命名。"))
+            Text(L10n.text("符合条件：%1$@ / 已选择：%2$@ 张", eligible, images.count))
+                .font(.callout).foregroundStyle(.secondary)
+            Text(L10n.text("仅处理已有定位且缺少地区信息的本地照片或 XMP；保留已有文字，跳过已有字段草稿的照片。"))
+                .font(.callout).foregroundStyle(.secondary)
+            Text(L10n.text("补齐后加入待保存，点击保存才写入文件。"))
+                .font(.callout).foregroundStyle(.secondary)
+            HStack {
+                Spacer()
+                Button(L10n.text("取消"), role: .cancel) { regionOptionsPresented = false }
+                    .keyboardShortcut(.cancelAction)
+                Button(L10n.text("补齐地区信息")) {
+                    regionOptionsPresented = false
+                    fillingRegions = true
+                    Task {
+                        await LocationHelper.fillRegions(store, workspace: workspace)
+                        fillingRegions = false
+                    }
+                }
+                .buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
+                .disabled(eligible == 0 || fillingRegions || store.saveInProgress || store.importProgress.isActive || store.renameInProgress)
+                .accessibilityIdentifier("fillPhotoRegions")
+            }
+        }.padding(24).frame(width: 440)
     }
 
     private var currentLocation: some View {
@@ -380,16 +403,5 @@ struct MapPhotoSelectionSummary {
             if !image.updatable { readOnly += 1 }
             if image.hasPendingLocationChanges { pending += 1 }
         }
-    }
-}
-
-private struct RegionFillButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var enabled
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .padding(.horizontal, 12)
-            .foregroundStyle(enabled ? Color.primary : Color.secondary)
-            .background(configuration.isPressed ? Color(nsColor: .controlColor) : Color(nsColor: .controlBackgroundColor), in: Capsule())
-            .overlay(Capsule().strokeBorder(Color.primary.opacity(0.10)))
     }
 }
