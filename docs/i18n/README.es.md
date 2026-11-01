@@ -4,8 +4,6 @@
 
 # PhotoTrail
 
-Dos tarjetas compactas, «Reglas de lote avanzadas» y «Aplicar preajuste de lote», aparecen sobre los campos. El menú de preajustes permite elegir accesos individuales. Las reglas se deslizan sobre el panel sin cambiar su anchura; al volver se conservan la posición de la lista y las reglas sin aplicar. Las acciones de ubicación permanecen en Mapa y se elimina la barra lateral independiente de acciones de fotos.
-
 
 Organiza ubicaciones, metadatos y nombres de fotos en macOS.
 
@@ -18,6 +16,10 @@ PhotoTrail reúne **la asociación de fotos con recorridos, la edición de metad
 | Lugares de captura | Recorridos y mapas | Asociar un recorrido y revisar ubicaciones en el mapa |
 | Información de las fotos | Consulta y edición de metadatos | Fechas, autoría, palabras clave y datos del equipo |
 | Nombres de archivos | Renombrado por lotes | Fecha y secuencia, sustitución de texto y archivos asociados |
+
+## Novedades en 0.5.11
+
+Dos tarjetas compactas, «Reglas de lote avanzadas» y «Aplicar preajuste de lote», aparecen sobre los campos. El menú de preajustes permite elegir accesos individuales. Las reglas se deslizan sobre el panel sin cambiar su anchura; al volver se conservan la posición de la lista y las reglas sin aplicar. Las acciones de ubicación permanecen en Mapa y se elimina la barra lateral independiente de acciones de fotos.
 
 ## Novedades en 0.5.10
 

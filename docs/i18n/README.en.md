@@ -4,8 +4,6 @@
 
 # PhotoTrail
 
-Two compact cards, “Advanced batch rules” and “Apply batch preset”, sit above the fields. Choose individual preset shortcuts in the preset menu. Rules slide over the inspector without changing its width; returning keeps the field-list position and unapplied rules. Location actions use the Map workspace; the separate Photo Actions sidebar is removed.
-
 
 Organize photo locations, metadata and file names on macOS.
 
@@ -18,6 +16,10 @@ PhotoTrail brings together **track matching, metadata editing and batch renaming
 | Add or correct locations | Track matching and maps | Match a trip track, review or adjust locations on a map |
 | Complete photo information | Metadata viewing and editing | Correct dates; add credits, keywords and device details |
 | Organize file names | Batch renaming | Capture date and sequence; text replacement; paired sidecars |
+
+## New in 0.5.11
+
+Two compact cards, “Advanced batch rules” and “Apply batch preset”, sit above the fields. Choose individual preset shortcuts in the preset menu. Rules slide over the inspector without changing its width; returning keeps the field-list position and unapplied rules. Location actions use the Map workspace; the separate Photo Actions sidebar is removed.
 
 ## New in 0.5.10
 
