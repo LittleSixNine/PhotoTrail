@@ -400,8 +400,17 @@ extension Exiftool {
 
     public func update(
         image: URL,
-        changes: [MetadataTag: MetadataTagChange]
+        changes: [MetadataTag: MetadataTagChange],
+        mapMetadata: Metadata? = nil,
+        timeZone: TimeZone? = nil
     ) throws -> [MetadataTag: MetadataTagValue] {
+        if let mapMetadata, !mapMetadata.preserveGPSOnSave, let point = mapMetadata.location {
+            guard point.latitude.isFinite, point.longitude.isFinite,
+                  (-90...90).contains(point.latitude), (-180...180).contains(point.longitude),
+                  mapMetadata.elevation?.isFinite != false else {
+                throw ExiftoolError.invalidTagValue(tag: "GPS")
+            }
+        }
         if changes.keys.contains(where: \.isFileTime) {
             guard image.pathExtension.lowercased() != "xmp" else {
                 throw ExiftoolError.invalidTagValue(tag: "System")
@@ -411,7 +420,8 @@ extension Exiftool {
                 guard case .set(.text(let text)) = change else { throw ExiftoolError.invalidTagValue(tag: tag.rawValue) }
                 attributes[tag == .fileCreateDate ? .creationDate : .modificationDate] = try MetadataFileTime.parse(text)
             }
-            _ = try update(image: image, changes: changes.filter { !$0.key.isFileTime })
+            _ = try update(image: image, changes: changes.filter { !$0.key.isFileTime },
+                           mapMetadata: mapMetadata, timeZone: timeZone)
             do {
                 try FileManager.default.setAttributes(attributes, ofItemAtPath: image.resolvingSymlinksInPath().path)
                 let values = try metadataTags(Set(changes.keys), from: image)
@@ -427,17 +437,28 @@ extension Exiftool {
         return try update(
             image: image,
             changes: changes,
-            write: { try run($0) },
-            readback: { tags, image in try metadataTags(tags, from: image) })
+            write: { args in
+                let mapArgs = mapMetadata.map {
+                    metadataArguments(image: image, from: $0, timeZone: timeZone,
+                                      writeDate: false, numericGPS: true).dropLast()
+                } ?? []
+                try run(Array(mapArgs) + args)
+            },
+            readback: { tags, image in
+                let values = try metadataTags(tags, from: image)
+                if let mapMetadata { try verifyMapMetadata(mapMetadata, in: image) }
+                return values
+            }, hasMapChanges: mapMetadata != nil)
     }
 
     func update(
         image: URL,
         changes: [MetadataTag: MetadataTagChange],
         write: ([String]) throws -> Void,
-        readback: (Set<MetadataTag>, URL) throws -> [MetadataTag: MetadataTagValue]
+        readback: (Set<MetadataTag>, URL) throws -> [MetadataTag: MetadataTagValue],
+        hasMapChanges: Bool = false
     ) throws -> [MetadataTag: MetadataTagValue] {
-        guard !changes.isEmpty else { return [:] }
+        guard !changes.isEmpty || hasMapChanges else { return [:] }
         if image.pathExtension.lowercased() == "xmp", let tag = changes.keys.first(where: { !$0.supportsSidecar }) {
             throw ExiftoolError.invalidTagValue(tag: tag.rawValue)
         }
@@ -701,6 +722,11 @@ extension Exiftool {
     public func update(image: URL,
                        from metadata: Metadata,
                        timeZone: TimeZone?) async throws {
+        try await runAsync(metadataArguments(image: image, from: metadata, timeZone: timeZone, writeDate: true))
+    }
+
+    private func metadataArguments(image: URL, from metadata: Metadata,
+                                   timeZone: TimeZone?, writeDate: Bool, numericGPS: Bool = false) -> [String] {
         // ExifTool argument names
         var latArg = "-GPSLatitude="
         var lonArg = "-GPSLongitude="
@@ -723,10 +749,10 @@ extension Exiftool {
 
         // Build ExifTool latitude, longitude, and elevation argument values
         if let location = metadata.location {
-            latArg += "\(location.latitude)"
-            latRefArg += "\(location.latitude)"
-            lonArg += "\(location.longitude)"
-            lonRefArg += "\(location.longitude)"
+            latArg += "\(numericGPS && !usingSidecar ? abs(location.latitude) : location.latitude)"
+            latRefArg += numericGPS ? (location.latitude < 0 ? "S" : "N") : "\(location.latitude)"
+            lonArg += "\(numericGPS && !usingSidecar ? abs(location.longitude) : location.longitude)"
+            lonRefArg += numericGPS ? (location.longitude < 0 ? "W" : "E") : "\(location.longitude)"
             if let ele = metadata.elevation {
                 if ele >= 0 {
                     eleArg += "\(ele)"
@@ -758,7 +784,7 @@ extension Exiftool {
         }
 
         // add args to update date/time if present
-        if let dateTimeCreated = metadata.dateTimeCreated {
+        if writeDate, let dateTimeCreated = metadata.dateTimeCreated {
             let dtoArg = "-datetimeoriginal=" + dateTimeCreated
             let cdArg = "-createdate=" + dateTimeCreated
             args += [dtoArg, cdArg]
@@ -798,7 +824,41 @@ extension Exiftool {
 
         args.append(image.path)
 
-        try await runAsync(args)
+        return args
+    }
+
+    public func verifyMapMetadata(_ expected: Metadata, in image: URL) throws {
+        let gpsGroup = image.pathExtension.lowercased() == Metadata.xmpExtension ? "XMP-exif" : "Composite"
+        let data = try run(["-j", "-n", "-\(gpsGroup):GPSLatitude", "-\(gpsGroup):GPSLongitude",
+                            "-\(gpsGroup):GPSAltitude", "-GPSAltitudeRef", "-GPSMapDatum", "-GPSProcessingMethod",
+                            "-XMP-iptcCore:Location", "-XMP-photoshop:City", "-XMP-photoshop:State",
+                            "-XMP-photoshop:Country", "-XMP-iptcCore:CountryCode", image.path])
+        guard let rows = try JSONSerialization.jsonObject(with: data) as? [[String: Any]],
+              var row = rows.first else { throw ExiftoolError.invalidTagOutput }
+        if let altitude = row["GPSAltitude"] as? Double, row["GPSAltitudeRef"] as? Int == 1 {
+            row["GPSAltitude"] = -abs(altitude)
+        }
+        func numberMatches(_ key: String, _ value: Double?) -> Bool {
+            guard let value else { return row[key] == nil }
+            guard let actual = row[key] as? Double else { return false }
+            return actual.isFinite && abs(actual - value) <= 0.000001
+        }
+        if !expected.preserveGPSOnSave {
+            let checks = [("GPSLatitude", numberMatches("GPSLatitude", expected.location?.latitude)),
+                          ("GPSLongitude", numberMatches("GPSLongitude", expected.location?.longitude)),
+                          ("GPSAltitude", numberMatches("GPSAltitude", expected.location == nil ? nil : expected.elevation)),
+                          ("GPSMapDatum", (row["GPSMapDatum"] as? String ?? "") == (expected.gpsMapDatum ?? "")),
+                          ("GPSProcessingMethod", (row["GPSProcessingMethod"] as? String ?? "") == (expected.gpsProcessingMethod ?? ""))]
+            for (key, matches) in checks where !matches {
+                throw ExiftoolError.invalidTagValue(tag: key)
+            }
+        }
+        let fields = [("Location", expected.sublocation), ("City", expected.city), ("State", expected.state),
+                      ("Country", expected.country), ("CountryCode", expected.countryCode)]
+        for (key, value) in fields {
+            let wanted = expected.location == nil ? "" : value ?? ""
+            guard (row[key] as? String ?? "") == wanted else { throw ExiftoolError.invalidTagValue(tag: key) }
+        }
     }
 
     // convert the dateTimeCreated string to a string with time zone to

@@ -212,8 +212,9 @@ struct SaveHelperTests {
 
         store.send(.selectionChanged([image.id]))
         store.send(.locationChanged(Coords(latitude: 31.23, longitude: 121.48)))
-        #expect(SaveTargets(images: store.imageData).conflicts == [0])
-        #expect(!SaveHelper.requestSave(store))
+        #expect(SaveTargets(images: store.imageData).conflicts.isEmpty)
+        await store.send(.saveRequest) { _ = await SaveHelper.save(store).result }
+        #expect(store.creatorSaveResults[image.id] == .resultUnknown)
         #expect(!store.saveInProgress && store.unsavedChanges)
         #expect(store[image.id].creatorDraft != nil)
         store.send(.creatorDraftRemoved(image.id))

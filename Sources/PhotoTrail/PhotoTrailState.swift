@@ -89,6 +89,7 @@ struct PhotoTrailState {
     var fileImages: [ImageData.ID] = []
     var xmpImages: [ImageData.ID] = []
     var creatorImages: [ImageData.ID] = []
+    var combinedImages: [Int] = []
     var saveFailures: [String] = []
     var creatorSaveResults: [ImageData.ID: MetadataCreatorSaveResult] = [:]
     var backupURL: URL?

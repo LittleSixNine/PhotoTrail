@@ -11,6 +11,7 @@ struct SaveTargets {
     var files: [Int] = []
     var xmp: [Int] = []
     var creator: [Int] = []
+    var combined: [Int] = []
     var creatorFiles = 0
     var conflicts: [Int] = []
 
@@ -34,9 +35,17 @@ struct SaveTargets {
                     targets[key] = index
                 }
             }
-            if image.hasLegacyChanges && image.creatorDraft?.changes.isEmpty == false && (metadataChanged || creatorChanged) {
+            if creatorChanged, image.creatorDraft?.captureDateChange != nil, image.hasLegacyDateChanges {
                 conflicts.append(index)
                 continue
+            }
+            if image.hasLegacyChanges && image.creatorDraft?.changes.isEmpty == false && (metadataChanged || creatorChanged) {
+                // Map-only writes would invalidate the pending field snapshot; save both via All.
+                if image.hasLegacyDateChanges || scope == .map {
+                    conflicts.append(index)
+                    continue
+                }
+                if scope == .all { combined.append(index) }
             }
             if creatorChanged {
                 creator.append(index)
@@ -110,6 +119,7 @@ extension PhotoTrailReducer {
         state.fileImages = targets.files
         state.xmpImages = targets.xmp
         state.creatorImages = targets.creator
+        state.combinedImages = targets.combined
         state.saveCompleted = 0
         state.saveTotal = targets.total
     }

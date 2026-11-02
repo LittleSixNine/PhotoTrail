@@ -1,6 +1,7 @@
 import Exiftool
 import Foundation
 import Imagetool
+import Metadata
 
 public enum MetadataCreatorValue: Equatable, Sendable {
     case absent
@@ -324,7 +325,8 @@ public extension MetadataCreatorEditPlan.Item {
         return value
     }
 
-    func save(backup: MetadataCreatorBackup) async -> MetadataCreatorSaveResult {
+    func save(backup: MetadataCreatorBackup, mapMetadata: Metadata? = nil,
+              timeZone: TimeZone? = nil) async -> MetadataCreatorSaveResult {
         guard !changes.isEmpty else { return .unchanged }
         guard MetadataInspectionFileVersion.read(target) == version else { return .staleSource }
 
@@ -352,9 +354,9 @@ public extension MetadataCreatorEditPlan.Item {
         guard MetadataInspectionFileVersion.read(target) == version else { return .staleSource }
 
         return Self.write(changes: changes, update: {
-            _ = try sandbox.updateMetadataTags(changes, sidecar: sidecar)
+            _ = try sandbox.updateMetadataTags(changes, sidecar: sidecar, mapMetadata: mapMetadata, timeZone: timeZone)
         }, readback: {
-            try sandbox.metadataTags(Set(changes.keys), sidecar: sidecar)
+            try sandbox.metadataTags(Set(changes.keys), sidecar: sidecar, mapMetadata: mapMetadata)
         })
     }
 

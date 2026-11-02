@@ -21,7 +21,7 @@ enum MetadataQuickEdit {
             guard let image = store.imageData.first(where: { $0.id == reading.image.id }),
                   image.metadataInspectionURL == reading.image.metadataInspectionURL,
                   image.metadataCreatorImageURL == reading.image.metadataCreatorImageURL,
-                  !image.hasLegacyChanges, store.creatorSaveResults[image.id] != .resultUnknown else {
+                  !image.hasLegacyDateChanges, store.creatorSaveResults[image.id] != .resultUnknown else {
                 throw MetadataCreatorPlanError.sourceChanged
             }
             return (image: image, snapshot: reading.snapshot)

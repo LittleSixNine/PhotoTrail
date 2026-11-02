@@ -101,19 +101,24 @@ enum SaveHelper {
         if let window = store.mainWindow, !window.makeFirstResponder(nil) { return false }
         guard !store.saveInProgress, store.unsavedChanges else { return false }
         var scope = forceAll ? MetadataSaveScope.all : preferredScope
+        let requiresCombined = scope == .map && store.imageData.contains {
+            $0.hasLegacyChanges && !$0.hasLegacyDateChanges && $0.creatorDraft?.changes.isEmpty == false
+        }
+        if requiresCombined { scope = .all }
         var targets = SaveTargets(images: store.imageData, scope: scope)
         guard targets.conflicts.isEmpty else {
             store.send(.creatorSaveConflict, undoable: false)
             return false
         }
         guard targets.total > 0 else { return false }
-        let prompt = !forceAll && scope == .all && !UserDefaults.standard.bool(forKey: SettingsPreferences.skipSaveScopePromptKey)
+        let prompt = requiresCombined || (!forceAll && scope == .all
+            && !UserDefaults.standard.bool(forKey: SettingsPreferences.skipSaveScopePromptKey))
         if let confirm {
             guard confirm(targets) else { return false }
         } else if ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] != "1",
                   prompt || UserDefaults.standard.bool(forKey: SettingsPreferences.showSaveSummaryKey) {
             guard let chosen = confirmSave(targets, backupURL: store.backupURL, scope: scope,
-                                           allowCurrentPage: !forceAll, showScopeOptions: prompt) else { return false }
+                                           allowCurrentPage: !forceAll && !requiresCombined, showScopeOptions: prompt) else { return false }
             scope = chosen
             targets = SaveTargets(images: store.imageData, scope: scope)
             guard targets.conflicts.isEmpty, targets.total > 0 else { return false }
@@ -145,11 +150,16 @@ enum SaveHelper {
         let creatorItems = store.creatorImages.compactMap {
             store.imageData[$0].creatorDraft
         }
+        let combined = Dictionary(uniqueKeysWithValues: store.combinedImages.map {
+            (store.imageData[$0].id, store.imageData[$0].metadata.forSaving(comparedTo: store.imageData[$0].original))
+        })
         // Do the save in the background, report when done.
         let task = Task {
             let resolvedFiles = await resolveAddresses(fileImages, images: store.imageData, workspace: workspace,
                 onFailure: { store.send(.saveFailure($0), undoable: false) })
             let resolvedXmp = await resolveAddresses(xmpImages, images: store.imageData, workspace: workspace,
+                onFailure: { store.send(.saveFailure($0), undoable: false) })
+            let resolvedCombined = await resolveAddresses(combined, images: store.imageData, workspace: workspace,
                 onFailure: { store.send(.saveFailure($0), undoable: false) })
             async let libUpdated = saveToLibrary(store, libraryImages)
             async let imgUpdated = saveToImage(store, resolvedFiles)
@@ -157,7 +167,7 @@ enum SaveHelper {
 
             let legacyStatus = await [libUpdated, imgUpdated, xmpUpdated]
             // Do not write a physical target concurrently with the legacy save.
-            let creatorStatus = await saveToCreator(store, creatorItems)
+            let creatorStatus = await saveToCreator(store, creatorItems, mapMetadata: resolvedCombined)
             let status = legacyStatus + [creatorStatus]
 
             let sendStatus: SaveStatus =
@@ -271,6 +281,9 @@ enum SaveHelper {
                                       addTags, tagName)
     }
 
+}
+
+extension SaveHelper {
     struct LocalSaveResult: Equatable, Sendable {
         let id: ImageData.ID
         let metadata: Metadata
@@ -397,7 +410,8 @@ enum SaveHelper {
 extension SaveHelper {
     static func saveToCreator(
         _ store: Store<PhotoTrailState, PhotoTrailEvent>,
-        _ items: [MetadataCreatorEditPlan.Item]
+        _ items: [MetadataCreatorEditPlan.Item],
+        mapMetadata: [ImageData.ID: Metadata] = [:]
     ) async -> SaveStatus {
         @AppStorage(PhotoTrailApp.doNotBackupKey) var doNotBackup = false
         guard !items.isEmpty else { return .saveOK }
@@ -416,15 +430,37 @@ extension SaveHelper {
                 store.send(.saveProgress(1), undoable: false)
                 continue
             }
-            let result = await item.save(backup: backup)
+            let map = mapMetadata[item.id]
+            let result = await item.save(backup: backup, mapMetadata: map, timeZone: store.timeZone)
             store.send(.creatorSaveResult(item.id, result), undoable: false)
             if result == .saved || result == .unchanged {
+                if let map {
+                    var outcome: FileSaveOutcome = .saved
+                    @AppStorage(SettingsView.addTagsKey) var addTags = false
+                    @AppStorage(SettingsView.finderTagKey) var finderTag = "PhotoTrail"
+                    if addTags {
+                        do {
+                            let sandbox = try Sandbox(for: item.imageURL)
+                            defer { sandbox.removeSandboxFolder() }
+                            try await sandbox.setTag(name: finderTag.isEmpty ? "PhotoTrail" : finderTag)
+                        } catch {
+                            outcome = .savedWithoutTag
+                            if status == .saveOK { status = .saveTagError }
+                            store.send(.saveFailure(OperationFailure.message(item.target.lastPathComponent, error: error)),
+                                       undoable: false)
+                        }
+                    }
+                    store.send(.localSaveBatch([LocalSaveResult(id: item.id, metadata: map,
+                        sidecarCreated: false, outcome: outcome)]), undoable: false)
+                }
                 store.send(.creatorSaved(item.id), undoable: false)
             } else {
                 status = .saveError
                 store.send(.saveFailure(item.target.lastPathComponent + ": " + creatorFailure(result)), undoable: false)
             }
-            store.send(.saveProgress(1), undoable: false)
+            if map == nil || (result != .saved && result != .unchanged) {
+                store.send(.saveProgress(1), undoable: false)
+            }
         }
         return status
     }

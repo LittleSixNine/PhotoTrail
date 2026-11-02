@@ -248,7 +248,7 @@ struct MetadataListInspectorView: View {
         guard !store.saveInProgress, !loading, !selected.isEmpty else { return nil }
         var readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)] = []
         for image in selected {
-            guard !image.hasLegacyChanges,
+            guard !image.hasLegacyDateChanges,
                   store.creatorSaveResults[image.id] != .resultUnknown,
                   case .values(let snapshot, _) = results[image.id] else { return nil }
             readings.append((image, snapshot))
@@ -258,9 +258,9 @@ struct MetadataListInspectorView: View {
     }
 
     private var editUnavailableReason: String {
-        let pending = selected.filter(\.hasLegacyChanges).count
+        let pending = selected.filter(\.hasLegacyDateChanges).count
         if pending > 0 {
-            return L10n.text("所选照片中有 %1$@ 张存在未保存的日期或定位修改，请先保存全部修改。", pending)
+            return L10n.text("所选照片中有 %1$@ 张存在尚未保存的拍摄时间修改，请先保存这些时间修改。", pending)
         }
         let unsupported = selected.filter { !$0.supportsMetadataEditing }.count
         if unsupported > 0 {

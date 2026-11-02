@@ -289,6 +289,7 @@ struct PhotoTrailReducer: Reducer, Sendable {
             newState.fileImages = []
             newState.xmpImages = []
             newState.creatorImages = []
+            newState.combinedImages = []
             switch saveStatus {
             case .saveOK:
                 if !newState.saveFailures.isEmpty {

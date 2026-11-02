@@ -3,6 +3,48 @@ import Metadata
 import Testing
 @testable import Exiftool
 
+extension MetadataTagTests {
+    @Test func combinedMapAndTwelveDateFieldsPreservePixelsAndIndependentValues() throws {
+        let fixture = try #require(Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
+        let folder = try makeTestFolder(andCopy: fixture)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let image = folder.appendingPathComponent(fixture.lastPathComponent)
+        let pixels = try textValue("ImageDataMD5", from: image)
+        let date = "2026:10:31 21:40:05.123+08:00"
+        var map = Metadata(source: .image(image))
+        map.location = .init(latitude: -33.75, longitude: -122.25)
+        map.elevation = -4.25; map.gpsMapDatum = "WGS-84"; map.gpsProcessingMethod = "MANUAL"
+        map.city = "测试城市"; map.country = "测试国家"; map.countryCode = "XX"
+        map.dateTimeCreated = date
+        let changes: [MetadataTag: MetadataTagChange] = [
+            .captureDate: .set(.text(date)), .exifCreateDate: .set(.text("2020:01:02 03:04:05")),
+            .exifModifyDate: .set(.text("2021:02:03 04:05:06")), .sidecarDate: .set(.text("2022:03:04 05:06:07")),
+            .dateOriginal: .set(.text("2023:04:05 06:07:08")), .dateDigitized: .set(.text("2024:05:06 07:08:09")),
+            .dateModified: .set(.text("2025:06:07 08:09:10")), .iptcDateCreated: .set(.text("2026:10:31")),
+            .iptcTimeCreated: .set(.text("21:40:05+08:00")),
+            .fileCreateDate: .set(.text("2020:01:02 03:04:05+08:00")),
+            .fileModifyDate: .set(.text("2024:02:29 23:59:59+08:00")),
+            .descriptionDefault: .set(.text("e\u{301}，🌿"))]
+        let result = try Exiftool.helper.update(image: image, changes: changes, mapMetadata: map)
+        for (tag, change) in changes {
+            if case .set(let value) = change { #expect(tag.matches(result[tag], value)) }
+        }
+        try Exiftool.helper.verifyMapMetadata(map, in: image)
+        #expect(try textValue("ImageDataMD5", from: image) == pixels)
+        let before = try Data(contentsOf: image)
+        map.location = .init(latitude: .nan, longitude: 0)
+        #expect(throws: (any Error).self) {
+            _ = try Exiftool.helper.update(image: image, changes: [.creator: .set(.list(["must not write"]))], mapMetadata: map)
+        }
+        #expect(try Data(contentsOf: image) == before)
+        map.location = nil; map.elevation = nil; map.gpsMapDatum = nil; map.gpsProcessingMethod = nil
+        _ = try Exiftool.helper.update(image: image, changes: [.subject: .set(.list(["kept"]))], mapMetadata: map)
+        try Exiftool.helper.verifyMapMetadata(map, in: image)
+        #expect(try textValue("ImageDataMD5", from: image) == pixels)
+    }
+
+}
+
 struct MetadataTagTests {
     @Test func newlyWritableFieldsPreservePixelsAndVerifyFileTimesLast() throws {
         let fixture = try #require(Bundle.module.url(forResource: "alldata", withExtension: "jpg"))

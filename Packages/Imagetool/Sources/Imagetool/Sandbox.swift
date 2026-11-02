@@ -157,18 +157,22 @@ extension Sandbox {
 extension Sandbox {
 
     public func updateMetadataTags(_ changes: [MetadataTag: MetadataTagChange],
-                                   sidecar: Bool) throws -> [MetadataTag: MetadataTagValue] {
+                                   sidecar: Bool, mapMetadata: Metadata? = nil,
+                                   timeZone: TimeZone? = nil) throws -> [MetadataTag: MetadataTagValue] {
         NSFileCoordinator.addFilePresenter(xmpPresenter)
         defer { NSFileCoordinator.removeFilePresenter(xmpPresenter) }
         return try Exiftool.helper.update(image: sidecar ? xmpURL : imgURL,
-                                          changes: changes)
+                                          changes: changes, mapMetadata: mapMetadata, timeZone: timeZone)
     }
 
     public func metadataTags(_ tags: Set<MetadataTag>,
-                             sidecar: Bool) throws -> [MetadataTag: MetadataTagValue] {
+                             sidecar: Bool, mapMetadata: Metadata? = nil) throws -> [MetadataTag: MetadataTagValue] {
         NSFileCoordinator.addFilePresenter(xmpPresenter)
         defer { NSFileCoordinator.removeFilePresenter(xmpPresenter) }
-        return try Exiftool.helper.metadataTags(tags, from: sidecar ? xmpURL : imgURL)
+        let target = sidecar ? xmpURL : imgURL
+        let values = try Exiftool.helper.metadataTags(tags, from: target)
+        if let mapMetadata { try Exiftool.helper.verifyMapMetadata(mapMetadata, in: target) }
+        return values
     }
 
     // use exiftool to save metadata changes to the image or xmp file

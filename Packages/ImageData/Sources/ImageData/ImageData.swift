@@ -62,6 +62,13 @@ public struct ImageData: Identifiable, Sendable {
         return comparison != original
     }
 
+    public var hasLegacyDateChanges: Bool {
+        if let draft = creatorDraft, draft.captureDateChange != nil {
+            return metadata.dateTimeCreated != draft.captureDateValue
+        }
+        return metadata.dateTimeCreated != original?.dateTimeCreated
+    }
+
     // init given a Metadata and a String name.
 
     public init(metadata: Metadata, name: String) {

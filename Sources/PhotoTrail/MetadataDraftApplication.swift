@@ -22,7 +22,7 @@ struct MetadataDraftRequest: Sendable {
               (!requiresSelection || state.imageData.filter({ selection.contains($0.id) }).sorted(using: state.sortOrder).map(\.id) == order) else { return false }
         let images = Dictionary(uniqueKeysWithValues: state.imageData.map { ($0.id, $0) })
         return readings.allSatisfy { reading in
-            guard let image = images[reading.image.id], image.updatable == reading.image.updatable, !image.hasLegacyChanges,
+            guard let image = images[reading.image.id], image.updatable == reading.image.updatable, !image.hasLegacyDateChanges,
                   image.name == reading.image.name,
                   image.metadata == reading.image.metadata, image.creatorDraft == reading.image.creatorDraft,
                   state.creatorSaveResults[image.id] != .resultUnknown else { return false }
