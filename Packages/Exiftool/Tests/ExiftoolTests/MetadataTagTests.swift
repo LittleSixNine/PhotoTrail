@@ -4,6 +4,36 @@ import Testing
 @testable import Exiftool
 
 extension MetadataTagTests {
+    @Test func heicEXIFAndXMPFieldsRoundTripWithoutChangingImageData() throws {
+        let fixture = try #require(Bundle.module.url(forResource: "IMG_5654", withExtension: "HEIC"))
+        let original = try Data(contentsOf: fixture)
+        let folder = try makeTestFolder(andCopy: fixture)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let image = folder.appendingPathComponent(fixture.lastPathComponent)
+        let pixels = try #require(try textValue("ImageDataMD5", from: image))
+        let changes: [MetadataTag: MetadataTagChange] = [
+            .creator: .set(.list(["摄影师 🌿"])), .titleDefault: .set(.text("旅行")),
+            .descriptionDefault: .set(.text("e\u{301}，HEIC")), .rightsDefault: .set(.text("© 2026")),
+            .subject: .set(.list(["旅行", "test"])), .exifArtist: .set(.text("Artist")),
+            .exifComment: .set(.text("Comment 中文")), .exifCopyright: .set(.text("Copyright")),
+            .captureDate: .set(.text("2024:01:02 03:04:05.123+08:00")),
+            .exifCreateDate: .set(.text("2020:02:03 04:05:06")),
+            .dateOriginal: .set(.text("2024:01:02 03:04:05.123+08:00")),
+            .exifOrientation: .set(.text("6")), .rating: .set(.text("4")), .label: .set(.text("Red"))]
+        let actual = try Exiftool.helper.update(image: image, changes: changes)
+        for (tag, change) in changes {
+            if case .set(let expected) = change { #expect(tag.matches(actual[tag], expected)) }
+        }
+        #expect(try textValue("ImageDataMD5", from: image) == pixels)
+        let beforeRejectedChange = try Data(contentsOf: image)
+        // Changing this fixture's maker invalidates its MakerNotes interpretation.
+        #expect(throws: MetadataTagUpdateError.self) {
+            _ = try Exiftool.helper.update(image: image, changes: [.exifMake: .set(.text("Camera"))])
+        }
+        #expect(try Data(contentsOf: image) == beforeRejectedChange)
+        #expect(try Data(contentsOf: fixture) == original)
+    }
+
     @Test func combinedMapAndTwelveDateFieldsPreservePixelsAndIndependentValues() throws {
         let fixture = try #require(Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
         let folder = try makeTestFolder(andCopy: fixture)

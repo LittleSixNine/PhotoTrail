@@ -13,9 +13,11 @@ let package = Package(
         .package(name: "Metadata", path: "../Metadata")
     ],
     targets: [
+        .plugin(name: "MetadataCodecPlugin", capability: .buildTool()),
         .target(name: "Exiftool",
                 dependencies: ["Coords", "Metadata"],
-                resources: [.copy("ExifToolCommand")]),
+                resources: [.copy("ExifToolCommand")],
+                plugins: [.plugin(name: "MetadataCodecPlugin")]),
         .testTarget(name: "ExiftoolTests",
                     dependencies: [
                         "Exiftool", "Coords", "Metadata"
@@ -25,7 +27,8 @@ let package = Package(
                         .copy("alldata.jpg"),
                         .copy("262M1559.DNG"),
                         .copy("262M1559.xmp"),
-                        .copy("IMG_5654.HEIC")
+                        .copy("IMG_5654.HEIC"),
+                        .copy("JXL2.jxl")
                     ],
                     swiftSettings: [
                         .define("LOG_ARGS", .when(configuration: .debug))

@@ -340,7 +340,7 @@ struct ContentView: View {
     }
 
     private func importTypes() -> [UTType] {
-        [.image, .folder] + UTType.photoTrailTracks
+        UTType.photoTrailImages + [.folder] + UTType.photoTrailTracks
     }
 }
 

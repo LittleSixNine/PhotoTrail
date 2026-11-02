@@ -11,7 +11,7 @@ struct MetadataRawEditingTests {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
         let tags: Set<MetadataTag> = [.creator, .exifArtist, .iptcByline]
-        let readings = try ["ARW", "CR3", "CRW", "HEIC"].map { ext in
+        let readings = try ["ARW", "CR3", "CRW", "BMP"].map { ext in
             let url = folder.appendingPathComponent("sample.\(ext)")
             try Data("synthetic capability test".utf8).write(to: url)
             return (image: ImageData(metadata: Metadata(source: .image(url)), name: url.lastPathComponent),

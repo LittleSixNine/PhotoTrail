@@ -31,6 +31,7 @@ let package = Package(
             dependencies: ["ImageData"],
             resources: [
                 .copy("alldata.jpg"),
+                .copy("blank.heic"),
                 .copy("262M1559.DNG"),
                 .copy("262M1559.xmp")
             ]

@@ -61,8 +61,7 @@ public extension ImageData {
         switch metadata.source {
         case .xmp: return true
         case .image(let url):
-            return ["jpg", "jpeg", "arw", "cr2", "cr3", "crw", "dng", "nef", "nrw",
-                    "orf", "pef", "raf", "rw2", "rwl", "sr2", "srw"].contains(url.pathExtension.lowercased())
+            return MetadataImageFormat.writableExtensions.contains(url.pathExtension.lowercased())
         case .photos, .copy: return false
         }
     }
@@ -72,12 +71,7 @@ public extension ImageData {
         switch metadata.source {
         case .xmp: return tag.supportsSidecar
         case .image(let url):
-            // CR3 has no IPTC container; CRW supports embedded XMP but not EXIF/IPTC.
-            switch url.pathExtension.lowercased() {
-            case "cr3": return !tag.rawValue.hasPrefix("IPTC:")
-            case "crw": return tag.supportsSidecar || tag.isFileTime
-            default: return true
-            }
+            return MetadataImageFormat.supportsEditing(tag, extension: url.pathExtension)
         case .photos, .copy: return false
         }
     }

@@ -54,6 +54,7 @@ public struct ImageData: Identifiable, Sendable {
     }
 
     public var hasLegacyChanges: Bool {
+        guard updatable else { return false }
         var comparison = metadata
         if let draft = creatorDraft, draft.captureDateChange != nil,
            metadata.dateTimeCreated == draft.captureDateValue {
@@ -63,6 +64,7 @@ public struct ImageData: Identifiable, Sendable {
     }
 
     public var hasLegacyDateChanges: Bool {
+        guard updatable else { return false }
         if let draft = creatorDraft, draft.captureDateChange != nil {
             return metadata.dateTimeCreated != draft.captureDateValue
         }

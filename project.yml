@@ -45,6 +45,7 @@ settings:
       - Sources/PhotoTrail/DevAssets/TestPictures/P1000686.JPG
       - Sources/PhotoTrail/DevAssets/TestPictures/Screenshot.png
       - Sources/PhotoTrail/DevAssets/TestPictures/image.foo
+      - Sources/PhotoTrail/DevAssets/TestPictures/MetadataCompressed.jxl
     DEVELOPMENT_TEAM: ""
     ENABLE_APP_SANDBOX: YES
     ENABLE_RESOURCE_ACCESS_LOCATION: YES

@@ -112,3 +112,13 @@ Rename directory access uses security-scoped bookmarks in `RenameWorkspace`. `pr
 
 
 The ExFAT rename fallback runs only after renamex_np(RENAME_EXCL) returns ENOTSUP. It creates the destination with O_EXCL/O_NOFOLLOW, copies data and attributes with fcopyfile, synchronizes and verifies hashes/source versions, then unlinks the old name. It does not use an ordinary move that could overwrite a racing target. Copied files may change inode; optional copyCompatible identity metadata supports content/time checks, and optional journal failure stores errors. Native creation-time attributes are applied, but ExFAT fractional seconds are not guaranteed and must be disclosed. RenameTests covers copy moves, collisions/symlinks, persisted errors, old journals and alert state. Real-volume verification uses isolated generated fixtures, never private originals.
+
+`MetadataHEICEditingTests` covers single-field edits/removal, HEIC/HEIF/JPEG batch presets, date shifts and copies, IPTC skips, combined location saves, original backups and unchanged image data using public synthetic fixtures. Exiftool also checks EXIF/XMP readback on its HEIC sample.
+
+### Static image formats and JPEG XL metadata
+
+`MetadataImageFormat` centralizes static-image import and controlled EXIF/IPTC/XMP editing. See [format support](../FORMATS.md) (Chinese). Import panels and dropped files use the same catalog. ExifTool can read metadata when ImageIO cannot decode a preview.
+
+The Exiftool package's `MetadataCodecPlugin` compiles `Tools/MetadataBrotli.c` with Xcode clang and the system Compression library. It produces an ad-hoc signed arm64/x86_64 resource targeting macOS 14. SwiftPM packages the generated resource; do not commit the binary. The Perl adapter operates only on bounded temporary metadata buffers (under 100 MB), without Homebrew or external Perl Brotli dependencies.
+
+`MetadataBrotliTests` checks compressed JPEG XL writes, unchanged image data, malformed input and decompression limits. `MetadataFormatParityTests` covers generated PNG/TIFF/GIF/BMP files, namespace rules, combined locations, backups, pixels and date clearing. Set `PHOTOTRAIL_FORMAT_FIXTURES` to a public-fixture directory for additional cases; `PHOTOTRAIL_FORMAT_OUTPUT` retains edited copies for validation. App `MetadataFormatImportTests` exercises import exclusions and the codec inside the sandbox. Fixture-generation tools are development-only dependencies.

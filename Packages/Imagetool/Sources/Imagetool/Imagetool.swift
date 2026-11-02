@@ -14,14 +14,16 @@ public struct Imagetool {
 
     public static func metadata(from imageURL: URL) -> Metadata {
         var metadata = Metadata(source: .image(imageURL))
+        if MetadataImageFormat.usesXMPGPS(extension: imageURL.pathExtension) {
+            return Exiftool.helper.metadata(from: nil, primaryURL: imageURL)
+        }
 
         // create an image reference for the given URL
         guard let imgRef = CGImageSourceCreateWithURL(imageURL as CFURL, nil)
         else {
             Self.logger.error(
                 "\(#function, privacy: .public): failed to create CGImageSource from URL \(imageURL.path, privacy: .public)")
-            metadata.readable = false
-            return metadata
+            return metadataFallback(from: imageURL)
         }
 
         // grab image properties as an NSDictionary
@@ -32,19 +34,17 @@ public struct Imagetool {
         else {
             Self.logger.error(
                 "\(#function, privacy: .public): failed to copy properties from URL \(imageURL.path, privacy: .public)")
-            metadata.readable = false
-            return metadata
+            return metadataFallback(from: imageURL)
         }
         if imgProps.count == 0 {
             Self.logger.error(
                 "\(#function, privacy: .public): no properties copied from URL \(imageURL.path, privacy: .public)")
-            metadata.readable = false
-            return metadata
+            return metadataFallback(from: imageURL)
         }
 
         // extract image date/time created
 
-        if ["jpg", "jpeg"].contains(imageURL.pathExtension.lowercased()) {
+        if MetadataImageFormat.supportsEditing(.captureDate, extension: imageURL.pathExtension) {
             // ImageIO synthesizes EXIF dates from stale XMP aliases after EXIF removal.
             // Read the explicit source so clearing the capture date survives reopening.
             do {
@@ -115,6 +115,15 @@ public struct Imagetool {
     //
     // The url in the returned metadata will reference the image,
     // not the xmp file.
+
+    private static func metadataFallback(from url: URL) -> Metadata {
+        if MetadataImageFormat.readableExtensions.contains(url.pathExtension.lowercased()) {
+            return Exiftool.helper.metadata(from: nil, primaryURL: url)
+        }
+        var metadata = Metadata(source: .image(url))
+        metadata.readable = false
+        return metadata
+    }
 
     public static func metadata(from imageURL: URL, xmp: URL) -> Metadata {
         let metadata: Metadata

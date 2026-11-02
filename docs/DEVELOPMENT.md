@@ -160,3 +160,13 @@ PhotoTrail 基于 GeoTag v6.0.2 派生，仍使用其部分应用基础设施与
 
 
 重命名的 ExFAT 兼容分支仅在 `renamex_np(RENAME_EXCL)` 返回 ENOTSUP 后启用：O_EXCL／O_NOFOLLOW 创建目标，fcopyfile 复制数据与属性、同步及 SHA-256／源版本复核后 unlink 原名；不调用存在竞争覆盖风险的普通移动。复制后的 inode 可变化，日志可选 `copyCompatible` 标记支持内容与时间核对，新增可选 `failure` 保留失败原因。创建时间通过原生属性接口设置；ExFAT 小数秒不能保证保留，确认与行为文档必须说明。`RenameTests` 覆盖兼容复制、重名／符号链接、错误持久化、旧日志及弹窗状态；真实宗卷验证仅用独立生成样本，禁止将用户原片作为试验材料。
+
+`MetadataHEICEditingTests` 使用公开合成 HEIC 副本，覆盖单字段赋值／清除、HEIC／HEIF／JPEG 混合批量预设、日期偏移与复制、IPTC 跳过、定位合并、原片备份和像素数据不变；Exiftool 的 HEIC 样本另验证 EXIF／XMP 回读。
+
+### 静态图像格式与 JPEG XL 元数据
+
+`MetadataImageFormat` 集中维护静态图像导入与受控 EXIF／IPTC／XMP 字段资格，完整清单见 [格式支持](FORMATS.md)。导入窗口和拖入路径复用同一清单；没有 ImageIO 解码器时以 ExifTool 读取元数据，不能把读取回退等同于预览解码成功。
+
+Exiftool 包的 `MetadataCodecPlugin` 使用 Xcode 的 clang 编译 `Tools/MetadataBrotli.c`，链接系统 Compression，生成 macOS 14 起可用的 arm64／x86_64 通用辅助资源并做 ad-hoc 签名。插件资源由 SwiftPM 打包；不要手动把构建出的 `.bin` 纳入源码。随包 Perl 适配器只处理临时元数据缓冲，输入／输出均限于 100 MB 内；不依赖 Homebrew、外部 Perl Brotli 模块或额外运行时安装。
+
+`MetadataBrotliTests` 验证压缩 JPEG XL 写入、编码图像数据不变、无效数据及解压边界。`MetadataFormatParityTests` 生成 PNG／TIFF／GIF／BMP 副本，验证字段家族、定位合并、备份、像素及日期清除；设置 `PHOTOTRAIL_FORMAT_FIXTURES=/path/to/public-fixtures` 可补测公开代表样本，`PHOTOTRAIL_FORMAT_OUTPUT` 可保存写后副本供容器／像素核对。App 的 `MetadataFormatImportTests` 覆盖静态图像导入排除项与沙盒内 Brotli 辅助程序执行。测试样本复制、转换和解码工具只用于开发验证，不作为最终用户依赖。

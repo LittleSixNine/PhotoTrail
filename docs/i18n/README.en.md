@@ -4,141 +4,125 @@
 
 # PhotoTrail
 
+Give your photos a sense of place.
 
-Organize photo locations, metadata and file names on macOS.
+PhotoTrail is a free macOS tool for organizing photos. Add locations to camera shots, correct dates and credits, then turn scattered file names into a clear sequence. Import once and use all three workflows together—or just the one you need.
 
-Click an editable field on a single photo to type in place. Leaving the input adds a pending draft. For batches, add and configure changes in an empty list, then apply together. Saving writes the files.
+| Your goal | What PhotoTrail offers |
+| --- | --- |
+| Recover locations | Match a trip track; review and adjust on a map |
+| Complete photo details | Correct dates; add authors, copyright and keywords |
+| Organize file names | Combine dates, places and sequences; keep related files together |
 
-PhotoTrail brings together **track matching, metadata editing and batch renaming**. Add locations from a trip, correct dates and photo details, then apply a consistent naming scheme. Use these workflows together or independently. Some photo-processing capabilities are derived from [GeoTag](https://github.com/marchyman/GeoTag).
+## Preview
 
-| Task | Workflow | Examples |
-| --- | --- | --- |
-| Add or correct locations | Track matching and maps | Match a trip track, review or adjust locations on a map |
-| Complete photo information | Metadata viewing and editing | Correct dates; add credits, keywords and device details |
-| Organize file names | Batch renaming | Capture date and sequence; text replacement; paired sidecars |
+![Photo preview, map and track sidebar](../screenshots/photo-detail.png)
 
-All three workspaces offer Clear list, including hidden and unselected photos, without deleting originals. Confirmation explains unsaved changes and discarded unapplied input; Undo restores photos and existing drafts. The library button is Import from Photos. Manual region filling is under Advanced → Fill missing region details from location… in Map.
+![Metadata editor: photo list, common fields and batch presets](../screenshots/metadata-editor.png)
 
-## New in 0.5.11
+![Batch renaming: rules and file name previews](../screenshots/batch-rename.png)
 
-Two compact cards, “Advanced batch rules” and “Apply batch preset”, sit above the fields. Choose individual preset shortcuts in the preset menu. Rules slide over the inspector without changing its width; returning keeps the field-list position and unapplied rules. Location actions use the Map workspace; the separate Photo Actions sidebar is removed.
-
-## New in 0.5.10
-
-Batch date adjustments skip missing values with an explanation and continue other photos and preset operations. Apply is disabled without new changes; out-of-range offsets or changed source files block the batch.
-
-## New in 0.5.9
-
-Settings add metadata text size, spacing and full tag names, plus recent-search controls; photo list sorting is remembered. Track menus preview and apply time or east/north offsets, preserving source files and exporting adjusted GPX separately. Renaming adds processing sort, filters and file-group dragging; result display does not change numbering.
-
-## Download and requirements
-
-[Download the latest release](https://github.com/LittleSixNine/PhotoTrail/releases/latest) · [Release history](https://github.com/LittleSixNine/PhotoTrail/releases)
-
-Requires **macOS 14 or later**. Packages support Apple silicon and Intel Macs. Current distribution uses an ad-hoc signature and has not completed Developer ID signing or Apple notarization, so macOS may block the first launch.
-
-PhotoTrail is free to use. Downloading updates automatically is a separate option and is off by default. Installation is manual: open the downloaded DMG, quit PhotoTrail, then drag the app to Applications.
-
-## Features
+## Three ways to organize your photos
 
 ### 1. Track matching and map locations
 
-- **Match photos by time:** import GPX, KML or KMZ with per-point timestamps. Preview matches in the photo list, or use the map sidebar to fill missing locations or explicitly replace existing ones. Matching stays within a recorded segment and its coverage; gaps and conflicting tracks are not silently resolved.
-- **Review and adjust on a map:** use Apple Maps or AMap, search, favorite places and photo thumbnail markers. Apply one location to selected photos or drag an individual marker. Confirmed AMap locations are checked and converted to WGS84.
-- **Create and export tracks:** generate GPX from located photos and capture times, splitting long gaps into segments. Show, hide, cache and export tracks, or export geotagged photo copies and a verification report to a new folder.
+**Keep a record of the journey, even without a GPS camera.**
 
-Untimed routes are view-only. Track CSV is not supported; tracks generated from photos export as GPX. KMZ reads root doc.kml or the archive’s only KML, without loading external links or attachments.
+- **Locate photos from a track:** import timestamped GPX, KML or KMZ, match capture times and preview before applying.
+- **Adjust on a map:** use Apple Maps or AMap, search and favorite places, drag markers or set one location for several photos.
+- **Turn photos into a track:** generate GPX from geotagged photos, or export geotagged photo copies with a verification report.
 
-Location saves can also write state/province, city, district and the country/code returned by the lookup service. Disable automatic completion in settings or fill missing region fields for already geotagged local photos/XMP from the map tab. Apple Photos still supports only location and date updates through the system interface.
+Locations can also fill region details such as state and city. Untimed routes are view-only; matching stays within recorded segments and their time coverage.
 
 ### 2. Metadata viewing and editing
 
-Common and complete fields use the same list and editing controls. Dates identify EXIF, IPTC, XMP or filesystem sources.
+**Bring dates, credits and copyright into order.**
 
-- **Inspect and edit fields:** search names, tags or values and browse groups. Titles, descriptions, authors, rights, keywords, dates and devices use suitable editors. See the [device catalog](../DEVICE_CATALOG.md).
-- **Batch presets:** arrange assignments, copies and date adjustments; apply to add pending changes. Create, save, load, delete, import or export JSON presets. Copy one source field to multiple destination fields. Date adjustments skip missing values per operation and explain why; No drafts are added when there are no new changes.
+- **Find and edit:** search EXIF, IPTC, XMP and other information by name, tag or value; edit common fields in place.
+- **Start with a preset:** add an hour, recover capture dates from file names, align date fields or fill missing author and copyright details.
+- **Build a repeatable workflow:** arrange assignments, field copies and time adjustments, then save a preset. Describe filename dates with `YYYY`, `MM`, `DD` and similar tokens—no regular expressions needed.
 
-Location and metadata edits can coexist on one photo. Save All combines them into one file write and one backup; failures retain both drafts. Combined saves use the field draft’s current image or existing XMP target without creating a new sidecar. Saving only metadata keeps location pending; map-only saves ask to save both when they share a file.
-
-Four built-in batch presets add one hour to capture time, restore capture time from filenames, align photo date fields, and fill missing author and copyright. They are added once on first launch of this update; existing names are preserved and deleted presets stay deleted. The filename rule supports `IMG_YYYYMMDD_HHmmss.jpg` and `YYYYMMDD_HHmmss.jpg` and can be edited. Date alignment copies EXIF capture time to XMP original and creation dates, leaving digitized, modified and file times unchanged. Enter author and copyright values before applying; only empty fields are filled. Save is still required to write photos.
-
-Filename date parsing offers six simple formats with examples, including `YYYY.MMDD` and `YYYY-MM-DD`. Text may surround the date. Date-only names use `00:00:00` with an explicit notice. Custom regular expressions remain in advanced options and existing presets stay compatible.
-
-Choose Custom to enter `YYYY` (year), `MM` (month), `DD` (day), `HH` (hour), `mm` (minute), and `ss` (second), for example `IMG_YYYYMMDD_HHmmss`. Other text is literal. Include each date component once; time may contain hours, hours and minutes, or all three components. Unspecified time components use zero. An example updates as you type; invalid formats cannot be applied. Custom formats are saved and restored with presets. The default custom date format is `YYYY.MM.DD_HHmmss`; saved custom formats remain unchanged.
-- **Copy and paste fields:** use ⌘C/⌘V or Ctrl+C/Ctrl+V to copy one field’s raw value into multiple writable fields. Edited values appear in orange; saving is still required to write files.
-- **Dates and exchange:** choose increase or decrease separately for years, months, days, hours, minutes and seconds. Change a specific date component, set fixed intervals or distribute dates evenly; controlled CSV/XMP exchange and per-photo comparisons remain available.
-
-**Readable fields are not all writable.** Controlled fields can be edited in JPEG, supported RAW formats (including ARW), and existing XMP sidecars. RAW needs neither a paired JPEG nor a new sidecar. Mixed selections skip unsupported files/fields with an explanation; write failures remain unresolved. HEIC, Apple Photos, structural and computed fields remain outside this editor. See [supported formats, field limits and Sony Imaging Edge compatibility](../BEHAVIOR.md) (Chinese).
-
-Edit a single photo in place; leaving the field adds a draft, while invalid input stays available. Save or ⌘S writes the file after finishing the current input. Batch editing starts with an empty list of changes. Configure each in a dialog, edit or remove it, repeat a field, and change the order. Each row shows changed/total, unchanged and skipped photos, using the results of earlier actions. Counts and examples do not modify photos. Fixed scope, value distributions, batch undo, presets and comparison/exchange remain available.
-
-Batch actions support copying from another field or copying each photo’s current field to multiple destinations. Duplicate inserts an independent copy immediately below the row for quick adjustments. Time offset, per-photo intervals and start/end distribution have distinct labels and explanations.
+Edit JPEG, HEIC/HEIF, PNG, TIFF, WebP, AVIF, GIF, PSD/PSB, JPEG 2000 (JP2), JPEG XL, supported RAW and existing XMP individually or in batches. Writable fields vary by format; additional static images can be imported for inspection. See [format support](../FORMATS.md) (Chinese).
 
 ### 3. Batch renaming
 
-- **Arrange rules in order:** drag the three-line handle to move the whole card; right-click blank card space to duplicate or delete. Text, dates and sequences use consistent Replace, Add at beginning and Add at end wording.
-- **Manage schemes:** five defaults and personal schemes share an editable, deletable list with saving and JSON exchange. Device and city fields have dedicated cards. Editing rules updates the example from the first preview result; it is saved with the scheme. Saved rule cards load collapsed, and unsaved rules do not overwrite a scheme.
-- **Review names and conflicts:** the table shows original/final names, related files and conflicts, with an optional intermediate-result column. Numeric conflict suffixes offer 2–5 digits and separator formats. Execution shows central progress and Stop and Restore.
+**Replace camera numbers with names you can recognize.**
 
-All three tabs share photos and selection, including imports from Rename. The default scope is all imported photos; selected photos are also supported. JPG/RAW/XMP associations remain intact. Removing a photo updates all tabs, supports undo and does not delete the disk file. Photos without local paths cannot be renamed directly. Save pending metadata/location changes first, then review and confirm renaming. Renaming runs separately; execution records restore names only when identity and content match.
+- **Name files your way:** combine capture dates, places, devices, text and sequences; drag rules into order.
+- **Preview first:** check old names, new names and conflicts for all photos or just a selection.
+- **Keep related files together:** handle associated JPG, RAW and XMP files; save schemes and restore previous names from execution records when files are unchanged.
 
-On Mac, a red “Authorize Folders…” button indicates missing directory modification access. Select the containing folder or a parent; Desktop, Downloads or the current external volume root is suggested where applicable. Confirmed access is stored locally, restored on later launches and covers subfolders. Only previewed files are processed, without recursive volume scanning. Read-only volumes and system permission restrictions still apply.
+Save pending photo edits before renaming. ExFAT-compatible renaming is supported; folder access and space requirements are covered in the [detailed guide](../BEHAVIOR.md).
 
-Mac supports compatible renaming on ExFAT: it creates the destination exclusively, copies and verifies content, then removes the old name. This requires extra space and may take longer. Fractional seconds in ExFAT file creation times may not be preserved; capture times and file contents remain unchanged. Confirmation explains these limits. Failures show a dialog with the reason, file and recovery status; execution journals retain the error.
+## Saving changes
 
-On Mac, import, save, track, favorite, preset and settings failures show their reasons. Failed saves keep drafts; partial success reflects the actual outcome. Cancellation is not an error.
+**Preview first. Write when ready.** Browsing, editing and applying presets do not immediately change files; undo is available before saving.
 
-### Saving changes
+By default, Save All Metadata (⌘S) saves location and field edits together, regardless of selection or filters. Settings can limit saving to the current tab. Local saves follow backup settings and verify results by reading them back, without recompressing pixels. Failed saves retain pending edits.
 
-By default, **Save All Metadata** (⌘S) saves pending changes from both tabs, regardless of selection or filters. Its prompt offers confirmation, cancellation, switching to the current tab and hiding future prompts. Choose **Save Current Tab Metadata** in Photos and Saving settings to preserve pending changes from the other tab. Browsing and previews do not write files; local saves follow backup settings, verify results by reading them back and do not recompress pixels. JPG + RAW pairs can share location writes; new fields are not automatically copied to RAW. Apple Photos uses the system interface with a different editing scope.
-
-## Large photo sets and caching
-
-Import estimates the remaining time for the full process; without reliable speed samples it shows that estimation is in progress. Batches of more than 300 photos show a wait notice. Renaming displays global progress and supports stopping and restoring names.
-
-After import and metadata preparation, thumbnails load on demand in the metadata list and location filmstrip, with priority given to the current photo preview. Switching photos and scrolling the filmstrip avoid repeated work. Updates preserve settings, favorites and track caches; thumbnail and metadata-read caches last only for the current session and are rebuilt after reopening.
+Apple Photos uses the system interface for location and date updates, with different editing and backup limits. JPG + RAW pairs can share location writes; other metadata is not copied automatically.
 
 ## Getting started
 
-1. **Import and check:** finish language, backup and map setup, then open or drag in photos. Check capture times and the camera time zone; correct dates in the metadata workspace when necessary.
-2. **Add locations:** import GPX/KML/KMZ, select photos, inspect matches and apply reliable results. Without a track, use the map, search or favorites.
-3. **Complete photo details:** use common fields for quick edits; switch to complete fields for additional tags and batch tools.
-4. **Save together:** review pending changes and click Save All Metadata. AMap requires your own Web JS API Key and securityJsCode; Apple Maps does not require AMap credentials.
-5. **Rename files:** choose the scope and rules, check paired files, conflicts and final names, then confirm. Skip this step if names should stay unchanged.
+1. **Import photos:** open or drag in files; check capture times and the camera time zone.
+2. **Add locations:** preview track matches or choose a point on the map.
+3. **Complete details:** edit common fields or apply a batch preset.
+4. **Save:** review changes and write them; preview and run renaming afterward if needed.
 
-You can use any workflow independently. Generating GPX or exporting geotagged copies does not overwrite the original photos; removing photos from the list does not delete their files. Local-file backups do not cover Photos-library items.
+Each workflow works independently. Removing photos from the list does not delete files; exporting copies does not overwrite originals.
+
+## Large photo sets and caching
+
+Import shows progress and estimated time remaining; thumbnails load on demand. Settings, favorites and track caches persist. Thumbnail and metadata-read caches rebuild on the next launch.
 
 ## Languages
 
-The app supports Simplified Chinese, English, Traditional Chinese, Japanese, Korean, Spanish, and Brazilian Portuguese. Choose a language in the first step of setup. Simplified Chinese defaults to AMap; every other language defaults to Apple Maps. You can choose a different map in the map setup step. Existing users keep their selected map.
+Supports Simplified Chinese, English, Traditional Chinese, Japanese, Korean, Spanish and Brazilian Portuguese. Change the language in Settings, save your work and reopen the app to apply it.
 
-Change the app language in Settings later. Save your work and reopen PhotoTrail to apply the language to every window and system prompt. Interface language does not change the camera time zone or photo timestamps.
+Initial setup defaults to AMap for Simplified Chinese and Apple Maps for other languages; you can choose either. Interface language does not alter photo times. Map language depends on the provider.
 
-![PhotoTrail language setup](../screenshots/en/setup.png)
+## Download and installation
 
-## Maps and privacy
+[Download the latest release](https://github.com/LittleSixNine/PhotoTrail/releases/latest) · [Release history](https://github.com/LittleSixNine/PhotoTrail/releases)
 
-AMap locations are converted to WGS84 before application. Changes are written to photos only when you save. Photos taken in mainland China can also have their locations edited correctly.
+Requires **macOS 14 or later**, on Apple silicon or Intel. Open the DMG, quit PhotoTrail, then drag the app to Applications.
 
-- Existing photo coordinates without a declared datum are displayed provisionally as WGS84; this does not rewrite their metadata.
-- AMap receives search terms and coordinates needed for map display and validation. Photo files are not uploaded.
-- Displaying a track without a valid local cache sends its coordinates to AMap in batches for conversion. The track file is not uploaded or modified, and matching continues to use the original WGS84 data.
-- AMap keys are stored in the local macOS Keychain. Favorites and track caches stay in the app's local data directory.
-- Map labels, search results, and place names depend on the map provider. Seven interface languages do not guarantee seven-language map data.
-- Coordinate checks can reduce mistakes from mixing coordinate systems, but cannot verify the original GPS reading or a manually selected point.
+PhotoTrail is free. Current packages have not completed Developer ID signing or Apple notarization, so macOS may block the first launch. Automatic update downloads are off by default; installation is manual.
 
 ## AMap service and charges
 
-You apply for and supply your own AMap developer credentials. Usage beyond your account's free allowance or paid services may incur charges billed by AMap to your developer account. PhotoTrail does not collect those charges. Manage any paid services on AMap's platform. Apple Maps does not require AMap credentials.
+AMap requires your own Web JS API Key and securityJsCode, stored in the local macOS Keychain. Apple Maps needs no AMap credentials.
+
+AMap bills your developer account for paid services or usage beyond its free allowance. PhotoTrail is free and does not collect map-service fees.
+
+## Coordinates and privacy
+
+- **Photo files stay local.** AMap receives search terms and map-related coordinates. Displaying an uncached track or refreshing its conversion also sends the required track coordinates.
+- **Map and photo coordinates are kept distinct.** Confirmed AMap locations are checked and converted to WGS84; new points are limited to validated mainland China locations. Photos without a declared coordinate system are only displayed provisionally as WGS84, not rewritten.
+- **Source tracks stay intact.** Map conversion does not change them; time matching uses original WGS84 data. Coordinate checks cannot guarantee the accuracy of GPS readings or selected points.
+
+## Project origins
+
+PhotoTrail began with geotagging camera photos and film scans, then grew to cover metadata and file names. Some photo-processing capabilities derive from [marchyman/GeoTag](https://github.com/marchyman/GeoTag).
 
 ## Agent Skill
 
-The independent [PhotoTrail Skill](../../skill/INSTALL.md) works without the Mac app. It can generate GPX from located photos, or match GPX to photos and produce geotagged JPEG/HEIC copies and a report. It requires **Python 3.11+ and ExifTool** and has been verified on macOS. An agent must be able to access local files and run commands; a browser-only chat is insufficient.
+Use an agent without opening the Mac app. The independent [PhotoTrail Skill](../../skill/) generates GPX from photos or geotags photos from GPX, producing JPEG/HEIC copies and a report while preserving originals.
 
-See the [English installation and usage guide](SKILL.en.md). Processing is local. The Skill does not access maps, app credentials, or the Photos library, and its current write workflow does not support RAW/XMP. Command names, JSON keys, status values, and error codes remain language-independent.
+### Installation
 
-## Development and acknowledgments
+Send this to an agent that can access local files and run commands:
 
-See the [English development guide](DEVELOPMENT.en.md) for building and checks. Source is in `Sources/PhotoTrail/`, local Swift packages in `Packages/`, and tests in `Tests/`.
+> Read https://raw.githubusercontent.com/LittleSixNine/PhotoTrail/phototrail/skill/INSTALL.md , install the PhotoTrail Skill as instructed, and check the runtime environment.
 
-Thanks to Marco S Hyman for GeoTag and to the ExifTool project. PhotoTrail's original work is covered by the [current license](../../LICENSE); see its [English reference translation](LICENSE.en.md) and [third-party notices](../../THIRD_PARTY_NOTICES.md). Personal and professional use and free redistribution are allowed; charging for software distribution or access requires permission under the applicable license. PhotoTrail is an independent derivative project and is not officially affiliated with Apple or AMap.
+Requires **Python 3.11+ and ExifTool**; verified on macOS. The Skill does not access map search or Apple Photos, and does not currently write RAW/XMP. See the [English guide](SKILL.en.md) and [parameter reference](../../skill/SKILL.md).
+
+## Development
+
+Requires full Xcode (Swift 6.3+, macOS 26 SDK+), XcodeGen and SwiftLint. See the [English development guide](DEVELOPMENT.en.md) for build, test and configuration instructions, and [behavior and limits](../BEHAVIOR.md) for detailed rules.
+
+## Acknowledgments and license
+
+Thanks to [GeoTag](https://github.com/marchyman/GeoTag) author Marco S Hyman and projects including [ExifTool](https://exiftool.org/).
+
+Personal and professional use and free redistribution are allowed. Charging for distribution or software access requires written permission. See the [license](../../LICENSE), its [English reference translation](LICENSE.en.md) and [third-party notices](../../THIRD_PARTY_NOTICES.md). PhotoTrail is an independent derivative project, not officially affiliated with Apple or AMap.

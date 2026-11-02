@@ -1,3 +1,4 @@
+import Exiftool
 import Foundation
 import GpxTrackLog
 import ImageData
@@ -111,6 +112,7 @@ extension URL {
 
     var isSupportedPhotoImage: Bool {
         let ext = pathExtension.lowercased()
+        if MetadataImageFormat.readableExtensions.contains(ext) { return true }
         guard !ext.isEmpty, !isTrackFile, !isVideoFile,
               let type = UTType(filenameExtension: ext) else { return false }
         return type.conforms(to: .image)
@@ -139,6 +141,10 @@ extension Sequence where Element: Hashable {
 }
 
 extension UTType {
+    static var photoTrailImages: [UTType] {
+        [.image] + MetadataImageFormat.readableExtensions.sorted().compactMap { UTType(filenameExtension: $0) }
+    }
+
     static var photoTrailTracks: [UTType] {
         GpxTrackLog.supportedExtensions.compactMap { UTType(filenameExtension: $0) }
     }

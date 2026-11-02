@@ -357,7 +357,7 @@ extension Exiftool {
             return values
         }
         let sortedTags = tags.sorted { $0.rawValue < $1.rawValue }
-        var args = ["-j", "-G1", "-n", "-api", "StructFormat=JSONQ"]
+        var args = ["-j", "-G1", "-n", "-api", "StructFormat=JSONQ", "-Warning"]
         args += sortedTags.map { "-\($0.readName)" }
         let dateFallbacks: [MetadataTag: String] = [.captureDate: "ExifIFD:DateTimeOriginal", .exifCreateDate: "ExifIFD:CreateDate", .exifModifyDate: "IFD0:ModifyDate"]
         args += sortedTags.compactMap { dateFallbacks[$0].map { "-" + $0 } }
@@ -366,6 +366,15 @@ extension Exiftool {
         // Typed decoding validates the requested value kinds without lossy string conversions.
         let entries = try JSONDecoder().decode([[String: MetadataReadValue]].self, from: data)
         guard let entry = entries.first else { throw ExiftoolError.invalidTagOutput }
+        let warnings: [String]
+        switch entry["ExifTool:Warning"] {
+        case .text(let warning): warnings = [warning]
+        case .list(let values): warnings = values
+        default: warnings = []
+        }
+        if warnings.contains(where: { $0.localizedCaseInsensitiveContains("brotli") || $0.localizedCaseInsensitiveContains("brob") }) {
+            throw ExiftoolError.invalidTagOutput
+        }
         var result: [MetadataTag: MetadataTagValue] = [:]
         for tag in sortedTags {
             switch (tag.valueKind, entry[tag.readName] ?? dateFallbacks[tag].flatMap { entry[$0] }) {
@@ -545,7 +554,7 @@ extension Exiftool {
         "IND", "INSP", "JNG", "JP2", "JPEG", "JXL", "LRV", "M4A/V",
         "MEF", "MIE", "MNG", "MOS", "MOV", "MP4", "MPO", "MQV",
         "MRW", "NEF", "NKSC", "NRW", "ORF", "ORI", "PBM", "PDF",
-        "PEF", "PGM", "PNG", "PPM", "PS", "PSB", "PSD", "QTIF",
+        "PEF", "PGM", "PNG", "PPM", "PS", "PSB", "PSD",
         "RAF", "RAW", "RW2", "RWL", "SR2", "SRW", "THM", "TIFF",
         "VRD", "WDP", "WEBP", "X3F", "XMP"
     ]
@@ -624,10 +633,11 @@ extension Exiftool {
             url = primaryURL
             metadata = Metadata(source: .image(primaryURL))
         }
+        let gpsPrefix = MetadataImageFormat.usesXMPGPS(extension: url.pathExtension) ? "-XMP-exif:" : "-"
         let args = [
-            "-args", "-c", "%.15f", "-createdate",
-            "-gpsstatus", "-gpslatitude", "-gpslongitude",
-            "-gpsaltitude", "-gpsmapdatum", "-gpsprocessingmethod", "-xmp:city", "-xmp:state",
+            "-args", "-c", "%.15f", "-FileType", "-createdate",
+            gpsPrefix + "GPSStatus", gpsPrefix + "GPSLatitude", gpsPrefix + "GPSLongitude",
+            gpsPrefix + "GPSAltitude", gpsPrefix + "GPSAltitudeRef", gpsPrefix + "GPSMapDatum", gpsPrefix + "GPSProcessingMethod", "-xmp:city", "-xmp:state",
             "-xmp:country", "-xmp:countrycode", "-xmp-iptcCore:Location", url.path
         ]
 
@@ -640,6 +650,7 @@ extension Exiftool {
                 var lat: Double?
                 var lon: Double?
                 var ele: Double?
+                var belowSeaLevel = false
                 let strings = str.split(separator: "\n")
 
                 for entry in strings {
@@ -649,6 +660,11 @@ extension Exiftool {
                         value = value.dropFirst(1)
                     }
                     switch key {
+                    case "-FileType" where xmp == nil:
+                        let type = String(value).lowercased()
+                        let fileType = type == "dicom" ? "dcm" : type
+                        let illustratorPDF = fileType == "pdf" && ["ai", "ait"].contains(primaryURL.pathExtension.lowercased())
+                        metadata.readable = MetadataImageFormat.readableExtensions.contains(fileType) || illustratorPDF
                     case "-CreateDate":
                         // Preserve the explicit offset and subsecond precision.
                         metadata.dateTimeCreated = String(value)
@@ -658,8 +674,7 @@ extension Exiftool {
                         }
                     case "-GPSLatitude":
                         let parts = value.split(separator: " ")
-                        if var latValue = Double(parts[0]),
-                           parts.count == 2 {
+                        if parts.count == 2, var latValue = Double(parts[0]) {
                             if parts[1] == "S" {
                                 latValue = -latValue
                             }
@@ -667,8 +682,7 @@ extension Exiftool {
                         }
                     case "-GPSLongitude":
                         let parts = value.split(separator: " ")
-                        if var lonValue = Double(parts[0]),
-                           parts.count == 2 {
+                        if parts.count == 2, var lonValue = Double(parts[0]) {
                             if parts[1] == "W" {
                                 lonValue = -lonValue
                             }
@@ -676,10 +690,11 @@ extension Exiftool {
                         }
                     case "-GPSAltitude":
                         let parts = value.split(separator: " ")
-                        if let eleValue = Double(parts[0]),
-                           parts.count >= 3 {
-                            ele = parts[2] == "Above" ? eleValue : -eleValue
+                        if let first = parts.first, let eleValue = Double(first) {
+                            ele = parts.count >= 3 && parts[2] == "Below" ? -abs(eleValue) : eleValue
                         }
+                    case "-GPSAltitudeRef":
+                        belowSeaLevel = value.hasPrefix("Below") || value == "1"
                     case "-GPSMapDatum":
                         metadata.gpsMapDatum = String(value)
                     case "-GPSProcessingMethod":
@@ -702,10 +717,18 @@ extension Exiftool {
                     metadata.location =
                         Coords.ifValid(latitude: lat,
                                        longitude: lon)
-                    metadata.elevation = ele
+                    metadata.elevation = ele.map { belowSeaLevel ? -abs($0) : $0 }
+                }
+            }
+            if data.isEmpty { metadata.readable = false }
+            if xmp == nil, MetadataImageFormat.supportsEditing(.captureDate, extension: primaryURL.pathExtension) {
+                metadata.dateTimeCreated = nil
+                if case .text(let value) = try metadataTags([.captureDate], from: primaryURL)[.captureDate] {
+                    metadata.dateTimeCreated = value
                 }
             }
         } catch {
+            metadata.readable = false
             Self.logger.error(
                 "\(#function, privacy: .public): \(error.localizedDescription, privacy: .public)")
         }
@@ -727,13 +750,15 @@ extension Exiftool {
 
     private func metadataArguments(image: URL, from metadata: Metadata,
                                    timeZone: TimeZone?, writeDate: Bool, numericGPS: Bool = false) -> [String] {
-        // ExifTool argument names
-        var latArg = "-GPSLatitude="
-        var lonArg = "-GPSLongitude="
+        let usingSidecar = MetadataImageFormat.usesXMPGPS(extension: image.pathExtension)
+        let gpsPrefix = usingSidecar ? "-XMP-exif:" : "-"
+        // Keep XMP coordinates separate from any existing EXIF preview in vector images.
+        var latArg = gpsPrefix + "GPSLatitude="
+        var lonArg = gpsPrefix + "GPSLongitude="
         var latRefArg = "-GPSLatitudeRef="
         var lonRefArg = "-GPSLongitudeRef="
-        var eleArg = "-GPSaltitude="
-        var eleRefArg = "-GPSaltitudeRef="
+        var eleArg = gpsPrefix + "GPSAltitude="
+        var eleRefArg = gpsPrefix + "GPSAltitudeRef="
         var sublocationArg = "-xmp-iptcCore:Location="
         var cityArg = "-xmp:city="
         var stateArg = "-xmp:state="
@@ -743,9 +768,7 @@ extension Exiftool {
         // ExifTool GSPDateTime arg storage
         var gpsDArg = "-GPSDateStamp="  // for non XMP files
         var gpsTArg = "-GPSTimeStamp="  // for non XMP files
-        var gpsDTArg = "-GPSDateTime="  // for XMP files
-
-        let usingSidecar = image.pathExtension.lowercased() == Metadata.xmpExtension
+        var gpsDTArg = "-XMP-exif:GPSDateTime="  // for XMP files
 
         // Build ExifTool latitude, longitude, and elevation argument values
         if let location = metadata.location {
@@ -771,16 +794,19 @@ extension Exiftool {
 
         // build exiftool arguments array
         var args = [
-            "-q", "-m", "-overwrite_original_in_place",
+            "-q", "-overwrite_original_in_place",
             sublocationArg, cityArg, stateArg,
             countryArg, countryCodeArg
         ]
+        // Keep legacy location-save compatibility; combined field writes stay strict.
+        if !numericGPS { args.append("-m") }
 
         if !metadata.preserveGPSOnSave {
-            args += [latArg, latRefArg, lonArg, lonRefArg, eleArg, eleRefArg,
-                     "-GPSMapDatum=" + (metadata.gpsMapDatum ?? ""),
-                     "-GPSProcessingMethod=" + (metadata.gpsProcessingMethod ?? ""),
-                     "-gpsstatus="]
+            args += [latArg, lonArg, eleArg, eleRefArg]
+            if !usingSidecar { args += [latRefArg, lonRefArg] }
+            args += [gpsPrefix + "GPSMapDatum=" + (metadata.gpsMapDatum ?? ""),
+                     gpsPrefix + "GPSProcessingMethod=" + (metadata.gpsProcessingMethod ?? ""),
+                     gpsPrefix + "GPSStatus="]
         }
 
         // add args to update date/time if present
@@ -828,9 +854,11 @@ extension Exiftool {
     }
 
     public func verifyMapMetadata(_ expected: Metadata, in image: URL) throws {
-        let gpsGroup = image.pathExtension.lowercased() == Metadata.xmpExtension ? "XMP-exif" : "Composite"
+        let usingXMP = MetadataImageFormat.usesXMPGPS(extension: image.pathExtension)
+        let gpsGroup = usingXMP ? "XMP-exif" : "Composite"
+        let detailGroup = usingXMP ? "XMP-exif" : "EXIF"
         let data = try run(["-j", "-n", "-\(gpsGroup):GPSLatitude", "-\(gpsGroup):GPSLongitude",
-                            "-\(gpsGroup):GPSAltitude", "-GPSAltitudeRef", "-GPSMapDatum", "-GPSProcessingMethod",
+                            "-\(gpsGroup):GPSAltitude", "-\(detailGroup):GPSAltitudeRef", "-\(detailGroup):GPSMapDatum", "-\(detailGroup):GPSProcessingMethod",
                             "-XMP-iptcCore:Location", "-XMP-photoshop:City", "-XMP-photoshop:State",
                             "-XMP-photoshop:Country", "-XMP-iptcCore:CountryCode", image.path])
         guard let rows = try JSONSerialization.jsonObject(with: data) as? [[String: Any]],
