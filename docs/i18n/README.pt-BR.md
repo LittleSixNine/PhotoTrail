@@ -57,6 +57,12 @@ Os campos comuns e completos usam a mesma lista e os mesmos controles. Datas ind
 
 - **Consulte e edite campos:** pesquise nomes, tags ou valores e navegue por grupos. Texto, datas e dispositivos usam editores adequados. [Catálogo](../DEVICE_CATALOG.md).
 - **Predefinições em lote:** organize atribuições, cópias e ajustes de datas; aplique para adicionar alterações pendentes. Crie, salve, carregue, exclua e troque arquivos JSON; copie um campo para vários destinos. Os ajustes de data ignoram valores ausentes e mostram o motivo; sem novas alterações, nenhum rascunho é adicionado.
+
+Há quatro predefinições de lote: adicionar uma hora à captura, restaurar a data pelo nome, unificar datas e preencher autor e direitos autorais ausentes. São adicionadas uma única vez ao iniciar esta atualização; nomes existentes são preservados e itens excluídos não retornam. A regra editável aceita `IMG_YYYYMMDD_HHmmss.jpg` e `YYYYMMDD_HHmmss.jpg`. A unificação copia a captura EXIF para as datas XMP de captura original e criação, sem alterar digitalização, modificação ou datas do arquivo. Informe autor e direitos antes de aplicar; apenas campos vazios são preenchidos. Ainda é preciso salvar para gravar nas fotos.
+
+A leitura de datas nos nomes oferece seis formatos com exemplos, incluindo `YYYY.MMDD` e `YYYY-MM-DD`. Pode haver texto ao redor da data. Nomes sem horário usam `00:00:00` com um aviso explícito. Expressões regulares ficam nas opções avançadas e as predefinições existentes continuam compatíveis.
+
+Escolha Personalizado para inserir `YYYY` (ano), `MM` (mês), `DD` (dia), `HH` (hora), `mm` (minuto) e `ss` (segundo), como `IMG_YYYYMMDD_HHmmss`. Os demais caracteres são literais. Inclua cada componente de data uma vez; o horário pode ter apenas horas, horas e minutos ou os três componentes. Os componentes não informados usam zero. O exemplo acompanha a digitação e formatos inválidos não podem ser aplicados. Os formatos personalizados são salvos e restaurados com as predefinições. O formato personalizado padrão é `YYYY.MM.DD_HHmmss`; os formatos salvos permanecem inalterados.
 - **Copie e cole campos:** ⌘C/⌘V ou Ctrl+C/Ctrl+V colam o valor original em vários campos editáveis. Valores alterados aparecem em laranja; ainda é preciso salvar para gravar os arquivos.
 - **Datas e troca de dados:** aumente ou diminua anos, meses, dias, horas, minutos e segundos separadamente. Altere uma parte da data, use intervalos fixos ou distribua datas igualmente; mantenha a troca controlada CSV/XMP e a comparação por foto.
 

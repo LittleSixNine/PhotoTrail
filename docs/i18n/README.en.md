@@ -57,6 +57,12 @@ Common and complete fields use the same list and editing controls. Dates identif
 
 - **Inspect and edit fields:** search names, tags or values and browse groups. Titles, descriptions, authors, rights, keywords, dates and devices use suitable editors. See the [device catalog](../DEVICE_CATALOG.md).
 - **Batch presets:** arrange assignments, copies and date adjustments; apply to add pending changes. Create, save, load, delete, import or export JSON presets. Copy one source field to multiple destination fields. Date adjustments skip missing values per operation and explain why; No drafts are added when there are no new changes.
+
+Four built-in batch presets add one hour to capture time, restore capture time from filenames, align photo date fields, and fill missing author and copyright. They are added once on first launch of this update; existing names are preserved and deleted presets stay deleted. The filename rule supports `IMG_YYYYMMDD_HHmmss.jpg` and `YYYYMMDD_HHmmss.jpg` and can be edited. Date alignment copies EXIF capture time to XMP original and creation dates, leaving digitized, modified and file times unchanged. Enter author and copyright values before applying; only empty fields are filled. Save is still required to write photos.
+
+Filename date parsing offers six simple formats with examples, including `YYYY.MMDD` and `YYYY-MM-DD`. Text may surround the date. Date-only names use `00:00:00` with an explicit notice. Custom regular expressions remain in advanced options and existing presets stay compatible.
+
+Choose Custom to enter `YYYY` (year), `MM` (month), `DD` (day), `HH` (hour), `mm` (minute), and `ss` (second), for example `IMG_YYYYMMDD_HHmmss`. Other text is literal. Include each date component once; time may contain hours, hours and minutes, or all three components. Unspecified time components use zero. An example updates as you type; invalid formats cannot be applied. Custom formats are saved and restored with presets. The default custom date format is `YYYY.MM.DD_HHmmss`; saved custom formats remain unchanged.
 - **Copy and paste fields:** use ⌘C/⌘V or Ctrl+C/Ctrl+V to copy one field’s raw value into multiple writable fields. Edited values appear in orange; saving is still required to write files.
 - **Dates and exchange:** choose increase or decrease separately for years, months, days, hours, minutes and seconds. Change a specific date component, set fixed intervals or distribute dates evenly; controlled CSV/XMP exchange and per-photo comparisons remain available.
 

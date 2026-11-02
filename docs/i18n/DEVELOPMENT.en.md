@@ -99,6 +99,8 @@ Stable requirement IDs, defaults, geographic algorithm and nonprivate synthetic 
 The batch field model expands copy-out destinations into existing v1 copy operations. Per-item counts combine destination results by photo (changed, then skipped, then unchanged). Regression tests cover distinct per-photo dates, partial destination skips, preset round trips, and immediate duplicate insertion with independent IDs and parameters.
 
 
+`MetadataWorkflowCardTests` also covers custom filename date tokens, ordering, literal matching, v1 preset round trips and format-text restoration. Format encoding stays in the Mac adapter without changing the shared date protocol.
+
 `MetadataWorkflowCardTests` covers the first-three default, persisted preset shortcuts, deduplication and deleted-name filtering. `MetadataBatchEditingTests` covers quit protection when retained rules and inline input are separate. Cards, overlay animation and divider stability require separate native interaction checks.
 
 `PhotoListClearTests` covers clearing all photos including unselected items, restoring photos and drafts with Undo, preserving tracks/files/access scopes, and blocking removal during save/import/rename or for an empty list. Cmd-K and the toolbar share confirmation; native checks separately cover the three workspaces and region-fill dialog.

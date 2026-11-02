@@ -32,6 +32,13 @@ enum MetadataCreatorEditorMode: Hashable, CaseIterable {
 }
 
 
+struct MetadataWorkflowSelection: Identifiable {
+    let id = UUID()
+    let readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)]
+    var preset: MetadataPreset?
+    var tab = "actions"
+}
+
 struct MetadataCreatorEditorSelection: Identifiable {
     let id = UUID()
     let readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)]

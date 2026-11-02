@@ -57,6 +57,12 @@ Los campos comunes y completos comparten lista y controles de edición. Las fech
 
 - **Consulta y edita campos:** busca nombres, etiquetas o valores y recorre grupos. Usa editores adecuados para texto, fechas y dispositivos. [Catálogo](../DEVICE_CATALOG.md).
 - **Preajustes por lotes:** organiza asignaciones, copias y ajustes de fechas; aplica para añadir cambios pendientes. Crea, guarda, carga, elimina e intercambia preajustes JSON; copia un campo a varios destinos. Los ajustes de fecha omiten los valores ausentes e indican el motivo; no se añaden borradores si no hay cambios nuevos.
+
+Hay cuatro preajustes por lotes: sumar una hora a la captura, restaurar la fecha desde el nombre, unificar fechas y completar autor y derechos. Se añaden una sola vez al iniciar esta actualización; se respetan los nombres existentes y no se restauran los eliminados. La regla editable acepta `IMG_YYYYMMDD_HHmmss.jpg` y `YYYYMMDD_HHmmss.jpg`. La unificación copia la captura EXIF a las fechas XMP de captura original y creación, sin cambiar digitalización, modificación ni fechas del archivo. Introduce autor y derechos antes de aplicar; solo se rellenan campos vacíos. Es necesario guardar para escribir las fotos.
+
+El análisis de fechas en nombres ofrece seis formatos con ejemplos, incluidos `YYYY.MMDD` y `YYYY-MM-DD`. Puede haber texto alrededor de la fecha. Los nombres sin hora usan `00:00:00` con un aviso explícito. Las expresiones regulares siguen en las opciones avanzadas y los preajustes existentes son compatibles.
+
+Elige Personalizado para introducir `YYYY` (año), `MM` (mes), `DD` (día), `HH` (hora), `mm` (minuto) y `ss` (segundo), por ejemplo `IMG_YYYYMMDD_HHmmss`. El resto del texto es literal. Incluye cada componente de fecha una vez; la hora puede tener solo horas, horas y minutos, o los tres componentes. Los componentes no indicados usan cero. El ejemplo se actualiza al escribir y los formatos no válidos no se pueden aplicar. Los formatos personalizados se guardan y restauran con los preajustes. El formato personalizado predeterminado es `YYYY.MM.DD_HHmmss`; los formatos guardados no cambian.
 - **Copia y pega campos:** ⌘C/⌘V o Ctrl+C/Ctrl+V pegan el valor original en varios campos editables. Los valores modificados aparecen en naranja; hay que guardar para escribir los archivos.
 - **Fechas e intercambio:** aumenta o reduce años, meses, días, horas, minutos y segundos por separado. Cambia una parte de la fecha, usa intervalos fijos o distribuye fechas uniformemente; conserva el intercambio controlado CSV/XMP y la comparación por foto.
 

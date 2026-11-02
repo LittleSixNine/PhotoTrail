@@ -1,4 +1,5 @@
 import OSLog
+import ImageData
 import RunLogView
 import SwiftUI
 import UDF
@@ -62,6 +63,8 @@ struct PhotoTrailApp: App {
                 }
                 .task {
                     guard ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] != "1" else { return }
+                    do { try MetadataPreset.installDefaultsIfNeeded() }
+                    catch { OperationFailure.present(L10n.text("默认批量预设无法初始化，已有预设已保留。"), error: error) }
                     if !doNotBackup {
                         if !savedBookmark.isEmpty {
                             store.send(.initBackupURL, undoable: false) {

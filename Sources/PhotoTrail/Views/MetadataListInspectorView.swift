@@ -166,8 +166,7 @@ struct MetadataListInspectorView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showingBatch = false
     @AppStorage("PhotoTrail.MetadataPresetShortcuts") private var presetShortcutData = Data()
-    @State private var workflowEditor: MetadataCreatorEditorSelection?
-    @State private var selectedWorkflowPreset: MetadataPreset?
+    @State private var workflowEditor: MetadataWorkflowSelection?
     @AppStorage("PhotoTrail.MetadataPresets") private var presetData = Data()
     @State private var advanced: [ImageData.ID: [String: String]] = [:]
     @State private var advancedLoading = false
@@ -442,7 +441,7 @@ private extension MetadataListInspectorView {
                                  initialBatchMode: selection.mode, initialBatchInput: selection.input)
         }
         .sheet(item: $workflowEditor) { selection in
-            MetadataWorkflowView(readings: selection.readings, quickPreset: selectedWorkflowPreset, initialTab: selection.input ?? "actions")
+            MetadataWorkflowView(readings: selection.readings, quickPreset: selection.preset, initialTab: selection.tab)
         }
         .popover(item: $valueDistribution) { selection in
             MetadataValueDistributionView(tag: selection.tag, readings: selection.readings, select: { ids in
@@ -670,8 +669,7 @@ private extension MetadataListInspectorView {
                 return (image, reading.snapshot)
             }
             guard current.count == readings.count else { return }
-            selectedWorkflowPreset = preset
-            workflowEditor = MetadataCreatorEditorSelection(readings: current, tag: .creator)
+            workflowEditor = MetadataWorkflowSelection(readings: current, preset: preset)
         }
     }
 
@@ -850,8 +848,7 @@ private extension MetadataListInspectorView {
 
     func openWorkflow(_ readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)]?, tab: String) {
         guard let readings else { return }
-        selectedWorkflowPreset = nil
-        workflowEditor = MetadataCreatorEditorSelection(readings: readings, tag: .creator, input: tab)
+        workflowEditor = MetadataWorkflowSelection(readings: readings, tab: tab)
     }
 
     func openBatch(_ identifiers: Set<String>, mode: String, input: String = "") {

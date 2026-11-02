@@ -5,6 +5,161 @@ import Testing
 @testable import PhotoTrail
 
 struct MetadataWorkflowCardTests {
+    @Test @MainActor func customFilenameFormatsParseAndSurvivePresetRoundTrip() throws {
+        let (folder, inputs) = try MetadataBatchEditingTests().input([[:]])
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let cases = [("YYYY.MM.DD_HHmmss", "2026.11.02_143025", "14:30:25"),
+                     ("YYYY.MMDD", "2026.1102", "00:00:00"),
+                     ("IMG_YYYYMMDD_HHmmss", "IMG_20261102_143025", "14:30:25"),
+                     ("旅行_DD.MM.YYYY_HHmm", "旅行_02.11.2026_1430", "14:30:00"),
+                     ("YYYY年MM月DD日_HH", "2026年11月02日_14", "14:00:00"),
+                     ("[YYYY-MM-DD](HH.mm.ss)+", "[2026-11-02](14.30.25)+", "14:30:25")]
+        for (format, name, time) in cases {
+            let action = try MetadataFilenameDateFormat.customAction(format)
+            let preset = try MetadataPreset(name: "custom", operations: [MetadataOperation(tag: .captureDate, action: action)])
+            let restored = try MetadataPreset.decode(preset.encode())
+            #expect(MetadataFilenameDateFormat.customFormat(in: restored.operations[0].action) == format)
+            #expect(MetadataFilenameDateFormat.example(for: format) == name)
+            let reading = (image: ImageData(metadata: inputs[0].image.metadata, name: "prefix_" + name + "_suffix.jpg"),
+                           snapshot: inputs[0].snapshot)
+            let result = try MetadataWorkflowPreview.prepare([reading], operations: restored.operations)
+            #expect(result.items.first?.changes[.captureDate] == .set(.text("2026:11:02 " + time)))
+        }
+    }
+
+    @Test func invalidCustomFilenameFormatsAndModifiedPatternsAreRejected() throws {
+        for format in ["", "YYYY", "YYYY-MM", "MM-DD", "YYYY-MM-DD-YYYY", "YYYY-MM-MM-DD", "yyyy-MM-dd",
+                       "YYYY-MM-DD_mm", "YYYY-MM-DD_HHss", "YYYY-MM-DD_HHmmss_ss",
+                       "YYYY\nMMDD", String(repeating: "x", count: 257) + "YYYYMMDD"] {
+            #expect(throws: (any Error).self) { try MetadataFilenameDateFormat.customAction(format) }
+        }
+        let action = try MetadataFilenameDateFormat.customAction("YYYY.MMDD")
+        guard case .filenameDate(let pattern, let template) = action else { Issue.record("Missing filename action"); return }
+        #expect(MetadataFilenameDateFormat.customFormat(in: .filenameDate(pattern: pattern + "x", template: template)) == nil)
+        #expect(MetadataFilenameDateFormat.customFormat(in: .filenameDate(pattern: pattern, template: "bad")) == nil)
+        #expect(MetadataFilenameDateFormat.customFormat(in: .filenameDate(
+            pattern: "(?#PhotoTrailFilenameFormat:invalid)", template: template)) == nil)
+    }
+
+    @Test @MainActor func simpleFilenameFormatsParseExamplesAndKeepVersionOnePresets() throws {
+        let (folder, inputs) = try MetadataBatchEditingTests().input([[:]])
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let input = inputs[0]
+        for format in MetadataFilenameDateFormat.allCases {
+            let name = "holiday_" + format.example.replacingOccurrences(of: ".jpg", with: "_edited.jpg")
+            let image = ImageData(metadata: input.image.metadata, name: name)
+            let operation = MetadataOperation(tag: .captureDate, action: format.action)
+            let preset = try MetadataPreset(name: format.rawValue, operations: [operation])
+            #expect(try MetadataPreset.decode(preset.encode()) == preset)
+            #expect(MetadataFilenameDateFormat.matching(format.action) == format)
+            let result = try MetadataWorkflowPreview.prepare([(image, input.snapshot)], operations: preset.operations)
+            let time = format.includesTime ? "14:30:25" : "00:00:00"
+            #expect(result.items.first?.changes[.captureDate] == .set(.text("2026:11:02 " + time)))
+        }
+        #expect(MetadataFilenameDateFormat.matching(MetadataFilenameDateFormat.legacyDefaultAction) == .compactDateTime)
+        #expect(MetadataFilenameDateFormat.matching(.filenameDate(pattern: "custom", template: "custom")) == nil)
+    }
+
+    @Test @MainActor func simpleFilenameDatesSkipInvalidAndPartialNumericMatches() throws {
+        let names = ["2026.0230.jpg", "2026.11021.jpg", "12026.1102.jpg", "no-date.jpg"]
+        let (folder, inputs) = try MetadataBatchEditingTests().input(Array(repeating: [:], count: names.count))
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let readings = zip(inputs, names).map { reading, name in
+            (image: ImageData(metadata: reading.image.metadata, name: name), snapshot: reading.snapshot)
+        }
+        let result = try MetadataWorkflowPreview.prepare(readings, operations: [
+            MetadataOperation(tag: .captureDate, action: MetadataFilenameDateFormat.dottedDate.action)
+        ])
+        #expect(result.items.isEmpty && result.skipDetails.count == names.count)
+    }
+
+    @Test @MainActor func defaultsPreserveExistingPresetsAndOnlyInstallOnce() throws {
+        let suite = "PhotoTrail.DefaultPresets.Tests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let builtins = try MetadataPreset.defaultPresets()
+        let custom = try MetadataPreset(name: builtins[0].name, operations: [
+            MetadataOperation(tag: .titleDefault, action: .setText("keep"))
+        ])
+        defaults.set(try JSONEncoder().encode([custom]), forKey: "PhotoTrail.MetadataPresets")
+        try MetadataPreset.installDefaultsIfNeeded(in: defaults)
+        let installed = try MetadataPreset.stored(in: #require(defaults.data(forKey: "PhotoTrail.MetadataPresets")))
+        #expect(installed == [custom] + Array(builtins.dropFirst()))
+        defaults.set(Data("[]".utf8), forKey: "PhotoTrail.MetadataPresets")
+        try MetadataPreset.installDefaultsIfNeeded(in: defaults)
+        #expect(defaults.data(forKey: "PhotoTrail.MetadataPresets") == Data("[]".utf8))
+    }
+
+    @Test @MainActor func defaultsInstallForNewAndPreviouslyEmptyLibraries() throws {
+        for data: Data? in [nil, Data(), Data("[]".utf8)] {
+            let suite = "PhotoTrail.DefaultPresets.Tests.\(UUID().uuidString)"
+            let defaults = try #require(UserDefaults(suiteName: suite))
+            defer { defaults.removePersistentDomain(forName: suite) }
+            if let data { defaults.set(data, forKey: "PhotoTrail.MetadataPresets") }
+            try MetadataPreset.installDefaultsIfNeeded(in: defaults)
+            let installed = try MetadataPreset.stored(in: #require(defaults.data(forKey: "PhotoTrail.MetadataPresets")))
+            let expected = try MetadataPreset.defaultPresets()
+            #expect(installed == expected)
+            for preset in installed { #expect(try MetadataPreset.decode(preset.encode()) == preset) }
+        }
+    }
+
+    @Test @MainActor func defaultsNeverOverwriteCorruptOrFutureLibraries() throws {
+        for value: Any in [Data("invalid".utf8), Data(#"[{"version":99,"name":"future","operations":[]}]"#.utf8), "invalid"] {
+            let suite = "PhotoTrail.DefaultPresets.Tests.\(UUID().uuidString)"
+            let defaults = try #require(UserDefaults(suiteName: suite))
+            defer { defaults.removePersistentDomain(forName: suite) }
+            defaults.set(value, forKey: "PhotoTrail.MetadataPresets")
+            #expect(throws: (any Error).self) { try MetadataPreset.installDefaultsIfNeeded(in: defaults) }
+            #expect(!defaults.bool(forKey: "PhotoTrail.MetadataDefaultPresets.v1"))
+            #expect((defaults.object(forKey: "PhotoTrail.MetadataPresets") as? NSObject) == (value as? NSObject))
+        }
+    }
+
+    @Test @MainActor func defaultDateOperationsComputeAndSkipMissingSources() throws {
+        let date = "2026:10:31 23:30:25.123+08:00"
+        let (folder, readings) = try MetadataBatchEditingTests().input([[.captureDate: .text(date)], [:]])
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let presets = try MetadataPreset.defaultPresets()
+        let shifted = try MetadataWorkflowPreview.prepare(readings, operations: presets[0].operations)
+        #expect(shifted.items.count == 1 && shifted.skipDetails.count == 1)
+        #expect(shifted.items[0].changes[.captureDate] == .set(.text("2026:11:01 00:30:25.123+08:00")))
+        let unified = try MetadataWorkflowPreview.prepare(readings, operations: presets[2].operations)
+        #expect(unified.items.count == 1 && unified.skipDetails.count == 2)
+        #expect(unified.items[0].changes[.dateOriginal] == .set(.text(date)))
+        #expect(unified.items[0].changes[.sidecarDate] == .set(.text(date)))
+        #expect(Set(unified.items[0].changes.keys) == [.dateOriginal, .sidecarDate])
+    }
+
+    @Test @MainActor func defaultFilenameParserRejectsInvalidDatesAndUnmatchedNames() throws {
+        let names = ["IMG_20261001_143025.jpg", "20261002_153026.JPG", "IMG_20260230_120000.jpg", "sample.jpg"]
+        let (folder, inputs) = try MetadataBatchEditingTests().input(Array(repeating: [:], count: names.count))
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let readings = zip(inputs, names).map { reading, name in
+            (image: ImageData(metadata: reading.image.metadata, name: name), snapshot: reading.snapshot)
+        }
+        let preset = try MetadataPreset.defaultPresets()[1]
+        let result = try MetadataWorkflowPreview.prepare(readings, operations: preset.operations)
+        #expect(result.items.count == 2 && result.skipDetails.count == 2)
+        #expect(result.items[0].changes[.captureDate] == .set(.text("2026:10:01 14:30:25")))
+        #expect(result.items[1].changes[.captureDate] == .set(.text("2026:10:02 15:30:26")))
+    }
+
+    @Test @MainActor func copyrightTemplateRequiresInputAndPreservesExistingValues() throws {
+        let preset = try MetadataPreset.defaultPresets()[3]
+        #expect(preset.operations.allSatisfy { $0.action.hasEmptyInput })
+        let (folder, readings) = try MetadataBatchEditingTests().input([
+            [:], [.creator: .list(["existing"]), .rightsDefault: .text("existing rights")]
+        ])
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let filled = [MetadataOperation(tag: .creator, action: .fillMissingAuthors(["Photographer"])),
+                      MetadataOperation(tag: .rightsDefault, action: .fillMissingText("© Photographer"))]
+        let result = try MetadataWorkflowPreview.prepare(readings, operations: filled)
+        #expect(result.items.count == 1)
+        #expect(result.items[0].changes[.creator] == .set(.list(["Photographer"])))
+        #expect(result.items[0].changes[.rightsDefault] == .set(.text("© Photographer")))
+    }
+
     @Test func presetShortcutsPersistChoicesAndIgnoreRemovedNames() throws {
         let presets = try ["one", "two", "three", "four"].map {
             try MetadataPreset(name: $0, operations: [MetadataOperation(tag: .titleDefault, action: .setText($0))])

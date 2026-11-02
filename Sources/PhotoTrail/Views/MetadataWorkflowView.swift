@@ -40,6 +40,16 @@ struct MetadataWorkflowView: View {
     @State private var notice = ""
     @State private var busy = false
 
+    init(readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)], initialTargets: [MetadataTag] = [],
+         excludedFieldCount: Int = 0, initialBatchMode: String = "copy", initialBatchInput: String = "",
+         quickPreset: MetadataPreset? = nil, initialTab: String = "actions") {
+        self.readings = readings; self.initialTargets = initialTargets
+        self.excludedFieldCount = excludedFieldCount; self.initialBatchMode = initialBatchMode
+        self.initialBatchInput = initialBatchInput; self.quickPreset = quickPreset; self.initialTab = initialTab
+        _workflowTab = State(initialValue: initialTab)
+        _cards = State(initialValue: MetadataWorkflowCard.cards(from: quickPreset?.operations ?? []))
+    }
+
     private var availableTags: [MetadataTag] {
         MetadataTag.allCases.filter { tag in
             readings.contains { $0.image.supportsMetadataEditing(tag) }
@@ -88,6 +98,10 @@ struct MetadataWorkflowView: View {
                 Text(application.notice).font(.callout).textSelection(.enabled)
             }
             if !notice.isEmpty { Text(notice).font(.callout).foregroundStyle(.orange).textSelection(.enabled) }
+            if incompleteCards {
+                Text(L10n.text("请填写所有操作的字段值后再应用。"))
+                    .font(.callout).foregroundStyle(.secondary)
+            }
             Divider()
             HStack(spacing: 12) {
                 if application.busy { ProgressView().controlSize(.small) }
@@ -105,10 +119,6 @@ struct MetadataWorkflowView: View {
             .frame(width: min(1120, (NSScreen.main?.visibleFrame.width ?? 1200) - 80),
                    height: min(800, (NSScreen.main?.visibleFrame.height ?? 900) - 100))
             .onAppear {
-                workflowTab = initialTab
-                if let quickPreset {
-                    operations = quickPreset.operations
-                }
                 if isBatch {
                     mode = initialBatchMode; input = initialBatchInput
                     copySource = copySources.contains(.captureDate) ? .captureDate : copySources.first ?? .sidecarDate
@@ -670,6 +680,13 @@ private struct MetadataOperationCardView: View {
     @State private var copyTargets: Set<MetadataTag> = []
     @State private var dateOffsets = Array(repeating: 0, count: 6)
     @State private var offsetNegative = Array(repeating: false, count: 6)
+    @State private var filenameFormat = MetadataFilenameDateFormat.compactDateTime
+    @State private var filenameAdvanced = false
+    @State private var filenameCustom = false
+    @State private var filenameCustomInput = "YYYY.MM.DD_HHmmss"
+    private var filenameSimpleAction: MetadataFieldEditAction? {
+        filenameCustom ? try? MetadataFilenameDateFormat.customAction(filenameCustomInput) : filenameFormat.action
+    }
     private let actionLabels = ["set": "设为", "fill": "仅补空值", "clear": "清除字段", "append": "追加文字",
                                 "keywords": "追加关键词", "removeKeywords": "移除指定关键词", "shift": "整体偏移（秒）",
                                 "offset": "时间偏移", "days": "日历增加天数", "component": "修改时间中的指定部分", "sequence": "逐张设置时间（固定间隔）",
@@ -720,6 +737,7 @@ private struct MetadataOperationCardView: View {
                 } else { tag = first.tag }
                 loadAction(first.action)
                 lastDraft = draftOperations
+                if mode == "filename" && !filenameAdvanced { operations = lastDraft }
                 loaded = true
             }
             .onChange(of: draftOperations) {
@@ -742,8 +760,52 @@ private struct MetadataOperationCardView: View {
                 ForEach(modes + (["shift", "days"].contains(mode) ? [mode] : []), id: \.self) { Text(L10n.text(actionLabels[$0]!)).tag($0) }
             }
             if mode == "filename" {
-                TextField(L10n.text("文件名正则表达式"), text: $input)
-                TextField(L10n.text("日期模板（如 $1:$2:$3 12:00:00）"), text: $end)
+                Toggle(L10n.text("使用正则表达式（高级）"), isOn: Binding(
+                    get: { filenameAdvanced },
+                    set: { advanced in
+                        if advanced, case .filenameDate(let pattern, let template) = filenameSimpleAction {
+                            input = pattern; end = template
+                        }
+                        filenameAdvanced = advanced
+                    }))
+                if filenameAdvanced {
+                    TextField(L10n.text("文件名正则表达式"), text: $input)
+                    TextField(L10n.text("日期模板（如 $1:$2:$3 12:00:00）"), text: $end)
+                } else {
+                    Picker(L10n.text("文件名中的日期格式"), selection: Binding(
+                        get: { filenameCustom ? "custom" : filenameFormat.rawValue },
+                        set: { choice in
+                            filenameCustom = choice == "custom"
+                            if let format = MetadataFilenameDateFormat(rawValue: choice) { filenameFormat = format }
+                        })) {
+                        ForEach(MetadataFilenameDateFormat.allCases, id: \.self) { format in
+                            Text(format.rawValue + " · " + format.example).tag(format.rawValue)
+                        }
+                        Text(L10n.text("自定义")).tag("custom")
+                    }
+                    if filenameCustom {
+                        TextField(L10n.text("自定义日期格式"), text: $filenameCustomInput)
+                            .accessibilityIdentifier("metadataFilenameCustomFormat")
+                        Text(L10n.text("YYYY=年，MM=月，DD=日，HH=时，mm=分，ss=秒；其余文字按原样匹配。"))
+                            .font(.caption).foregroundStyle(.secondary)
+                        if filenameSimpleAction != nil {
+                            Text(L10n.text("格式示例：%1$@", MetadataFilenameDateFormat.example(for: filenameCustomInput)))
+                                .font(.caption).foregroundStyle(.secondary)
+                        } else {
+                            Text(L10n.text("格式无效：年月日须各出现一次；分需要时，秒需要时和分。"))
+                                .font(.caption).foregroundStyle(.orange)
+                        }
+                    }
+                    Text(L10n.text("匹配文件名中的日期部分，允许前后带其他文字。"))
+                        .font(.caption).foregroundStyle(.secondary)
+                    if filenameCustom && !["HH", "mm", "ss"].allSatisfy({ filenameCustomInput.contains($0) }) {
+                        Text(L10n.text("未填写的时分秒使用 00，不代表实际拍摄时刻。"))
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else if !filenameCustom && !filenameFormat.includesTime {
+                        Text(L10n.text("文件名不含时分秒时，使用 00:00:00；这不代表实际拍摄时刻。"))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
             } else if mode == "copy" {
                 copyDestinationFields
                 Text(L10n.text("每张照片使用自己的来源值（含待保存修改）；来源缺失时跳过。"))
@@ -844,7 +906,12 @@ private struct MetadataOperationCardView: View {
         case "component": action = .dateComponent(component, amount)
         case "sequence": action = .sequence(start: input, stepSeconds: amount)
         case "distribute": action = .distribute(start: input, end: end)
-        case "filename": action = .filenameDate(pattern: input, template: end)
+        case "filename":
+            if filenameAdvanced { action = .filenameDate(pattern: input, template: end) }
+            else {
+                guard let simple = filenameSimpleAction else { return [] }
+                action = simple
+            }
         case "copy": action = .copy(tag)
         default: action = tag == .creator ? .replaceAuthors(words) : tag.isList && tag != .creator ? .replaceKeywords(words) : .setText(input)
         }
@@ -892,7 +959,14 @@ private struct MetadataOperationCardView: View {
         case .dateComponent(let name, let value): mode = "component"; component = name; amount = value
         case .sequence(let start, let step): mode = "sequence"; input = start; amount = step
         case .distribute(let start, let finish): mode = "distribute"; input = start; end = finish
-        case .filenameDate(let pattern, let template): mode = "filename"; input = pattern; end = template
+        case .filenameDate(let pattern, let template):
+            mode = "filename"; input = pattern; end = template
+            let format = MetadataFilenameDateFormat.matching(action)
+            let custom = MetadataFilenameDateFormat.customFormat(in: action)
+            filenameAdvanced = format == nil && custom == nil
+            filenameCustom = custom != nil
+            filenameCustomInput = custom ?? "YYYY.MM.DD_HHmmss"
+            filenameFormat = format ?? .compactDateTime
         case .offsetDate(let years, let months, let days, let hours, let minutes, let seconds):
             mode = "offset"; dateOffsets = [years, months, days, hours, minutes, seconds]
         }
