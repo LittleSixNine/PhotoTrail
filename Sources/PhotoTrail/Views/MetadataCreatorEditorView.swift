@@ -211,7 +211,10 @@ struct MetadataCreatorEditorView: View {
             let action = try editAction()
             guard !action.hasEmptyInput else { throw MetadataFieldEditError.invalidValue }
             application.apply(readings: readings, operations: [MetadataOperation(tag: tag, action: action)], store: store)
-        } catch { self.error = L10n.text("操作失败：%1$@", String(describing: error)) }
+        } catch {
+            self.error = L10n.text("操作失败：%1$@", String(describing: error))
+            OperationFailure.present(self.error!)
+        }
     }
 
     private func display(_ value: MetadataTagValue?) -> String {

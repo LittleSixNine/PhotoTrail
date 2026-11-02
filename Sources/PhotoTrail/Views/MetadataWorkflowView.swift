@@ -128,7 +128,7 @@ struct MetadataWorkflowView: View {
                     perform {
                         let name = presetName.trimmingCharacters(in: .whitespacesAndNewlines)
                         if let original = renamingPreset {
-                            presetData = try JSONEncoder().encode(MetadataWorkflowCard.renamePreset(original, to: name, in: presets))
+                            presetData = try JSONEncoder().encode(MetadataWorkflowCard.renamePreset(original, to: name, in: try MetadataPreset.stored(in: presetData)))
                             if selectedPreset == original { selectedPreset = name }
                         } else {
                             try storePreset(MetadataPreset(name: name, operations: operations))
@@ -147,7 +147,7 @@ struct MetadataWorkflowView: View {
                    presenting: deletingPreset) { name in
                 Button(L10n.text("取消"), role: .cancel) { deletingPreset = nil }
                 Button(L10n.text("删除预设"), role: .destructive) {
-                    perform { presetData = try JSONEncoder().encode(presets.filter { $0.name != name }) }
+                    perform { presetData = try JSONEncoder().encode(try MetadataPreset.stored(in: presetData).filter { $0.name != name }) }
                     if selectedPreset == name { selectedPreset = "" }
                     deletingPreset = nil
                 }
@@ -328,7 +328,10 @@ private extension MetadataWorkflowView {
             do {
                 let data = try await Task.detached { try Exiftool.helper.xmpData(from: url) }.value
                 try saveFile(data, name: url.deletingPathExtension().lastPathComponent + "-export.xmp", type: UTType(filenameExtension: "xmp") ?? .data)
-            } catch { notice = L10n.text("操作失败：%1$@", String(describing: error)) }
+            } catch {
+                notice = L10n.text("操作失败：%1$@", String(describing: error))
+                OperationFailure.present(notice)
+            }
             busy = false
         }
     }
@@ -353,6 +356,7 @@ private extension MetadataWorkflowView {
             if case Exiftool.ExiftoolError.unsupportedIPTCEncoding = error {
                 notice = L10n.text("现有 IPTC 未明确声明 UTF-8，已阻止写入以保留原编码。")
             } else { notice = L10n.text("操作失败：%1$@", String(describing: error)) }
+            OperationFailure.present(notice)
         }
     }
     private func openFile(type: UTType) -> URL? {
@@ -595,7 +599,7 @@ private extension MetadataWorkflowView {
     func resetOperations() { cards = []; importedPlan = nil }
 
     func storePreset(_ preset: MetadataPreset) throws {
-        var entries = presets.filter { $0.name != preset.name }
+        var entries = try MetadataPreset.stored(in: presetData).filter { $0.name != preset.name }
         entries.append(preset)
         presetData = try JSONEncoder().encode(entries)
     }

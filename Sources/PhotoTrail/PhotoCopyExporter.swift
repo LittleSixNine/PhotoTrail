@@ -99,6 +99,7 @@ enum PhotoCopyExporter {
                 item.reason = L10n.text("已写入副本并回读验证；源文件哈希未改变。")
                 written += 1
             } catch {
+                item.reason = OperationFailure.message(item.reason, error: error)
                 try? fileManager.removeItem(at: target)
                 item.output = nil
                 failed += 1

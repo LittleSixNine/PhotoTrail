@@ -45,6 +45,7 @@ extension PhotoLibrary {
                    store: Store<PhotoTrailState, PhotoTrailEvent>) async {
         // Self.logger.debug("\(#function)")
         var dupsFound = false
+        var failed = 0
         for item in items {
             if let id = item.itemIdentifier {
                 if await isDup(id, in: store) {
@@ -53,9 +54,13 @@ extension PhotoLibrary {
                     continue
                 }
                 let asset = await Phototool.assets(for: id)
+                guard let asset else { failed += 1; continue }
                 let imageData = ImageData(from: item, asset: asset)
                 await store.send(.addImage(imageData))
-            }
+            } else { failed += 1 }
+        }
+        if failed > 0 {
+            await OperationFailure.present(L10n.text("有 %1$@ 个图库项目无法读取，请检查照片权限及原件可用性后重试。", failed))
         }
         if dupsFound {
             await store.send(.duplicateImages, undoable: false)

@@ -88,6 +88,7 @@ final class SoftwareUpdate: ObservableObject {
               let downloadedDigest,
               let fileURL = Self.downloadURL(directory: updatesDirectory, tagName: version) else {
             status = L10n.text("没有找到已下载的安装镜像，请重新检查更新。")
+            OperationFailure.present(status)
             return
         }
         Task {
@@ -98,6 +99,7 @@ final class SoftwareUpdate: ObservableObject {
                 guard NSWorkspace.shared.open(fileURL) else { throw UpdateError.openFailed }
             } catch {
                 status = L10n.text("无法打开已下载的安装镜像：%1$@", error.localizedDescription)
+                OperationFailure.present(status)
             }
         }
     }

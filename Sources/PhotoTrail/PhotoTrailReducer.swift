@@ -120,6 +120,7 @@ struct PhotoTrailReducer: Reducer, Sendable {
             newState.metadataSaveCancelled = true
 
         case .creatorSaveConflict:
+            newState.saveFailures = [L10n.text("同一文件存在重复写入目标或两种未合并的修改，请先处理冲突。")]
             newState.addSheet(type: .saveErrorSheet)
 
         case .removeImages(let ids):
@@ -279,6 +280,9 @@ struct PhotoTrailReducer: Reducer, Sendable {
                         from: newState.backupURL)
             newState.oldFiles = []
 
+        case .saveFailure(let message):
+            newState.saveFailures.append(message)
+
         case .saveComplete(let saveStatus):
             newState.saveInProgress = false
             newState.libraryImages = []
@@ -287,13 +291,17 @@ struct PhotoTrailReducer: Reducer, Sendable {
             newState.creatorImages = []
             switch saveStatus {
             case .saveOK:
-                break
+                if !newState.saveFailures.isEmpty {
+                    newState.addSheet(type: .unexpectedErrorSheet, error: newState.saveFailures.joined(separator: "\n"),
+                                      message: L10n.text("部分附加步骤未完成；已成功写入的元数据不会回退。"))
+                }
             case .saveError:
                 newState.addSheet(type: .saveErrorSheet)
             case .saveErrorSupressWarning:
                 break
             case .saveTagError:
                 newState.addSheet(type: .unexpectedErrorSheet,
+                                  error: newState.saveFailures.joined(separator: "\n"),
                                   message: L10n.text("The metadata was saved, but the Finder tag could not be added."))
             }
             newState.unsavedChanges = newState.imageData.contains { $0.hasPendingChanges }

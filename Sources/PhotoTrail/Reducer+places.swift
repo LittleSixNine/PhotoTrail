@@ -36,7 +36,7 @@ extension PhotoTrailReducer {
             do {
                 try await PlaceSaver.shared.write(places: places)
             } catch {
-                logger.error("cannot write search places: \(error.localizedDescription, privacy: .public)")
+                await OperationFailure.present(L10n.text("地点记录读写失败，原文件已保留。"), error: error)
             }
         }
     }

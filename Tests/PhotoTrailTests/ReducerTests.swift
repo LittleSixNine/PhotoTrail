@@ -181,7 +181,7 @@ struct ReducerTests {
         // give the task time to complete before verifying that the
         // file has been emptied. Fragile.
         try? await Task.sleep(for: .milliseconds(300))
-        let savedPlaces = await PlaceSaver.shared.read()
+        let savedPlaces = try await PlaceSaver.shared.read()
         #expect(savedPlaces.isEmpty)
     }
 

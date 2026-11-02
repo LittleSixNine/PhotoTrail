@@ -15,7 +15,7 @@ struct PhotoPickerView: View {
                 PhotosPicker(selection: $pickerItems,
                              matching: .images,
                              photoLibrary: .shared()) {
-                    Label(L10n.text("从图库导入"), systemImage: "photo.on.rectangle").fixedSize()
+                    Label(L10n.text("从图库导入"), image: "PhotosLibrary").fixedSize()
                 }
                 .keyboardShortcut("i", modifiers: [.shift, .command])
             } else {
@@ -30,7 +30,7 @@ struct PhotoPickerView: View {
                         }
                     }
                 } label: {
-                    Label(L10n.text("从图库导入"), systemImage: "photo.on.rectangle").fixedSize()
+                    Label(L10n.text("从图库导入"), image: "PhotosLibrary").fixedSize()
                 }
             }
         }
@@ -67,7 +67,7 @@ struct WorkspaceToolbarButtonStyle: ButtonStyle {
         configuration.label
             .font(.system(size: 13, weight: .medium))
             .foregroundStyle(isEnabled ? (prominent ? Color.white : Color.primary) : Color.secondary)
-            .padding(.horizontal, 6)
+            .padding(.horizontal, 12)
             .frame(minHeight: 34)
             .background(prominent && isEnabled ? Color.blue : Color(nsColor: .controlBackgroundColor), in: Capsule())
             .overlay {

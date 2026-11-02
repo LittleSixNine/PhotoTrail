@@ -28,11 +28,13 @@ enum SaveHelper {
 
     nonisolated static func saveThenTag(
         save: () async throws -> Void,
-        tag: (() async throws -> Void)?
+        tag: (() async throws -> Void)?,
+        onFailure: (Error) -> Void = { _ in }
     ) async -> FileSaveOutcome {
         do {
             try await save()
         } catch {
+            onFailure(error)
             return .failed
         }
         guard let tag else { return .saved }
@@ -40,6 +42,7 @@ enum SaveHelper {
             try await tag()
             return .saved
         } catch {
+            onFailure(error)
             return .savedWithoutTag
         }
     }
@@ -144,8 +147,10 @@ enum SaveHelper {
         }
         // Do the save in the background, report when done.
         let task = Task {
-            let resolvedFiles = await resolveAddresses(fileImages, images: store.imageData, workspace: workspace)
-            let resolvedXmp = await resolveAddresses(xmpImages, images: store.imageData, workspace: workspace)
+            let resolvedFiles = await resolveAddresses(fileImages, images: store.imageData, workspace: workspace,
+                onFailure: { store.send(.saveFailure($0), undoable: false) })
+            let resolvedXmp = await resolveAddresses(xmpImages, images: store.imageData, workspace: workspace,
+                onFailure: { store.send(.saveFailure($0), undoable: false) })
             async let libUpdated = saveToLibrary(store, libraryImages)
             async let imgUpdated = saveToImage(store, resolvedFiles)
             async let xmpUpdated = saveToImage(store, resolvedXmp, xmp: true)
@@ -171,7 +176,7 @@ enum SaveHelper {
     }
 
     static func resolveAddresses(_ snapshots: [ImageData.ID: Metadata], images: [ImageData],
-                                 workspace: LocationWorkspace?) async -> [ImageData.ID: Metadata] {
+                                 workspace: LocationWorkspace?, onFailure: ((String) -> Void)? = nil) async -> [ImageData.ID: Metadata] {
         guard let workspace else { return snapshots }
         guard UserDefaults.standard.object(forKey: SettingsPreferences.writeRegionKey) as? Bool != false else {
             return snapshots
@@ -199,7 +204,8 @@ enum SaveHelper {
                 metadata.country = address.country
                 metadata.countryCode = address.countryCode
             } catch {
-                logger.notice("Address lookup failed; saving coordinates without region fields for photo ID \(id)")
+                let name = images.first { $0.id == id }?.name ?? String(id)
+                onFailure?(OperationFailure.message(name + ": " + L10n.text("地区查询失败，坐标仍会保存，旧地区字段将清空。"), error: error))
             }
             resolved[id] = metadata
         }
@@ -221,7 +227,12 @@ enum SaveHelper {
                     store.send(.imageSaved(id, metadata), undoable: false)
                 } else {
                     saveStatus = .saveError
+                    store.send(.saveFailure(store[id].name + ": " + L10n.text("照片图库写入失败，请检查照片权限和图库状态。")), undoable: false)
                 }
+                store.send(.saveProgress(1), undoable: false)
+            } else {
+                saveStatus = .saveError
+                store.send(.saveFailure(store[id].name + ": " + L10n.text("照片图库写入失败，请检查照片权限和图库状态。")), undoable: false)
                 store.send(.saveProgress(1), undoable: false)
             }
         }
@@ -265,6 +276,7 @@ enum SaveHelper {
         let metadata: Metadata
         let sidecarCreated: Bool
         let outcome: FileSaveOutcome
+        var failure: String? = nil
     }
 
     nonisolated private static let logger = Logger(
@@ -331,15 +343,17 @@ enum SaveHelper {
                 }
                 let writeInterval = signposter.beginInterval("WriteMetadata", id: signposter.makeSignpostID())
                 let frozenMetadata = metadata
+                var failure: String?
                 let outcome = await saveThenTag(
                     save: { try await sandbox.saveChanges(from: frozenMetadata, timeZone: timeZone) },
-                    tag: tagFiles ? { try await sandbox.setTag(name: tagName) } : nil)
+                    tag: tagFiles ? { try await sandbox.setTag(name: tagName) } : nil,
+                    onFailure: { failure = $0.localizedDescription })
                 signposter.endInterval("WriteMetadata", writeInterval)
                 if outcome == .failed { logger.error("Metadata write failed for photo ID \(id)") }
-                return LocalSaveResult(id: id, metadata: metadata, sidecarCreated: created, outcome: outcome)
+                return LocalSaveResult(id: id, metadata: metadata, sidecarCreated: created, outcome: outcome, failure: failure)
             } catch {
                 logger.error("Save preparation failed for photo ID \(id): \(error.localizedDescription, privacy: .private)")
-                return LocalSaveResult(id: id, metadata: metadata, sidecarCreated: created, outcome: .failed)
+                return LocalSaveResult(id: id, metadata: metadata, sidecarCreated: created, outcome: .failed, failure: error.localizedDescription)
             }
         }
         await withTaskGroup(of: LocalSaveResult.self) { group in
@@ -398,6 +412,7 @@ extension SaveHelper {
             if store.metadataSaveCancelled { break }
             if store.creatorSaveResults[item.id] == .resultUnknown {
                 status = .saveError
+                store.send(.saveFailure(item.target.lastPathComponent + ": " + creatorFailure(.resultUnknown)), undoable: false)
                 store.send(.saveProgress(1), undoable: false)
                 continue
             }
@@ -407,6 +422,7 @@ extension SaveHelper {
                 store.send(.creatorSaved(item.id), undoable: false)
             } else {
                 status = .saveError
+                store.send(.saveFailure(item.target.lastPathComponent + ": " + creatorFailure(result)), undoable: false)
             }
             store.send(.saveProgress(1), undoable: false)
         }
@@ -471,4 +487,16 @@ extension SaveHelper {
         return scope
     }
 
+}
+
+extension SaveHelper {
+    static func creatorFailure(_ result: MetadataCreatorSaveResult) -> String {
+        switch result {
+        case .saved, .unchanged: ""
+        case .staleSource: L10n.text("源文件已变化；请放弃草稿并重新读取。")
+        case .preparationFailed: L10n.text("备份或写入准备失败；请检查备份目录。")
+        case .failed: L10n.text("元数据写入失败；请检查文件权限。")
+        case .resultUnknown: L10n.text("元数据写入结果未确认；请先检查磁盘文件，不能直接重试。")
+        }
+    }
 }

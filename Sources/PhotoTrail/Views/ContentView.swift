@@ -248,6 +248,7 @@ struct ContentView: View {
             case let .success(files):
                 importLocalFiles(files, description: "add files")
             case let .failure(error):
+                OperationFailure.present(L10n.text("导入照片"), error: error)
                 Logger(subsystem: Bundle.main.bundleIdentifier!,
                        category: "ContentView").error(
                     "file import: \(error.localizedDescription, privacy: .public)")

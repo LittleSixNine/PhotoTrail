@@ -13,6 +13,9 @@ extension PhotoTrailReducer {
         let result = scanFiles(urls)
         state.scopedURLs.append(contentsOf: result.scoped)
         state.ignoredFileCount = result.ignored
+        if !result.failures.isEmpty {
+            state.addSheet(type: .unexpectedErrorSheet, error: result.failures.joined(separator: "\n"), message: L10n.text("导入照片"))
+        }
         selectUniqueFiles(&state, imageURLs: result.urls)
     }
 
@@ -34,7 +37,14 @@ extension PhotoTrailReducer {
     }
 
     /// Filesystem work runs in a detached utility task at production import entry points.
-    nonisolated func scanFiles(_ urls: [URL]) -> (urls: [URL], ignored: Int, scoped: [URL]) {
+    struct ScannedFiles: Sendable {
+        let urls: [URL]
+        let ignored: Int
+        let scoped: [URL]
+        let failures: [String]
+    }
+
+    nonisolated func scanFiles(_ urls: [URL]) -> ScannedFiles {
         var scoped: [URL] = []
         for url in urls {
             let access = url.startAccessingSecurityScopedResource()
@@ -42,10 +52,21 @@ extension PhotoTrailReducer {
             else if access { url.stopAccessingSecurityScopedResource() }
         }
         var seen = Set<String>()
-        let requested = urls.flatMap { isFolder($0) ? urlsIn(folder: $0) : [$0] }
-            .filter { seen.insert($0.standardizedFileURL.path).inserted }
+        var failures: [String] = []
+        var requested: [URL] = []
+        for url in urls {
+            do {
+                if try url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true {
+                    requested += urlsIn(folder: url, failures: &failures)
+                } else {
+                    guard FileManager.default.isReadableFile(atPath: url.path) else { throw CocoaError(.fileReadNoPermission) }
+                    requested.append(url)
+                }
+            } catch { failures.append(OperationFailure.message(url.lastPathComponent, error: error)) }
+        }
+        requested = requested.filter { seen.insert($0.standardizedFileURL.path).inserted }
         let accepted = requested.filter { $0.isSupportedPhotoImage || $0.isTrackFile }
-        return (accepted, requested.count - accepted.count, scoped)
+        return ScannedFiles(urls: accepted, ignored: requested.count - accepted.count, scoped: scoped, failures: failures)
     }
 
     // Check if a given file URL refers to a folder
@@ -56,7 +77,9 @@ extension PhotoTrailReducer {
 
     // Recursivly iterate over a folder looking for files.
     // Returns an array of contained urls
-    nonisolated func urlsIn(folder url: URL) -> [URL] {
+    nonisolated func urlsIn(folder url: URL, failures: inout [String]) -> [URL] {
+        var errors: [String] = []
+        defer { failures += errors }
         var foundURLs = [URL]()
         let fileManager = FileManager.default
         guard let urlEnumerator =
@@ -64,7 +87,11 @@ extension PhotoTrailReducer {
                                    includingPropertiesForKeys: [.isDirectoryKey],
                                    options: UserDefaults.standard.object(forKey: SettingsPreferences.recursiveImportKey) as? Bool == false
                                        ? [.skipsHiddenFiles, .skipsSubdirectoryDescendants] : [.skipsHiddenFiles],
-                                   errorHandler: nil) else {
+                                   errorHandler: { failedURL, error in
+                                       errors.append(OperationFailure.message(failedURL.lastPathComponent, error: error))
+                                       return true
+                                   }) else {
+                errors.append(url.lastPathComponent + ": " + L10n.text("文件或目录已不存在，请检查磁盘连接并重新预览。"))
                 logger.error("\(#function, privacy: .public): No enumerator for \(url, privacy: .public)")
                 return []
             }

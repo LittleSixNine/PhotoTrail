@@ -66,6 +66,8 @@ struct SubtleScrollbars: NSViewRepresentable {
         }
 
         static func configure(_ scroll: NSScrollView, reservesVerticalScroller: Bool = false) {
+            // Setting the style during every layout can trigger another scroll-view layout.
+            if scroll.scrollerStyle != .legacy { scroll.scrollerStyle = .legacy }
             // A width-dependent preview must not resize when overflow toggles at the height boundary.
             if reservesVerticalScroller {
                 if !scroll.hasVerticalScroller { scroll.hasVerticalScroller = true }
@@ -73,7 +75,6 @@ struct SubtleScrollbars: NSViewRepresentable {
             }
             // Overlay scrollers own an OS-controlled fade timer. Use native legacy
             // tracking with a clear track so the app can consistently wait three seconds.
-            scroll.scrollerStyle = .legacy
             if let old = scroll.verticalScroller, !(old is SubtleScroller) {
                 scroll.verticalScroller = replacement(for: old)
             }

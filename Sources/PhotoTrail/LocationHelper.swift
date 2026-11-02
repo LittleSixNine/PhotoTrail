@@ -25,12 +25,16 @@ enum LocationHelper {
         let provider = UserDefaults.standard.string(forKey: "PhotoTrailMapProvider") ?? "amap"
         var addresses: [ImageData.ID: Place] = [:]
         var failed = 0
+        var failures: [String] = []
         for image in images where canFillRegion(image) {
             guard let point = image.metadata.location else { continue }
             do {
                 addresses[image.id] = try await workspace.address(at:
                     MapCoordinate(latitude: point.latitude, longitude: point.longitude), provider: provider)
-            } catch { failed += 1 }
+            } catch {
+                failed += 1
+                failures.append(OperationFailure.message(image.name, error: error))
+            }
             if Task.isCancelled { return }
         }
         guard !store.saveInProgress, !store.importProgress.isActive else { return }
@@ -39,6 +43,7 @@ enum LocationHelper {
         let changed = images.filter { before[$0.id] != store[$0.id].metadata }.count
         workspace.status = L10n.text("地区信息已暂存：%1$@ 张；查询失败：%2$@ 张；未补齐：%3$@ 张。请写入所有元数据。",
                                      changed, failed, images.count - changed - failed)
+        if !failures.isEmpty { OperationFailure.present(workspace.status + "\n\n" + failures.joined(separator: "\n")) }
     }
 
     static func photoIDs(in images: [ImageData], timeZone: TimeZone,

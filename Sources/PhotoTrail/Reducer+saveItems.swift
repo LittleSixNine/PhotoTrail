@@ -67,6 +67,9 @@ extension PhotoTrailReducer {
             if result.sidecarCreated, case .image = newState.imageData[index].metadata.source {
                 newState.imageData[index].metadata = newState.imageData[index].metadata.xmp()
             }
+            if let failure = result.failure {
+                newState.saveFailures.append(newState.imageData[index].name + ": " + failure)
+            }
             if result.outcome.metadataSaved {
                 if newState.imageData[index].original?.location != result.metadata.location {
                     newState.locationSavedPhotoIDs.insert(result.id)
@@ -99,6 +102,7 @@ extension PhotoTrailReducer {
     // The save process continues in a future step.
 
     func save(_ state: inout PhotoTrailState, scope: MetadataSaveScope = .all) {
+        state.saveFailures = []
         state.saveInProgress = true
         state.metadataSaveCancelled = false
         let targets = SaveTargets(images: state.imageData, scope: scope)

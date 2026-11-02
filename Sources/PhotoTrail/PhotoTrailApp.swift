@@ -72,8 +72,10 @@ struct PhotoTrailApp: App {
                             }
                         }
                     }
-                    let savedPlaces = await PlaceSaver.shared.read()
-                    store.send(.initPlaces(savedPlaces), undoable: false)
+                    do {
+                        let savedPlaces = try await PlaceSaver.shared.read()
+                        store.send(.initPlaces(savedPlaces), undoable: false)
+                    } catch { OperationFailure.present(L10n.text("地点记录读写失败，原文件已保留。"), error: error) }
                 }
                 .environment(store)
                 .environment(locationWorkspace)

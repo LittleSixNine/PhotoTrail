@@ -119,14 +119,16 @@ struct TrackSidebar: View {
                         workspace.listMatchResults = []
                         store.send(.restoreTracks([log]), undoable: false)
                     }
-                } catch { importNotice = L10n.text("轨迹恢复失败：%1$@", error.localizedDescription) }
+                } catch { importNotice = L10n.text("轨迹恢复失败：%1$@", error.localizedDescription); OperationFailure.present(importNotice!) }
                 originalToRestore = nil
             }
         } message: { Text(L10n.text("重新读取原文件并放弃当前调整，已有照片定位不自动改变。")) }
         .fileImporter(isPresented: $importing,
                       allowedContentTypes: UTType.photoTrailTracks,
                       allowsMultipleSelection: true) { result in
-            guard case .success(let urls) = result else { return }
+            guard case .success(let urls) = result else {
+                if case .failure(let error) = result { OperationFailure.present(L10n.text("导入轨迹"), error: error) }; return
+            }
             importNotice = urls.contains { library.record($0.standardizedFileURL.path) != nil }
                 ? L10n.text("已导入的文件会更新原条目，不会重复添加。") : nil
             OpenHelper.importFiles(store, urls: urls, description: L10n.text("导入轨迹"))
@@ -134,7 +136,10 @@ struct TrackSidebar: View {
         .fileExporter(isPresented: $exporting, document: exportDocument,
                       contentType: PhotoGPXDocument.contentType,
                       defaultFilename: exportFilename) { result in
-            if case .failure(let error) = result { importNotice = L10n.text("导出失败：%1$@", error.localizedDescription) }
+            if case .failure(let error) = result, !OperationFailure.isCancellation(error) {
+                importNotice = L10n.text("导出失败：%1$@", error.localizedDescription)
+                OperationFailure.present(importNotice!)
+            }
             exportDocument = nil
         }
     }
@@ -321,7 +326,7 @@ private extension TrackSidebar {
                         workspace.listMatchResults = []
                         store.send(.restoreTracks([log]), undoable: false)
                     }
-                } catch { importNotice = L10n.text("轨迹恢复失败：%1$@", error.localizedDescription) }
+                } catch { importNotice = L10n.text("轨迹恢复失败：%1$@", error.localizedDescription); OperationFailure.present(importNotice!) }
             }.disabled(!library.canUndoAdjustment(record.id) || store.saveInProgress || matching)
             Button(L10n.text("恢复原轨迹")) { originalToRestore = record }
                 .disabled(store.saveInProgress || matching)
@@ -335,7 +340,7 @@ private extension TrackSidebar {
                     exportDocument = PhotoGPXDocument(data: try Data(contentsOf: record.log.sourceURL))
                     exportFilename = record.name
                     exporting = true
-                } catch { importNotice = L10n.text("无法读取缓存轨迹：%1$@", error.localizedDescription) }
+                } catch { importNotice = L10n.text("无法读取缓存轨迹：%1$@", error.localizedDescription); OperationFailure.present(importNotice!) }
             }.disabled(record.sourceUnavailable)
         }
         Button(L10n.text("清除这条轨迹的转换缓存")) { library.clearCache(record.id) }
@@ -368,7 +373,7 @@ private extension TrackSidebar {
             let readback = try GpxTrackLog(contentsOf: url)
             guard readback.tracks == record.log.tracks else { throw CocoaError(.fileReadCorruptFile) }
             importNotice = L10n.text("调整后的 GPX 已导出并回读验证。")
-        } catch { importNotice = L10n.text("导出失败：%1$@", error.localizedDescription) }
+        } catch { importNotice = L10n.text("导出失败：%1$@", error.localizedDescription); OperationFailure.present(importNotice!) }
     }
 
     private func refresh(_ id: String) {
@@ -378,6 +383,7 @@ private extension TrackSidebar {
                 store.send(.restoreTracks([log]), undoable: false)
             } else if library.record(id)?.sourceUnavailable == true {
                 store.send(.removeTrack(URL(filePath: id)), undoable: false)
+                if case .failed(let message) = library.states[id] { OperationFailure.present(message) }
             }
         }
     }

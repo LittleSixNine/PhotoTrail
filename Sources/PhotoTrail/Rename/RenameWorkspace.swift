@@ -1,5 +1,6 @@
 import AppKit
 import CryptoKit
+import Darwin
 import Exiftool
 import ImageData
 import Observation
@@ -25,6 +26,7 @@ final class RenameWorkspace {
     private var scopeInitialized = false
     var authorizedDirectories = Set<URL>()
     @ObservationIgnored private var directoryScopes: [URL] = []
+    private static let directoryBookmarksKey = "PhotoTrailRenameDirectoryBookmarks"
     var rows: [RenamePreview] = []
     var plan: RenamePlan?
     var busy = false
@@ -38,6 +40,9 @@ final class RenameWorkspace {
     var stopping = false
     var progress = RenameProgress(phase: .checking, completed: 0, total: 0)
     var notice = ""
+    var failureMessage: String?
+    var failureTitle = L10n.text("重命名未完成")
+    var historyNotice = ""
     var selectedRows = Set<URL>()
     var presets: [RenamePreset] = []
     var presetName = ""
@@ -63,9 +68,10 @@ final class RenameWorkspace {
 
     var actionable: Int { rows.filter(\.changes).count }
     var blocked: Bool { rows.contains { $0.issues.contains(.invalidName) || $0.issues.contains(.conflict) } }
+    var usesCopyCompatibility: Bool { plan?.versions.values.contains { $0.copyCompatible == true } ?? false }
     var directoriesAuthorized: Bool {
         guard let plan else { return false }
-        return plan.rows.allSatisfy { authorizedDirectories.contains($0.source.deletingLastPathComponent().standardizedFileURL) }
+        return Set(plan.rows.map { $0.source.deletingLastPathComponent() }).allSatisfy { isDirectoryAuthorized($0) }
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -73,17 +79,9 @@ final class RenameWorkspace {
         presetRules = rules
         presetSettings = settings
         loadPresets()
+        restoreDirectoryAuthorizations()
     }
 
-    func loadHistory(directory: URL = RenameExecutor.storage) async {
-        historyLoadRevision += 1
-        let revision = historyLoadRevision
-        historyLoading = true
-        let saved = await Task.detached(priority: .utility) { RenameExecutor.journals(directory: directory) }.value
-        guard revision == historyLoadRevision else { return }
-        history = saved
-        historyLoading = false
-    }
 
     deinit { for url in directoryScopes { url.stopAccessingSecurityScopedResource() } }
 
@@ -99,12 +97,6 @@ final class RenameWorkspace {
               let destination = rules.firstIndex(where: { $0.id == targetID }) else { return }
         let rule = rules.remove(at: source)
         rules.insert(rule, at: destination)
-    }
-
-    func authorizeDirectory(_ url: URL) {
-        let parent = URL(fileURLWithPath: url.standardizedFileURL.path, isDirectory: true)
-        if url.startAccessingSecurityScopedResource() { directoryScopes.append(url) }
-        authorizedDirectories.insert(parent)
     }
 
     func activatePreset(_ preset: RenamePreset) {
@@ -183,17 +175,17 @@ final class RenameWorkspace {
             if presets.contains(where: { $0.id == preset.id }) { preset.id = UUID() }
             preset.name = uniquePresetName(preset.name)
             presets.append(preset); persistPresets(); activatePreset(preset)
-        } catch { notice = RenameCopy.error(error) }
+        } catch { reportFailure(RenameCopy.error(error), title: L10n.text("操作未完成")) }
     }
 
     func exportPreset(_ url: URL) {
         do {
             let preset = RenamePreset(name: currentPresetName, rules: rules, settings: settings, example: presetExample)
             try JSONEncoder().encode(preset).write(to: url, options: .atomic)
-        } catch { notice = RenameCopy.error(error) }
+        } catch { reportFailure(RenameCopy.error(error), title: L10n.text("操作未完成")) }
     }
 
-    func refresh(images: [ImageData], selection: Set<ImageData.ID>, directoryScopes: [URL] = []) {
+    func refresh(images: [ImageData], selection: Set<ImageData.ID>, directoryScopes: [URL] = [], reportErrors: Bool = false) {
         guard !executing else { return }
         for url in directoryScopes where (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true {
             authorizedDirectories.insert(URL(fileURLWithPath: url.standardizedFileURL.path, isDirectory: true))
@@ -224,7 +216,8 @@ final class RenameWorkspace {
         let frozenRules = rules
         let settings = self.settings, cached = cache
         let filter = fileFilter, manual = manualOrder
-        let directories = authorizedDirectories
+        let directories = Set(urls.map { $0.deletingLastPathComponent().standardizedFileURL }
+            .filter { isDirectoryAuthorized($0) })
         worker = Task {
             do {
                 try await Task.sleep(for: .milliseconds(180))
@@ -260,6 +253,7 @@ final class RenameWorkspace {
             } catch {
                 guard !Task.isCancelled, token == self.revision else { return }
                 self.rows = []; self.notice = RenameCopy.error(error)
+                if reportErrors { self.reportFailure(self.notice, title: L10n.text("生成预览未完成")) }
             }
             if token == self.revision { self.busy = false }
         }
@@ -286,19 +280,24 @@ final class RenameWorkspace {
     }
 
     func execute(store: Store<PhotoTrailState, PhotoTrailEvent>) {
-        guard let plan, !busy, !executing, !blocked, actionable > 0,
-              !store.saveInProgress, !store.imageData.contains(where: \.hasPendingChanges) else { return }
+        guard !executing, !busy else { reportFailure(L10n.text("请等待当前操作完成后重试。")); return }
+        guard !store.saveInProgress, !store.imageData.contains(where: \.hasPendingChanges) else {
+            reportFailure(L10n.text("仍有未保存修改，未执行重命名。请检查保存结果后重试。")); return
+        }
+        guard let plan else { reportFailure(L10n.text("源文件已变化，请重新预览。")); return }
+        guard !blocked else { reportFailure(L10n.text("请先处理预览中的无效文件名和冲突。")); return }
+        guard actionable > 0 else { reportFailure(L10n.text("当前预览没有需要改名的文件。")); return }
         guard directoriesAuthorized else {
-            notice = L10n.text("请授权文件所在目录后重新预览，才能扫描配对文件并检查重名。")
+            reportFailure(L10n.text("请授权文件所在目录后重新预览，才能扫描配对文件并检查重名。"))
             return
         }
-        guard !Self.operationActive else { notice = L10n.text("另一个窗口正在操作文件，请稍后重试。"); return }
+        guard !Self.operationActive else { reportFailure(L10n.text("另一个窗口正在操作文件，请稍后重试。")); return }
         guard plan.counterValues.allSatisfy({ Self.counters()[$0.key] == $0.value }) else {
-            notice = L10n.text("计数器已变化，请重新预览。")
+            reportFailure(L10n.text("计数器已变化，请重新预览。"))
             return
         }
         guard Self.sidecarsStayAttached(images: store.imageData, plan: plan) else {
-            notice = L10n.text("照片有 XMP 旁车，请启用配对并保留旁车扩展名后重新预览。")
+            reportFailure(L10n.text("照片有 XMP 旁车，请启用配对并保留旁车扩展名后重新预览。"))
             return
         }
         progress = .init(phase: .checking, completed: 0, total: plan.rows.filter(\.changes).count)
@@ -332,10 +331,15 @@ final class RenameWorkspace {
                         store.send(.renameRecoveryChanged(urls, true), undoable: false)
                     }
                     if !result.mappings.isEmpty { store.discardAllUndo() }
-                    notice = result.error.map { _ in result.needsRecovery ? L10n.text("部分文件需要恢复，请查看执行记录。") : L10n.text("执行中止，已恢复原文件名。") }
-                        ?? L10n.text("已重命名 %1$@ 个文件，文件内容已核对。", result.mappings.count)
+                    if let error = result.error {
+                        let recovery = result.needsRecovery
+                            ? L10n.text("部分文件需要恢复，请查看执行记录。") : L10n.text("执行中止，已恢复原文件名。")
+                        reportFailure(error + "\n\n" + recovery)
+                    } else {
+                        notice = L10n.text("已重命名 %1$@ 个文件，文件内容已核对。", result.mappings.count)
+                    }
                 }
-            } catch { result = nil; notice = RenameCopy.error(error) }
+            } catch { result = nil; reportFailure(RenameCopy.error(error)) }
             store.send(.renameFinished, undoable: false)
             executing = false
             restoring = false
@@ -356,13 +360,14 @@ final class RenameWorkspace {
 
 private extension RenameWorkspace {
     func persistPresets() {
-        if let data = try? JSONEncoder().encode(presets) { defaults.set(data, forKey: "PhotoTrailRenamePresets.v1") }
+        do { defaults.set(try JSONEncoder().encode(presets), forKey: "PhotoTrailRenamePresets.v1") }
+        catch { reportFailure(RenameCopy.error(error), title: L10n.text("操作未完成")) }
     }
 
     func loadPresets() {
         if let data = defaults.data(forKey: "PhotoTrailRenamePresets.v1") {
             guard let saved = try? JSONDecoder().decode([RenamePreset].self, from: data) else {
-                notice = L10n.text("方案格式或版本不受支持。")
+                reportFailure(L10n.text("方案格式或版本不受支持。"), title: L10n.text("操作未完成"))
                 return
             }
             presets = saved
@@ -411,8 +416,12 @@ private extension RenameWorkspace {
             persistPresets()
         }
         migrateDefaultPrefixExample()
-        if let data = defaults.data(forKey: "PhotoTrailRenameLastPreset.v1"),
-           let saved = try? JSONDecoder().decode(RenamePreset.self, from: data), saved.version == 1 {
+        let lastPresetData = defaults.data(forKey: "PhotoTrailRenameLastPreset.v1")
+        let lastPreset = lastPresetData.flatMap { try? JSONDecoder().decode(RenamePreset.self, from: $0) }
+        if lastPresetData != nil, lastPreset?.version != 1 {
+            reportFailure(L10n.text("方案格式或版本不受支持。"), title: L10n.text("操作未完成"))
+        }
+        if let saved = lastPreset, saved.version == 1 {
             if !presets.contains(where: { $0.id == saved.id }) { presets.append(saved); persistPresets() }
             activatePreset(presets.first(where: { $0.id == saved.id }) ?? saved)
         } else if let first = presets.first {
@@ -447,13 +456,27 @@ enum RenameCopy {
         }
     }
     static func error(_ error: Error) -> String {
-        switch error {
+        let underlying = error as NSError
+        if underlying.domain == NSPOSIXErrorDomain {
+            switch POSIXErrorCode(rawValue: Int32(underlying.code)) {
+            case .EEXIST: return L10n.text("目标被占用，未覆盖文件。")
+            case .EACCES, .EPERM, .EROFS: return L10n.text("没有目录修改权限，或磁盘为只读。请检查目录授权和磁盘状态。")
+            case .ENOSPC: return L10n.text("磁盘空间不足，请释放空间后重试。")
+            case .ENOENT: return L10n.text("文件或目录已不存在，请检查磁盘连接并重新预览。")
+            case .ENODEV, .ENXIO, .EIO: return L10n.text("磁盘不可用或读写失败，请检查连接和磁盘状态。")
+            case .EBUSY: return L10n.text("文件或磁盘正被占用，请稍后重试。")
+            case .ENAMETOOLONG: return L10n.text("文件名无效或过长")
+            default: break
+            }
+        }
+        return switch error {
+        case is CancellationError: L10n.text("操作已取消")
         case RenameError.invalidRule(let n): L10n.text("规则 R%1$@ 参数无效，请检查输入。", n)
         case RenameError.stalePlan: L10n.text("源文件已变化，请重新预览。")
         case RenameError.occupied: L10n.text("目标被占用，未覆盖文件。")
         case RenameError.invalidSource: L10n.text("源文件不可用、重复或为符号链接。")
         case RenameError.invalidPreset: L10n.text("方案格式或版本不受支持。")
-        default: L10n.text("重命名失败：%1$@", error.localizedDescription)
+        default: L10n.text("操作失败：%1$@", error.localizedDescription)
         }
     }
 }
@@ -471,7 +494,8 @@ extension RenameWorkspace {
 
     private func persistCurrentPreset() {
         let preset = RenamePreset(id: currentPresetID ?? UUID(), name: currentPresetName, rules: presetRules, settings: presetSettings, example: savedExample)
-        if let data = try? JSONEncoder().encode(preset) { defaults.set(data, forKey: "PhotoTrailRenameLastPreset.v1") }
+        do { defaults.set(try JSONEncoder().encode(preset), forKey: "PhotoTrailRenameLastPreset.v1") }
+        catch { reportFailure(RenameCopy.error(error), title: L10n.text("操作未完成")) }
     }
 
     private func updateExample(previous: String) {
@@ -658,8 +682,12 @@ extension RenameWorkspace {
 
 extension RenameWorkspace {
     func restore(_ journal: RenameJournal, store: Store<PhotoTrailState, PhotoTrailEvent>) {
-        guard !executing, !store.saveInProgress, !store.imageData.contains(where: \.hasPendingChanges) else { return }
-        guard !Self.operationActive else { notice = L10n.text("另一个窗口正在操作文件，请稍后重试。"); return }
+        guard !executing, !Self.operationActive else {
+            reportFailure(L10n.text("另一个窗口正在操作文件，请稍后重试。"), title: L10n.text("恢复未完成")); return
+        }
+        guard !store.saveInProgress, !store.imageData.contains(where: \.hasPendingChanges) else {
+            reportFailure(L10n.text("请先保存或放弃未保存修改，再恢复原名。"), title: L10n.text("恢复未完成")); return
+        }
         executing = true
         restoring = true
         stopping = false
@@ -679,7 +707,12 @@ extension RenameWorkspace {
                     })
                     return (journal, nil)
                 }
-                catch { return (journal, error.localizedDescription) }
+                catch {
+                    journal.state = "recoveryRequired"
+                    journal.failure = L10n.text("恢复未完成：%1$@。原文件未被覆盖。", RenameCopy.error(error))
+                    RenameExecutor.saveFailure(&journal, directory: RenameExecutor.storage)
+                    return (journal, journal.failure)
+                }
             }.value
             let after = await Task.detached { RenameExecutor.currentMappings(outcome.0) }.value
             var mappings: [URL: URL] = [:]
@@ -694,9 +727,117 @@ extension RenameWorkspace {
             store.send(.renameRecoveryChanged(urls, outcome.1 != nil), undoable: false)
             if !mappings.isEmpty { store.discardAllUndo() }
             store.send(.renameFinished, undoable: false)
-            notice = outcome.1.map { L10n.text("恢复未完成：%1$@。原文件未被覆盖。", $0) } ?? L10n.text("已恢复原文件名。")
+            if let error = outcome.1 { reportFailure(error, title: L10n.text("恢复未完成")) }
+            else { notice = L10n.text("已恢复原文件名。") }
             executing = false; restoring = false; Self.operationActive = false; plan = nil; cache = [:]
             await loadHistory()
         }
+    }
+}
+
+extension RenameWorkspace {
+    nonisolated static func directory(_ directory: URL, isWithin root: URL) -> Bool {
+        directory.resolvingSymlinksInPath().standardizedFileURL.pathComponents
+            .starts(with: root.resolvingSymlinksInPath().standardizedFileURL.pathComponents)
+    }
+
+    func isDirectoryAuthorized(_ directory: URL) -> Bool {
+        authorizedDirectories.contains { Self.directory(directory, isWithin: $0) }
+            && Self.canModifyDirectory(directory)
+    }
+
+    nonisolated private static func canModifyDirectory(_ url: URL) -> Bool {
+        (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
+            && FileManager.default.isReadableFile(atPath: url.path)
+            && FileManager.default.isWritableFile(atPath: url.path)
+            && FileManager.default.isExecutableFile(atPath: url.path)
+    }
+
+    nonisolated static func suggestedAuthorizationDirectory(for directory: URL) -> URL {
+        // Foundation home-directory APIs return the app container in a sandbox.
+        if let homePath = getpwuid(getuid())?.pointee.pw_dir {
+            let home = URL(fileURLWithPath: String(cString: homePath), isDirectory: true)
+            for name in ["Desktop", "Downloads"] {
+                let root = home.appendingPathComponent(name, isDirectory: true)
+                if directory.standardizedFileURL.pathComponents.starts(with: root.pathComponents) { return root }
+            }
+        }
+        let components = directory.standardizedFileURL.pathComponents
+        if components.count >= 3, components[1] == "Volumes" {
+            return URL(fileURLWithPath: "/Volumes", isDirectory: true).appendingPathComponent(components[2], isDirectory: true)
+        }
+        return directory
+    }
+
+    func authorizeDirectory(_ url: URL) {
+        let parent = URL(fileURLWithPath: url.standardizedFileURL.path, isDirectory: true)
+        let scoped = url.startAccessingSecurityScopedResource()
+        guard Self.canModifyDirectory(url) else {
+            if scoped { url.stopAccessingSecurityScopedResource() }
+            reportFailure(L10n.text("所选目录不可读写，请选择可修改的上级目录。"), title: L10n.text("目录授权未完成"))
+            return
+        }
+        if scoped { directoryScopes.append(url) }
+        authorizedDirectories.insert(parent)
+        do {
+            let bookmark = try url.bookmarkData(options: .withSecurityScope)
+            var saved = defaults.dictionary(forKey: Self.directoryBookmarksKey) as? [String: Data] ?? [:]
+            saved[parent.path] = bookmark
+            defaults.set(saved, forKey: Self.directoryBookmarksKey)
+        } catch {
+            reportFailure(L10n.text("本次授权可用，但无法记住目录授权：%1$@", error.localizedDescription), title: L10n.text("目录授权未完成"))
+        }
+    }
+
+    private func restoreDirectoryAuthorizations() {
+        guard let original = defaults.dictionary(forKey: Self.directoryBookmarksKey) as? [String: Data] else { return }
+        var saved = original
+        for (path, bookmark) in original {
+            var stale = false
+            guard let url = try? URL(resolvingBookmarkData: bookmark, options: [.withSecurityScope, .withoutUI],
+                                     bookmarkDataIsStale: &stale) else { continue }
+            let parent = URL(fileURLWithPath: url.standardizedFileURL.path, isDirectory: true)
+            guard !authorizedDirectories.contains(parent) else { continue }
+            let scoped = url.startAccessingSecurityScopedResource()
+            guard Self.canModifyDirectory(url) else {
+                if scoped { url.stopAccessingSecurityScopedResource() }
+                continue
+            }
+            if scoped { directoryScopes.append(url) }
+            authorizedDirectories.insert(parent)
+            if stale, let refreshed = try? url.bookmarkData(options: .withSecurityScope) {
+                saved.removeValue(forKey: path)
+                saved[parent.path] = refreshed
+            }
+        }
+        if saved != original { defaults.set(saved, forKey: Self.directoryBookmarksKey) }
+    }
+
+}
+
+extension RenameWorkspace {
+    func reportFailure(_ message: String, title: String = L10n.text("重命名未完成")) {
+        notice = message
+        failureTitle = title
+        failureMessage = message
+    }
+
+    func loadHistory(directory: URL = RenameExecutor.storage, reportErrors: Bool = false) async {
+        historyLoadRevision += 1
+        let revision = historyLoadRevision
+        historyLoading = true
+        let outcome = await Task.detached(priority: .utility) {
+            Result { try RenameExecutor.journals(directory: directory) }
+        }.value
+        guard revision == historyLoadRevision else { return }
+        historyLoading = false
+        switch outcome {
+        case .success(let saved):
+            history = saved.records
+            historyNotice = saved.unreadable == 0 ? "" : L10n.text("有 %1$@ 条执行记录无法读取，已保留原记录。", saved.unreadable)
+        case .failure(let error):
+            historyNotice = RenameCopy.error(error)
+        }
+        if reportErrors, !historyNotice.isEmpty { reportFailure(historyNotice, title: L10n.text("读取执行记录未完成")) }
     }
 }

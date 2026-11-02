@@ -62,7 +62,7 @@ settings:
     # build script. They are needed (?) to build the plist that the
     # script then modifies.
     CURRENT_PROJECT_VERSION: 1
-    MARKETING_VERSION: 0.5.11
+    MARKETING_VERSION: 0.5.12
   configs:
     debug:
       SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG $(inherited)
@@ -71,6 +71,10 @@ settings:
 
 targets:
   PhotoTrail:
+    entitlements:
+      path: Build/Generated/PhotoTrail.entitlements
+      properties:
+        com.apple.security.files.bookmarks.app-scope: true
     type: application
     platform: macOS
     dependencies:

@@ -74,6 +74,12 @@ Você pode copiar de outro campo ou copiar o campo atual de cada foto para vári
 
 As três abas compartilham fotos e seleção, inclusive importações pela aba Renomear. O padrão é processar todas as fotos, com opção para as selecionadas. As associações JPG/RAW/XMP são mantidas. Remover uma foto sincroniza as abas, pode ser desfeito e não exclui o arquivo. Fotos sem caminho local não podem ser renomeadas diretamente. Salve alterações de informações ou localização, confira a prévia e confirme a renomeação. Os registros restauram nomes apenas quando identidade e conteúdo coincidem.
 
+No Mac, um botão vermelho para autorizar pastas indica a falta de permissão para modificar o diretório. Escolha a pasta dos arquivos ou uma pasta superior; quando aplicável, a sugestão é Mesa, Downloads ou a raiz do volume externo atual. O acesso confirmado é salvo localmente, restaurado nas próximas inicializações e abrange subpastas. Apenas os arquivos da prévia são processados, sem busca recursiva no volume inteiro. As restrições do sistema e dos volumes somente leitura continuam válidas.
+
+O Mac oferece renomeação compatível no ExFAT: cria o destino de forma exclusiva, copia e verifica o conteúdo e só então remove o nome anterior. Isso exige espaço adicional e pode demorar mais. As frações de segundo da data de criação podem não ser preservadas; a data de captura e o conteúdo não mudam. A confirmação informa essas limitações. Em caso de falha, um diálogo mostra motivo, arquivo e estado da recuperação, e o registro da execução mantém o erro.
+
+No Mac, falhas ao importar, salvar ou usar trajetos, favoritos, predefinições e ajustes mostram seus motivos. Falhas de gravação mantêm os rascunhos e sucessos parciais refletem o resultado real. Cancelar não é um erro.
+
 ### Salvar alterações
 
 Por padrão, **Salvar todos os metadados** (⌘S) salva as alterações pendentes das duas abas, independentemente da seleção ou filtros. O aviso permite confirmar, cancelar, mudar para a aba atual ou não mostrar novamente. Nos ajustes de fotos e salvamento, escolha salvar somente a aba atual para manter as alterações da outra. Consultar e visualizar não grava arquivos. A gravação local segue os ajustes de backup e verifica os resultados por releitura, sem recomprimir pixels. JPG + RAW podem compartilhar localização; campos novos não são copiados automaticamente para RAW. O Fotos usa a interface do sistema com outro escopo de edição.

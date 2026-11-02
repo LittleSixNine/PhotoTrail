@@ -66,6 +66,7 @@ struct LocationPanel: View {
                 guard !Task.isCancelled, key == regionKey,
                       automaticRegion || (manualLookup > 0 && manualLookupKey == key) else { return }
                 region = L10n.text("地区暂不可用")
+                if manualLookup > 0, manualLookupKey == key { OperationFailure.present(region, error: error) }
             }
         }
         .onChange(of: automaticRegion) { manualLookup = 0; manualLookupKey = "" }
@@ -330,7 +331,8 @@ private extension LocationPanel {
                 Button(L10n.text("编辑名称和备注")) { workspace.favoriteDraft = favorite }
                 Button(L10n.text("删除收藏"), role: .destructive) {
                     do { try workspace.deleteFavorite(favorite.id) } catch {
-                        workspace.status = L10n.text("删除收藏失败，原记录已保留。")
+                        workspace.status = OperationFailure.message(L10n.text("删除收藏失败，原记录已保留。"), error: error)
+                        OperationFailure.present(workspace.status)
                     }
                 }
             } label: { Image(systemName: "ellipsis") }
@@ -368,7 +370,10 @@ private struct FavoriteEditor: View {
                 Button(L10n.text("取消")) { dismiss() }
                 Button(L10n.text("保存收藏")) {
                     favorite.name = favorite.name.trimmingCharacters(in: .whitespacesAndNewlines)
-                    do { try workspace.saveFavorite(favorite); dismiss() } catch { self.error = L10n.text("收藏保存失败，原记录已保留。") }
+                    do { try workspace.saveFavorite(favorite); dismiss() } catch {
+                        self.error = OperationFailure.message(L10n.text("收藏保存失败，原记录已保留。"), error: error)
+                        OperationFailure.present(self.error!)
+                    }
                 }.disabled(favorite.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }

@@ -29,7 +29,9 @@ enum PhotoTrailMigration {
                                       withIntermediateDirectories: true)
             try files.copyItem(at: legacyURL, to: newURL)
         } catch {
-            // Keep reading logic recoverable; the original file is never removed.
+            Task { @MainActor in
+                OperationFailure.present(L10n.text("数据迁移失败，旧文件已保留。"), error: error)
+            }
         }
     }
 }

@@ -151,7 +151,7 @@ struct RenameTests {
         #expect(result.error == nil)
         #expect(try String(contentsOf: b, encoding: .utf8) == "first")
         #expect(try String(contentsOf: a, encoding: .utf8) == "second")
-        var journal = try #require(RenameExecutor.journals(directory: history).first)
+        var journal = try #require(RenameExecutor.journals(directory: history).records.first)
         try RenameExecutor.restore(&journal, directory: history)
         #expect(try String(contentsOf: a, encoding: .utf8) == "first")
         #expect(try String(contentsOf: b, encoding: .utf8) == "second")
@@ -247,10 +247,10 @@ struct RenameTests {
         try RenameExecutor.move(entry.target, to: entry.temporary)
         journal.state = "restoring"
         try RenameExecutor.write(journal, directory: history)
-        journal = try #require(RenameExecutor.journals(directory: history).first)
+        journal = try #require(RenameExecutor.journals(directory: history).records.first)
         try RenameExecutor.restore(&journal, directory: history)
         for (index,url) in urls.enumerated() { #expect(try String(contentsOf: url, encoding: .utf8) == "\(index)") }
-        #expect(throws: RenameError.self) {
+        #expect(throws: CancellationError.self) {
             try RenameExecutor.execute(plan([(urls[0],root.appendingPathComponent("cancelled"))]), directory: history, cancelled: { true })
         }
         let link = root.appendingPathComponent("link")
@@ -689,4 +689,247 @@ extension RenameTests {
         #expect(missing[0].target == input.url)
         #expect(missing[0].issues.contains(.missingTag))
     }
+}
+
+extension RenameTests {
+    @Test @MainActor func directoryAuthorizationCoversChildrenAndPersistsWithoutScanningTheRoot() async throws {
+        let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
+        let child = root.appendingPathComponent("photos", isDirectory: true)
+        let unrelated = root.appendingPathComponent("unrelated", isDirectory: true)
+        try FileManager.default.createDirectory(at: child, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: unrelated, withIntermediateDirectories: true)
+        let photo = child.appendingPathComponent("source.jpg")
+        let companion = child.appendingPathComponent("source.xmp")
+        try Data("photo".utf8).write(to: photo)
+        try Data("sidecar".utf8).write(to: companion)
+        try Data("occupied".utf8).write(to: child.appendingPathComponent("trip_source.jpg"))
+        try Data("leave alone".utf8).write(to: unrelated.appendingPathComponent("source.jpg"))
+        let suite = "RenameDirectoryTests." + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        do {
+            let workspace = RenameWorkspace(defaults: defaults)
+            #expect(!workspace.isDirectoryAuthorized(child))
+            workspace.authorizeDirectory(root)
+            #expect(workspace.isDirectoryAuthorized(child))
+            #expect(!workspace.isDirectoryAuthorized(root.deletingLastPathComponent()))
+        }
+        let restored = RenameWorkspace(defaults: defaults)
+        #expect(restored.isDirectoryAuthorized(child))
+        restored.rules = [RenameRule(action: 1, text: "trip_")]
+        restored.settings.conflict = .stop
+        restored.refresh(images: [ImageData(from: photo)], selection: [])
+        for _ in 0..<400 where restored.busy { try await Task.sleep(for: .milliseconds(25)) }
+        #expect(!restored.busy)
+        #expect(restored.directoriesAuthorized)
+        #expect(Set(restored.rows.map(\.source)) == [photo, companion])
+        #expect(restored.rows.contains { $0.issues.contains(.conflict) })
+        #expect(try String(contentsOf: photo, encoding: .utf8) == "photo")
+    }
+
+    @Test @MainActor func readOnlyOrMissingDirectoriesDoNotCountAsAuthorized() throws {
+        let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
+        let suite = "RenameReadOnlyTests." + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let workspace = RenameWorkspace(defaults: defaults)
+        workspace.authorizeDirectory(root)
+        #expect(workspace.isDirectoryAuthorized(root))
+        try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: root.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: root.path) }
+        #expect(!workspace.isDirectoryAuthorized(root))
+        #expect(!workspace.isDirectoryAuthorized(root.appendingPathComponent("missing")))
+        workspace.authorizeDirectory(root)
+        #expect(!workspace.notice.isEmpty)
+    }
+
+    @Test func directoryCoverageRejectsSiblingPrefixesAndEscapingSymlinks() throws {
+        let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
+        let granted = root.appendingPathComponent("photos", isDirectory: true)
+        let sibling = root.appendingPathComponent("photos-other", isDirectory: true)
+        try FileManager.default.createDirectory(at: granted, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: sibling, withIntermediateDirectories: true)
+        let link = granted.appendingPathComponent("outside")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: sibling)
+        #expect(RenameWorkspace.directory(granted.appendingPathComponent("child"), isWithin: granted))
+        #expect(!RenameWorkspace.directory(sibling, isWithin: granted))
+        #expect(!RenameWorkspace.directory(link, isWithin: granted))
+    }
+
+    @Test func authorizationSuggestsDesktopDownloadsOrOneVolume() {
+        let homePath = String(cString: getpwuid(getuid())!.pointee.pw_dir)
+        let home = URL(fileURLWithPath: homePath, isDirectory: true)
+        for name in ["Desktop", "Downloads"] {
+            let root = home.appendingPathComponent(name, isDirectory: true)
+            #expect(RenameWorkspace.suggestedAuthorizationDirectory(for: root.appendingPathComponent("photos/trip")) == root)
+        }
+        #expect(RenameWorkspace.suggestedAuthorizationDirectory(for: URL(fileURLWithPath: "/Volumes/Camera/photos/trip"))
+            == URL(fileURLWithPath: "/Volumes/Camera", isDirectory: true))
+        let other = URL(fileURLWithPath: "/tmp/custom/photos", isDirectory: true)
+        #expect(RenameWorkspace.suggestedAuthorizationDirectory(for: other) == other)
+    }
+
+}
+
+extension RenameTests {
+    @Test func exclusiveCopyMovePreservesContentAndModificationTime() throws {
+        let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
+        let source = root.appendingPathComponent("source.jpg"), target = root.appendingPathComponent("renamed.jpg")
+        try Data("exclusive-copy".utf8).write(to: source)
+        try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSince1970: 1700000000)], ofItemAtPath: source.path)
+        let before = try RenameFileIdentity.read(source)
+        let creation = try source.resourceValues(forKeys: [.creationDateKey]).creationDate
+        try RenameExecutor.copyMove(source, to: target)
+        #expect(!FileManager.default.fileExists(atPath: source.path))
+        #expect(try String(contentsOf: target, encoding: .utf8) == "exclusive-copy")
+        let after = try RenameFileIdentity.read(target)
+        #expect(try target.resourceValues(forKeys: [.creationDateKey]).creationDate == creation)
+        #expect(after.modifiedSeconds == before.modifiedSeconds)
+        #expect(after.modifiedNanoseconds == before.modifiedNanoseconds)
+        try RenameExecutor.copyMove(target, to: source)
+        #expect(try String(contentsOf: source, encoding: .utf8) == "exclusive-copy")
+    }
+
+    @Test func exclusiveCopyMoveRejectsOccupiedTargetsAndSymlinks() throws {
+        let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
+        let source = root.appendingPathComponent("source"), target = root.appendingPathComponent("occupied")
+        try Data("original".utf8).write(to: source)
+        try Data("external".utf8).write(to: target)
+        #expect(throws: (any Error).self) { try RenameExecutor.copyMove(source, to: target) }
+        #expect(try String(contentsOf: source, encoding: .utf8) == "original")
+        #expect(try String(contentsOf: target, encoding: .utf8) == "external")
+        let link = root.appendingPathComponent("link")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: target)
+        #expect(throws: (any Error).self) { try RenameExecutor.copyMove(source, to: link) }
+        #expect(try String(contentsOf: target, encoding: .utf8) == "external")
+    }
+
+    @Test func failedExecutionPersistsItsReasonAndOldJournalsStillDecode() throws {
+        let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
+        let source = root.appendingPathComponent("source"), target = root.appendingPathComponent("occupied")
+        try Data("original".utf8).write(to: source)
+        try Data("external".utf8).write(to: target)
+        let history = root.appendingPathComponent("history")
+        let result = try RenameExecutor.execute(plan([(source, target)]), directory: history)
+        #expect(result.error?.contains(source.lastPathComponent) == true)
+        #expect(result.journal.failure == result.error)
+        #expect(try RenameExecutor.journals(directory: history).records.first?.failure == result.error)
+        var object = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(result.journal)) as? [String: Any])
+        object.removeValue(forKey: "failure")
+        let legacy = try JSONDecoder().decode(RenameJournal.self, from: JSONSerialization.data(withJSONObject: object))
+        #expect(legacy.failure == nil && legacy.entries.count == 1)
+    }
+
+    @Test @MainActor func executionFailureRemainsAvailableForAnAlert() async throws {
+        let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
+        let source = root.appendingPathComponent("source.jpg"), target = root.appendingPathComponent("occupied.jpg")
+        try Data("original".utf8).write(to: source); try Data("external".utf8).write(to: target)
+        let suite = "RenameFailureTests." + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: suite)); defer { defaults.removePersistentDomain(forName: suite) }
+        let workspace = RenameWorkspace(defaults: defaults)
+        workspace.authorizeDirectory(root)
+        let frozen = try plan([(source, target)])
+        workspace.rows = frozen.rows; workspace.plan = frozen
+        let store = Store(initialState: PhotoTrailState(), reduce: PhotoTrailReducer())
+        workspace.execute(store: store)
+        for _ in 0..<400 where workspace.executing { try await Task.sleep(for: .milliseconds(25)) }
+        #expect(!workspace.executing)
+        let message = try #require(workspace.failureMessage)
+        #expect(message.contains("source.jpg") && message.contains(RenameCopy.error(RenameError.occupied)))
+        workspace.notice = ""
+        #expect(workspace.failureMessage == message)
+    }
+    @Test @MainActor func presetAndAuthorizationFailuresRequestAnAlert() throws {
+        let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
+        let domain = "RenameFailureTests." + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: domain)); defer { defaults.removePersistentDomain(forName: domain) }
+        let workspace = RenameWorkspace(defaults: defaults)
+        let invalid = root.appendingPathComponent("invalid.json")
+        try Data("invalid".utf8).write(to: invalid)
+        let before = workspace.presets
+        workspace.importPreset(invalid)
+        #expect(workspace.failureMessage != nil && workspace.presets.count == before.count)
+        workspace.failureMessage = nil
+        workspace.exportPreset(root.appendingPathComponent("missing/preset.json"))
+        #expect(workspace.failureMessage != nil)
+        workspace.failureMessage = nil
+        workspace.authorizeDirectory(invalid)
+        #expect(workspace.failureMessage == L10n.text("所选目录不可读写，请选择可修改的上级目录。"))
+        #expect(!workspace.isDirectoryAuthorized(invalid))
+        defaults.set(Data("invalid".utf8), forKey: "PhotoTrailRenamePresets.v1")
+        #expect(RenameWorkspace(defaults: defaults).failureMessage != nil)
+    }
+
+    @Test @MainActor func executionPreconditionsExplainWhyNothingRan() throws {
+        let domain = "RenameFailureTests." + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: domain)); defer { defaults.removePersistentDomain(forName: domain) }
+        let workspace = RenameWorkspace(defaults: defaults)
+        let store = Store(initialState: PhotoTrailState(), reduce: PhotoTrailReducer())
+        workspace.busy = true
+        workspace.execute(store: store)
+        #expect(workspace.failureMessage == L10n.text("请等待当前操作完成后重试。"))
+        workspace.busy = false
+        workspace.execute(store: store)
+        #expect(workspace.failureMessage == RenameCopy.error(RenameError.stalePlan))
+        workspace.plan = RenamePlan(rows: [], versions: [:])
+        workspace.execute(store: store)
+        #expect(workspace.failureMessage == L10n.text("当前预览没有需要改名的文件。"))
+        #expect(!workspace.executing)
+    }
+
+    @Test @MainActor func unreadableHistoryPreservesValidRecordsAndExplainsFailures() async throws {
+        let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
+        #expect(try RenameExecutor.journals(directory: root.appendingPathComponent("missing")).records.isEmpty)
+        let journal = RenameJournal(state: "completed", entries: [])
+        try RenameExecutor.write(journal, directory: root)
+        let corrupt = root.appendingPathComponent("corrupt.json")
+        let bytes = Data("invalid".utf8)
+        try bytes.write(to: corrupt)
+        let saved = try RenameExecutor.journals(directory: root)
+        #expect(saved.records.map(\.id) == [journal.id] && saved.unreadable == 1)
+        let domain = "RenameFailureTests." + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: domain)); defer { defaults.removePersistentDomain(forName: domain) }
+        let workspace = RenameWorkspace(defaults: defaults)
+        await workspace.loadHistory(directory: root)
+        #expect(!workspace.historyNotice.isEmpty && workspace.failureMessage == nil)
+        await workspace.loadHistory(directory: root, reportErrors: true)
+        #expect(workspace.failureMessage == workspace.historyNotice)
+        #expect(workspace.history.map(\.id) == [journal.id])
+        #expect(try Data(contentsOf: corrupt) == bytes)
+        await workspace.loadHistory(directory: corrupt, reportErrors: true)
+        #expect(!workspace.historyLoading && workspace.failureMessage != nil)
+        #expect(workspace.history.map(\.id) == [journal.id])
+        var unsaved = journal
+        unsaved.failure = "original reason"
+        RenameExecutor.saveFailure(&unsaved, directory: corrupt)
+        #expect(unsaved.failure?.contains("original reason") == true)
+        #expect(unsaved.failure?.contains(L10n.text("执行记录未能保存：%1$@", "")) == true)
+    }
+
+    @Test func commonFilesystemFailuresAndUnknownErrorsKeepUsefulReasons() {
+        for code in [POSIXErrorCode.EEXIST, .EACCES, .EROFS, .ENOSPC, .ENOENT, .ENODEV, .EIO, .EBUSY, .ENAMETOOLONG] {
+            let message = RenameCopy.error(POSIXError(code))
+            #expect(!message.isEmpty)
+            #expect(!message.hasPrefix(L10n.text("操作失败：%1$@", "")))
+        }
+        let unknown = NSError(domain: "RenameTest", code: 999, userInfo: [NSLocalizedDescriptionKey: "distinct failure detail"])
+        #expect(RenameCopy.error(unknown).contains("distinct failure detail"))
+    }
+
+    @Test @MainActor func automaticPreviewErrorsStayInlineAndExplicitRefreshRequestsAlert() async throws {
+        let root = try fixture(); defer { try? FileManager.default.removeItem(at: root) }
+        let missing = root.appendingPathComponent("missing.jpg")
+        let image = ImageData(metadata: Metadata(source: .image(missing)), name: "missing.jpg")
+        let domain = "RenameFailureTests." + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: domain)); defer { defaults.removePersistentDomain(forName: domain) }
+        let workspace = RenameWorkspace(defaults: defaults)
+        workspace.refresh(images: [image], selection: [])
+        for _ in 0..<200 where workspace.busy { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(!workspace.busy && !workspace.notice.isEmpty && workspace.failureMessage == nil)
+        workspace.refresh(images: [image], selection: [], reportErrors: true)
+        for _ in 0..<200 where workspace.busy { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(!workspace.busy && workspace.failureMessage == workspace.notice)
+        #expect(workspace.failureTitle == L10n.text("生成预览未完成"))
+    }
+
 }

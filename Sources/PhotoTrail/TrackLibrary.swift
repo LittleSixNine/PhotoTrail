@@ -445,7 +445,12 @@ private extension TrackLibrary {
         do {
             try writeArchive(records)
             storageError = nil
-        } catch { storageError = L10n.text("缓存保存失败，本次仍可查看；下次启动可能需要重新转换。") }
+        } catch {
+            let message = OperationFailure.message(L10n.text("缓存保存失败，本次仍可查看；下次启动可能需要重新转换。"), error: error)
+            let changed = storageError != message
+            storageError = message
+            if changed { OperationFailure.present(message) }
+        }
     }
     func writeArchive(_ records: [TrackRecord]) throws {
         let directory = url.deletingLastPathComponent()

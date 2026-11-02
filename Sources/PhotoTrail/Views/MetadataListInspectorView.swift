@@ -1198,13 +1198,7 @@ private extension MetadataListInspectorView {
     }
 
     func creatorSaveMessage(_ result: MetadataCreatorSaveResult) -> String {
-        switch result {
-        case .saved, .unchanged: ""
-        case .staleSource: L10n.text("源文件已变化；请放弃草稿并重新读取。")
-        case .preparationFailed: L10n.text("备份或写入准备失败；请检查备份目录。")
-        case .failed: L10n.text("元数据写入失败；请检查文件权限。")
-        case .resultUnknown: L10n.text("元数据写入结果未确认；请先检查磁盘文件，不能直接重试。")
-        }
+        SaveHelper.creatorFailure(result)
     }
 
     @ViewBuilder

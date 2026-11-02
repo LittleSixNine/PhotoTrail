@@ -10,6 +10,9 @@ extension PhotoTrailReducer {
                            options: [.withoutUI, .withSecurityScope],
                            bookmarkDataIsStale: &staleBookmark)
         state.backupURL = url
+        if !savedBookmark.isEmpty, url == nil {
+            Task { @MainActor in OperationFailure.present(L10n.text("备份目录授权已失效，请重新选择备份文件夹。")) }
+        }
         if let url, staleBookmark {
             newBackupFolder(&state, url: url)
         }
@@ -25,12 +28,23 @@ extension PhotoTrailReducer {
         let fileManager = FileManager.default
         _ = url.startAccessingSecurityScopedResource()
         defer { url.stopAccessingSecurityScopedResource() }
+        var failures: [String] = []
+        defer {
+            if !failures.isEmpty {
+                let message = failures.joined(separator: "\n")
+                Task { @MainActor in OperationFailure.present(message) }
+            }
+        }
         guard let urlEnumerator =
             fileManager.enumerator(
                 at: url,
                 includingPropertiesForKeys: Array(propertyKeys),
                 options: [.skipsHiddenFiles],
-                errorHandler: nil) else { return }
+                errorHandler: { url, error in
+                    failures.append(OperationFailure.message(url.lastPathComponent, error: error)); return true
+                }) else {
+                    failures.append(L10n.text("备份目录授权已失效，请重新选择备份文件夹。")); return
+                }
         let cutoff = SettingsPreferences.backupReminderDays.flatMap {
             Calendar.current.date(byAdding: .day, value: -$0, to: Date())
         }
@@ -57,9 +71,11 @@ extension PhotoTrailReducer {
 
     // remove the files listed in the oldFiles array and clear the array
 
-    nonisolated func removeFiles(filesToRemove: [URL], from folder: URL?) {
-        guard let folder else { return }
+    @discardableResult
+    nonisolated func removeFiles(filesToRemove: [URL], from folder: URL?) -> Task<[String], Never> {
         Task {
+            guard let folder else { return [] }
+            var failures: [String] = []
             _ = folder.startAccessingSecurityScopedResource()
             defer { folder.stopAccessingSecurityScopedResource() }
             let fileManager = FileManager.default
@@ -67,15 +83,12 @@ extension PhotoTrailReducer {
                 do {
                     try fileManager.removeItem(at: url)
                 } catch {
-                    logger.error(
-                        """
-                        Failed to remove \(url, privacy: .public): \
-                        \(error.localizedDescription, privacy: .public)")
-                        """)
+                    failures.append(OperationFailure.message(url.lastPathComponent, error: error))
                 }
             }
+            if !failures.isEmpty { await OperationFailure.present(failures.joined(separator: "\n")) }
+            return failures
         }
-
     }
 
     func newBackupFolder(_ state: inout PhotoTrailState, url: URL?) {

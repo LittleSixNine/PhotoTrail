@@ -10,6 +10,7 @@ struct RenameFileIdentity: Codable, Equatable, Sendable {
     let modifiedNanoseconds: Int
     let changedSeconds: Int
     let changedNanoseconds: Int
+    var copyCompatible: Bool?
 
     static func read(_ url: URL) throws -> Self {
         var info = stat()
@@ -19,11 +20,14 @@ struct RenameFileIdentity: Codable, Equatable, Sendable {
         guard status == 0, (info.st_mode & S_IFMT) == S_IFREG else { throw RenameError.invalidSource }
         return Self(device: UInt64(info.st_dev), inode: UInt64(info.st_ino), size: info.st_size,
                     modifiedSeconds: info.st_mtimespec.tv_sec, modifiedNanoseconds: info.st_mtimespec.tv_nsec,
-                    changedSeconds: info.st_ctimespec.tv_sec, changedNanoseconds: info.st_ctimespec.tv_nsec)
+                    changedSeconds: info.st_ctimespec.tv_sec, changedNanoseconds: info.st_ctimespec.tv_nsec,
+                    copyCompatible: (try? url.resourceValues(forKeys: [.volumeSupportsExclusiveRenamingKey])
+                        .volumeSupportsExclusiveRenaming) == false ? true : nil)
     }
 
+    // Compatible copies change inode; callers also verify the content hash.
     func sameFile(_ other: Self) -> Bool {
-        device == other.device && inode == other.inode && size == other.size &&
+        device == other.device && (inode == other.inode || copyCompatible == true) && size == other.size &&
         modifiedSeconds == other.modifiedSeconds && modifiedNanoseconds == other.modifiedNanoseconds
     }
 }
@@ -49,6 +53,7 @@ struct RenameJournal: Codable, Identifiable, Sendable {
     var created = Date()
     var state = "prepared"
     var entries: [Entry]
+    var failure: String?
 }
 
 struct RenameExecutionResult: Sendable {
@@ -126,13 +131,27 @@ enum RenameExecutor {
         try handle.close()
     }
 
-    static func journals(directory: URL = storage) -> [RenameJournal] {
-        let urls = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
-        return urls.filter { $0.pathExtension == "json" }.compactMap {
-            guard let data = try? Data(contentsOf: $0), let journal = try? JSONDecoder().decode(RenameJournal.self, from: data),
-                  journal.version == 1 else { return nil }
-            return journal
-        }.sorted { $0.created > $1.created }
+    static func saveFailure(_ journal: inout RenameJournal, directory: URL) {
+        do { try write(journal, directory: directory) }
+        catch {
+            journal.failure = (journal.failure ?? "") + "\n" + L10n.text("执行记录未能保存：%1$@", RenameCopy.error(error))
+        }
+    }
+
+    static func journals(directory: URL = storage) throws -> (records: [RenameJournal], unreadable: Int) {
+        let urls: [URL]
+        do { urls = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) }
+        catch CocoaError.fileReadNoSuchFile { return ([], 0) }
+        var records: [RenameJournal] = []
+        var unreadable = 0
+        for url in urls where url.pathExtension == "json" {
+            do {
+                let journal = try JSONDecoder().decode(RenameJournal.self, from: Data(contentsOf: url))
+                guard journal.version == 1 else { unreadable += 1; continue }
+                records.append(journal)
+            } catch { unreadable += 1 }
+        }
+        return (records.sorted { $0.created > $1.created }, unreadable)
     }
 
     static func pairedSources(_ urls: [URL], settings: RenameSettings, directories: Set<URL>) throws -> [URL] {
@@ -170,7 +189,7 @@ enum RenameExecutor {
         return result
     }
 
-    /// renamex_np(RENAME_EXCL) rejects an occupied target atomically, including races after preflight.
+    /// Use an exclusive native rename, or an exclusive verified copy on volumes without it.
     static func move(_ source: URL, to target: URL) throws {
         guard source.deletingLastPathComponent().standardizedFileURL == target.deletingLastPathComponent().standardizedFileURL,
               RenameEngine.validName(target.lastPathComponent.replacingOccurrences(of: ":", with: "_")) else { throw RenameError.invalidSource }
@@ -180,7 +199,58 @@ enum RenameExecutor {
                 return renamex_np(from, to, UInt32(RENAME_EXCL))
             }
         }
-        guard status == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        guard status != 0 else { return }
+        let code = POSIXErrorCode(rawValue: errno) ?? .EIO
+        guard code == .ENOTSUP else { throw POSIXError(code) }
+        try copyMove(source, to: target)
+    }
+
+    static func copyMove(_ source: URL, to target: URL) throws {
+        let before = try RenameFileIdentity.read(source)
+        let sourceFD = open(source.path, O_RDONLY | O_NOFOLLOW)
+        guard sourceFD >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        defer { close(sourceFD) }
+        var opened = stat()
+        guard fstat(sourceFD, &opened) == 0, UInt64(opened.st_ino) == before.inode,
+              UInt64(opened.st_dev) == before.device else { throw RenameError.stalePlan }
+        let hash = try digest(source)
+        var expectedCopy = before
+        expectedCopy.copyCompatible = true
+        // O_EXCL reserves the destination even if another process creates the same name concurrently.
+        let targetFD = open(target.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0o600)
+        guard targetFD >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        defer { close(targetFD) }
+        var created = stat()
+        guard fstat(targetFD, &created) == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        do {
+            guard fcopyfile(sourceFD, targetFD, nil, copyfile_flags_t(COPYFILE_ALL)) == 0 else {
+                throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+            }
+            var attributes = attrlist()
+            attributes.bitmapcount = UInt16(ATTR_BIT_MAP_COUNT)
+            attributes.commonattr = attrgroup_t(ATTR_CMN_CRTIME)
+            var creation = opened.st_birthtimespec
+            guard fsetattrlist(targetFD, &attributes, &creation, MemoryLayout<timespec>.size, 0) == 0 else {
+                throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+            }
+            guard fsync(targetFD) == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+            guard fstat(targetFD, &created) == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+            let copied = try RenameFileIdentity.read(target)
+            guard copied.inode == UInt64(created.st_ino), copied.device == UInt64(created.st_dev),
+                  expectedCopy.sameFile(copied), try digest(target) == hash,
+                  try RenameFileIdentity.read(source) == before, try digest(source) == hash else {
+                throw RenameError.stalePlan
+            }
+            guard unlink(source.path) == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        } catch {
+            // Remove only our own destination, and only while the unchanged source still exists.
+            if fstat(targetFD, &created) == 0, let current = try? RenameFileIdentity.read(target),
+               current.inode == UInt64(created.st_ino), current.device == UInt64(created.st_dev),
+               (try? RenameFileIdentity.read(source)) == before {
+                _ = unlink(target.path)
+            }
+            throw error
+        }
     }
 
     static func execute(_ plan: RenamePlan, directory: URL = storage,
@@ -199,7 +269,8 @@ enum RenameExecutor {
         var bookmarks: [URL: Data] = [:]
         // Revalidate every source before any mutation. Content hashes bind undo and crash recovery to these files.
         for row in rows {
-            guard !cancelled(), let version = plan.versions[row.source], try RenameFileIdentity.read(row.source) == version else {
+            if cancelled() { throw CancellationError() }
+            guard let version = plan.versions[row.source], try RenameFileIdentity.read(row.source) == version else {
                 throw RenameError.stalePlan
             }
             guard seen.insert("\(version.device):\(version.inode)").inserted else { throw RenameError.invalidSource }
@@ -217,10 +288,14 @@ enum RenameExecutor {
         }
         var journal = RenameJournal(entries: entries)
         try write(journal, directory: directory)
+        var stage = L10n.text("正在准备修改名称…")
+        var currentFile: URL?
         do {
             reporter.update(.staging, completed: 0, total: entries.count)
             for (index, entry) in entries.enumerated() {
-                guard !cancelled(), try RenameFileIdentity.read(entry.original) == entry.identity else { throw RenameError.stalePlan }
+                currentFile = entry.original
+                if cancelled() { throw CancellationError() }
+                guard try RenameFileIdentity.read(entry.original) == entry.identity else { throw RenameError.stalePlan }
                 try move(entry.original, to: entry.temporary)
                 guard entry.identity.sameFile(try RenameFileIdentity.read(entry.temporary)), try digest(entry.temporary, cancelled: cancelled) == entry.hash else {
                     throw RenameError.stalePlan
@@ -229,15 +304,20 @@ enum RenameExecutor {
             }
             journal.state = "staged"
             try write(journal, directory: directory)
+            stage = L10n.text("正在修改文件名…")
             reporter.update(.renaming, completed: 0, total: entries.count)
             for (index, entry) in entries.enumerated() {
-                guard !cancelled(), entry.identity.sameFile(try RenameFileIdentity.read(entry.temporary)),
+                currentFile = entry.original
+                if cancelled() { throw CancellationError() }
+                guard entry.identity.sameFile(try RenameFileIdentity.read(entry.temporary)),
                       try digest(entry.temporary, cancelled: cancelled) == entry.hash else { throw RenameError.stalePlan }
                 try move(entry.temporary, to: entry.target)
                 reporter.update(.renaming, completed: index + 1, total: entries.count)
             }
+            stage = L10n.text("正在核对结果…")
             reporter.update(.verifying, completed: 0, total: entries.count)
             for (index, entry) in entries.enumerated() {
+                currentFile = entry.original
                 guard entry.identity.sameFile(try RenameFileIdentity.read(entry.target)), try digest(entry.target, cancelled: cancelled) == entry.hash else {
                     throw RenameError.stalePlan
                 }
@@ -248,16 +328,19 @@ enum RenameExecutor {
             return .init(journal: journal, mappings: Dictionary(uniqueKeysWithValues: entries.map { ($0.original, $0.target) }),
                          error: nil, needsRecovery: false)
         } catch {
-            // Recovery locates by inode+content, never guesses from a filename or overwrites a newly created file.
-            let failure = error.localizedDescription
+            // Recovery validates identity and content; ambiguous copies are preserved instead of guessed.
+            let failure = L10n.text("阶段：%1$@；文件：%2$@。%3$@", stage,
+                                    currentFile?.lastPathComponent ?? "—", RenameCopy.error(error))
+            journal.failure = failure
             do {
                 try restore(&journal, directory: directory, progress: progress)
                 return .init(journal: journal, mappings: [:], error: failure, needsRecovery: false)
             } catch {
                 journal.state = "recoveryRequired"
-                try? write(journal, directory: directory)
+                journal.failure = failure + "\n" + L10n.text("恢复未完成：%1$@。原文件未被覆盖。", RenameCopy.error(error))
+                saveFailure(&journal, directory: directory)
                 let mappings = currentMappings(journal)
-                return .init(journal: journal, mappings: mappings, error: failure, needsRecovery: true)
+                return .init(journal: journal, mappings: mappings, error: journal.failure, needsRecovery: true)
             }
         }
     }

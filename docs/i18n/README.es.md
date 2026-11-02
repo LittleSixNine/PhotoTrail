@@ -74,6 +74,12 @@ Puedes copiar desde otro campo o copiar el campo actual de cada foto a varios de
 
 Las tres pestañas comparten fotos y selección, también las importadas desde Renombrar. El alcance predeterminado son todas las fotos, con opción de usar las seleccionadas. Se mantienen las asociaciones JPG/RAW/XMP. Quitar una foto sincroniza las pestañas, puede deshacerse y no borra el archivo. Las fotos sin ruta local no se renombrarán directamente. Guarda primero los cambios de información o ubicación, revisa la vista previa y confirma. El historial restaura nombres solo si identidad y contenido coinciden.
 
+En Mac, un botón rojo para autorizar carpetas indica que falta permiso para modificar el directorio. Puedes elegir la carpeta de los archivos o una superior; cuando corresponde, se sugiere Escritorio, Descargas o la raíz del volumen externo actual. El acceso confirmado se guarda localmente, se restaura al iniciar y abarca las subcarpetas. Solo se procesan los archivos de la vista previa, sin buscar recursivamente en todo el volumen. Siguen vigentes las restricciones del sistema y de los volúmenes de solo lectura.
+
+Mac admite el cambio de nombre compatible en ExFAT: crea el destino de forma exclusiva, copia y verifica el contenido y después elimina el nombre anterior. Requiere espacio adicional y puede tardar más. Es posible que no se conserven las fracciones de segundo de la fecha de creación; la fecha de captura y el contenido no cambian. La confirmación explica estas limitaciones. Un diálogo muestra el motivo, el archivo y el estado de recuperación, y el registro de ejecución conserva el error.
+
+En Mac, los errores de importación, guardado, rutas, favoritos, ajustes y preajustes muestran sus motivos. Los guardados fallidos conservan los borradores y los éxitos parciales reflejan el resultado real. Cancelar no es un error.
+
 ### Guardar los cambios
 
 Por defecto, **Guardar todos los metadatos** (⌘S) guarda los cambios pendientes de ambas pestañas, sin limitarse a la selección o filtros. El aviso permite confirmar, cancelar, cambiar a la pestaña actual o no volver a mostrarlo. En los ajustes de fotos y guardado puedes guardar solo la pestaña actual y conservar los cambios de la otra. Consultar y previsualizar no escribe archivos. Las escrituras locales respetan las copias de seguridad y verifican los resultados mediante una nueva lectura, sin recomprimir píxeles. JPG + RAW pueden compartir la ubicación; los campos nuevos no se copian automáticamente a RAW. Fotos usa la interfaz del sistema con un alcance distinto.

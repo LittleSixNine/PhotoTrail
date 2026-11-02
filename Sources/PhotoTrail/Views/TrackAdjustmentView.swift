@@ -78,7 +78,10 @@ struct TrackAdjustmentView: View {
                 Button(L10n.text("应用调整")) {
                     guard let preview else { return }
                     do { try apply(preview); dismiss() }
-                    catch { self.error = L10n.text("轨迹已变化或保存失败，未应用调整：%1$@", error.localizedDescription) }
+                    catch {
+                        self.error = L10n.text("轨迹已变化或保存失败，未应用调整：%1$@", error.localizedDescription)
+                        OperationFailure.present(self.error!)
+                    }
                 }.disabled(preview == nil || preview == record.log).keyboardShortcut(.defaultAction)
             }
         }.padding(20).frame(width: 580)

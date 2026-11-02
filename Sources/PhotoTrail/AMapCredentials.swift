@@ -106,7 +106,7 @@ struct AMapSettingsView: View {
             try credentials.save()
             onSave(credentials)
             dismiss()
-        } catch { self.error = error.localizedDescription }
+        } catch { self.error = error.localizedDescription; OperationFailure.present(L10n.text("高德地图设置"), error: error) }
     }
 
     private func loadFromKeychain() {
@@ -121,7 +121,7 @@ struct AMapSettingsView: View {
                 }
                 key = saved.key
                 code = saved.securityJsCode
-            } catch { self.error = error.localizedDescription }
+            } catch { self.error = error.localizedDescription; OperationFailure.present(L10n.text("高德地图设置"), error: error) }
         }
     }
 }

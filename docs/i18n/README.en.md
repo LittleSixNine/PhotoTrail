@@ -74,6 +74,12 @@ Batch actions support copying from another field or copying each photo’s curre
 
 All three tabs share photos and selection, including imports from Rename. The default scope is all imported photos; selected photos are also supported. JPG/RAW/XMP associations remain intact. Removing a photo updates all tabs, supports undo and does not delete the disk file. Photos without local paths cannot be renamed directly. Save pending metadata/location changes first, then review and confirm renaming. Renaming runs separately; execution records restore names only when identity and content match.
 
+On Mac, a red “Authorize Folders…” button indicates missing directory modification access. Select the containing folder or a parent; Desktop, Downloads or the current external volume root is suggested where applicable. Confirmed access is stored locally, restored on later launches and covers subfolders. Only previewed files are processed, without recursive volume scanning. Read-only volumes and system permission restrictions still apply.
+
+Mac supports compatible renaming on ExFAT: it creates the destination exclusively, copies and verifies content, then removes the old name. This requires extra space and may take longer. Fractional seconds in ExFAT file creation times may not be preserved; capture times and file contents remain unchanged. Confirmation explains these limits. Failures show a dialog with the reason, file and recovery status; execution journals retain the error.
+
+On Mac, import, save, track, favorite, preset and settings failures show their reasons. Failed saves keep drafts; partial success reflects the actual outcome. Cancellation is not an error.
+
 ### Saving changes
 
 By default, **Save All Metadata** (⌘S) saves pending changes from both tabs, regardless of selection or filters. Its prompt offers confirmation, cancellation, switching to the current tab and hiding future prompts. Choose **Save Current Tab Metadata** in Photos and Saving settings to preserve pending changes from the other tab. Browsing and previews do not write files; local saves follow backup settings, verify results by reading them back and do not recompress pixels. JPG + RAW pairs can share location writes; new fields are not automatically copied to RAW. Apple Photos uses the system interface with a different editing scope.

@@ -6,6 +6,45 @@ import UDF
 
 @MainActor
 struct SubtleScrollbarTests {
+    @Test func repeatedInstallationDoesNotResetTheScrollerStyle() {
+        let scroll = StyleCountingScrollView()
+        scroll.scrollerStyle = .overlay
+        SubtleScrollbars.Installer.configure(scroll, reservesVerticalScroller: true)
+        let updates = scroll.styleUpdates
+        for _ in 0..<10 { SubtleScrollbars.Installer.configure(scroll, reservesVerticalScroller: true) }
+        #expect(scroll.styleUpdates == updates)
+        #expect(scroll.scrollerStyle == .legacy)
+        #expect(scroll.hasVerticalScroller && !scroll.autohidesScrollers)
+    }
+
+    @Test func reservedSwiftUISidebarKeepsItsGutterWhenContentFitsOrOverflows() async throws {
+        func content(_ height: CGFloat) -> some View {
+            ScrollView { Color.clear.frame(height: height) }
+                .scrollIndicators(.visible, axes: .vertical)
+                .background(SubtleScrollbars(reservesVerticalScroller: true))
+                .frame(width: 300, height: 320)
+        }
+        let host = NSHostingView(rootView: content(319))
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 300, height: 320),
+                              styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = host
+        defer { window.contentView = nil }
+        host.layoutSubtreeIfNeeded()
+        try await Task.sleep(for: .milliseconds(100))
+        let scroll = try #require(findScrolls(host).first)
+        let width = scroll.contentView.bounds.width
+        #expect(width < 300)
+        for height in [319.0, 321.0, 319.0, 321.0, 320.0, 319.0] {
+            host.rootView = content(height)
+            host.layoutSubtreeIfNeeded()
+            try await Task.sleep(for: .milliseconds(100))
+            host.layoutSubtreeIfNeeded()
+            #expect(scroll.contentView.bounds.width == width)
+            #expect(scroll.hasVerticalScroller && !scroll.autohidesScrollers)
+            #expect(scroll.verticalScroller?.isHidden == false)
+        }
+    }
+
     @Test func installsOnSwiftUIScrollViewsAndTable() async throws {
         let store = Store(initialState: PhotoTrailState(), reduce: PhotoTrailReducer())
         let content = VStack {
@@ -83,5 +122,13 @@ struct SubtleScrollbarTests {
     private func findScrolls(_ view: NSView) -> [NSScrollView] {
         if let scroll = view as? NSScrollView { return [scroll] }
         return view.subviews.flatMap { findScrolls($0) }
+    }
+}
+
+@MainActor
+private final class StyleCountingScrollView: NSScrollView {
+    var styleUpdates = 0
+    override var scrollerStyle: NSScroller.Style {
+        didSet { styleUpdates += 1 }
     }
 }

@@ -393,7 +393,10 @@ struct PhotoDetailPage: View {
                 HStack(spacing: 0) {
                     ScrollView {
                         LocationPanel()
-                    }.background(SubtleScrollbars(reservesVerticalScroller: true)).frame(width: max(260, min(geometry.size.width * leftRatio, geometry.size.width - 420)))
+                    }
+                    .scrollIndicators(.visible, axes: .vertical)
+                    .background(SubtleScrollbars(reservesVerticalScroller: true))
+                    .frame(width: max(260, min(geometry.size.width * leftRatio, geometry.size.width - 420)))
                         .background(Color(nsColor: .windowBackgroundColor))
                     Divider().frame(width: 6).contentShape(Rectangle())
                         .onHover { if $0 { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() } }
@@ -531,7 +534,9 @@ struct PhotoDetailPage: View {
         })) { Button(L10n.text("好")) { gpxError = nil } } message: { Text(gpxError ?? "") }
         .fileImporter(isPresented: $choosingCopyDestination,
                       allowedContentTypes: [.folder], allowsMultipleSelection: false) { result in
-            guard case .success(let urls) = result, let destination = urls.first else { return }
+            guard case .success(let urls) = result, let destination = urls.first else {
+                if case .failure(let error) = result { OperationFailure.present(L10n.text("导出定位副本"), error: error) }; return
+            }
             let images = selectedImages
             copyExportInProgress = true
             Task {
@@ -541,6 +546,8 @@ struct PhotoDetailPage: View {
                     let report = try await PhotoCopyExporter.export(
                         images: images, destination: destination, timeZone: store.timeZone)
                     copyExportNotice = L10n.text("导出完成：成功 %1$@，跳过 %2$@，失败 %3$@。", report.written, report.skipped, report.failed)
+                    let failures = report.results.filter { $0.status == "failed" }.map { $0.source + ": " + $0.reason }
+                    if !failures.isEmpty { copyExportNotice! += "\n\n" + failures.joined(separator: "\n") }
                 } catch { copyExportNotice = L10n.text("导出失败：%1$@", error.localizedDescription) }
                 copyExportInProgress = false
             }

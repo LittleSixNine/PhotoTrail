@@ -147,7 +147,8 @@ final class LocationWorkspace {
             favorites = saved
             favoriteError = nil
         } catch {
-            favoriteError = L10n.text("收藏文件读取失败，原文件已保留。")
+            favoriteError = OperationFailure.message(L10n.text("收藏文件读取失败，原文件已保留。"), error: error)
+            OperationFailure.present(favoriteError!)
         }
     }
 

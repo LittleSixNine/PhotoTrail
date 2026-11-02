@@ -126,17 +126,20 @@ struct SavingUpdatesView: View {
 }
 
 struct SaveErrorView: View {
+    @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) var store
+
     var body: some View {
         VStack {
             Text(L10n.text("One or more files could not be saved"))
                 .font(.title)
                 .padding()
-            Text(L10n.text("""
-                Changes to one or more images could not be sucessfully saved for unexpected reasons. The run log -- \
-                **Show log...** in the **Help** menu -- may contain more information.
-                """))
+            Text(L10n.text("未成功写入的修改仍保留。请根据以下原因处理后重试；结果未知的文件须先检查磁盘内容。"))
                 .lineLimit(nil)
-                .padding(.bottom, 40)
+                .padding(.bottom, 12)
+            ScrollView {
+                Text(store.saveFailures.joined(separator: "\n\n"))
+                    .frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled)
+            }.padding()
         }
         .frame(maxWidth: 600, minHeight: 400)
     }
@@ -155,9 +158,10 @@ struct UnexpectedErrorView: View {
                 Text(LocalizedStringKey(message))
                     .padding()
             }
-            if let errorDescription = store.sheetError {
-                Text(errorDescription)
-                    .padding()
+            if let errorDescription = store.sheetError, !errorDescription.isEmpty {
+                ScrollView {
+                    Text(errorDescription).frame(maxWidth: .infinity, alignment: .leading).textSelection(.enabled)
+                }.frame(maxHeight: 300).padding()
             }
         }
         .lineLimit(nil)

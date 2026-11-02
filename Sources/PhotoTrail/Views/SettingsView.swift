@@ -75,7 +75,8 @@ struct SettingsView: View {
                 store.send(.backupFolderSizeCheck, undoable: false)
             }
             if ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] != "1" {
-                credentials = try? await Task.detached { try AMapCredentials.load() }.value
+                do { credentials = try await Task.detached { try AMapCredentials.load() }.value }
+                catch { OperationFailure.present(L10n.text("高德地图设置"), error: error) }
             }
             gapText = String(SettingsPreferences.photoGPXGap / 60)
             trackWidthText = String(trackWidth)
@@ -88,7 +89,10 @@ struct SettingsView: View {
                 do {
                     try locationWorkspace.tracks.clearConversionCaches()
                     cacheNotice = L10n.text("转换缓存已清除。")
-                } catch { cacheNotice = L10n.text("转换缓存清除失败，原数据已保留。") }
+                } catch {
+                    cacheNotice = OperationFailure.message(L10n.text("转换缓存清除失败，原数据已保留。"), error: error)
+                    OperationFailure.present(cacheNotice)
+                }
             }
         } message: {
             Text(L10n.text("原轨迹文件和历史记录会保留；高德轨迹在重新显示或刷新时需要再次转换。"))

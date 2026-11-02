@@ -150,3 +150,9 @@ PhotoTrail 基于 GeoTag v6.0.2 派生，仍使用其部分应用基础设施与
 `MetadataWorkflowCardTests` 覆盖常用预设默认前三项、持久选择、去重及删除名称过滤；`MetadataBatchEditingTests` 覆盖隐藏规则与单字段输入分离时的退出保护。界面卡片、覆盖动画和分隔线稳定性另做原生交互验收，不以逻辑测试代替。
 
 `PhotoListClearTests` 覆盖全列表（含未选项）清空、照片与草稿撤销、轨迹／文件／访问范围保留，以及保存、导入、重命名执行和空列表阻止清空；菜单 ⌘K 与工具栏共用确认流程，原生检查另验三页入口与地区补齐窗口。
+
+
+重命名目录授权使用 `RenameWorkspace` 的安全作用域书签；`project.yml` 显式生成 `com.apple.security.files.bookmarks.app-scope` entitlement，与原用户选择读写权限一起使用。目录覆盖按真实路径组件检查，修改权限每次预览／执行重新核对；只把实际输入文件的父目录传给配对与冲突扫描。`RenameTests` 覆盖上级目录持久授权、子目录配对／冲突、只读目录、相似前缀及符号链接越界。自动测试不替代系统目录选择器及跨进程／外置宗卷重挂载实测。
+
+
+重命名的 ExFAT 兼容分支仅在 `renamex_np(RENAME_EXCL)` 返回 ENOTSUP 后启用：O_EXCL／O_NOFOLLOW 创建目标，fcopyfile 复制数据与属性、同步及 SHA-256／源版本复核后 unlink 原名；不调用存在竞争覆盖风险的普通移动。复制后的 inode 可变化，日志可选 `copyCompatible` 标记支持内容与时间核对，新增可选 `failure` 保留失败原因。创建时间通过原生属性接口设置；ExFAT 小数秒不能保证保留，确认与行为文档必须说明。`RenameTests` 覆盖兼容复制、重名／符号链接、错误持久化、旧日志及弹窗状态；真实宗卷验证仅用独立生成样本，禁止将用户原片作为试验材料。

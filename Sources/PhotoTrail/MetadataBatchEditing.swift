@@ -418,3 +418,12 @@ extension EnvironmentValues {
         set { self[MetadataEditSessionKey.self] = newValue }
     }
 }
+
+extension MetadataPreset {
+    static func stored(in data: Data) throws -> [MetadataPreset] {
+        guard !data.isEmpty else { return [] }
+        let entries = try JSONDecoder().decode([MetadataPreset].self, from: data)
+        guard entries.allSatisfy({ $0.version == 1 }) else { throw CocoaError(.fileReadCorruptFile) }
+        return entries
+    }
+}

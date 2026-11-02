@@ -229,13 +229,16 @@ struct MetadataBatchEditView: View {
     private func savePreset() {
         do {
             let operations = try session.operations
-            let entries = (try? JSONDecoder().decode([MetadataPreset].self, from: presetData)) ?? []
+            let entries = try MetadataPreset.stored(in: presetData)
             let name = MetadataWorkflowCard.uniquePresetName(presetName.trimmingCharacters(in: .whitespacesAndNewlines),
                                                            existing: entries.map(\.name), allowOriginal: true)
             let preset = try MetadataPreset(name: name, operations: operations)
             presetData = try JSONEncoder().encode(entries + [preset])
             presetNotice = L10n.text("预设已保存。")
-        } catch { presetNotice = L10n.text("预设无法保存，请检查名称和操作。") }
+        } catch {
+            presetNotice = OperationFailure.message(L10n.text("预设无法保存，请检查名称和操作。"), error: error)
+            OperationFailure.present(presetNotice)
+        }
     }
 }
 

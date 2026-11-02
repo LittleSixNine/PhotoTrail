@@ -236,10 +236,11 @@ struct AMapWebView: NSViewRepresentable {
             }
         }
 
-        func report(_ message: String) {
+        func report(_ message: String, failure: Bool = false) {
             Task { @MainActor [weak self] in
                 guard let self, !disposed else { return }
                 parent.workspace.status = message
+                if failure { OperationFailure.present(message) }
             }
         }
 
@@ -486,7 +487,7 @@ struct AMapWebView: NSViewRepresentable {
                   let longitude = body["longitude"] as? Double,
                   let code = body["adcode"] as? String else { return }
             guard CoordinateTransform.isMainlandAdministrativeCode(code) else {
-                report(L10n.text("该点不在本原型支持的大陆行政区内，未修改照片位置。"))
+                report(L10n.text("该点不在本原型支持的大陆行政区内，未修改照片位置。"), failure: true)
                 return
             }
             let gcj = MapCoordinate(latitude: latitude, longitude: longitude)
@@ -496,7 +497,7 @@ struct AMapWebView: NSViewRepresentable {
                          purpose: purpose, name: String((body["name"] as? String ?? "").prefix(120)),
                          photoID: photoID, originalPhotoPoint: originalPoint)
             } catch {
-                report(L10n.text("坐标转换失败，未修改照片位置。"))
+                report(L10n.text("坐标转换失败，未修改照片位置。"), failure: true)
             }
         }
 
@@ -534,12 +535,12 @@ struct AMapWebView: NSViewRepresentable {
                       let point = value as? [String: Any],
                       let latitude = point["latitude"] as? Double,
                       let longitude = point["longitude"] as? Double else {
-                    report(L10n.text("高德坐标校验失败，未修改照片位置。请检查网络与服务配额。"))
+                    report(L10n.text("高德坐标校验失败，未修改照片位置。请检查网络与服务配额。"), failure: true)
                     return
                 }
                 let projected = MapCoordinate(latitude: latitude, longitude: longitude)
                 guard projected.isValid, projected.distance(to: gcj) <= 5 else {
-                    report(L10n.text("该点的转换误差超过 5 米，未修改照片位置。"))
+                    report(L10n.text("该点的转换误差超过 5 米，未修改照片位置。"), failure: true)
                     return
                 }
                 if purpose == "favorite" {

@@ -32,8 +32,10 @@ enum OpenHelper {
             store.send(.filesScanned(result.urls, ignored: result.ignored, scoped: result.scoped), undoable: false)
             let unique = store.uniqueURLs ?? []
             store.send(.clearUniqueURLs, undoable: false)
-            guard !unique.isEmpty else { return }
-            await open(store, urls: unique, description: description, spinnerEnabled: nil, ownsProgress: false).value
+            if !unique.isEmpty {
+                await open(store, urls: unique, description: description, spinnerEnabled: nil, ownsProgress: false).value
+            }
+            if !result.failures.isEmpty { OperationFailure.present(result.failures.joined(separator: "\n")) }
         }
     }
 
@@ -109,6 +111,11 @@ enum OpenHelper {
         }
         await MainActor.run {
             store.send(.addImages(newImages))
+            let unreadable = newImages.filter { !$0.metadata.readable }
+            if !unreadable.isEmpty {
+                store.send(.catchUnexpectedError(unreadable.map(\.name).joined(separator: "\n"),
+                    L10n.text("元数据读取失败")), undoable: false)
+            }
             if UserDefaults.standard.object(forKey: SettingsPreferences.pairJPGRAWKey) as? Bool != false {
                 store.send(.linkPairedImages)
             }
@@ -130,24 +137,26 @@ enum OpenHelper {
         store.importProgress.pendingTracks = false
         store.importProgress.begin(.tracks, total: trackURLs.count)
         var tracklogs: [(String, GpxTrackLog?)] = []
+        var failures: [String] = []
         var lastProgress = ProcessInfo.processInfo.systemUptime
 
         let start = Date.now.timeIntervalSince1970
 
-        await withTaskGroup(of: (String, GpxTrackLog?).self) { group in
+        await withTaskGroup(of: (String, GpxTrackLog?, String?).self) { group in
             var limit = min(trackURLs.count, PhotoTrailApp.maxConcurrentTasks)
             for ix in 0..<limit {
                 let url = trackURLs[ix]
                 group.addTask {
                     do {
                         let trackLog = try GpxTrackLog(contentsOf: url)
-                        return (url.path, trackLog)
+                        return (url.path, trackLog, nil)
                     } catch {
-                        return (url.path, nil)
+                        return (url.path, nil, OperationFailure.message(url.lastPathComponent + ": " + L10n.text("文件无法读取或没有有效轨迹，请检查后重新导入。"), error: error))
                     }
                 }
             }
-            for await (path, tracklog) in group {
+            for await (path, tracklog, failure) in group {
+                if let failure { failures.append(failure) }
                 tracklogs.append((path, tracklog))
                 let now = ProcessInfo.processInfo.systemUptime
                 if now - lastProgress >= 0.15 || tracklogs.count == trackURLs.count {
@@ -159,9 +168,9 @@ enum OpenHelper {
                     group.addTask {
                         do {
                             let trackLog = try GpxTrackLog(contentsOf: url)
-                            return (url.path, trackLog)
+                            return (url.path, trackLog, nil)
                         } catch {
-                            return (url.path, nil)
+                            return (url.path, nil, OperationFailure.message(url.lastPathComponent + ": " + L10n.text("文件无法读取或没有有效轨迹，请检查后重新导入。"), error: error))
                         }
                     }
                     limit += 1
@@ -173,6 +182,7 @@ enum OpenHelper {
                store.send(.readTrackLog(path, tracklog))
             }
             store.send(.finishedAddingTracks)
+            if !failures.isEmpty { OperationFailure.present(failures.joined(separator: "\n")) }
         }
         let duration = Date.now.timeIntervalSince1970 - start
         Self.logger.info("""

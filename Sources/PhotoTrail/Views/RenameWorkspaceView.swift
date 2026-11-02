@@ -94,13 +94,13 @@ struct RenameWorkspaceView: View {
             if !store.saveInProgress && !workspace.executing {
                 if awaitingSave {
                     awaitingSave = false
-                    workspace.notice = dirty
-                        ? L10n.text("仍有未保存修改，未执行重命名。请检查保存结果后重试。")
-                        : L10n.text("全部修改已保存。请核对更新后的文件名预览，再执行重命名。")
+                    if dirty { workspace.reportFailure(L10n.text("仍有未保存修改，未执行重命名。请检查保存结果后重试。")) }
+                    else { workspace.notice = L10n.text("全部修改已保存。请核对更新后的文件名预览，再执行重命名。") }
                 }
                 refresh()
             }
         }
+        .renameFailureAlert(workspace, active: !showHistory && !showPresetManager && !showSettings)
         .alert(L10n.text("先保存元数据，再重命名？"), isPresented: $confirmSaveFirst) {
             Button(L10n.text("取消"), role: .cancel) {}
             Button(L10n.text("保存全部修改并重新预览")) {
@@ -116,7 +116,8 @@ struct RenameWorkspaceView: View {
                 else { workspace.execute(store: store) }
             }
         } message: {
-            Text(L10n.text("将按预览重命名 %1$@ 个文件，包括列表中的配对文件。文件内容不改写；执行记录可用于恢复原名。", workspace.actionable))
+            Text(L10n.text("将按预览重命名 %1$@ 个文件，包括列表中的配对文件。文件内容不改写；执行记录可用于恢复原名。", workspace.actionable)
+                 + (workspace.usesCopyCompatibility ? "\n\n" + L10n.text("部分文件将使用兼容改名，需要临时副本和额外空间，处理可能较慢。文件创建时间的小数秒可能无法保留；拍摄时间与文件内容不变。请勿同时在其他程序中修改本批文件。") : ""))
         }
         .alert(L10n.text("保存重命名方案"), isPresented: $showPresetSave) {
             TextField(L10n.text("方案名称"), text: $workspace.presetName)
@@ -150,8 +151,8 @@ struct RenameWorkspaceView: View {
 }
 
 private extension RenameWorkspaceView {
-    func refresh() {
-        workspace.refresh(images: store.imageData, selection: store.selection, directoryScopes: store.scopedURLs)
+    func refresh(reportErrors: Bool = false) {
+        workspace.refresh(images: store.imageData, selection: store.selection, directoryScopes: store.scopedURLs, reportErrors: reportErrors)
     }
 
     var rulesSidebar: some View {
@@ -329,6 +330,7 @@ private extension RenameWorkspaceView {
 
         }.padding(16).frame(width: 420)
         .accessibilityIdentifier("renamePresetPopover")
+        .renameFailureAlert(workspace, active: showPresetManager)
     }
 
     private func presetChoice(_ name: String, example: String, selected: Bool) -> some View {
@@ -497,10 +499,15 @@ private extension RenameWorkspaceView {
                     .disabled(workspace.executing || store.saveInProgress)
                     .accessibilityIdentifier("renameAddFiles")
                 if !workspace.rows.isEmpty && !workspace.directoriesAuthorized {
-                    Button(L10n.text("授权文件目录…")) { authorizeDirectories(workspace.rows.map(\.source)) }
+                    Button { authorizeDirectories(workspace.rows.map(\.source)) } label: {
+                        Label(L10n.text("授权文件目录…"), systemImage: "lock.open")
+                    }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.red)
+                        .accessibilityIdentifier("renameAuthorizeDirectories")
                         .disabled(workspace.executing || store.saveInProgress)
                 }
-                Button { refresh() } label: { Image(systemName: "arrow.clockwise") }
+                Button { refresh(reportErrors: true) } label: { Image(systemName: "arrow.clockwise") }
                     .help(L10n.text("重新预览"))
                     .disabled(workspace.executing)
             }.padding(16)
@@ -676,12 +683,16 @@ private extension RenameWorkspaceView {
             Text(L10n.text("恢复前核对文件身份、内容与原名占用；不会覆盖后来创建的文件。"))
                 .foregroundStyle(.secondary)
             if workspace.historyLoading { ProgressView() }
+            if !workspace.historyNotice.isEmpty { Text(workspace.historyNotice).foregroundStyle(.red).textSelection(.enabled) }
             List(workspace.history) { journal in
                 HStack {
                     VStack(alignment: .leading) {
                         Text(journal.created.formatted(date: .numeric, time: .standard))
                         Text(L10n.text("文件：%1$@ · %2$@", journal.entries.count, RenameLabels.journal(journal.state)))
                             .font(.caption).foregroundStyle(.secondary)
+                        if let failure = journal.failure {
+                            Text(failure).font(.caption).foregroundStyle(.red).textSelection(.enabled)
+                        }
                     }
                     Spacer()
                     if journal.state != "restored" {
@@ -693,7 +704,8 @@ private extension RenameWorkspaceView {
             if !workspace.notice.isEmpty { Text(workspace.notice).font(.callout) }
             HStack { Spacer(); Button(L10n.text("完成")) { showHistory = false }.keyboardShortcut(.cancelAction) }
         }.padding(20).frame(width: 700, height: 450)
-            .task { await workspace.loadHistory() }
+            .task { await workspace.loadHistory(reportErrors: true) }
+            .renameFailureAlert(workspace, active: showHistory)
             .overlay {
                 if workspace.executing { RenameExecutionProgressView(workspace: workspace) }
             }
@@ -716,13 +728,19 @@ private extension RenameWorkspaceView {
 
     private func authorizeDirectories(_ files: [URL]) {
         let parents = Set(files.map { $0.deletingLastPathComponent().standardizedFileURL })
-        for parent in parents.sorted(by: { $0.path < $1.path }) where !workspace.authorizedDirectories.contains(parent) {
+        for parent in parents.sorted(by: { $0.path < $1.path }) where !workspace.isDirectoryAuthorized(parent) {
             let panel = NSOpenPanel()
             panel.canChooseDirectories = true; panel.canChooseFiles = false
-            panel.directoryURL = parent
-            panel.message = L10n.text("请选择文件所在目录，以扫描配对文件、检查重名和安全改名。仅处理预览中的文件，不递归遍历。")
+            panel.directoryURL = RenameWorkspace.suggestedAuthorizationDirectory(for: parent)
+            panel.message = L10n.text("请选择文件所在目录或上级目录（如桌面、下载或当前宗卷）。授权会被记住并用于子目录；仅处理预览中的文件，不递归遍历。")
             panel.prompt = L10n.text("授权目录")
-            if panel.runModal() == .OK, let url = panel.url { workspace.authorizeDirectory(url) }
+            guard panel.runModal() == .OK, let url = panel.url else { break }
+            guard RenameWorkspace.directory(parent, isWithin: url) else {
+                workspace.reportFailure(L10n.text("请选择文件所在目录或包含它的上级目录。"), title: L10n.text("目录授权未完成"))
+                break
+            }
+            workspace.authorizeDirectory(url)
+            if !workspace.isDirectoryAuthorized(parent) { break }
         }
         refresh()
     }
@@ -1175,4 +1193,14 @@ private func renameMetadataFields(device: Bool) -> [(String, String)] {
     device ? [("CameraModel", "设备型号"), ("CameraMake", "设备品牌"), ("Lens", "镜头型号"), ("CameraSerialNumber", "设备序列号")]
         : [("IPTCCity", "城市"), ("IPTCProvinceState", "省／州"), ("IPTCSubLocation", "区／县"),
            ("IPTCCountry", "国家"), ("CountryCode", "国家代码"), ("GPSLatitude", "纬度"), ("GPSLongitude", "经度")]
+}
+
+private extension View {
+    func renameFailureAlert(_ workspace: RenameWorkspace, active: Bool) -> some View {
+        alert(workspace.failureTitle, isPresented: Binding(
+            get: { active && workspace.failureMessage != nil },
+            set: { if !$0 && active { workspace.failureMessage = nil } })) {
+            Button(L10n.text("完成"), role: .cancel) { workspace.failureMessage = nil }
+        } message: { Text(workspace.failureMessage ?? "") }
+    }
 }

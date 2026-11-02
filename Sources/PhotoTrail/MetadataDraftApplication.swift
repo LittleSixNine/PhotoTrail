@@ -69,7 +69,10 @@ final class MetadataDraftApplication {
                store: Store<PhotoTrailState, PhotoTrailEvent>) {
         guard !busy, !applied, !store.saveInProgress else { return }
         let request = MetadataDraftRequest(readings: readings, requiresSelection: requiresSelection)
-        guard request.matches(store.state) else { notice = L10n.text("来源文件已变化；请重新读取元数据。"); return }
+        guard request.matches(store.state) else {
+            notice = L10n.text("来源文件已变化；请重新读取元数据。")
+            OperationFailure.present(notice); return
+        }
         result = nil
         let id = UUID()
         self.request = request; requestID = id; busy = true
@@ -115,6 +118,7 @@ final class MetadataDraftApplication {
                     notice = L10n.text("现有 IPTC 未明确声明 UTF-8，已阻止写入以保留原编码。")
                 } else if error is CancellationError { notice = L10n.text("已取消，未加入待保存修改。") }
                 else { notice = L10n.text("操作失败：%1$@", String(describing: error)) }
+                if !(error is CancellationError) { OperationFailure.present(notice) }
             }
         }
     }
