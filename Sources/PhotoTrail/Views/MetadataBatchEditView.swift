@@ -1,244 +1,230 @@
+import AppKit
 import Exiftool
 import ImageData
 import SwiftUI
 import UDF
+import UniformTypeIdentifiers
 
 struct MetadataBatchEditView: View {
     @Bindable var session: MetadataBatchEditSession
     var visiblePhotoIDs: Set<ImageData.ID>?
     var close: () -> Void
+    var saved: ((MetadataPreset) -> Void)?
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
     @AppStorage("PhotoTrail.MetadataPresets") private var presetData = Data()
-    @State private var discardRequested = false
-    @State private var namingPreset = false
-    @State private var presetName = ""
-    @State private var presetNotice = ""
-    @State private var fieldPicker = false
-    @State private var fieldQuery = ""
-    @State private var editingField: MetadataBatchField?
+    @AppStorage(MetadataPresetParameters.key) private var parameterData = Data()
+    @AppStorage("PhotoTrail.MetadataPresetShortcuts") private var shortcutData = Data()
+    @State private var selectedCard: UUID?
+    @State private var choosingAction = false
+    @State private var showingExamples = false
+    @State private var naming = false
+    @State private var name = ""
+    @State private var notice = ""
+    @State private var discard = false
 
-    private var availableTags: [MetadataTag] {
-        MetadataTag.allCases.filter { tag in session.readings.contains { $0.image.supportsMetadataEditing(tag) } }
+    private var cards: [MetadataWorkflowCard] {
+        get { session.workflowCards ?? [] }
+        nonmutating set { session.workflowCards = newValue }
     }
     private var currentScope: Bool { MetadataDraftRequest(readings: session.readings).matches(store.state) }
-    private var visibleSelection: Set<ImageData.ID> { session.photoIDs.intersection(visiblePhotoIDs ?? session.photoIDs) }
 
     var body: some View {
         VStack(spacing: 0) {
-            header.padding(14)
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(L10n.text("批量编辑")).font(.headline)
+                    Text(L10n.text("已选择 %1$@ 张照片", session.readings.count)).font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Menu {
+                    ForEach(presets, id: \.name) { preset in
+                        Button(preset.name) { load(preset) }
+                    }
+                } label: { Label(L10n.text("载入预设"), systemImage: "bookmark") }
+                Button(L10n.text("返回字段列表"), systemImage: "chevron.left", action: close)
+            }.padding(14)
             Divider()
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    if !currentScope && !session.application.applied {
-                        Label(L10n.text("选择或照片内容已变化。请返回字段列表后重新开始，当前输入会保留到你关闭编辑。"), systemImage: "exclamationmark.triangle")
-                            .font(.callout).foregroundStyle(.orange).padding(.bottom, 14)
+                VStack(alignment: .leading, spacing: 12) {
+                    if !currentScope {
+                        Text(L10n.text("选择或照片内容已变化。请返回字段列表后重新开始，当前输入会保留到你关闭编辑。"))
+                            .font(.callout).foregroundStyle(.orange)
                     }
-                    if session.fields.isEmpty {
-                        Text(L10n.text("添加修改项，按顺序编排本次批量操作。"))
-                            .foregroundStyle(.secondary).padding(.vertical, 24)
-                    } else {
-                        HStack {
-                            Text(L10n.text("修改项")).frame(maxWidth: .infinity, alignment: .leading)
-                            Text(L10n.text("修改")).frame(width: 64)
-                            Text(L10n.text("不变")).frame(width: 44)
-                            Text(L10n.text("跳过")).frame(width: 44)
-                            Color.clear.frame(width: 72, height: 1)
-                        }.font(.caption).foregroundStyle(.secondary).padding(.bottom, 8)
-                        ForEach(session.fields) { field in
-                            operationRow(field)
-                            Divider().padding(.vertical, 10)
-                        }
+                    if cards.isEmpty { actionChoices }
+                    ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
+                        MetadataOperationCardView(operations: operationBinding(card.id), readings: session.readings,
+                            selected: Binding(get: { selectedCard == card.id }, set: { selectedCard = $0 ? card.id : nil }),
+                            availableTags: MetadataTag.allCases, index: index,
+                            moveUp: index > 0 ? { cards.swapAt(index, index - 1) } : nil,
+                            moveDown: index + 1 < cards.count ? { cards.swapAt(index, index + 1) } : nil,
+                            remove: { cards.removeAll { $0.id == card.id } }, inlineLayout: true,
+                            datePolicy: policyBinding(card.id), duplicate: { cards.insert(card.duplicated(), at: index + 1) })
+                            .contextMenu {
+                                Button(L10n.text("复制修改项")) { cards.insert(card.duplicated(), at: index + 1) }
+                            }
+                    }
+                    if !cards.isEmpty {
+                        if choosingAction { actionChoices }
+                        else { Button(L10n.text("添加操作"), systemImage: "plus") { choosingAction = true } }
                     }
                     if !session.statisticsError.isEmpty {
                         Text(session.statisticsError).font(.caption).foregroundStyle(.orange).textSelection(.enabled)
                     }
-                    HStack {
-                        Button(L10n.text("添加修改项"), systemImage: "plus") { fieldPicker = true }
-                            .popover(isPresented: $fieldPicker) { addFields }
-                        Spacer()
-                        Button(L10n.text("查看修改示例")) { session.loadExamples() }
-                            .disabled(!session.isValid || session.examplesBusy)
+                    if let preview = session.recipePreview, !preview.issues.isEmpty {
+                        let groups = Dictionary(grouping: preview.issues, by: \.photoID)
+                        DisclosureGroup(L10n.text("%1$@ 张照片有跳过项", groups.count)) {
+                            ForEach(session.readings.filter { groups[$0.image.id] != nil }, id: \.image.id) { reading in
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(reading.image.name)
+                                    ForEach(Array(Set((groups[reading.image.id] ?? []).map(\.reason))).sorted(), id: \.self) { reason in
+                                        Text(reason).foregroundStyle(.secondary)
+                                    }
+                                }.font(.caption).padding(.vertical, 4)
+                            }
+                        }.font(.callout).foregroundStyle(.orange)
                     }
-                    if session.examplesBusy { ProgressView().controlSize(.small).padding(.top, 12) }
-                    if !session.examples.isEmpty {
-                        Text(L10n.text("前 3 张的修改示例；尚未修改照片。"))
-                            .font(.caption).foregroundStyle(.secondary).padding(.top, 14)
-                        ForEach(Array(session.examples.enumerated()), id: \.offset) { _, example in
-                            Text(example).font(.caption.monospaced()).textSelection(.enabled).padding(.top, 10)
-                        }
+                    if !cards.isEmpty {
+                        DisclosureGroup(L10n.text("修改前后"), isExpanded: $showingExamples) {
+                            if let preview = session.recipePreview { examples(preview.preview) }
+                        }.font(.callout)
                     }
-                    if !session.exampleError.isEmpty { Text(session.exampleError).font(.caption).foregroundStyle(.orange) }
-                }
-                .disabled(session.application.busy || session.application.applied)
-                .padding(14)
-                if session.application.result != nil {
-                    MetadataBatchResultView(application: session.application, readings: session.readings, select: select)
-                        .padding(14)
-                }
+                }.padding(14)
+                .disabled(session.application.busy)
             }
             Divider()
-            footer.padding(14)
+            VStack(alignment: .leading, spacing: 8) {
+                if !notice.isEmpty { Text(notice).font(.caption).foregroundStyle(.secondary) }
+                if session.application.result == nil && !session.application.notice.isEmpty {
+                    Text(session.application.notice).font(.caption).foregroundStyle(.orange)
+                }
+                if let preview = session.recipePreview {
+                    Text(L10n.text("将修改：%1$@ 张 · 无变化：%2$@ 张 · 未处理：%3$@ 张",
+                        preview.preview.items.count, Set(preview.preview.steps.map(\.id)).subtracting(preview.preview.items.map(\.id)).count,
+                        session.readings.count - Set(preview.preview.steps.map(\.id)).count))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                HStack {
+                    Menu {
+                        Button(L10n.text("存为预设…")) { name = ""; naming = true }
+                        if let presetName = session.presetName {
+                            Button(L10n.text("更新预设")) { save(name: presetName, replace: true) }
+                        }
+                    } label: { Label(L10n.text("保存预设"), systemImage: "bookmark") }
+                        .disabled(!session.isValid || session.application.busy)
+                    Spacer(minLength: 6)
+                    if session.statisticsBusy || session.application.busy { ProgressView().controlSize(.small) }
+                    Button(L10n.text("取消")) { discard = true }.labelStyle(.titleOnly)
+                        .disabled(session.application.busy)
+                    Button(L10n.text("应用到 %1$@ 张照片", session.readings.count)) {
+                        session.application.apply(readings: session.readings, operations: [], cards: cards, store: store)
+                    }.buttonStyle(.borderedProminent)
+                        .disabled(!session.isValid || !currentScope || session.statisticsBusy || !session.statisticsError.isEmpty || session.application.busy || store.saveInProgress)
+                        .accessibilityIdentifier("metadataBatchApply")
+                }
+            }.padding(14)
         }
+        .textFieldStyle(.roundedBorder)
         .background(Color(nsColor: .windowBackgroundColor))
-        .onChange(of: session.fields) { session.invalidateExamples(); session.application.resetFeedback(); session.refreshStatistics() }
-        .task { session.refreshStatistics() }
+        .onAppear {
+            if session.workflowCards == nil {
+                session.workflowCards = session.fields.map { field in
+                    MetadataWorkflowCard(operations: [MetadataOperation(tag: field.tag,
+                        action: field.tag == .creator ? .replaceAuthors(field.input.split(separator: "\n").map(String.init))
+                            : field.tag.isList ? .replaceKeywords(field.input.split(separator: "\n").map(String.init)) : .setText(field.input))])
+                }
+            }
+            selectedCard = cards.first?.id
+            session.refreshStatistics()
+        }
+        .onChange(of: cards) { session.application.resetFeedback(); session.refreshStatistics() }
         .onChange(of: store.state) { session.application.stateChanged(store.state) }
-        .onDisappear { session.invalidateExamples(); session.cancelStatistics(); session.application.cancel() }
-        .confirmationDialog(L10n.text("放弃尚未应用的输入？"), isPresented: $discardRequested) {
+        .onChange(of: session.application.busy) {
+            if !session.application.busy && session.application.result != nil { close() }
+        }
+        .onDisappear { session.cancelStatistics(); session.application.cancel() }
+        .alert(L10n.text("存为预设…"), isPresented: $naming) {
+            TextField(L10n.text("预设名称"), text: $name)
+            Button(L10n.text("取消"), role: .cancel) {}
+            Button(L10n.text("保存")) { save(name: name, replace: false) }.disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+        .confirmationDialog(L10n.text("放弃尚未应用的输入？"), isPresented: $discard) {
             Button(L10n.text("放弃输入并关闭"), role: .destructive) { session.discardInput(); close() }
             Button(L10n.text("继续编辑"), role: .cancel) {}
-        } message: { Text(L10n.text("照片与已有草稿保持不变。")) }
-        .sheet(item: $editingField, onDismiss: { session.editingInput = false }) { field in
-            MetadataBatchItemEditor(field: field, session: session, availableTags: availableTags, narrow: narrow) { updated in
-                if let index = session.fields.firstIndex(where: { $0.id == updated.id }) { session.fields[index] = updated }
-                else { session.fields.append(updated) }
-                editingField = nil
-            } cancel: { editingField = nil }
         }
-        .alert(L10n.text("新建预设"), isPresented: $namingPreset) {
-            TextField(L10n.text("预设名称"), text: $presetName)
-            Button(L10n.text("取消"), role: .cancel) {}
-            Button(L10n.text("保存")) { savePreset() }.disabled(presetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-        } message: { Text(L10n.text("只保存本次动作，不保存照片、选择范围或私人路径。")) }
         .accessibilityIdentifier("metadataBatchForm")
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(L10n.text("复杂批量规则")).font(.headline)
-                Spacer()
-                Menu {
-                    Button(L10n.text("放弃输入并关闭"), role: .destructive) { discardRequested = true }
-                        .disabled(!session.hasInput)
-                } label: { Image(systemName: "ellipsis.circle") }
-                .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-                .disabled(session.application.busy)
-                .accessibilityLabel(L10n.text("规则操作"))
-                Button(L10n.text("返回字段列表"), systemImage: "chevron.left") { close() }
-                    .disabled(session.application.busy)
-            }
-            Text(L10n.text("固定处理 %1$@ 张照片 · 当前可见 %2$@ 张", session.readings.count, visibleSelection.count))
-                .font(.callout).accessibilityIdentifier("metadataBatchScope")
-            if visibleSelection.count < session.readings.count && !session.application.applied {
-                Button(L10n.text("仅处理当前可见的选择")) { narrow(visibleSelection) }
-                    .font(.caption).disabled(visibleSelection.isEmpty || session.application.busy)
-            }
-            Text(L10n.text("未改动的字段保持原样；应用后仍需保存照片。"))
-                .font(.caption).foregroundStyle(.secondary)
-        }
-    }
-
-    private var footer: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if session.application.result == nil && !session.application.notice.isEmpty {
-                Text(session.application.notice).font(.caption).textSelection(.enabled)
-            }
-            if !presetNotice.isEmpty { Text(presetNotice).font(.caption).foregroundStyle(.secondary) }
-            HStack {
-                if session.application.busy {
-                    ProgressView().controlSize(.small)
-                    Button(L10n.text("取消本次计算")) { session.application.cancel() }
-                } else if session.application.applied {
-                    Button(L10n.text("存为预设…")) { namingPreset = true }
-                } else {
-                    Text(L10n.text("本次操作：%1$@ 项", session.changedFieldCount)).font(.caption).foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 8)
-                if session.application.applied {
-                    Button(L10n.text("完成")) { close() }.buttonStyle(.borderedProminent)
-                } else {
-                    Button(L10n.text("应用到 %1$@ 张照片", session.readings.count)) { apply() }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(!session.isValid || session.application.busy || !currentScope || store.saveInProgress)
-                        .accessibilityIdentifier("metadataBatchApply")
+    private var presets: [MetadataPreset] { (try? MetadataPreset.stored(in: presetData)) ?? [] }
+    private var actionChoices: some View {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+            ForEach(["set", "copy", "offset", "clear", "filename"], id: \.self) { mode in
+                Button { add(mode) } label: {
+                    Label(L10n.text(["set": "设置值", "copy": "复制字段", "offset": "调整时间", "clear": "清除字段", "filename": "从文件名恢复拍摄时间"][mode] ?? "添加操作"),
+                          systemImage: ["set": "textformat", "copy": "doc.on.doc", "offset": "clock", "clear": "eraser", "filename": "calendar"][mode] ?? "plus")
+                        .frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 5)
                 }
             }
         }
     }
-
-    private var addFields: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            TextField(L10n.text("搜索名称或标签"), text: $fieldQuery).textFieldStyle(.roundedBorder)
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 4) {
-                    ForEach(availableTags.filter { tag in
-                        fieldQuery.isEmpty || tag.displayName.localizedCaseInsensitiveContains(fieldQuery)
-                            || tag.rawValue.localizedCaseInsensitiveContains(fieldQuery)
-                    }, id: \.self) { tag in
-                        Button {
-                            let groups = MetadataBatchValues.groups(tag, readings: session.readings)
-                            editingField = MetadataBatchField(tag: tag, value: groups.count == 1 ? groups.first?.value : nil)
-                            fieldPicker = false; fieldQuery = ""
-                        } label: {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(tag.displayName)
-                                Text(tag.rawValue).font(.caption).foregroundStyle(.secondary)
-                            }.frame(maxWidth: .infinity, alignment: .leading).padding(6)
-                        }.buttonStyle(.plain)
-                    }
-                }
-            }
-        }.padding(14).frame(width: 330, height: 380)
-    }
-
-    private func operationRow(_ field: MetadataBatchField) -> some View {
-        let result = session.appliedStatistics[field.id] ?? session.statistics[field.id]
-        return HStack(spacing: 8) {
-            Button { editingField = field } label: {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(field.tag.displayName).font(.system(size: 13, weight: .semibold))
-                    Text(field.mode == .set && field.tag.isDate ? L10n.text("设置同一时间") : field.mode.label)
-                        .font(.caption).foregroundStyle(.secondary)
-                    if field.mode == .copyTo {
-                        Text(MetadataTag.allCases.filter { field.destinations.contains($0) }.map(\.displayName).joined(separator: " / "))
-                            .font(.caption2).foregroundStyle(.secondary)
-                    }
-                }.frame(maxWidth: .infinity, alignment: .leading)
-            }.buttonStyle(.plain)
-            Text(result.map { "\($0.changed.count)/\(session.readings.count)" } ?? (session.statisticsBusy ? "…" : "—")).frame(width: 64)
-            Text(result.map { String($0.unchanged.count) } ?? (session.statisticsBusy ? "…" : "—")).frame(width: 44)
-            Text(result.map { String($0.skipped.count) } ?? (session.statisticsBusy ? "…" : "—")).frame(width: 44)
-            HStack(spacing: 6) {
-                Button { editingField = field } label: { Image(systemName: "pencil") }.help(L10n.text("编辑元数据…"))
-                Button { session.duplicate(field.id) } label: { Image(systemName: "doc.on.doc") }
-                    .help(L10n.text("复制修改项")).accessibilityLabel(L10n.text("复制修改项"))
-                Button { session.remove(field.id) } label: { Image(systemName: "trash") }
-                    .help(L10n.text("删除修改项，不清除照片字段"))
-            }.buttonStyle(.borderless).frame(width: 72)
-        }.font(.caption.monospacedDigit())
-        .accessibilityIdentifier("metadataTask." + field.id.uuidString)
-        .contextMenu {
-            if let index = session.fields.firstIndex(where: { $0.id == field.id }) {
-                Button(L10n.text("上移")) { session.move(field.id, by: -1) }.disabled(index == 0)
-                Button(L10n.text("下移")) { session.move(field.id, by: 1) }.disabled(index + 1 == session.fields.count)
-            }
+    private func add(_ mode: String) {
+        let operation: MetadataOperation
+        switch mode {
+        case "copy": operation = MetadataOperation(tag: .dateOriginal, action: .copy(.captureDate))
+        case "offset": operation = MetadataOperation(tag: .captureDate, action: .offsetDate(years: 0, months: 0, days: 0, hours: 1, minutes: 0, seconds: 0))
+        case "clear": operation = MetadataOperation(tag: .titleDefault, action: .remove)
+        case "filename": operation = MetadataOperation(tag: .captureDate, action: MetadataFilenameDateFormat.compactDateTime.action)
+        default: operation = MetadataOperation(tag: .titleDefault, action: .setText(""))
         }
+        let card = MetadataWorkflowCard(operations: [operation]); cards.append(card); selectedCard = card.id; choosingAction = false
     }
-
-    private func select(_ ids: Set<ImageData.ID>) { store.send(.selectionChanged(ids), undoable: false) }
-    private func narrow(_ ids: Set<ImageData.ID>) {
-        guard !ids.isEmpty, !session.application.busy, !session.application.applied else { return }
-        session.narrow(to: ids); select(session.photoIDs)
+    private func operationBinding(_ id: UUID) -> Binding<[MetadataOperation]> {
+        Binding(get: { cards.first { $0.id == id }?.operations ?? [] }, set: { value in
+            if let index = cards.firstIndex(where: { $0.id == id }) { cards[index].operations = value }
+        })
     }
-    private func apply() {
-        guard let operations = try? session.operations, !operations.isEmpty else { return }
-        session.application.apply(readings: session.readings, operations: operations,
-            description: L10n.text("批量修改 %1$@ 项", session.changedFieldCount), store: store)
+    private func policyBinding(_ id: UUID) -> Binding<MetadataDateCopyPolicy> {
+        Binding(get: { cards.first { $0.id == id }?.datePolicy ?? .init() }, set: { value in
+            if let index = cards.firstIndex(where: { $0.id == id }) { cards[index].datePolicy = value }
+        })
     }
-    private func savePreset() {
+    private func load(_ preset: MetadataPreset) {
+        do { cards = try MetadataPresetParameters.cards(preset, data: parameterData); session.presetName = preset.name; selectedCard = cards.first?.id }
+        catch { notice = L10n.text("预设无法读取，原数据已保留。") }
+    }
+    private func save(name: String, replace: Bool) {
         do {
-            let operations = try session.operations
-            let entries = try MetadataPreset.stored(in: presetData)
-            let name = MetadataWorkflowCard.uniquePresetName(presetName.trimmingCharacters(in: .whitespacesAndNewlines),
-                                                           existing: entries.map(\.name), allowOriginal: true)
-            let preset = try MetadataPreset(name: name, operations: operations)
-            presetData = try JSONEncoder().encode(entries + [preset])
-            presetNotice = L10n.text("预设已保存。")
-        } catch {
-            presetNotice = OperationFailure.message(L10n.text("预设无法保存，请检查名称和操作。"), error: error)
-            OperationFailure.present(presetNotice)
-        }
+            let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            let data = try MetadataPresetSession.stored(name: name, cards: cards, presetData: presetData, parameterData: parameterData, replace: replace)
+            presetData = data.0; parameterData = data.1; session.presetName = name
+            let presets = try MetadataPreset.stored(in: data.0)
+            shortcutData = MetadataPresetShortcuts.updating(name, enabled: true, in: presets, data: shortcutData)
+            let preset = try MetadataPreset(name: name, operations: cards.flatMap(\.operations))
+            saved?(preset)
+            session.discardInput()
+            close()
+        } catch { notice = L10n.text("预设未保存，请检查名称、参数或已有预设数据。") }
+    }
+    private func examples(_ result: MetadataWorkflowPreview) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(session.readings.prefix(3), id: \.image.id) { reading in
+                let item = result.items.first { $0.id == reading.image.id }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(reading.image.name).fontWeight(.medium)
+                    ForEach(Array(Set(cards.flatMap(\.operations).map(\.tag))).sorted { $0.rawValue < $1.rawValue }, id: \.self) { tag in
+                        let before = MetadataBatchValues.value(tag, in: reading)
+                        let after: MetadataTagValue? = switch item?.changes[tag] {
+                        case .set(let value): value
+                        case .remove: nil
+                        case nil: before
+                        }
+                        if before != after {
+                            Text(tag.displayName + "\n" + MetadataBatchValues.text(before) + " → " + MetadataBatchValues.text(after))
+                                .font(.caption).textSelection(.enabled)
+                        }
+                    }
+                }
+            }
+        }.padding(.top, 8)
     }
 }
 
@@ -247,6 +233,7 @@ struct MetadataInlineFieldEditor: View {
     var close: () -> Void
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
     @FocusState private var focused: Bool
+    @State private var active = false
 
     private var field: MetadataBatchField { session.fields[0] }
     private var input: Binding<String> {
@@ -263,6 +250,10 @@ struct MetadataInlineFieldEditor: View {
                     .lineLimit(field.tag.isList || field.tag.isLongText ? 2...8 : 1...3)
                     .textFieldStyle(.roundedBorder).focused($focused)
                     .onSubmit { finish() }
+                    .onPasteCommand(of: [.text]) { _ in paste() }
+                    .focusedValue(\.metadataFieldClipboard, MetadataFieldClipboardActions(
+                        copy: { NSApp.sendAction(#selector(NSText.copy(_:)), to: nil, from: nil) },
+                        paste: paste, textInput: true))
                     .accessibilityIdentifier("metadataInlineInput." + field.tag.rawValue)
                 if !field.tag.numericUnit.isEmpty { Text(field.tag.numericUnit).font(.caption).foregroundStyle(.secondary) }
                 if let choices = field.tag.numericChoices {
@@ -290,203 +281,23 @@ struct MetadataInlineFieldEditor: View {
             }
         }
         .disabled(session.application.busy)
-        .onAppear { focused = true }
+        .onAppear { active = true; focused = true }
         .onChange(of: focused) { if !focused { finish() } }
-        .onDisappear { if session.hasInput { finish() } }
+        .onDisappear { active = false; if session.hasInput { finish() } }
         .onExitCommand { session.discardInput(); close() }
+    }
+
+    private func paste() {
+        guard let text = NSPasteboard.general.string(forType: .string), !text.isEmpty else { return }
+        Task { @MainActor in
+            guard active else { return }
+            if await session.pasteInline(text, in: store) { close() }
+        }
     }
 
     private func finish() {
         Task { @MainActor in
             if await session.finishInline(in: store) { close() }
-        }
-    }
-}
-
-private struct MetadataBatchItemEditor: View {
-    @State var field: MetadataBatchField
-    let session: MetadataBatchEditSession
-    let availableTags: [MetadataTag]
-    var narrow: (Set<ImageData.ID>) -> Void
-    var commit: (MetadataBatchField) -> Void
-    var cancel: () -> Void
-
-    var body: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                MetadataBatchFieldRow(field: $field, readings: session.readings, availableTags: availableTags, narrow: narrow)
-                    .padding(20)
-            }
-            Divider()
-            HStack {
-                Button(L10n.text("取消")) { cancel() }.keyboardShortcut(.cancelAction)
-                Spacer()
-                Button(L10n.text("完成")) { commit(field) }.keyboardShortcut(.defaultAction)
-                    .disabled(field.mode == .keep || (try? field.operations.isEmpty) != false)
-            }.padding(16)
-        }.frame(width: 560, height: 480)
-        .onChange(of: field) { session.editingInput = true }
-    }
-}
-
-private struct MetadataBatchFieldRow: View {
-    @Binding var field: MetadataBatchField
-    let readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)]
-    let availableTags: [MetadataTag]
-    var narrow: (Set<ImageData.ID>) -> Void
-    @State private var showsValues = false
-    @State private var dateDetails = false
-
-    private var valueGroups: [MetadataValueGroup] { MetadataBatchValues.groups(field.tag, readings: readings) }
-    private var currentValue: String {
-        let groups = valueGroups
-        if groups.count == 1 { return MetadataBatchValues.text(groups.first?.value) }
-        return L10n.text("多个值（%1$@/%2$@ 张有值）", readings.count - (groups.first { $0.value == nil }?.photoIDs.count ?? 0), readings.count)
-    }
-    private var input: Binding<String> {
-        Binding(get: { field.input }, set: { field.updateInput($0) })
-    }
-    private var sourceTags: [MetadataTag] {
-        availableTags.filter { MetadataBatchField.canCopy(from: $0, to: field.tag) }
-    }
-    private var destinationTags: [MetadataTag] {
-        availableTags.filter { MetadataBatchField.canCopy(from: field.tag, to: $0) }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(field.tag.displayName).font(.system(size: 13, weight: .semibold))
-                    Text(field.tag.rawValue).font(.caption2).foregroundStyle(.secondary).textSelection(.enabled)
-                }
-                Spacer(minLength: 8)
-                Picker(L10n.text("字段操作"), selection: $field.mode) {
-                    ForEach(field.modes, id: \.self) { mode in
-                        Text(field.tag.isDate && mode == .set ? L10n.text("设置同一时间") : mode.label).tag(mode)
-                    }
-                }.labelsHidden().fixedSize().accessibilityIdentifier("batchMode." + field.tag.rawValue)
-            }
-            Button { showsValues = true } label: {
-                HStack(spacing: 5) {
-                    Text(L10n.text("当前值：%1$@", currentValue)).lineLimit(2).multilineTextAlignment(.leading)
-                    Image(systemName: "chevron.down").font(.caption2)
-                }.font(.caption).foregroundStyle(.secondary)
-            }.buttonStyle(.plain)
-                .popover(isPresented: $showsValues) {
-                    MetadataValueDistributionView(tag: field.tag, readings: readings, select: { ids in
-                        showsValues = false; narrow(ids)
-                    }, use: { value in
-                        if let value { field.use(value) }
-                        showsValues = false
-                    })
-                }
-            inputControls
-            if field.mode != .keep && (try? field.operations.isEmpty) != false {
-                Text(L10n.text("输入不完整或格式无效；此字段尚未准备好应用。"))
-                    .font(.caption).foregroundStyle(.orange)
-            }
-        }
-        .onChange(of: field.mode) { old, mode in
-            if [.append, .removeItems].contains(mode) && old != mode { field.input = "" }
-            if mode == .copy && !sourceTags.contains(field.source) { field.source = sourceTags.first ?? .captureDate }
-        }
-    }
-
-    @ViewBuilder private var inputControls: some View {
-        if field.mode == .clear {
-            Label(L10n.text("清除字段"), systemImage: "eraser").font(.callout).foregroundStyle(.orange)
-        } else if field.mode == .offset {
-            Picker(L10n.text("偏移方向"), selection: $field.subtract) {
-                Text(L10n.text("增加（＋）")).tag(false)
-                Text(L10n.text("减少（－）")).tag(true)
-            }.pickerStyle(.segmented)
-            offsetFields([3, 4, 5])
-            DisclosureGroup(L10n.text("年、月、日"), isExpanded: $dateDetails) { offsetFields([0, 1, 2]).padding(.top, 6) }
-            Text(L10n.text("保留每张照片原有的亚秒与时区记录；缺失时间跳过。"))
-                .font(.caption).foregroundStyle(.secondary)
-        } else if field.mode == .copy {
-            Picker(L10n.text("来源字段"), selection: $field.source) {
-                ForEach(sourceTags, id: \.self) { Text($0.displayName + " · " + $0.rawValue).tag($0) }
-            }
-            Text(L10n.text("每张照片使用自己的来源值（含待保存修改）；来源缺失时跳过。"))
-                .font(.caption).foregroundStyle(.secondary)
-        } else if field.mode == .copyTo {
-            Text(L10n.text("选择接收字段；每张照片复制自己的当前来源值（含前面操作的结果），来源缺失时跳过。"))
-                .font(.caption).foregroundStyle(.secondary)
-            ForEach(destinationTags, id: \.self) { target in
-                Toggle(target.displayName + " · " + target.rawValue, isOn: Binding(
-                    get: { field.destinations.contains(target) },
-                    set: { selected in
-                        if selected { field.destinations.insert(target) } else { field.destinations.remove(target) }
-                    }))
-            }
-            if destinationTags.isEmpty { Text(L10n.text("没有可接收此类型值的字段。")) .font(.caption).foregroundStyle(.secondary) }
-            Text(L10n.text("按照片统计：任一接收字段改变即计为修改；其余照片有跳过项则计为跳过，否则计为不变。"))
-                .font(.caption2).foregroundStyle(.secondary)
-        } else {
-            if field.tag.isDeviceIdentity {
-                MetadataDevicePicker(tag: field.tag, make: nil, model: nil, value: input)
-            }
-            if field.tag == .exifFlash {
-                Picker(L10n.text("常用状态"), selection: input) {
-                    if !field.tag.flashPresets.contains(where: { String($0.0) == field.input }) {
-                        Text(field.input.isEmpty ? L10n.text("自定义") : L10n.text("当前值：%1$@", field.input)).tag(field.input)
-                    }
-                    ForEach(field.tag.flashPresets, id: \.0) { Text($0.1).tag(String($0.0)) }
-                }
-            }
-            if let choices = field.tag.numericChoices {
-                Picker(L10n.text("字段值"), selection: input) {
-                    if !choices.contains(where: { String($0.0) == field.input }) {
-                        Text(field.input.isEmpty ? L10n.text("未填写") : field.input).tag(field.input)
-                    }
-                    ForEach(choices, id: \.0) { Text($0.1).tag(String($0.0)) }
-                }
-            } else {
-                HStack {
-                    TextField(field.mode == .keep ? L10n.text("输入以修改；留空不清除") : field.tag.inputExample,
-                              text: input, axis: .vertical)
-                        .lineLimit(field.tag.isList || field.tag.isLongText ? 2...5 : 1...3)
-                        .textFieldStyle(.roundedBorder)
-                        .accessibilityIdentifier("batchInput." + field.tag.rawValue)
-                    if !field.tag.numericUnit.isEmpty { Text(field.tag.numericUnit).font(.caption).foregroundStyle(.secondary) }
-                }
-            }
-            if field.tag.isDate {
-                Text("YYYY:MM:DD HH:mm:ss[.subseconds][±HH:mm]").font(.caption2).foregroundStyle(.secondary)
-            }
-            if field.mode == .sequence {
-                TextField(L10n.text("间隔（秒）"), text: $field.interval).textFieldStyle(.roundedBorder)
-                Text(L10n.text("按列表顺序逐张设置。例如从 10:00 开始，间隔 5 秒：10:00、10:00:05、10:00:10。"))
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            if field.mode == .distribute {
-                TextField(L10n.text("结束时间"), text: $field.end).textFieldStyle(.roundedBorder)
-                Text(L10n.text("第一张使用开始时间，最后一张使用结束时间，中间照片按列表顺序平均分配。"))
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            Text(field.tag.editorHint).font(.caption2).foregroundStyle(.secondary)
-            if let range = field.tag.numericRange {
-                let format = FloatingPointFormatStyle<Double>.number.grouping(.never).precision(.fractionLength(0...6))
-                Text("\(range.lowerBound.formatted(format))…\(range.upperBound.formatted(format))")
-                    .font(.caption2).foregroundStyle(.secondary)
-            }
-            if let limit = field.tag.maxUTF8Length {
-                Text(L10n.text("每项最多 %1$@ 个 UTF-8 字节", limit)).font(.caption2).foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private func offsetFields(_ indices: [Int]) -> some View {
-        HStack(spacing: 10) {
-            ForEach(indices, id: \.self) { index in
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(L10n.text(["年", "月", "日", "时", "分", "秒"][index])).font(.caption)
-                    TextField("0", text: $field.offsets[index]).textFieldStyle(.roundedBorder)
-                        .accessibilityIdentifier("batchOffset." + String(index))
-                }
-            }
         }
     }
 }

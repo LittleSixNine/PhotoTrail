@@ -38,8 +38,9 @@ Locations can also fill region details such as state and city. Untimed routes ar
 
 **Bring dates, credits and copyright into order.**
 
+- **Build once, use from the main view:** edit batch operations in place, with before-and-after comparisons collapsed by default. Save rules as a preset, adjust its parameters in the main view, and apply to every imported photo. Only “Update preset” saves those parameter changes.
 - **Find and edit:** search EXIF, IPTC, XMP and other information by name, tag or value; edit common fields in place.
-- **Start with a preset:** add an hour, recover capture dates from file names, align date fields or fill missing author and copyright details.
+- **Start with a preset:** add an hour, recover capture dates from file names, align date fields (including file creation and modification times) or fill missing author and copyright details.
 - **Build a repeatable workflow:** arrange assignments, field copies and time adjustments, then save a preset. Describe filename dates with `YYYY`, `MM`, `DD` and similar tokens—no regular expressions needed.
 
 Edit JPEG, HEIC/HEIF, PNG, TIFF, WebP, AVIF, GIF, PSD/PSB, JPEG 2000 (JP2), JPEG XL, supported RAW and existing XMP individually or in batches. Writable fields vary by format; additional static images can be imported for inspection. See [format support](../FORMATS.md) (Chinese).

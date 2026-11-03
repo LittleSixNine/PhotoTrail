@@ -38,8 +38,9 @@ También puedes completar datos de región, como provincia y ciudad. Las rutas s
 
 **Pon en orden fechas, autoría y derechos.**
 
+- **Crea reglas y úsalas desde la vista principal:** edita operaciones por lotes en el mismo lugar, con la comparación plegada por defecto. Guarda las reglas como preajuste, cambia sus parámetros en la vista principal y aplícalas a todas las fotos importadas. Solo “Actualizar preajuste” guarda esos cambios.
 - **Buscar y editar:** localiza información EXIF, IPTC, XMP y otros datos por nombre, etiqueta o valor; edita los campos habituales directamente.
-- **Empezar con un preajuste:** suma una hora, recupera fechas desde los nombres, unifica campos de fecha o completa autor y derechos ausentes.
+- **Empezar con un preajuste:** suma una hora, recupera fechas desde los nombres, unifica campos de fecha (incluidas la creación y modificación del archivo) o completa autor y derechos ausentes.
 - **Combinar reglas:** ordena asignaciones, copias de campos y ajustes de tiempo, y guárdalos como preajuste. Describe la fecha del nombre con `YYYY`, `MM`, `DD` y otros símbolos, sin expresiones regulares.
 
 Edita individualmente o por lotes JPEG, HEIC/HEIF, PNG, TIFF, WebP, AVIF, GIF, PSD/PSB, JPEG 2000 (JP2), JPEG XL, RAW compatibles y XMP existentes. Los campos editables dependen del formato; otras imágenes estáticas se pueden importar para consultar sus datos. Véase la [tabla de formatos](../FORMATS.md) (en chino).

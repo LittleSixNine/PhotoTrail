@@ -170,3 +170,10 @@ PhotoTrail 基于 GeoTag v6.0.2 派生，仍使用其部分应用基础设施与
 Exiftool 包的 `MetadataCodecPlugin` 使用 Xcode 的 clang 编译 `Tools/MetadataBrotli.c`，链接系统 Compression，生成 macOS 14 起可用的 arm64／x86_64 通用辅助资源并做 ad-hoc 签名。插件资源由 SwiftPM 打包；不要手动把构建出的 `.bin` 纳入源码。随包 Perl 适配器只处理临时元数据缓冲，输入／输出均限于 100 MB 内；不依赖 Homebrew、外部 Perl Brotli 模块或额外运行时安装。
 
 `MetadataBrotliTests` 验证压缩 JPEG XL 写入、编码图像数据不变、无效数据及解压边界。`MetadataFormatParityTests` 生成 PNG／TIFF／GIF／BMP 副本，验证字段家族、定位合并、备份、像素及日期清除；设置 `PHOTOTRAIL_FORMAT_FIXTURES=/path/to/public-fixtures` 可补测公开代表样本，`PHOTOTRAIL_FORMAT_OUTPUT` 可保存写后副本供容器／像素核对。App 的 `MetadataFormatImportTests` 覆盖静态图像导入排除项与沙盒内 Brotli 辅助程序执行。测试样本复制、转换和解码工具只用于开发验证，不作为最终用户依赖。
+
+
+`MetadataDateBatchTests` 覆盖 Mac 日期处理的逐照片来源回退／冲突、缺值、时区、九位亚秒、旧预设识别、原子草稿／撤销、同值／无效粘贴，以及临时 JPEG 副本的 IPTC 保存／备份／回读。界面上的菜单与文本框收起另用独立标识的候选验证，不使用日用会话或原始照片。
+
+`MetadataUnifiedBatchTests` 覆盖统一操作链、仅接收字段补时区、缺时区仅跳过 IPTC、临时参数与显式更新、旧 v1 预设／损坏数据保护，以及全部照片的冻结、非选中项应用和撤销。主界面预设参数与统一侧栏的保存／收起另用独立测试 App 验证。日期补值与时区策略存于 Mac 本地伴随参数；旧 v1 导出遇到这些额外参数时拒绝导出，避免静默丢失。
+
+默认日期规则的定向回归同时验证十个接收字段、IPTC 日期／时间拆分、七语言旧内置规则的一次升级，以及改名、编辑、删除和伴随时区参数的保留；升级失败不更新完成标志。文件时间仍复用 `MetadataFileTimeSaveTests` 的副本保存与回读检查。

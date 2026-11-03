@@ -125,10 +125,65 @@ struct MetadataWorkflowCardTests {
         #expect(shifted.items.count == 1 && shifted.skipDetails.count == 1)
         #expect(shifted.items[0].changes[.captureDate] == .set(.text("2026:11:01 00:30:25.123+08:00")))
         let unified = try MetadataWorkflowPreview.prepare(readings, operations: presets[2].operations)
-        #expect(unified.items.count == 1 && unified.skipDetails.count == 2)
+        #expect(unified.items.count == 1 && unified.skipDetails.count == 10)
         #expect(unified.items[0].changes[.dateOriginal] == .set(.text(date)))
         #expect(unified.items[0].changes[.sidecarDate] == .set(.text(date)))
-        #expect(Set(unified.items[0].changes.keys) == [.dateOriginal, .sidecarDate])
+        #expect(presets[2].operations.map(\.tag) == [.sidecarDate, .dateOriginal, .dateDigitized, .dateModified,
+            .exifCreateDate, .exifModifyDate, .fileCreateDate, .fileModifyDate, .iptcDateCreated, .iptcTimeCreated])
+        #expect(Set(unified.items[0].changes.keys) == Set(presets[2].operations.map(\.tag)))
+        #expect(unified.items[0].changes[.iptcDateCreated] == .set(.text("2026:10:31")))
+        #expect(unified.items[0].changes[.iptcTimeCreated] == .set(.text("23:30:25+08:00")))
+    }
+
+    @Test @MainActor func unifiedDefaultUpgradesUnchangedPresetsInEveryLanguageOnce() throws {
+        let expected = try MetadataPreset.defaultPresets()[2].operations
+        for language in AppLanguage.allCases {
+            let suite = "PhotoTrail.DefaultDate.Tests.\(UUID().uuidString)"
+            let defaults = try #require(UserDefaults(suiteName: suite))
+            defer { defaults.removePersistentDomain(forName: suite) }
+            let name = L10n.string("统一照片的日期字段", language: language)
+            let previous = try MetadataPreset(name: name, operations: [
+                .init(tag: .dateOriginal, action: .copy(.captureDate)), .init(tag: .sidecarDate, action: .copy(.captureDate))
+            ])
+            defaults.set(try JSONEncoder().encode([previous]), forKey: "PhotoTrail.MetadataPresets")
+            defaults.set(true, forKey: "PhotoTrail.MetadataDefaultPresets.v1")
+            try MetadataPreset.installDefaultsIfNeeded(in: defaults)
+            let installed = try MetadataPreset.stored(in: #require(defaults.data(forKey: "PhotoTrail.MetadataPresets")))
+            #expect(installed.count == 1 && installed[0].name == name)
+            #expect(installed[0].operations == expected)
+            defaults.set(Data("[]".utf8), forKey: "PhotoTrail.MetadataPresets")
+            try MetadataPreset.installDefaultsIfNeeded(in: defaults)
+            #expect(defaults.data(forKey: "PhotoTrail.MetadataPresets") == Data("[]".utf8))
+        }
+    }
+
+    @Test @MainActor func unifiedDefaultPreservesCustomRulesAndLocalParameters() throws {
+        for mode in ["edited", "renamed", "deleted", "policy", "corrupt"] {
+            let suite = "PhotoTrail.DefaultDate.Tests.\(UUID().uuidString)"
+            let defaults = try #require(UserDefaults(suiteName: suite))
+            defer { defaults.removePersistentDomain(forName: suite) }
+            let operations = [MetadataOperation(tag: .dateOriginal, action: .copy(.captureDate)),
+                              MetadataOperation(tag: .sidecarDate, action: .copy(.captureDate))]
+            let preset = try MetadataPreset(name: mode == "renamed" ? "mine" : L10n.text("统一照片的日期字段"),
+                operations: mode == "edited" ? [.init(tag: .dateOriginal, action: .copy(.sidecarDate))] : operations)
+            let data = try JSONEncoder().encode(mode == "deleted" ? [] : [preset])
+            defaults.set(data, forKey: "PhotoTrail.MetadataPresets")
+            defaults.set(true, forKey: "PhotoTrail.MetadataDefaultPresets.v1")
+            if mode == "policy" {
+                var cards = MetadataWorkflowCard.cards(from: operations)
+                cards[0].datePolicy.offset = "+08:00"
+                defaults.set(try MetadataPresetParameters.updating(preset, cards: cards, data: Data()), forKey: MetadataPresetParameters.key)
+            } else if mode == "corrupt" {
+                defaults.set(Data("invalid".utf8), forKey: MetadataPresetParameters.key)
+            }
+            let parameters = defaults.data(forKey: MetadataPresetParameters.key)
+            if mode == "corrupt" {
+                #expect(throws: Error.self) { try MetadataPreset.installDefaultsIfNeeded(in: defaults) }
+                #expect(!defaults.bool(forKey: "PhotoTrail.MetadataUnifiedDatePreset.v2"))
+            } else { try MetadataPreset.installDefaultsIfNeeded(in: defaults) }
+            #expect(defaults.data(forKey: "PhotoTrail.MetadataPresets") == data)
+            #expect(defaults.data(forKey: MetadataPresetParameters.key) == parameters)
+        }
     }
 
     @Test @MainActor func defaultFilenameParserRejectsInvalidDatesAndUnmatchedNames() throws {

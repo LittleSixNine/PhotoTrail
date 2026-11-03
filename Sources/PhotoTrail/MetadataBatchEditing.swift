@@ -229,6 +229,10 @@ enum MetadataBatchValues {
     var editingInput = false
     private(set) var readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)]
     var fields: [MetadataBatchField]
+    var workflowCards: [MetadataWorkflowCard]?
+    var presetName: String?
+    var recipePreview: MetadataRecipeResult?
+    private var recipeWorker: Task<MetadataRecipeResult, Error>?
     let application = MetadataDraftApplication()
     var statistics: [UUID: MetadataBatchItemStatistics] = [:]
     var statisticsBusy = false
@@ -248,10 +252,10 @@ enum MetadataBatchValues {
         for tag in tags where !fields.contains(where: { $0.tag == tag }) { add(tag) }
     }
 
-    var hasInput: Bool { editingInput || application.busy || (application.result == nil && !application.applied && fields.contains { $0.mode != .keep }) }
+    var hasInput: Bool { editingInput || application.busy || (application.result == nil && !application.applied && (workflowCards.map { !$0.isEmpty } ?? fields.contains { $0.mode != .keep })) }
     var changedFieldCount: Int { fields.filter { $0.mode != .keep }.count }
-    var operations: [MetadataOperation] { get throws { try fields.flatMap { try $0.operations } } }
-    var isValid: Bool { (try? operations.isEmpty) == false }
+    var operations: [MetadataOperation] { get throws { if let workflowCards { return workflowCards.flatMap(\.operations) }; return try fields.flatMap { try $0.operations } } }
+    var isValid: Bool { (workflowCards?.allSatisfy(\.isComplete) ?? true) && (try? operations.isEmpty) == false }
     var photoIDs: Set<ImageData.ID> { Set(readings.map(\.image.id)) }
 
     func add(_ tag: MetadataTag) {
@@ -277,11 +281,31 @@ enum MetadataBatchValues {
         cancelStatistics()
         application.cancel()
         invalidateExamples()
+        workflowCards = workflowCards == nil ? nil : []
         for index in fields.indices { fields[index].mode = .keep }
     }
 
     func refreshStatistics() {
-        cancelStatistics(); statistics = [:]; statisticsError = ""
+        cancelStatistics(); statistics = [:]; statisticsError = ""; recipePreview = nil
+        if let workflowCards {
+            guard !workflowCards.isEmpty, workflowCards.allSatisfy(\.isComplete) else { return }
+            let readings = readings
+            statisticsBusy = true
+            let worker = Task.detached(priority: .userInitiated) { try MetadataBatchRecipe.prepare(readings, cards: workflowCards) }
+            recipeWorker = worker
+            statisticsTask = Task {
+                do {
+                    let result = try await worker.value
+                    guard !Task.isCancelled else { return }
+                    recipePreview = result
+                } catch {
+                    guard !Task.isCancelled else { return }
+                    statisticsError = L10n.text("操作失败：%1$@", String(describing: error))
+                }
+                statisticsBusy = false; recipeWorker = nil
+            }
+            return
+        }
         guard !inline, let operations = try? operations, !operations.isEmpty else { statisticsBusy = false; return }
         let readings = readings, groups = fields.map { ($0.id, (try? $0.operations.count) ?? 0) }
         statisticsBusy = true
@@ -303,7 +327,7 @@ enum MetadataBatchValues {
     }
 
     func cancelStatistics() {
-        statisticsTask?.cancel(); statisticsWorker?.cancel(); statisticsWorker = nil; statisticsBusy = false
+        statisticsTask?.cancel(); statisticsWorker?.cancel(); recipeWorker?.cancel(); recipeWorker = nil; statisticsWorker = nil; statisticsBusy = false
     }
 
     func duplicate(_ id: UUID) {
@@ -326,6 +350,13 @@ enum MetadataBatchValues {
         guard !application.busy, !application.applied, let index = fields.firstIndex(where: { $0.id == id }),
               fields.indices.contains(index + offset) else { return }
         fields.swapAt(index, index + offset)
+    }
+
+    @MainActor func pasteInline(_ text: String, in store: Store<PhotoTrailState, PhotoTrailEvent>) async -> Bool {
+        guard inline, fields.count == 1, !text.isEmpty, !application.busy, !application.applied else { return false }
+        fields[0].updateInput(text, clearEmpty: true)
+        application.resetFeedback()
+        return await finishInline(in: store)
     }
 
     @MainActor func finishInline(in store: Store<PhotoTrailState, PhotoTrailEvent>) async -> Bool {

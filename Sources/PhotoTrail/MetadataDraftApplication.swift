@@ -9,9 +9,11 @@ struct MetadataDraftRequest: Sendable {
     let selection: Set<ImageData.ID>
     let order: [ImageData.ID]
     let requiresSelection: Bool
+    let requiresAllPhotos: Bool
 
-    init(readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)], requiresSelection: Bool = true) {
+    init(readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)], requiresSelection: Bool = true, requiresAllPhotos: Bool = false) {
         self.requiresSelection = requiresSelection
+        self.requiresAllPhotos = requiresAllPhotos
         self.readings = readings
         selection = Set(readings.map(\.image.id))
         order = readings.map(\.image.id)
@@ -20,6 +22,7 @@ struct MetadataDraftRequest: Sendable {
     @MainActor func matches(_ state: PhotoTrailState, checkFiles: Bool = false) -> Bool {
         guard !state.saveInProgress, !state.renameInProgress, !state.importProgress.isActive, (!requiresSelection || state.selection == selection),
               (!requiresSelection || state.imageData.filter({ selection.contains($0.id) }).sorted(using: state.sortOrder).map(\.id) == order) else { return false }
+        if requiresAllPhotos && state.imageData.sorted(using: state.sortOrder).map(\.id) != order { return false }
         let images = Dictionary(uniqueKeysWithValues: state.imageData.map { ($0.id, $0) })
         return readings.allSatisfy { reading in
             guard let image = images[reading.image.id], image.updatable == reading.image.updatable, !image.hasLegacyDateChanges,
@@ -38,6 +41,7 @@ final class MetadataDraftApplication {
     private(set) var calculationStarted = false
     private(set) var notice = ""
     private(set) var result: MetadataWorkflowPreview?
+    private(set) var recipeIssues: [MetadataRecipeIssue] = []
     private(set) var appliedImageRevision: UUID?
     private(set) var appliedUndoDescription = ""
     private var request: MetadataDraftRequest?
@@ -65,15 +69,15 @@ final class MetadataDraftApplication {
 
     func apply(readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)],
                operations: [MetadataOperation], imported: MetadataWorkflowPreview? = nil,
-               description: String? = nil, requiresSelection: Bool = true,
+               description: String? = nil, requiresSelection: Bool = true, dateBatch: MetadataDateBatch? = nil, cards: [MetadataWorkflowCard]? = nil, requiresAllPhotos: Bool = false,
                store: Store<PhotoTrailState, PhotoTrailEvent>) {
         guard !busy, !applied, !store.saveInProgress else { return }
-        let request = MetadataDraftRequest(readings: readings, requiresSelection: requiresSelection)
+        let request = MetadataDraftRequest(readings: readings, requiresSelection: requiresSelection, requiresAllPhotos: requiresAllPhotos)
         guard request.matches(store.state) else {
             notice = L10n.text("来源文件已变化；请重新读取元数据。")
             OperationFailure.present(notice); return
         }
-        result = nil
+        result = nil; recipeIssues = []
         let id = UUID()
         self.request = request; requestID = id; busy = true
         notice = L10n.text("正在准备应用…")
@@ -85,6 +89,12 @@ final class MetadataDraftApplication {
                 try MetadataWorkflowPreview.validateSources(readings)
                 return imported
             }
+            if let cards {
+                let prepared = try MetadataBatchRecipe.prepare(readings, cards: cards)
+                await self.recipePrepared(prepared.issues, requestID: id)
+                return prepared.preview
+            }
+            if let dateBatch { return try dateBatch.prepare(readings) }
             return try MetadataWorkflowPreview.prepare(readings, operations: operations)
         }
         self.worker = worker
@@ -116,11 +126,19 @@ final class MetadataDraftApplication {
                 cancel()
                 if case Exiftool.ExiftoolError.unsupportedIPTCEncoding = error {
                     notice = L10n.text("现有 IPTC 未明确声明 UTF-8，已阻止写入以保留原编码。")
+                } else if case Exiftool.ExiftoolError.invalidTagValue(let tag) = error {
+                    notice = tag == MetadataTag.iptcTimeCreated.rawValue
+                        ? L10n.text("IPTC 时间必须包含时区，例如 12:34:56+08:00。")
+                        : L10n.text("字段值格式无效：%1$@", tag)
                 } else if error is CancellationError { notice = L10n.text("已取消，未加入待保存修改。") }
                 else { notice = L10n.text("操作失败：%1$@", String(describing: error)) }
                 if !(error is CancellationError) { OperationFailure.present(notice) }
             }
         }
+    }
+
+    private func recipePrepared(_ issues: [MetadataRecipeIssue], requestID: UUID) {
+        if self.requestID == requestID { recipeIssues = issues }
     }
 
     func canUndo(in store: Store<PhotoTrailState, PhotoTrailEvent>) -> Bool {

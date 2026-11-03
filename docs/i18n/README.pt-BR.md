@@ -38,8 +38,9 @@ Também é possível completar dados de região, como estado e cidade. Rotas sem
 
 **Coloque datas, autoria e direitos em ordem.**
 
+- **Crie regras e use na tela principal:** edite operações em lote no próprio local, com a comparação recolhida por padrão. Salve regras como predefinição, ajuste os parâmetros na tela principal e aplique a todas as fotos importadas. Somente “Atualizar predefinição” salva as mudanças de parâmetros.
 - **Encontrar e editar:** busque informações EXIF, IPTC, XMP e outras por nome, tag ou valor; edite campos comuns diretamente.
-- **Começar com um preset:** adicione uma hora, recupere datas pelos nomes, alinhe campos de data ou preencha autor e direitos ausentes.
+- **Começar com um preset:** adicione uma hora, recupere datas pelos nomes, alinhe campos de data (incluindo criação e modificação do arquivo) ou preencha autor e direitos ausentes.
 - **Combinar regras:** organize atribuições, cópias de campos e ajustes de tempo e salve como preset. Descreva datas no nome com `YYYY`, `MM`, `DD` e outros símbolos, sem expressões regulares.
 
 Edite individualmente ou em lote JPEG, HEIC/HEIF, PNG, TIFF, WebP, AVIF, GIF, PSD/PSB, JPEG 2000 (JP2), JPEG XL, RAW compatíveis e XMP existentes. Os campos graváveis variam por formato; outras imagens estáticas podem ser importadas para consulta. Veja a [tabela de formatos](../FORMATS.md) (em chinês).

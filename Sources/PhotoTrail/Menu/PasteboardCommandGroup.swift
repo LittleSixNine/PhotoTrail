@@ -12,11 +12,13 @@ struct PasteboardCommands: Commands {
     @FocusedValue(\.metadataFieldClipboard) private var metadataFieldClipboard
     @AppStorage(SettingsView.extendedTimeKey) var extendedTime = 120.0
 
+    private var editingMetadataText: Bool { metadataFieldClipboard?.textInput == true }
+
     var body: some Commands {
          CommandGroup(replacing: .pasteboard) {
             Group {
                 Button(L10n.text("Cut"), systemImage: "scissors") {
-                    if store.textfieldActive {
+                    if editingMetadataText || store.textfieldActive {
                         NSApp.sendAction(#selector(NSText.cut(_:)),
                                          to: nil, from: nil)
                     } else {
@@ -25,18 +27,18 @@ struct PasteboardCommands: Commands {
                     }
                 }
                 .keyboardShortcut("x")
-                .disabled(metadataFieldSelection == true || store.saveInProgress || cutCopyDisabled())
+                .disabled(store.saveInProgress || (!editingMetadataText && (metadataFieldSelection == true || cutCopyDisabled())))
 
                 Button(L10n.text("Copy"), systemImage: "document.on.document") {
-                    if metadataFieldSelection == true { metadataFieldClipboard?.copy?() }
+                    if editingMetadataText || metadataFieldSelection == true { metadataFieldClipboard?.copy?() }
                     else { copy() }
                 }
                 .keyboardShortcut("c")
-                .disabled(metadataFieldSelection == true ? metadataFieldClipboard?.copy == nil : cutCopyDisabled())
+                .disabled(editingMetadataText || metadataFieldSelection == true ? metadataFieldClipboard?.copy == nil : cutCopyDisabled())
 
                 Button(L10n.text("Paste"), systemImage: "document.on.clipboard") {
-                    if metadataFieldSelection == true { metadataFieldClipboard?.paste?() }
-                    else if store.textfieldActive {
+                    if editingMetadataText || metadataFieldSelection == true { metadataFieldClipboard?.paste?() }
+                    else if editingMetadataText || store.textfieldActive {
                         NSApp.sendAction(#selector(NSText.paste(_:)),
                                          to: nil, from: nil)
                     } else {
@@ -57,12 +59,12 @@ struct PasteboardCommands: Commands {
                     }
                 }
                 .keyboardShortcut("v")
-                .disabled(store.saveInProgress || (metadataFieldSelection == true
+                .disabled(store.saveInProgress || (editingMetadataText || metadataFieldSelection == true
                     ? metadataFieldClipboard?.paste == nil || NSPasteboard.general.string(forType: .string)?.isEmpty != false
                     : pasteDisabled()))
 
                 Button(L10n.text("Delete"), systemImage: "trash") {
-                    if store.textfieldActive {
+                    if editingMetadataText || store.textfieldActive {
                         NSApp.sendAction(#selector(NSText.delete(_:)),
                                          to: nil, from: nil)
                     } else {
@@ -70,10 +72,12 @@ struct PasteboardCommands: Commands {
                     }
                 }
                 .keyboardShortcut(.delete, modifiers: [])
-                .disabled(metadataFieldSelection == true || store.saveInProgress || deleteDisabled())
+                .disabled(store.saveInProgress || (!editingMetadataText && (metadataFieldSelection == true || deleteDisabled())))
 
                 Button(L10n.text("Select All"), systemImage: "character.textbox") {
-                    if metadataFieldSelection == true {
+                    if editingMetadataText {
+                        NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil)
+                    } else if metadataFieldSelection == true {
                         NSApp.sendAction(#selector(NSTableView.selectAll(_:)), to: nil, from: nil)
                     } else if store.textfieldActive {
                         NSApp.sendAction(#selector(NSText.selectAll(_:)),
@@ -131,7 +135,7 @@ struct PasteboardCommands: Commands {
 extension PasteboardCommands {
 
     private func cutCopyDisabled() -> Bool {
-        if store.textfieldActive {
+        if editingMetadataText || store.textfieldActive {
             return false
         }
         if let id = store.mostSelected, store[id].metadata.location != nil {
@@ -141,7 +145,7 @@ extension PasteboardCommands {
     }
 
     private func pasteDisabled() -> Bool {
-        if store.textfieldActive {
+        if editingMetadataText || store.textfieldActive {
             return false
         }
         let pb = NSPasteboard.general
@@ -154,14 +158,14 @@ extension PasteboardCommands {
     }
 
     private func deleteDisabled() -> Bool {
-        if store.textfieldActive {
+        if editingMetadataText || store.textfieldActive {
             return false
         }
         return store.selection.allSatisfy { store[$0].metadata.location == nil }
     }
 
     private func selectAllDisabled() -> Bool {
-        if store.textfieldActive {
+        if editingMetadataText || store.textfieldActive {
             return false
         }
         return store.imageData.isEmpty
@@ -197,7 +201,7 @@ extension PasteboardCommands {
 
 extension PasteboardCommands {
     private func copy() {
-        if store.textfieldActive {
+        if editingMetadataText || store.textfieldActive {
             NSApp.sendAction(#selector(NSText.copy(_:)),
                 to: nil, from: nil)
         } else if let id = store.mostSelected {

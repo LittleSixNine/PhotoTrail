@@ -166,6 +166,10 @@ struct MetadataListInspectorView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showingBatch = false
     @AppStorage("PhotoTrail.MetadataPresetShortcuts") private var presetShortcutData = Data()
+    @State private var quickPresetSession: MetadataPresetSession?
+    @State private var presetNotice = ""
+    @State private var presetIssues: [MetadataRecipeIssue] = []
+    @AppStorage(MetadataPresetParameters.key) private var presetParameterData = Data()
     @State private var workflowEditor: MetadataWorkflowSelection?
     @AppStorage("PhotoTrail.MetadataPresets") private var presetData = Data()
     @State private var advanced: [ImageData.ID: [String: String]] = [:]
@@ -321,6 +325,9 @@ struct MetadataListInspectorView: View {
                     MetadataBatchEditView(session: ruleSession, visiblePhotoIDs: visiblePhotoIDs, close: {
                         showingBatch = false
                         if ruleSession.application.applied || !ruleSession.hasInput { self.ruleSession = nil }
+                    }, saved: { preset in
+                        do { quickPresetSession = try MetadataPresetSession(preset: preset, parameters: presetParameterData) }
+                        catch { presetNotice = L10n.text("预设无法读取，原数据已保留。") }
                     })
                     .clipShape(UnevenRoundedRectangle(topLeadingRadius: 12, bottomLeadingRadius: 12))
                     .shadow(color: .black.opacity(0.12), radius: 8, x: -3)
@@ -442,6 +449,15 @@ private extension MetadataListInspectorView {
         }
         .sheet(item: $workflowEditor) { selection in
             MetadataWorkflowView(readings: selection.readings, quickPreset: selection.preset, initialTab: selection.tab)
+                .environment(\.metadataPresetEditor, { preset in
+                    workflowEditor = nil
+                    if let cards = try? MetadataPresetParameters.cards(preset, data: presetParameterData) {
+                        Task { @MainActor in
+                            await Task.yield()
+                            openPresetRules(cards, name: preset.name)
+                        }
+                    }
+                })
         }
         .popover(item: $valueDistribution) { selection in
             MetadataValueDistributionView(tag: selection.tag, readings: selection.readings, select: { ids in
@@ -534,7 +550,8 @@ private extension MetadataListInspectorView {
                 Text(L10n.text("元数据")).font(.headline)
                 Spacer(minLength: 8)
                 Menu {
-                    Button(L10n.text("高级操作…")) { openWorkflow(readings, tab: "actions") }
+                    Button(L10n.text("批量编辑")) { if let readings { startBatch(readings) } }
+
                     Button(L10n.text("管理预设…")) { openWorkflow(readings, tab: "presets") }
                     Button(L10n.text("比较与交换")) { openWorkflow(readings, tab: "exchange") }
                 } label: { Image(systemName: "ellipsis.circle").font(.title3) }
@@ -586,10 +603,11 @@ private extension MetadataListInspectorView {
                 Button {
                     if let readings { startBatch(readings) }
                 } label: {
-                    batchEntryLabel("复杂批量规则", subtitle: "组合多个修改项", icon: "slider.horizontal.3", featured: false)
+                    batchEntryLabel("批量编辑", subtitle: "组合多个修改项", icon: "slider.horizontal.3", featured: false)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("metadataBatchStart")
+                .disabled(readings == nil)
                 Menu {
                     ForEach(savedMetadataPresets, id: \.name) { preset in
                         Button(preset.name) { openPreset(preset, readings: readings) }
@@ -611,7 +629,7 @@ private extension MetadataListInspectorView {
                 .menuStyle(.borderlessButton).menuIndicator(.hidden)
                 .accessibilityIdentifier("metadataPresetButton")
             }
-            .disabled(readings == nil)
+            .disabled(store.saveInProgress || store.imageData.isEmpty)
             if !shortcutNames.isEmpty {
                 HStack(spacing: 8) {
                     Text(L10n.text("常用预设")).font(.caption).foregroundStyle(.secondary)
@@ -634,7 +652,36 @@ private extension MetadataListInspectorView {
                         }
                     }.scrollIndicators(.hidden)
                 }
-                .disabled(readings == nil)
+                .disabled(store.saveInProgress || store.imageData.isEmpty)
+            }
+            if let quickPresetSession {
+                MetadataPresetQuickView(session: quickPresetSession, editRules: { cards in
+                    openPresetRules(cards, name: quickPresetSession.original.name)
+                }, completed: { result, issues in
+                    let processed = Set(result.steps.map(\.id))
+                    presetNotice = L10n.text("已加入待保存：%1$@ 张 · 无变化：%2$@ 张 · 未处理：%3$@ 张",
+                        result.items.count, processed.subtracting(result.items.map(\.id)).count,
+                        store.imageData.count - processed.count)
+                    presetIssues = issues
+                    self.quickPresetSession = nil
+                })
+            }
+            if !presetNotice.isEmpty {
+                Text(presetNotice).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+            }
+            if !presetIssues.isEmpty {
+                let groups = Dictionary(grouping: presetIssues, by: \.photoID)
+                DisclosureGroup(L10n.text("%1$@ 张照片有跳过项", groups.count)) {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(presetIssues.map(\.photoID).reduce(into: [ImageData.ID]()) { if !$0.contains($1) { $0.append($1) } }, id: \.self) { id in
+                                let issues = groups[id] ?? []
+                                Text((issues.first?.filename ?? "") + " · " + Array(Set(issues.map(\.reason))).sorted().joined(separator: " / "))
+                                    .font(.caption).textSelection(.enabled)
+                            }
+                        }
+                    }.frame(maxHeight: 120)
+                }.font(.caption).foregroundStyle(.secondary)
             }
         }.padding(.top, 5)
     }
@@ -659,17 +706,32 @@ private extension MetadataListInspectorView {
 
     private func openPreset(_ preset: MetadataPreset,
                             readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)]?) {
-        guard let readings else { return }
+        guard quickPresetSession?.busy != true else { return }
+        do {
+            if quickPresetSession?.original.name == preset.name { quickPresetSession = nil }
+            else { quickPresetSession = try MetadataPresetSession(preset: preset, parameters: presetParameterData) }
+            presetNotice = ""; presetIssues = []
+        } catch { presetNotice = L10n.text("预设无法读取，原数据已保留。") }
+    }
+
+    private func openPresetRules(_ cards: [MetadataWorkflowCard], name: String) {
+        guard let readings = editableCreatorReadings else {
+            presetNotice = L10n.text("请选择可编辑的照片后再编辑规则。")
+            return
+        }
         Task { @MainActor in
             if let previous = editSession, previous.inline {
                 guard await previous.finishInline(in: store) else { return }
             }
+            if let previous = ruleSession, previous.hasInput { showingBatch = true; return }
             let current = readings.compactMap { reading -> (image: ImageData, snapshot: MetadataInspectionSnapshot)? in
                 guard let image = store.state.imageData.first(where: { $0.id == reading.image.id }) else { return nil }
                 return (image, reading.snapshot)
             }
             guard current.count == readings.count else { return }
-            workflowEditor = MetadataWorkflowSelection(readings: current, preset: preset)
+            let session = MetadataBatchEditSession(readings: current, tags: [])
+            session.workflowCards = cards; session.presetName = name
+            ruleSession = session; quickPresetSession = nil
         }
     }
 
@@ -842,7 +904,9 @@ private extension MetadataListInspectorView {
             }
             guard current.count == readings.count else { return }
             let tags = (tags ?? []).filter { tag in current.contains { $0.image.supportsMetadataEditing(tag) } }
-            ruleSession = MetadataBatchEditSession(readings: current, tags: tags)
+            let session = MetadataBatchEditSession(readings: current, tags: tags)
+            if tags.isEmpty { session.workflowCards = [] }
+            ruleSession = session
         }
     }
 
@@ -854,8 +918,26 @@ private extension MetadataListInspectorView {
     func openBatch(_ identifiers: Set<String>, mode: String, input: String = "") {
         let tags = batchTargets(identifiers)
         guard !tags.isEmpty, let readings = editableCreatorReadings else { return }
-        batchEditor = MetadataBatchEditorSelection(readings: readings, tags: tags,
-                                                   excludedCount: identifiers.count - tags.count, mode: mode, input: input)
+        let operations = tags.map { tag -> MetadataOperation in
+            let action: MetadataFieldEditAction = mode == "copy" ? .copy(tag.isDate || tag.isPartialDate ? .captureDate : tag.isList ? .creator : .titleDefault) : mode == "clear" ? .remove
+                : tag == .creator ? .replaceAuthors(input.split(separator: "\n").map(String.init))
+                : tag.isList ? .replaceKeywords(input.split(separator: "\n").map(String.init)) : .setText(input)
+            return MetadataOperation(tag: tag, action: action)
+        }
+        Task { @MainActor in
+            if let previous = editSession, previous.inline {
+                guard await previous.finishInline(in: store) else { return }
+            }
+            if let previous = ruleSession, previous.hasInput { showingBatch = true; return }
+            let current = readings.compactMap { reading -> (image: ImageData, snapshot: MetadataInspectionSnapshot)? in
+                guard let image = store.state.imageData.first(where: { $0.id == reading.image.id }) else { return nil }
+                return (image, reading.snapshot)
+            }
+            guard current.count == readings.count else { return }
+            let session = MetadataBatchEditSession(readings: current, tags: [])
+            session.workflowCards = MetadataWorkflowCard.cards(from: operations)
+            ruleSession = session
+        }
     }
 
     func fieldValue(_ tag: MetadataTag, summary: MetadataSelectionValue,
@@ -1247,6 +1329,12 @@ private extension MetadataListInspectorView {
             }
             if !plan.items.isEmpty { store.send(.creatorDraftApplied(plan.items), description: L10n.text("粘贴到所选字段")) }
             pasteSkipped = plan.skipped.filter { plan.skipReasons[$0] == .unsupportedField }
+            if let session = editSession, session.inline,
+               let tag = session.fields.first?.tag, batchTargets(identifiers).contains(tag),
+               plan.operationResults.contains(where: { $0.tag == tag && !$0.changed.union($0.unchanged).isDisjoint(with: session.photoIDs) }) {
+                session.discardInput()
+                editSession = nil
+            }
         } catch { pasteFailed = true }
     }
 
@@ -1308,6 +1396,7 @@ private extension MetadataListInspectorView {
 struct MetadataFieldClipboardActions {
     let copy: (() -> Void)?
     let paste: (() -> Void)?
+    var textInput = false
 }
 
 private struct MetadataFieldClipboardKey: FocusedValueKey {

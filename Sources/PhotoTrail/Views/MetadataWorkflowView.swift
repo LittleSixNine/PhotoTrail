@@ -16,6 +16,8 @@ struct MetadataWorkflowView: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
     @Environment(\.dismiss) private var dismiss
     @AppStorage("PhotoTrail.MetadataPresets") private var presetData = Data()
+    @AppStorage(MetadataPresetParameters.key) private var parameterData = Data()
+    @Environment(\.metadataPresetEditor) private var editPreset
     @State private var tag = MetadataTag.captureDate
     @State private var mode = "offset"
     @State private var input = ""
@@ -138,7 +140,9 @@ struct MetadataWorkflowView: View {
                     perform {
                         let name = presetName.trimmingCharacters(in: .whitespacesAndNewlines)
                         if let original = renamingPreset {
+                            let parameters = try MetadataPresetParameters.renamed(original, to: name, data: parameterData)
                             presetData = try JSONEncoder().encode(MetadataWorkflowCard.renamePreset(original, to: name, in: try MetadataPreset.stored(in: presetData)))
+                            parameterData = parameters
                             if selectedPreset == original { selectedPreset = name }
                         } else {
                             try storePreset(MetadataPreset(name: name, operations: operations))
@@ -157,7 +161,13 @@ struct MetadataWorkflowView: View {
                    presenting: deletingPreset) { name in
                 Button(L10n.text("取消"), role: .cancel) { deletingPreset = nil }
                 Button(L10n.text("删除预设"), role: .destructive) {
-                    perform { presetData = try JSONEncoder().encode(try MetadataPreset.stored(in: presetData).filter { $0.name != name }) }
+                    perform {
+                        var parameters = try MetadataPresetParameters.entries(parameterData)
+                        parameters[name] = nil
+                        let data = try JSONEncoder().encode(try MetadataPreset.stored(in: presetData).filter { $0.name != name })
+                        let settings = try JSONEncoder().encode(parameters)
+                        presetData = data; parameterData = settings
+                    }
                     if selectedPreset == name { selectedPreset = "" }
                     deletingPreset = nil
                 }
@@ -219,7 +229,9 @@ private extension MetadataWorkflowView {
                                 Button(L10n.text("复制")) {
                                     perform {
                                         let name = MetadataWorkflowCard.uniquePresetName(preset.name, existing: presets.map(\.name))
+                                        let parameters = try MetadataPresetParameters.renamed(preset.name, to: name, data: parameterData, copy: true)
                                         try storePreset(MetadataPreset(name: name, operations: preset.operations))
+                                        parameterData = parameters
                                     }
                                 }
                                 Button(L10n.text("重命名")) {
@@ -247,6 +259,10 @@ private extension MetadataWorkflowView {
                     Button(L10n.text("导出预设 JSON")) {
                         perform {
                             guard let preset = presets.first(where: { $0.name == selectedPreset }) else { return }
+                            if try MetadataPresetParameters.cards(preset, data: parameterData).contains(where: { !$0.datePolicy.isEmpty }) {
+                                notice = L10n.text("此预设包含本机日期参数，无法导出为旧版 JSON。")
+                                return
+                            }
                             try saveFile(preset.encode(), name: preset.name + ".json", type: .json)
                         }
                     }.disabled(selectedPreset.isEmpty)
@@ -611,17 +627,30 @@ private extension MetadataWorkflowView {
     func storePreset(_ preset: MetadataPreset) throws {
         var entries = try MetadataPreset.stored(in: presetData).filter { $0.name != preset.name }
         entries.append(preset)
-        presetData = try JSONEncoder().encode(entries)
+        var parameters = try MetadataPresetParameters.entries(parameterData)
+        parameters[preset.name] = nil
+        let data = try JSONEncoder().encode(entries)
+        let settings = try JSONEncoder().encode(parameters)
+        presetData = data; parameterData = settings
     }
 
     func loadPreset(_ preset: MetadataPreset) {
+        if let editPreset { editPreset(preset); return }
         resetOperations(); operations = preset.operations; presetName = preset.name; workflowTab = "actions"
     }
 }
 
-struct MetadataWorkflowCard: Identifiable, Equatable {
+struct MetadataWorkflowCard: Identifiable, Equatable, Sendable {
     let id = UUID()
     var operations: [MetadataOperation]
+    var datePolicy = MetadataDateCopyPolicy()
+    var isComplete: Bool { !operations.isEmpty && !operations.contains { $0.action.hasEmptyInput } }
+    var dateCopySource: MetadataTag? {
+        guard let first = operations.first, case .copy(let source) = first.action, source.isDate,
+              operations.allSatisfy({ $0.action == first.action && ($0.tag.isDate || $0.tag.isPartialDate) }) else { return nil }
+        return source
+    }
+    func duplicated() -> Self { Self(operations: operations, datePolicy: datePolicy) }
 
     static func renamePreset(_ original: String, to name: String, in presets: [MetadataPreset]) throws -> [MetadataPreset] {
         let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -656,16 +685,21 @@ struct MetadataWorkflowCard: Identifiable, Equatable {
     }
 }
 
-private struct MetadataOperationCardView: View {
+struct MetadataOperationCardView: View {
     @Binding var operations: [MetadataOperation]
     let readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)]
     @Binding var selected: Bool
     @FocusState private var editing: Bool
+    @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
     let availableTags: [MetadataTag]
     let index: Int
     let moveUp: (() -> Void)?
     let moveDown: (() -> Void)?
     let remove: () -> Void
+    var inlineLayout = false
+    var quickParameters = false
+    var datePolicy: Binding<MetadataDateCopyPolicy>?
+    var duplicate: (() -> Void)?
     @State private var expanded = true
     @State private var loaded = false
     @State private var lastDraft: [MetadataOperation] = []
@@ -681,6 +715,7 @@ private struct MetadataOperationCardView: View {
     @State private var dateOffsets = Array(repeating: 0, count: 6)
     @State private var offsetNegative = Array(repeating: false, count: 6)
     @State private var filenameFormat = MetadataFilenameDateFormat.compactDateTime
+    @State private var dateDetails = false
     @State private var filenameAdvanced = false
     @State private var filenameCustom = false
     @State private var filenameCustomInput = "YYYY.MM.DD_HHmmss"
@@ -703,22 +738,56 @@ private struct MetadataOperationCardView: View {
 
     private var unit: String { tag.numericUnit }
     var body: some View {
+        Group {
+            if quickParameters { editor }
+            else { cardBody }
+        }
+        .onChange(of: selected) { if inlineLayout { expanded = selected } }
+        .onAppear { if inlineLayout { expanded = selected } }
+        .onChange(of: editing) {
+            if editing { selected = true }
+            store.send(.textfieldFocusChanged(editing), undoable: false)
+        }
+        .onDisappear { if editing { store.send(.textfieldFocusChanged(false), undoable: false) } }
+        .onAppear(perform: loadInitial)
+        .onChange(of: draftOperations) {
+            if loaded && draftOperations != lastDraft {
+                lastDraft = draftOperations; operations = draftOperations
+            }
+        }
+        .onChange(of: tag) {
+            if !(modes + ["shift", "days"]).contains(mode) { mode = tag.isDate ? "offset" : "set"; input = "" }
+        }
+    }
+
+    private var cardBody: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Button { expanded.toggle() } label: {
+                Button { if inlineLayout { selected.toggle() } else { expanded.toggle() } } label: {
                     HStack {
                         Text("\(index + 1)").monospacedDigit().foregroundStyle(.secondary)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(tag.displayName).fontWeight(.medium)
-                            Text(L10n.text(actionLabels[mode] ?? "字段操作")).font(.caption).foregroundStyle(.secondary)
+                            Text(L10n.text(actionLabels[mode] ?? "字段操作")).fontWeight(.medium)
+                            Text(tag.displayName + (mode == "copy" ? " → " + L10n.text("%1$@ 个字段", copyTargets.count) : ""))
+                                .font(.caption).foregroundStyle(.secondary)
                         }
                         Image(systemName: expanded ? "chevron.down" : "chevron.right").font(.caption)
                     }
                 }.buttonStyle(.plain)
                 Spacer()
+                if inlineLayout {
+                    Menu {
+                        Button(L10n.text("上移")) { moveUp?() }.disabled(moveUp == nil)
+                        Button(L10n.text("下移")) { moveDown?() }.disabled(moveDown == nil)
+                        if let duplicate { Button(L10n.text("复制修改项"), action: duplicate) }
+                        Button(L10n.text("删除操作"), role: .destructive, action: remove)
+                    } label: { Image(systemName: "ellipsis") }
+                    .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+                } else {
                 Button(L10n.text("上移"), systemImage: "arrow.up") { moveUp?() }.disabled(moveUp == nil)
                 Button(L10n.text("下移"), systemImage: "arrow.down") { moveDown?() }.disabled(moveDown == nil)
                 Button(L10n.text("删除操作"), systemImage: "trash", action: remove)
+                }
             }.labelStyle(.iconOnly).buttonStyle(.borderless)
             if expanded { editor }
         }.padding(14)
@@ -728,36 +797,27 @@ private struct MetadataOperationCardView: View {
                 selected || editing ? Color.blue : Color.secondary.opacity(0.18), lineWidth: selected || editing ? 1.5 : 1))
             .contentShape(RoundedRectangle(cornerRadius: 10))
             .focused($editing)
-            .simultaneousGesture(TapGesture().onEnded { selected = true })
-            .onChange(of: editing) { if editing { selected = true } }
-            .onAppear {
-                guard !loaded, let first = operations.first else { return }
-                if case .copy(let source) = first.action {
-                    tag = source; copyTargets = Set(operations.map(\.tag))
-                } else { tag = first.tag }
-                loadAction(first.action)
-                lastDraft = draftOperations
-                if mode == "filename" && !filenameAdvanced { operations = lastDraft }
-                loaded = true
-            }
-            .onChange(of: draftOperations) {
-                if loaded && draftOperations != lastDraft {
-                    lastDraft = draftOperations; operations = draftOperations
-                }
-            }
-            .onChange(of: tag) {
-                if !(modes + ["shift", "days"]).contains(mode) { mode = tag.isDate ? "offset" : "set"; input = "" }
-            }
+            .simultaneousGesture(TapGesture().onEnded { if !inlineLayout { selected = true } })
     }
 
     private var editor: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Picker(mode == "copy" ? L10n.text("来源字段") : L10n.text("目标字段"), selection: $tag) {
-                ForEach(availableTags, id: \.self) { Text("\($0.displayName) · \($0.rawValue)").tag($0) }
+            if !quickParameters {
+                Picker(L10n.text("字段操作"), selection: $mode) {
+                    ForEach(modes + (["shift", "days"].contains(mode) ? [mode] : []), id: \.self) {
+                        Text(L10n.text(actionLabels[$0] ?? "字段操作")).tag($0)
+                    }
+                }
             }
-            Text(L10n.text("当前值：%1$@", currentValue)).font(.caption).textSelection(.enabled)
-            Picker(L10n.text("字段操作"), selection: $mode) {
-                ForEach(modes + (["shift", "days"].contains(mode) ? [mode] : []), id: \.self) { Text(L10n.text(actionLabels[$0]!)).tag($0) }
+            if !quickParameters || mode == "copy" {
+                Picker(mode == "copy" ? L10n.text("来源字段") : L10n.text("目标字段"), selection: $tag) {
+                    ForEach(availableTags.filter { candidate in
+                        mode != "copy" || copyTargets.isEmpty || copyTargets.allSatisfy { MetadataBatchField.canCopy(from: candidate, to: $0) }
+                    }, id: \.self) { Text($0.displayName).tag($0) }
+                }
+            }
+            if !inlineLayout && !quickParameters {
+                Text(L10n.text("当前值：%1$@", currentValue)).font(.caption).textSelection(.enabled)
             }
             if mode == "filename" {
                 Toggle(L10n.text("使用正则表达式（高级）"), isOn: Binding(
@@ -769,8 +829,8 @@ private struct MetadataOperationCardView: View {
                         filenameAdvanced = advanced
                     }))
                 if filenameAdvanced {
-                    TextField(L10n.text("文件名正则表达式"), text: $input)
-                    TextField(L10n.text("日期模板（如 $1:$2:$3 12:00:00）"), text: $end)
+                    TextField(L10n.text("文件名正则表达式"), text: $input).focused($editing)
+                    TextField(L10n.text("日期模板（如 $1:$2:$3 12:00:00）"), text: $end).focused($editing)
                 } else {
                     Picker(L10n.text("文件名中的日期格式"), selection: Binding(
                         get: { filenameCustom ? "custom" : filenameFormat.rawValue },
@@ -784,7 +844,7 @@ private struct MetadataOperationCardView: View {
                         Text(L10n.text("自定义")).tag("custom")
                     }
                     if filenameCustom {
-                        TextField(L10n.text("自定义日期格式"), text: $filenameCustomInput)
+                        TextField(L10n.text("自定义日期格式"), text: $filenameCustomInput).focused($editing)
                             .accessibilityIdentifier("metadataFilenameCustomFormat")
                         Text(L10n.text("YYYY=年，MM=月，DD=日，HH=时，mm=分，ss=秒；其余文字按原样匹配。"))
                             .font(.caption).foregroundStyle(.secondary)
@@ -807,25 +867,20 @@ private struct MetadataOperationCardView: View {
                     }
                 }
             } else if mode == "copy" {
-                copyDestinationFields
-                Text(L10n.text("每张照片使用自己的来源值（含待保存修改）；来源缺失时跳过。"))
-                    .font(.caption).foregroundStyle(.secondary)
-            } else if mode == "offset" {
-                let labels = ["年", "月", "日", "时", "分", "秒"]
-                ForEach(0..<6, id: \.self) { index in
-                    HStack(spacing: 10) {
-                        Text(L10n.text(labels[index])).frame(width: 26, alignment: .leading)
-                        Picker(L10n.text("偏移方向"), selection: offsetDirection(index)) {
-                            Text(L10n.text("增加（＋）")).tag(false)
-                            Text(L10n.text("减少（－）")).tag(true)
-                        }.labelsHidden().frame(width: 120)
-                        TextField(L10n.text(labels[index]), value: offsetMagnitude(index), format: .number)
-                            .labelsHidden()
-                    }
+                if !quickParameters { copyDestinationFields }
+                if tag.isDate, let datePolicy { MetadataDateCopyPolicyView(policy: datePolicy) }
+                if !inlineLayout && !quickParameters {
+                    Text(L10n.text("每张照片使用自己的来源值（含待保存修改）；来源缺失时跳过。"))
+                        .font(.caption).foregroundStyle(.secondary)
                 }
+            } else if mode == "offset" {
+                if inlineLayout || quickParameters {
+                    offsetInputs([3, 4, 5])
+                    DisclosureGroup(L10n.text("年、月、日"), isExpanded: $dateDetails) { offsetInputs([0, 1, 2]) }
+                } else { offsetInputs(Array(0..<6)) }
             } else if ["shift", "days", "component"].contains(mode) {
                 Stepper(L10n.text("数值：%1$@", amount), value: $amount, in: -1_000_000...1_000_000)
-                TextField(L10n.text("整数数值"), value: $amount, format: .number)
+                TextField(L10n.text("整数数值"), value: $amount, format: .number).focused($editing)
                 if mode == "days" { TextField(L10n.text("时区标识（可选，如 America/New_York）"), text: $zone) }
                 if mode == "component" {
                     Picker(L10n.text("要修改的部分"), selection: $component) {
@@ -844,47 +899,19 @@ private struct MetadataOperationCardView: View {
                 } else {
                     if ["sequence", "distribute"].contains(mode) { Text(L10n.text("开始时间")).font(.callout) }
                     TextField(["sequence", "distribute"].contains(mode) ? L10n.text("开始时间") : L10n.text("字段值"),
-                              text: $input, axis: .vertical).lineLimit(2...4)
+                              text: $input, axis: .vertical).lineLimit(2...4).focused($editing)
                 }
-                if tag.isDate { Text("YYYY:MM:DD HH:mm:ss[.subseconds][±HH:mm]").font(.caption) }
+                if tag.isDate && !inlineLayout && !quickParameters { Text("YYYY:MM:DD HH:mm:ss[.subseconds][±HH:mm]").font(.caption) }
                 if tag.isList { Text(L10n.text("列表值每行一项；逗号属于内容。")) }
-                if let limit = tag.maxUTF8Length { Text(L10n.text("每项最多 %1$@ 个 UTF-8 字节", limit)).font(.caption) }
-                if let range = tag.numericRange { Text("\(unit) · \(range.lowerBound)…\(range.upperBound)").font(.caption) }
+                if let limit = tag.maxUTF8Length, !inlineLayout && !quickParameters { Text(L10n.text("每项最多 %1$@ 个 UTF-8 字节", limit)).font(.caption) }
+                if let range = tag.numericRange, !inlineLayout && !quickParameters { Text("\(unit) · \(range.lowerBound)…\(range.upperBound)").font(.caption) }
                 if mode == "sequence" {
                     Text(L10n.text("每张照片间隔（秒）")).font(.callout)
-                    TextField(L10n.text("每张照片间隔（秒）"), value: $amount, format: .number)
+                    TextField(L10n.text("每张照片间隔（秒）"), value: $amount, format: .number).focused($editing)
                 }
                 if mode == "distribute" {
                     Text(L10n.text("结束时间")).font(.callout)
-                    TextField(L10n.text("结束时间"), text: $end)
-                }
-            }
-        }
-    }
-
-    private var copyDestinationFields: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(L10n.text("接收字段")).font(.headline)
-            Text(L10n.text("将上方来源字段的值复制到以下字段，覆盖原值；来源字段保持不变。"))
-                .font(.caption).foregroundStyle(.secondary)
-            Menu(L10n.text("添加接收字段…")) {
-                ForEach(availableTags.filter { $0 != tag }, id: \.self) { target in
-                    Toggle("\(target.displayName) · \(target.rawValue)", isOn: Binding(
-                        get: { copyTargets.contains(target) },
-                        set: { selected in
-                            if selected { copyTargets.insert(target) } else { copyTargets.remove(target) }
-                        }))
-                }
-            }
-            ForEach(availableTags.filter { $0 != tag && copyTargets.contains($0) }, id: \.self) { target in
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(target.displayName)
-                        Text(target.rawValue).font(.caption).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    Button(L10n.text("删除操作"), systemImage: "minus.circle") { copyTargets.remove(target) }
-                        .labelStyle(.iconOnly).buttonStyle(.borderless)
+                    TextField(L10n.text("结束时间"), text: $end).focused($editing)
                 }
             }
         }
@@ -971,6 +998,7 @@ private struct MetadataOperationCardView: View {
             mode = "offset"; dateOffsets = [years, months, days, hours, minutes, seconds]
         }
         offsetNegative = dateOffsets.map { $0 < 0 }
+        dateDetails = dateOffsets.prefix(3).contains { $0 != 0 }
     }
 
     func offsetDirection(_ index: Int) -> Binding<Bool> {
@@ -988,6 +1016,62 @@ private struct MetadataOperationCardView: View {
             dateOffsets[index] = negative ? -magnitude : magnitude
             offsetNegative[index] = negative
         })
+    }
+
+}
+
+private extension MetadataOperationCardView {
+    private var copyDestinationFields: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(L10n.text("接收字段")).font(.headline)
+            if !inlineLayout { Text(L10n.text("将上方来源字段的值复制到以下字段，覆盖原值；来源字段保持不变。"))
+                .font(.caption).foregroundStyle(.secondary) }
+            Menu(L10n.text("添加接收字段…")) {
+                ForEach(availableTags.filter { MetadataBatchField.canCopy(from: tag, to: $0) }, id: \.self) { target in
+                    Toggle(target.displayName, isOn: Binding(
+                        get: { copyTargets.contains(target) },
+                        set: { selected in
+                            if selected { copyTargets.insert(target) } else { copyTargets.remove(target) }
+                        }))
+                }
+            }
+            ForEach(availableTags.filter { $0 != tag && copyTargets.contains($0) }, id: \.self) { target in
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(target.displayName)
+                        if !inlineLayout { Text(target.rawValue).font(.caption).foregroundStyle(.secondary) }
+                    }
+                    Spacer()
+                    Button(L10n.text("删除操作"), systemImage: "minus.circle") { copyTargets.remove(target) }
+                        .labelStyle(.iconOnly).buttonStyle(.borderless)
+                }
+            }
+        }
+    }
+
+
+    func offsetInputs(_ indices: [Int]) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            ForEach(indices, id: \.self) { index in
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(L10n.text(["年", "月", "日", "时", "分", "秒"][index])).font(.caption).foregroundStyle(.secondary)
+                    TextField("0", value: $dateOffsets[index], format: .number).focused($editing)
+                        .textFieldStyle(.roundedBorder)
+                        .accessibilityLabel(L10n.text(["年", "月", "日", "时", "分", "秒"][index]))
+                }
+            }
+        }.padding(.top, 4)
+    }
+
+    private func loadInitial() {
+        guard !loaded, let first = operations.first else { return }
+        if case .copy(let source) = first.action {
+            tag = source; copyTargets = Set(operations.map(\.tag))
+        } else { tag = first.tag }
+        loadAction(first.action)
+        lastDraft = draftOperations
+        if mode == "filename" && !filenameAdvanced { operations = lastDraft }
+        loaded = true
     }
 
 }
