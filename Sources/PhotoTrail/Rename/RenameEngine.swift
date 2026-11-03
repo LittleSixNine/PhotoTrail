@@ -619,6 +619,7 @@ extension RenameEngine {
         }
         var counts: [UUID: [String: Int]] = [:]
         var computed: [String: RenamePreview] = [:]
+        var retainedGroups = Set<String>()
         for input in inputs where computed[group(input)] == nil {
             let groupID = group(input)
             let leader = leaders[groupID]!
@@ -641,8 +642,11 @@ extension RenameEngine {
                 let (next, issue) = try transform(name, input: leader, rule: rule, index: ordinal, settings: settings)
                 name = next
                 if let issue { issues.append(issue) }
-                if rule.skipMissing, issue == .missingDate || issue == .missingTag || issue == .listMismatch {
+                let missingField = issue == .missingDate || issue == .missingTag
+                if (missingField && (settings.skipMissingFields == false || leader.metadataFailure))
+                    || (issue == .listMismatch && rule.skipMissing) {
                     skip = true; name = leader.name
+                    retainedGroups.insert(groupID)
                 }
                 steps.append(RenameStep(id: rule.id, name: name, issue: issue, ordinal: ordinal))
             }
@@ -652,14 +656,17 @@ extension RenameEngine {
         }
         var result = inputs.map { input -> RenamePreview in
             var row = computed[group(input)]!
+            let keepOriginal = retainedGroups.contains(row.group)
             let final: String
-            if row.source != input.url {
+            if keepOriginal { final = input.name }
+            else if row.source != input.url {
                 final = split(row.target.lastPathComponent).stem + split(input.name).ext
             } else { final = row.target.lastPathComponent }
             row = RenamePreview(source: input.url, target: input.directory.appendingPathComponent(final),
                                 steps: row.steps.map { step in
-                                    RenameStep(id: step.id, name: row.source == input.url ? step.name : split(step.name).stem + split(input.name).ext,
-                                               issue: step.issue, ordinal: step.ordinal)
+                                    let name = keepOriginal && step.name == row.source.lastPathComponent ? input.name
+                                        : row.source == input.url ? step.name : split(step.name).stem + split(input.name).ext
+                                    return RenameStep(id: step.id, name: name, issue: step.issue, ordinal: step.ordinal)
                                 }, issues: row.issues, group: row.group)
             if !validName(final) { row.issues.append(.invalidName) }
             if input.metadataFailure { row.issues.append(.metadataFailure) }

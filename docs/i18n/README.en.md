@@ -49,6 +49,7 @@ Edit JPEG, HEIC/HEIF, PNG, TIFF, WebP, AVIF, GIF, PSD/PSB, JPEG 2000 (JP2), JPEG
 
 **Replace camera numbers with names you can recognize.**
 
+- **Handle missing fields:** skip the affected rule and keep the other results by default, or choose to keep the original name in Rename Settings.
 - **Name files your way:** combine capture dates, places, devices, text and sequences; drag rules into order.
 - **Preview first:** check old names, new names and conflicts for all photos or just a selection.
 - **Keep related files together:** handle associated JPG, RAW and XMP files; save schemes and restore previous names from execution records when files are unchanged.

@@ -76,8 +76,11 @@ struct RenameTests {
         #expect(try rename("IMG_001.JPG", rule: RenameRule(action: 40)) == "20240301_063000.JPG")
         let noDate = RenameInput(url: URL(fileURLWithPath: "/tmp/NO_EXIF.jpg"))
         let rows = try RenameEngine.preview(inputs: [noDate], rules: [RenameRule(action: 40), RenameRule(action: 48)], settings: RenameSettings(), occupied: [:])
-        #expect(rows[0].target.lastPathComponent == "NO_EXIF.jpg")
+        #expect(rows[0].target.lastPathComponent == "NO_EXIF001.jpg")
         #expect(rows[0].issues.contains(.missingDate))
+        var strict = RenameSettings(); strict.skipMissingFields = false
+        let kept = try RenameEngine.preview(inputs: [noDate], rules: [RenameRule(action: 40), RenameRule(action: 48)], settings: strict, occupied: [:])
+        #expect(kept[0].target == noDate.url && !kept[0].changes)
     }
 
     @Test func sequencesTemplatesRegularExpressionsAndLists() throws {
@@ -279,13 +282,13 @@ struct RenameTests {
         #expect(!FileManager.default.fileExists(atPath: target.path))
     }
 
-    @Test func countersDoNotReuseLaterNumberAfterMissingTagSkipsAGroup() throws {
+    @Test(arguments: [true, false]) func countersDoNotReuseLaterNumbersWithEitherMissingFieldPolicy(skipMissing: Bool) throws {
         let sequence = RenameRule(action: 46, start: 7, counter: 10)
         let inputs = [input("a.JPG"), RenameInput(url: URL(fileURLWithPath: "/tmp/rename/b.JPG")), input("c.JPG")]
-        var settings = RenameSettings(); settings.pair = false
+        var settings = RenameSettings(); settings.pair = false; settings.skipMissingFields = skipMissing
         let rows = try RenameEngine.preview(inputs: inputs, rules: [sequence, RenameRule(action: 68, text: "<CameraModel>")],
                                             settings: settings, occupied: [:])
-        #expect(rows.map { $0.target.lastPathComponent } == ["007Camera.JPG", "b.JPG", "009Camera.JPG"])
+        #expect(rows.map { $0.target.lastPathComponent } == ["007Camera.JPG", skipMissing ? "008.JPG" : "b.JPG", "009Camera.JPG"])
         #expect(try RenameEngine.nextCounter(sequence, rows: rows) == 10)
     }
 
@@ -932,4 +935,53 @@ extension RenameTests {
         #expect(workspace.failureTitle == L10n.text("生成预览未完成"))
     }
 
+}
+
+extension RenameTests {
+    @Test func missingModelSkipsOnlyItsRuleAndStrictPolicyKeepsOriginal() throws {
+        var photo = input("original.JPG"); photo.tags.removeValue(forKey: "IFD0:Model")
+        var rules = [RenameRule(action: 40), RenameRule(action: 102, prefix: "_"), RenameRule(action: 2, text: "_done")]
+        let rows = try RenameEngine.preview(inputs: [photo], rules: rules, settings: RenameSettings(), occupied: [:])
+        #expect(rows[0].target.lastPathComponent == "20240301_063000_done.JPG" && rows[0].changes)
+        #expect(rows[0].steps.map(\.name) == ["20240301_063000.JPG", "20240301_063000.JPG", "20240301_063000_done.JPG"])
+        #expect(rows[0].issues == [.missingTag])
+        for index in rules.indices { rules[index].skipMissing = false }
+        var strict = RenameSettings(); strict.skipMissingFields = false
+        let kept = try RenameEngine.preview(inputs: [photo], rules: rules, settings: strict, occupied: [:])
+        #expect(kept[0].target == photo.url && !kept[0].changes)
+        #expect(kept[0].steps.last?.issue == .excluded)
+    }
+
+    @Test func skippedFieldsPreservePairingAndConflictAndReadFailureProtection() throws {
+        var photo = input("original.JPG"); photo.tags.removeValue(forKey: "IFD0:Model")
+        let companion = input("ORIGINAL.xmp")
+        let rules = [RenameRule(action: 40), RenameRule(action: 102, prefix: "_")]
+        let paired = try RenameEngine.preview(inputs: [photo, companion], rules: rules, settings: RenameSettings(), occupied: [:])
+        #expect(paired.map { $0.target.lastPathComponent } == ["20240301_063000.JPG", "20240301_063000.xmp"])
+        var strict = RenameSettings(); strict.skipMissingFields = false
+        let kept = try RenameEngine.preview(inputs: [photo, companion], rules: rules, settings: strict, occupied: [:])
+        #expect(kept.map(\.target) == [photo.url, companion.url])
+        #expect(kept[1].steps.last?.name == companion.name)
+        var stop = RenameSettings(); stop.conflict = .stop
+        let conflict = try RenameEngine.preview(inputs: [photo], rules: rules, settings: stop,
+            occupied: [photo.directory.path: [RenameEngine.key("20240301_063000.JPG")]])
+        #expect(conflict[0].issues.contains(.conflict) && !conflict[0].changes)
+        photo.metadataFailure = true
+        let failed = try RenameEngine.preview(inputs: [photo], rules: rules, settings: RenameSettings(), occupied: [:])
+        #expect(failed[0].target == photo.url && !failed[0].changes && failed[0].issues.contains(.metadataFailure))
+        let list = try RenameEngine.preview(inputs: [input()], rules: [RenameRule(action: 1, text: "prefix_"), RenameRule(action: 94, text: "different\tnew")],
+            settings: RenameSettings(), occupied: [:])
+        #expect(list[0].target == input().url && list[0].issues.contains(.listMismatch))
+    }
+
+    @Test func missingFieldSettingDefaultsForOldSchemesAndRoundTripsExplicitChoice() throws {
+        let legacy = try JSONEncoder().encode(RenameSettings())
+        let decoded = try JSONDecoder().decode(RenameSettings.self, from: legacy)
+        #expect(decoded.skipMissingFields == nil)
+        var strict = decoded; strict.skipMissingFields = false
+        let preset = RenamePreset(name: "strict", rules: [RenameRule(action: 40)], settings: strict)
+        let restored = try JSONDecoder().decode(RenamePreset.self, from: JSONEncoder().encode(preset))
+        #expect(restored.version == 1 && restored.settings.skipMissingFields == false)
+        #expect(restored.rules == preset.rules)
+    }
 }

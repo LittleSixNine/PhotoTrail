@@ -538,10 +538,12 @@ private extension RenameWorkspaceView {
                 }.width(min: 160, ideal: 200)
                     .customizationID("final").disabledCustomizationBehavior([.reorder, .visibility])
                 TableColumn(L10n.text("状态")) { row in
-                    if let issue = row.issues.first(where: { $0 == .conflict || $0 == .invalidName }) ?? row.issues.first {
-                        Label(RenameCopy.issue(issue), systemImage: row.issues.contains(.conflict) || row.issues.contains(.invalidName) ? "xmark.octagon" : "info.circle")
+                    if let issue = row.issues.first(where: { $0 == .conflict || $0 == .invalidName || $0 == .metadataFailure }) ?? row.issues.first {
+                        let skipped = workspace.settings.skipMissingFields != false && (issue == .missingDate || issue == .missingTag)
+                        let description = skipped ? L10n.text("已跳过缺失字段") : RenameCopy.issue(issue)
+                        Label(description, systemImage: row.issues.contains(.conflict) || row.issues.contains(.invalidName) ? "xmark.octagon" : "info.circle")
                             .foregroundStyle(row.issues.contains(.conflict) || row.issues.contains(.invalidName) ? Color.red : Color.secondary)
-                            .help(RenameCopy.issue(issue))
+                            .help(description)
                     } else {
                         Label(L10n.text("将重命名"), systemImage: "checkmark.circle").foregroundStyle(.green)
                     }
@@ -629,6 +631,12 @@ private extension RenameWorkspaceView {
                             ForEach(RenameSettings.Sort.allCases, id: \.self) { Text(RenameLabels.sort($0)).tag($0) }
                         }
                         Toggle(L10n.text("降序"), isOn: $workspace.settings.descending)
+                        Picker(L10n.text("缺少必要字段时"), selection: Binding(
+                            get: { workspace.settings.skipMissingFields ?? true },
+                            set: { workspace.settings.skipMissingFields = $0 })) {
+                            Text(L10n.text("跳过缺失字段")).tag(true)
+                            Text(L10n.text("不跳过，保留原名")).tag(false)
+                        }.accessibilityIdentifier("renameSkipMissingFields")
                         Picker(L10n.text("文件名冲突"), selection: $workspace.settings.conflict) {
                             Text(L10n.text("阻止执行")).tag(RenameSettings.Conflict.stop)
                             Text(L10n.text("添加数字后缀")).tag(RenameSettings.Conflict.numbers)
@@ -963,8 +971,11 @@ private struct RenameRuleParameters: View {
                 }
             }
             if action == 96 { Toggle(L10n.text("要求整段匹配"), isOn: $rule.fullMatch) }
-            if (40...45).contains(action) || (66...83).contains(action) || action == 94 || (89...93).contains(action) || (100...111).contains(action) {
+            if action == 94 {
                 Toggle(L10n.text("必需内容缺失时保留整个原名"), isOn: $rule.skipMissing)
+            }
+            if (89...93).contains(action) {
+                Toggle(L10n.text("路径层级不足时不使用部分路径"), isOn: $rule.skipMissing)
             }
             if action == 98 { filterParameters }
             if action == 99 {

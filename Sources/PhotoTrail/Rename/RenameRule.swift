@@ -89,6 +89,7 @@ struct RenameSettings: Codable, Equatable, Sendable {
     var numberSuffixFormat: SuffixFormat?
     var letterSuffixFormat: SuffixFormat?
     var conflictDigits: Int?
+    var skipMissingFields: Bool?
     var conflict = Conflict.numbers
     var sort = Sort.input
     var descending = false

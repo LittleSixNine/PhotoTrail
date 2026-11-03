@@ -49,6 +49,7 @@ Edite individualmente ou em lote JPEG, HEIC/HEIF, PNG, TIFF, WebP, AVIF, GIF, PS
 
 **Troque números de câmera por nomes reconhecíveis.**
 
+- **Campos ausentes:** por padrão, pula a regra afetada e mantém os outros resultados. Nas configurações, você pode optar por manter o nome original.
 - **Monte seu formato:** combine datas, locais, equipamentos, texto e sequências; arraste para ordenar as regras.
 - **Confira antes:** visualize nomes antigos, novos e conflitos de todas as fotos ou de uma seleção.
 - **Mantenha os vínculos:** processe JPG, RAW e XMP associados. Salve esquemas e restaure nomes pelo registro de execução se os arquivos não tiverem mudado.
