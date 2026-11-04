@@ -9,6 +9,7 @@ async function setup(preferWebGL = true, timeout = 15000, viewport = null, initi
   const messages = [], addresses = [], conversions = [], handlers = {}, markers = [], searches = [];
   const notice = {}, mapElement = { clientWidth: viewport?.width ?? 0, clientHeight: viewport?.height ?? 0 };
   const visible = new Set(), fits = [], delays = [], centers = [];
+  const responses = {}, completions = [], districts = [], geocodes = [];
   let mapInstance;
   let now = 0;
   class Clock extends Date { static now() { return now; } }
@@ -29,6 +30,11 @@ async function setup(preferWebGL = true, timeout = 15000, viewport = null, initi
         return { getLng: () => pixel.x / 10, getLat: () => pixel.y / 10 };
       }
       getZoom() { return this.zoom ?? 10; }
+      getBounds() {
+        const box = this.bounds ?? [120, 30, 123, 33];
+        return { getSouthWest: () => ({ getLng: () => box[0], getLat: () => box[1] }),
+          getNorthEast: () => ({ getLng: () => box[2], getLat: () => box[3] }) };
+      }
       setZoom(value) { this.zoom = value; }
       getCenter() {
         const [longitude, latitude] = this.center ?? [121.48, 31.23];
@@ -39,8 +45,34 @@ async function setup(preferWebGL = true, timeout = 15000, viewport = null, initi
       getRotation() { return this.rotation ?? 0; }
     },
     TileLayer: { Satellite: class { show() { this.visible = true; } hide() { this.visible = false; } } },
-    PlaceSearch: class { search(query, callback) { searches.push({ query, callback }); } },
-    Geocoder: class { getAddress(point, callback) { addresses.push({ point, callback }); } },
+    PlaceSearch: class {
+      constructor(options) { this.options = options; }
+      search(query, callback) { searches.push({ query, callback, options: this.options }); }
+      searchInBounds(query, bounds, callback) { searches.push({ query, bounds, callback, options: this.options }); }
+    },
+    Bounds: class { constructor(sw, ne) { this.sw = sw; this.ne = ne; } },
+    AutoComplete: class {
+      constructor(options) { this.options = options; }
+      search(query, callback) {
+        completions.push({ query, options: this.options });
+        queueMicrotask(() => callback(responses.autocomplete?.status ?? 'no_data', responses.autocomplete?.data));
+      }
+    },
+    DistrictSearch: class {
+      constructor(options) { this.options = options; }
+      search(query, callback) {
+        districts.push({ query, options: this.options });
+        queueMicrotask(() => callback(responses.districts?.[query]?.status ?? 'no_data', responses.districts?.[query]?.data));
+      }
+    },
+    Geocoder: class {
+      constructor(options) { this.options = options; }
+      getAddress(point, callback) { addresses.push({ point, callback }); }
+      getLocation(query, callback) {
+        geocodes.push({ query, options: this.options });
+        queueMicrotask(() => callback(responses.geocode?.status ?? 'no_data', responses.geocode?.data));
+      }
+    },
     Scale: class {}, ToolBar: class {}, Marker: class { constructor(options) { this.options = options; } on() {} },
     Pixel: class { constructor(x, y) { this.x = x; this.y = y; } },
     Polyline: class { constructor(options) { this.options = options; } setOptions(options) { Object.assign(this.options, options); } },
@@ -56,7 +88,7 @@ async function setup(preferWebGL = true, timeout = 15000, viewport = null, initi
   vm.runInContext(source, context);
   await window.photoTrail.start({ key: 'test-only', securityJsCode: 'test-only', preferWebGL, ...initial });
   return { geo: window.photoTrail, messages, addresses, conversions, handlers, markers, searches,
-    visible, fits, delays, centers, map: mapInstance, document: context.document };
+    visible, fits, delays, centers, responses, completions, districts, geocodes, map: mapInstance, document: context.document };
 }
 const event = { lnglat: { getLat: () => 31.23, getLng: () => 121.48 } };
 const address = { regeocode: { addressComponent: { adcode: '310101' } } };
@@ -557,4 +589,177 @@ test('localized web messages preserve literals and never become protocol errors'
   assert.ok(h.messages.some(m => m.type === 'status' && m.message === ready));
   const result = await h.geo.convertTracks([[{latitude: 100, longitude: 1}]], 777);
   assert.equal(result.error, 'invalid_track_coordinate');
+});
+
+const at = (latitude, longitude) => ({ getLat: () => latitude, getLng: () => longitude });
+const harbin = { name: '哈尔滨市', level: 'city', adcode: '230100', center: at(45.8, 126.53) };
+const cityData = { districtList: [{ level: 'country', name: '中国', districtList: [
+  { level: 'province', name: '黑龙江省', districtList: [harbin] },
+  { name: '上海市', level: 'province', adcode: '310000', center: at(31.23, 121.48), districtList: [] }
+] }] };
+
+test('explicit city search rejects Shanghai results and never widens the request', async () => {
+  const h = await setup();
+  const request = h.geo.search('中央大街', { mode: 'city', name: '哈尔滨市', adcode: '230100' });
+  assert.equal(h.searches[0].options.city, '230100');
+  assert.equal(h.searches[0].options.citylimit, true);
+  assert.equal(h.completions[0].options.city, '230100');
+  assert.equal(h.completions[0].options.citylimit, true);
+  h.searches[0].callback('complete', { poiList: { pois: [
+    { name: '上海同名店', adcode: '310101', location: at(31.2, 121.5) },
+    { name: '中央大街', adcode: '230102', location: at(45.77, 126.62) },
+    { name: '无法确认城市的条目', location: at(45.77, 126.62) }
+  ] } });
+  const results = await request;
+  assert.deepEqual(Array.from(results, p => p.name), ['中央大街']);
+  assert.equal(h.searches.length, 1);
+  assert.equal(h.messages.filter(m => m.type === 'pick').length, 0);
+});
+
+test('no result inside a chosen city stays empty instead of retrying nationwide', async () => {
+  const h = await setup();
+  const request = h.geo.search('不存在地点', { mode: 'city', adcode: '230100' });
+  h.searches[0].callback('no_data');
+  assert.equal((await request).length, 0);
+  assert.equal(h.searches.length, 1);
+  assert.equal(h.searches[0].options.citylimit, true);
+});
+
+test('national address search uses nationwide geocoding despite the Shanghai map center', async () => {
+  const h = await setup();
+  h.responses.geocode = { status: 'complete', data: { geocodes: [
+    { formattedAddress: '黑龙江省哈尔滨市中央大街1号', adcode: '230102', city: '哈尔滨市',
+      province: '黑龙江省', location: at(45.77, 126.62) }
+  ] } };
+  const request = h.geo.search('哈尔滨中央大街1号', { mode: 'nationwide' });
+  h.searches[0].callback('no_data');
+  const results = await request;
+  assert.equal(h.searches[0].options.city, '全国');
+  assert.equal(h.geocodes[0].options.city, '全国');
+  assert.equal(results[0].latitude, 45.77);
+  assert.match(results[0].address, /哈尔滨/);
+  assert.equal(h.centers.length, 0);
+  assert.equal(h.messages.filter(m => m.type === 'pick').length, 0);
+});
+
+test('city selection supports partial names, caches the index, and includes municipalities', async () => {
+  const h = await setup();
+  h.responses.districts = { 中国: { status: 'complete', data: cityData } };
+  const first = await h.geo.cities('哈尔');
+  const second = await h.geo.cities('上海');
+  assert.equal(first[0].adcode, '230100');
+  assert.equal(second[0].adcode, '310000');
+  assert.equal(h.districts.filter(d => d.query === '中国').length, 1);
+  h.geo.focusCity(first[0]);
+  assert.equal(h.map.zoom, 11);
+  assert.deepEqual(Array.from(h.map.center), [126.53, 45.8]);
+  assert.equal(h.messages.filter(m => m.type === 'pick').length, 0);
+});
+
+test('searching a city name provides a separate city navigation entry', async () => {
+  const h = await setup();
+  h.responses.districts = { 中国: { status: 'complete', data: cityData } };
+  const request = h.geo.search('哈尔滨', { mode: 'nationwide' });
+  h.searches[0].callback('no_data');
+  const results = await request;
+  assert.equal(results[0].kind, 'city');
+  assert.equal(results[0].adcode, '230100');
+  assert.equal(h.centers.length, 0);
+});
+
+test('viewport searches use a frozen rectangle and exclude outside results', async () => {
+  const h = await setup();
+  h.map.bounds = [126.5, 45.7, 126.7, 45.9];
+  const request = h.geo.search('咖啡', { mode: 'viewport' });
+  assert.deepEqual(Array.from(h.searches[0].bounds.sw), [126.5, 45.7]);
+  h.map.bounds = [120, 30, 122, 32];
+  h.searches[0].callback('complete', { poiList: { pois: [
+    { name: '哈尔滨咖啡', location: at(45.8, 126.6) },
+    { name: '上海咖啡', location: at(31.2, 121.5) }
+  ] } });
+  assert.deepEqual(Array.from(await request, p => p.name), ['哈尔滨咖啡']);
+  assert.equal(h.completions.length, 0);
+});
+
+test('manual map movement offers a refresh without issuing an automatic search', async () => {
+  const h = await setup();
+  const request = h.geo.search('咖啡', { mode: 'viewport' });
+  h.searches[0].callback('no_data'); await request;
+  h.map.bounds = [121, 31, 122, 32];
+  h.handlers.zoomend(); // Programmatic preview/recentering is not a user gesture.
+  assert.equal(h.messages.filter(m => m.type === 'searchAreaChanged').length, 0);
+  h.handlers.dragstart(); h.handlers.dragend();
+  assert.equal(h.messages.filter(m => m.type === 'searchAreaChanged').length, 1);
+  assert.equal(h.searches.length, 1);
+});
+
+test('all provider failures surface as a failure without broadening a city scope', async () => {
+  const h = await setup();
+  h.responses.autocomplete = { status: 'error' };
+  const request = h.geo.search('酒店', { mode: 'city', adcode: '230100' });
+  h.searches[0].callback('error');
+  await assert.rejects(request, /search_failed/);
+  assert.equal(h.searches.length, 1);
+});
+
+test('scope validation rejects invalid city codes and invalid map bounds before querying', async () => {
+  const h = await setup();
+  await assert.rejects(h.geo.search('酒店', { mode: 'city', adcode: 'invalid' }), /invalid_search_scope/);
+  h.map.bounds = [170, -20, -170, 20];
+  await assert.rejects(h.geo.search('酒店', { mode: 'viewport' }), /invalid_search_bounds/);
+  assert.equal(h.searches.length, 0);
+});
+
+test('coarse city geocoding must not pretend to resolve a street address', async () => {
+  const h = await setup();
+  h.responses.geocode = { status: 'complete', data: { geocodes: [
+    { formattedAddress: '黑龙江省哈尔滨市', level: '城市', adcode: '230100', location: at(45.8, 126.53) }
+  ] } };
+  const request = h.geo.search('哈尔滨不存在街道999号', { mode: 'nationwide' });
+  h.searches[0].callback('no_data');
+  assert.equal((await request).length, 0);
+});
+
+test('autocomplete and POI results with the same ID appear only once', async () => {
+  const h = await setup();
+  h.responses.autocomplete = { status: 'complete', data: { tips: [
+    { id: 'same-poi', name: '中央大街', adcode: '230102', location: at(45.77, 126.62) }
+  ] } };
+  const request = h.geo.search('中央大街', { mode: 'city', adcode: '230100' });
+  h.searches[0].callback('complete', { poiList: { pois: [
+    { id: 'same-poi', name: '中央大街南段', adcode: '230102', location: at(45.771, 126.621) }
+  ] } });
+  assert.equal((await request).length, 1);
+});
+
+test('nationwide city suggestions remain usable when no individual POI list is returned', async () => {
+  const h = await setup();
+  h.responses.districts = { 中国: { status: 'complete', data: cityData } };
+  const request = h.geo.search('酒店', { mode: 'nationwide' });
+  h.searches[0].callback('complete', { cityList: [{ name: '哈尔滨市' }] });
+  const results = await request;
+  assert.equal(results[0].kind, 'city');
+  assert.equal(results[0].adcode, '230100');
+});
+
+test('an unlocated autocomplete suggestion cannot break otherwise valid POI results', async () => {
+  const h = await setup();
+  h.responses.autocomplete = { status: 'complete', data: { tips: [
+    { name: '无坐标提示', location: [] }
+  ] } };
+  const request = h.geo.search('酒店', { mode: 'city', adcode: '230100' });
+  h.searches[0].callback('complete', { poiList: { pois: [
+    { name: '有效酒店', adcode: '230102', location: at(45.8, 126.6) }
+  ] } });
+  assert.equal((await request)[0].name, '有效酒店');
+});
+
+test('default scope is the current map area, not a nationwide or IP-based city search', async () => {
+  const h = await setup();
+  h.map.bounds = [126.5, 45.7, 126.7, 45.9];
+  const request = h.geo.search('咖啡');
+  assert.ok(h.searches[0].bounds);
+  assert.deepEqual(Array.from(h.searches[0].bounds.sw), [126.5, 45.7]);
+  h.searches[0].callback('no_data'); await request;
+  assert.equal(h.completions.length, 0);
 });

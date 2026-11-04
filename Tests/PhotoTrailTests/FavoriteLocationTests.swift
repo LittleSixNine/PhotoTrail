@@ -1,10 +1,46 @@
 import Coords
 import Foundation
+import ImageData
+import Metadata
 import Testing
+import UDF
 @testable import PhotoTrail
 
 @MainActor
 struct FavoriteLocationTests {
+    @Test func trackMatchConfirmsFavoriteCoordinatesForPhotoAndPairAndUndoRestoresUnknown() {
+        var state = PhotoTrailState()
+        let first = ImageData(metadata: Metadata(source: .xmp(URL(fileURLWithPath: "/tmp/favorite-track.jpg"))),
+                              name: "favorite-track.jpg")
+        let second = ImageData(metadata: Metadata(source: .xmp(URL(fileURLWithPath: "/tmp/favorite-track.dng"))),
+                               name: "favorite-track.dng")
+        state.imageData = [first, second]
+        state[first.id].pairedID = second.id
+        state[second.id].pairedID = first.id
+        state.trackMatches = [.init(id: first.id, timestamp: 0,
+            coords: Coords(latitude: 31.2, longitude: 121.5), elevation: nil)]
+        let store = Store(initialState: state, reduce: PhotoTrailReducer(), undoEnabled: true)
+        store.send(.applyTrackMatches)
+        for id in [first.id, second.id] {
+            #expect(store[id].metadata.gpsMapDatum == "WGS-84")
+            #expect(LocationHelper.favoriteCoordinate(store[id].metadata)
+                == MapCoordinate(latitude: 31.2, longitude: 121.5))
+        }
+        store.undo()
+        #expect(LocationHelper.favoriteCoordinate(store[first.id].metadata) == nil)
+        #expect(LocationHelper.favoriteCoordinate(store[second.id].metadata) == nil)
+    }
+
+    @Test(arguments: ["", " ", "GCJ-02", "unknown"])
+    func unconfirmedFavoriteCoordinatesRemainRejected(datum: String) {
+        var metadata = Metadata(source: .xmp(URL(fileURLWithPath: "/tmp/favorite-unknown.jpg")))
+        metadata.location = Coords(latitude: 31.2, longitude: 121.5)
+        metadata.gpsMapDatum = datum
+        #expect(LocationHelper.favoriteCoordinate(metadata) == nil)
+        metadata.gpsMapDatum = nil
+        #expect(LocationHelper.favoriteCoordinate(metadata) == nil)
+    }
+
     @Test func favoritesSurviveRenameRestartAndDelete() throws {
         let folder = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: folder) }

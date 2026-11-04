@@ -79,6 +79,7 @@ struct AMapView: View {
                                 onPick: { id, coordinate in
                         let coords = Coords(latitude: coordinate.latitude,
                                             longitude: coordinate.longitude)
+                        let ids = id.map { Set([$0]) } ?? store.selection
                         if let id {
                             store.send(.locationForImageChanged(id, coords),
                                        description: L10n.text("拖动高德照片位置"))
@@ -86,6 +87,7 @@ struct AMapView: View {
                             store.send(.confirmedWGS84Location(coords),
                                        description: L10n.text("高德地图定位"))
                         }
+                        LocationHelper.scheduleLinkedRegions(store, workspace: workspace, ids: ids)
                     }, workspace: workspace)
                     ForEach(workspace.amapPhotoPositions) { position in
                         if let id = displayID(for: position) {

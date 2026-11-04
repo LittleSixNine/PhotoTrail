@@ -4,6 +4,7 @@ import UDF
 
 struct ContextMenuView: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) var store
+    @Environment(LocationWorkspace.self) private var workspace
     @AppStorage(SettingsView.extendedTimeKey) var extendedTime = 120.0
     let targets: Set<ImageData.ID>
     @Binding var inspectorPresented: Bool
@@ -38,14 +39,11 @@ struct ContextMenuView: View {
         }.disabled(source?.metadata.location == nil)
         Button(L10n.text("粘贴定位到这 %1$@ 张照片", images.count), systemImage: "document.on.clipboard") {
             selectTargets()
-            store.send(.pasteRequest, description: L10n.text("粘贴定位")) {
-                guard let id = store.mostSelected else { return }
-                let selected = store.selection
-                Task {
-                    if let address = await ReverseLocationFinder.reverseGeocode(store: store, id: id) {
-                        store.send(.addressChanged(selected, address), undoable: false)
-                    }
-                }
+            let selected = store.selection
+            let revision = store.imageRevision
+            store.send(.pasteRequest, description: L10n.text("粘贴定位"))
+            if store.imageRevision != revision {
+                LocationHelper.scheduleLinkedRegions(store, workspace: workspace, ids: selected)
             }
         }.disabled(!editable || NSPasteboard.general.string(forType: .string)
             .flatMap { ImageData.decodeStringRep(value: $0) } == nil)

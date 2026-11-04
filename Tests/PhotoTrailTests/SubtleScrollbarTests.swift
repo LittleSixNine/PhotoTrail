@@ -6,6 +6,107 @@ import UDF
 
 @MainActor
 struct SubtleScrollbarTests {
+    @Test func ownedSidebarConfiguresBeforeFirstLayoutAndPropagatesEnvironment() async throws {
+        func content(_ height: CGFloat) -> some View {
+            SidebarScrollView { EnvironmentHeightContent() }
+                .environment(\.defaultMinListRowHeight, height)
+                .frame(width: 300, height: 320)
+        }
+        let host = NSHostingView(rootView: content(319))
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 300, height: 320),
+                              styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = host
+        defer { window.contentView = nil }
+        host.layoutSubtreeIfNeeded()
+        let scroll = try #require(findScrolls(host).first)
+        let width = scroll.contentView.bounds.width
+        #expect(width == 287)
+        #expect(scroll.scrollerStyle == .legacy)
+        #expect(scroll.verticalScroller is SubtleScroller)
+        #expect(scroll.hasVerticalScroller && !scroll.autohidesScrollers)
+        #expect(!scroll.hasHorizontalScroller)
+        for height in [319.0, 321.0, 320.0, 1_000.0, 1_100.0] as [CGFloat] {
+            host.rootView = content(height)
+            host.layoutSubtreeIfNeeded()
+            #expect(scroll.contentView.bounds.width == width)
+            #expect(scroll.documentView?.frame.width == width)
+            try await Task.sleep(for: .milliseconds(20))
+            host.layoutSubtreeIfNeeded()
+            #expect(scroll.documentView?.frame.height == height)
+            if height == 1_000 {
+                scroll.contentView.scroll(to: NSPoint(x: 0, y: 300))
+                scroll.reflectScrolledClipView(scroll.contentView)
+            }
+            if height == 1_100 { #expect(scroll.contentView.bounds.origin.y == 300) }
+            #expect(scroll.contentView.bounds.width == width)
+        }
+    }
+
+    @Test func ownedSidebarFitsWidthDependentContentsWithoutHorizontalOverflow() async throws {
+        func content(_ width: CGFloat) -> some View {
+            SidebarScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    Color.clear.aspectRatio(1.5, contentMode: .fit)
+                    Text(String(repeating: "A long track name with a recorded time. ", count: 12))
+                        .fixedSize(horizontal: false, vertical: true)
+                }.frame(maxWidth: .infinity)
+            }.frame(width: width, height: 320)
+        }
+        let host = NSHostingView(rootView: content(260))
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 380, height: 320),
+                              styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = host
+        defer { window.contentView = nil }
+        var measuredHeights = Set<CGFloat>()
+        for width in [260.0, 300.0, 380.0, 300.0] as [CGFloat] {
+            host.rootView = content(width)
+            host.layoutSubtreeIfNeeded()
+            try await Task.sleep(for: .milliseconds(20))
+            host.layoutSubtreeIfNeeded()
+            let scroll = try #require(findScrolls(host).first)
+            #expect(scroll.bounds.width == width)
+            #expect(scroll.contentView.bounds.width == width - 13)
+            #expect(scroll.documentView?.frame.width == width - 13)
+            #expect((scroll.documentView?.frame.height ?? 0) > (width - 13) / 1.5)
+            #expect((scroll.documentView?.frame.height ?? 0) < 2_000)
+            measuredHeights.insert(scroll.documentView?.frame.height ?? 0)
+            #expect(!scroll.hasHorizontalScroller)
+        }
+        #expect(measuredHeights.count > 1)
+    }
+
+    @Test func recreatedPhotoDetailPageRetainsSavedSidebarRatio() async throws {
+        let name = "PhotoTrail.SidebarTest.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        defaults.set(0.31, forKey: "PhotoTrailDetailWidthRatio")
+        defaults.set("amap", forKey: "PhotoTrailMapProvider")
+        let store = Store(initialState: PhotoTrailState(), reduce: PhotoTrailReducer())
+        let workspace = LocationWorkspace()
+        let queue = MetadataLoadingQueue()
+        let host = NSHostingView(rootView: AnyView(Color.clear))
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 700),
+                              styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = host
+        defer { window.contentView = nil }
+        for _ in 0..<3 {
+            host.rootView = AnyView(PhotoDetailPage().environment(store).environment(workspace)
+                .environment(queue).defaultAppStorage(defaults))
+            host.layoutSubtreeIfNeeded()
+            let sidebar = try #require(findScrolls(host).first { $0.hasVerticalScroller && !$0.hasHorizontalScroller })
+            #expect(sidebar.bounds.width == 372)
+            #expect(sidebar.contentView.bounds.width == 359)
+            #expect(sidebar.documentView?.frame.width == 359)
+            #expect(sidebar.verticalScroller is SubtleScroller)
+            try await Task.sleep(for: .milliseconds(30))
+            host.layoutSubtreeIfNeeded()
+            #expect(sidebar.contentView.bounds.width == 359)
+            host.rootView = AnyView(Color.clear)
+            host.layoutSubtreeIfNeeded()
+        }
+        #expect(defaults.double(forKey: "PhotoTrailDetailWidthRatio") == 0.31)
+    }
+
     @Test func repeatedInstallationDoesNotResetTheScrollerStyle() {
         let scroll = StyleCountingScrollView()
         scroll.scrollerStyle = .overlay
@@ -123,6 +224,11 @@ struct SubtleScrollbarTests {
         if let scroll = view as? NSScrollView { return [scroll] }
         return view.subviews.flatMap { findScrolls($0) }
     }
+}
+
+private struct EnvironmentHeightContent: View {
+    @Environment(\.defaultMinListRowHeight) private var height
+    var body: some View { Color.clear.frame(height: height) }
 }
 
 @MainActor

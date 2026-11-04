@@ -10,14 +10,13 @@ struct LocationPanel: View {
     @AppStorage("PhotoTrailMapProvider") private var provider = "amap"
     @AppStorage(Coords.coordFormatKey) private var coordFormat: CoordFormat = .deg
     @AppStorage(SettingsPreferences.automaticRegionKey) private var automaticRegion = true
+    @AppStorage(SettingsPreferences.writeRegionKey) private var fillsMissingRegions = true
 
     @State private var region = ""
     @State private var displayedRegionKey = ""
     @State private var manualLookup = 0
     @State private var manualLookupKey = ""
-    @State private var fillingRegions = false
-    @State private var regionOptionsPresented = false
-    @State private var favoritesExpanded = true
+    @State private var showsRegionHelp = false
     @State private var showsAllFavorites = false
 
     private var regionKey: String {
@@ -70,6 +69,8 @@ struct LocationPanel: View {
             }
         }
         .onChange(of: automaticRegion) { manualLookup = 0; manualLookupKey = "" }
+        .onAppear { workspace.fillRegionsOnLocationChange = fillsMissingRegions }
+        .onChange(of: fillsMissingRegions) { workspace.fillRegionsOnLocationChange = fillsMissingRegions }
         .sheet(isPresented: $workspace.settingsPresented) {
             AMapSettingsView(initialCredentials: workspace.credentials) { credentials in
                 workspace.credentials = credentials
@@ -78,7 +79,6 @@ struct LocationPanel: View {
             .onAppear { store.send(.textfieldFocusChanged(true), undoable: false) }
             .onDisappear { store.send(.textfieldFocusChanged(false), undoable: false) }
         }
-        .sheet(isPresented: $regionOptionsPresented) { regionOptions }
         .sheet(item: $workspace.favoriteDraft) { favorite in
             FavoriteEditor(favorite: favorite)
         }
@@ -144,16 +144,18 @@ private extension LocationPanel {
                 Text(selection.total > 1 ? L10n.text("所选照片的定位") : L10n.text("当前照片的位置"))
                     .font(.headline)
                 Spacer(minLength: 4)
-                Button { favoritePhoto() } label: { Label(L10n.text("收藏"), systemImage: "star") }
-                    .buttonStyle(.borderless).fixedSize()
-                    .disabled(store.mostSelected == nil || store[store.mostSelected].metadata.location == nil)
-                    .help(L10n.text("收藏当前预览照片的位置"))
-                Menu(L10n.text("高级")) {
-                    Button(L10n.text("根据定位补齐地区信息…")) { regionOptionsPresented = true }
+                Button { toggleCurrentFavorite() } label: {
+                    Image(systemName: currentFavorite == nil ? "star" : "star.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(currentFavorite == nil ? Color.secondary : Color.yellow)
+                        .frame(width: 28, height: 28)
                 }
-                .menuStyle(.borderlessButton).fixedSize()
-                .disabled(fillingRegions || store.saveInProgress || store.importProgress.isActive || store.renameInProgress)
-                .accessibilityIdentifier("locationAdvancedOptions")
+                    .buttonStyle(.plain)
+                    .disabled(store.mostSelected == nil || store[store.mostSelected].metadata.location == nil)
+                    .help(currentFavorite == nil ? L10n.text("收藏当前位置") : L10n.text("取消收藏当前位置"))
+                    .accessibilityLabel(currentFavorite == nil ? L10n.text("收藏当前位置") : L10n.text("取消收藏当前位置"))
+                    .accessibilityValue(currentFavorite == nil ? L10n.text("未收藏") : L10n.text("已收藏"))
+                    .accessibilityIdentifier("favoriteCurrentLocation")
             }
             if selection.total == 0 {
                 Text(L10n.text("选择照片以查看定位")).foregroundStyle(.secondary)
@@ -176,9 +178,6 @@ private extension LocationPanel {
                         .font(.caption).foregroundStyle(.orange)
                 }
             }
-            if fillingRegions {
-                ProgressView(L10n.text("正在补齐地区信息…")).controlSize(.small)
-            }
             if !workspace.status.isEmpty,
                !workspace.status.hasPrefix(L10n.text("高德地图已就绪")),
                !workspace.status.hasPrefix(L10n.text("选择照片后")),
@@ -189,35 +188,29 @@ private extension LocationPanel {
         }.textSelection(.enabled)
     }
 
-    private var regionOptions: some View {
-        let images = store.imageData.filter { store.selection.contains($0.id) }
-        let eligible = images.filter(LocationHelper.canFillRegion).count
-        return VStack(alignment: .leading, spacing: 14) {
-            Text(L10n.text("根据定位补齐地区信息")).font(.title2)
-            Text(L10n.text("补齐省、市、区县等地区信息，可用于按城市重命名。"))
-            Text(L10n.text("符合条件：%1$@ / 已选择：%2$@ 张", eligible, images.count))
-                .font(.callout).foregroundStyle(.secondary)
-            Text(L10n.text("仅处理已有定位且缺少地区信息的本地照片或 XMP；保留已有文字，跳过已有字段草稿的照片。"))
-                .font(.callout).foregroundStyle(.secondary)
-            Text(L10n.text("补齐后加入待保存，点击保存才写入文件。"))
-                .font(.callout).foregroundStyle(.secondary)
-            HStack {
-                Spacer()
-                Button(L10n.text("取消"), role: .cancel) { regionOptionsPresented = false }
-                    .keyboardShortcut(.cancelAction)
-                Button(L10n.text("补齐地区信息")) {
-                    regionOptionsPresented = false
-                    fillingRegions = true
-                    Task {
-                        await LocationHelper.fillRegions(store, workspace: workspace)
-                        fillingRegions = false
-                    }
-                }
-                .buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
-                .disabled(eligible == 0 || fillingRegions || store.saveInProgress || store.importProgress.isActive || store.renameInProgress)
-                .accessibilityIdentifier("fillPhotoRegions")
+    private var regionControl: some View {
+        HStack(spacing: 4) {
+            Toggle(L10n.text("补齐地区"), isOn: Binding(
+                get: { fillsMissingRegions },
+                set: { fillsMissingRegions = $0; workspace.fillRegionsOnLocationChange = $0 }))
+                .font(.system(size: 12))
+                .toggleStyle(SidebarCheckboxToggleStyle())
+                .disabled(store.saveInProgress || store.importProgress.isActive || store.renameInProgress)
+                .accessibilityIdentifier("linkedRegionFilling")
+            Button { showsRegionHelp.toggle() } label: {
+                Image(systemName: "info.circle").font(.system(size: 12)).frame(width: 24, height: 28)
             }
-        }.padding(24).frame(width: 440)
+            .buttonStyle(.plain).foregroundStyle(.secondary)
+            .accessibilityLabel(L10n.text("补齐地区说明"))
+            .popover(isPresented: $showsRegionHelp, arrowEdge: .bottom) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(L10n.text("联动补齐地区")).font(.headline)
+                    Text(L10n.text("开启后，应用或补齐定位时，根据新定位补齐省、市、区县等信息。"))
+                    Text(L10n.text("仅补缺失项，保留已有文字。修改先暂存，保存照片时才写入。"))
+                        .foregroundStyle(.secondary)
+                }.font(.callout).padding(16).frame(width: 280)
+            }
+        }.fixedSize()
     }
 
     private var currentLocation: some View {
@@ -233,22 +226,20 @@ private extension LocationPanel {
                     Button(L10n.text("查询地区")) { manualLookupKey = regionKey; manualLookup += 1 }
                         .buttonStyle(.borderless)
                 }
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 16) {
-                        coordinateText(point, latitude: true).fixedSize()
-                        Spacer(minLength: 0)
-                        coordinateText(point, latitude: false).fixedSize()
-                    }
+                HStack(alignment: .bottom, spacing: 8) {
                     VStack(alignment: .leading, spacing: 4) {
                         coordinateText(point, latitude: true)
                         coordinateText(point, latitude: false)
                     }
+                    .font(.system(size: 11)).monospacedDigit().foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                    regionControl
                 }
-                .font(.system(size: 12)).monospacedDigit().foregroundStyle(.secondary)
 
             } else {
                 Label(L10n.text("暂无定位"), systemImage: "mappin.slash")
                     .font(.system(size: 18, weight: .semibold)).foregroundStyle(.secondary)
+                regionControl
             }
         }
     }
@@ -261,49 +252,59 @@ private extension LocationPanel {
 
     private func favoritesSection(_ selection: MapPhotoSelectionSummary) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            DisclosureGroup(isExpanded: $favoritesExpanded) {
-                VStack(alignment: .leading, spacing: 10) {
-                    if workspace.favorites.isEmpty {
-                        Text(L10n.text("收藏常用地点，方便下次直接应用。"))
-                            .font(.caption).foregroundStyle(.secondary)
-                    } else {
-                        let visibleFavorites = workspace.favorites.prefix(
-                            showsAllFavorites ? workspace.favorites.count : 2)
-                        VStack(spacing: 0) {
-                            ForEach(visibleFavorites) { favorite in
-                                favoriteRow(favorite, editable: !store.saveInProgress && selection.allEditable)
-                                if favorite.id != visibleFavorites.last?.id {
-                                    Divider().padding(.horizontal, 10)
-                                }
+            HStack {
+                Label(L10n.text("收藏地点"), systemImage: "star").font(.headline)
+                Spacer()
+                Text("\(workspace.favorites.count)").foregroundStyle(.secondary)
+            }
+            if workspace.favorites.isEmpty {
+                Text(L10n.text("收藏常用地点，方便下次直接应用。"))
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
+                favoriteRows(Array(workspace.favorites.prefix(2)), selection: selection)
+                if workspace.favorites.count > 2 {
+                    Button { showsAllFavorites.toggle() } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: showsAllFavorites ? "chevron.up" : "chevron.down")
+                            if !showsAllFavorites {
+                                Text(verbatim: "+\(workspace.favorites.count - 2)").monospacedDigit()
                             }
                         }
-                        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
-                        Text(L10n.text("点名称查看，点应用修改所选照片。"))
-                            .font(.caption).foregroundStyle(.secondary)
-                        if workspace.favorites.count > 2 {
-                            Button(showsAllFavorites ? L10n.text("收起收藏") : L10n.text("查看全部收藏")) {
-                                showsAllFavorites.toggle()
-                            }.buttonStyle(.borderless)
-                        }
-                        if store.saveInProgress {
-                            Text(L10n.text("正在保存")).font(.caption).foregroundStyle(.secondary)
-                        } else if !selection.allEditable {
-                            Text(selection.total == 0 ? L10n.text("选择照片以应用收藏")
-                                 : L10n.text("所选照片包含无法编辑的项目，应用收藏前请调整选择。"))
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
+                        .font(.system(size: 11)).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 30)
+                        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+                        .contentShape(Rectangle())
                     }
-                }.padding(.top, 10)
-            } label: {
-                HStack {
-                    Label(L10n.text("收藏地点"), systemImage: "star").font(.headline)
-                    Spacer()
-                    Text("\(workspace.favorites.count)").foregroundStyle(.secondary)
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(showsAllFavorites ? L10n.text("收起其余收藏，仅显示前2处")
+                        : L10n.text("展开其余收藏：%1$@ 处", workspace.favorites.count - 2))
+                    .accessibilityValue(showsAllFavorites ? L10n.text("已展开") : L10n.text("已收起"))
+                    .accessibilityIdentifier("expandFavoriteLocations")
+                    if showsAllFavorites {
+                        favoriteRows(Array(workspace.favorites.dropFirst(2)), selection: selection)
+                    }
+                }
+                if store.saveInProgress {
+                    Text(L10n.text("正在保存")).font(.caption).foregroundStyle(.secondary)
+                } else if !selection.allEditable {
+                    Text(selection.total == 0 ? L10n.text("选择照片以应用收藏")
+                         : L10n.text("所选照片包含无法编辑的项目，应用收藏前请调整选择。"))
+                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
             if let error = workspace.favoriteError {
                 Text(error).font(.caption).foregroundStyle(.orange)
                 Button(L10n.text("重试读取")) { workspace.loadFavorites() }.buttonStyle(.borderless)
+            }
+        }
+    }
+
+    private func favoriteRows(_ favorites: [SavedLocation], selection: MapPhotoSelectionSummary) -> some View {
+        VStack(spacing: 0) {
+            ForEach(favorites) { favorite in
+                favoriteRow(favorite, editable: selection.allEditable && !store.saveInProgress
+                    && !store.importProgress.isActive && !store.renameInProgress)
+                if favorite.id != favorites.last?.id { Divider() }
             }
         }
     }
@@ -325,6 +326,7 @@ private extension LocationPanel {
                 store.send(.confirmedWGS84Location(Coords(latitude: favorite.coordinate.latitude,
                                                          longitude: favorite.coordinate.longitude)),
                            description: L10n.text("应用收藏地点"))
+                LocationHelper.scheduleLinkedRegions(store, workspace: workspace, ids: store.selection)
                 workspace.status = L10n.text("定位修改已暂存，请写入所有元数据。")
             }.buttonStyle(.borderless).disabled(!editable)
             Menu {
@@ -336,19 +338,35 @@ private extension LocationPanel {
                     }
                 }
             } label: { Image(systemName: "ellipsis") }
-                .menuStyle(.borderlessButton).fixedSize().help(L10n.text("管理收藏"))
-        }.padding(10)
+                .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().help(L10n.text("管理收藏"))
+        }.padding(.vertical, 8)
+    }
+
+    private var currentFavorite: SavedLocation? {
+        let metadata = store[store.mostSelected].metadata
+        guard let point = LocationHelper.favoriteCoordinate(metadata) else { return nil }
+        return workspace.favorites.first {
+            abs($0.coordinate.latitude - point.latitude) < 0.000001
+                && abs($0.coordinate.longitude - point.longitude) < 0.000001
+        }
+    }
+
+    private func toggleCurrentFavorite() {
+        guard let favorite = currentFavorite else { favoritePhoto(); return }
+        do { try workspace.deleteFavorite(favorite.id) } catch {
+            workspace.status = OperationFailure.message(L10n.text("删除收藏失败，原记录已保留。"), error: error)
+            OperationFailure.present(workspace.status)
+        }
     }
 
     private func favoritePhoto() {
         let metadata = store[store.mostSelected].metadata
-        guard let point = metadata.location else { return }
-        guard metadata.gpsMapDatum?.isEmpty == false, metadata.canDisplayAsWGS84 else {
+        guard metadata.location != nil else { return }
+        guard let point = LocationHelper.favoriteCoordinate(metadata) else {
             workspace.status = L10n.text("原照片坐标系尚未确认，请在高德搜索或重新选点后收藏。")
             return
         }
-        workspace.favoriteDraft = SavedLocation(name: "", note: "",
-            coordinate: MapCoordinate(latitude: point.latitude, longitude: point.longitude))
+        workspace.favoriteDraft = SavedLocation(name: "", note: "", coordinate: point)
     }
 }
 

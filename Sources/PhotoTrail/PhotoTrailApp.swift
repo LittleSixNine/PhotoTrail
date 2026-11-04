@@ -95,7 +95,7 @@ struct PhotoTrailApp: App {
             SaveItemCommands(store: store, locationWorkspace: locationWorkspace, metadataEditSession: metadataEditSession,
                              requestClearList: { clearListRequested = true })
             UndoRedoCommands(store: store)
-            PasteboardCommands(store: store)
+            PasteboardCommands(store: store, locationWorkspace: locationWorkspace)
             ToolbarCommands(store: store)
             HelpCommands(store: store)
         }

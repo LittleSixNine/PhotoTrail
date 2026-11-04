@@ -76,6 +76,10 @@ Metadata-list thumbnails use 80 points times the display scale. The location fil
 
 `PhotoInteractionTests` covers 2000-photo selection, date/time-zone changes, pairing, separate cache budgets and edits after undo. `MapPhotoPerformanceTests` covers map grouping and replacement scroll containers. These logic tests do not establish scrolling frame rates or acceptance with real RAW files and external disks.
 
+The map sidebar uses `SidebarScrollView` to configure its reserved vertical gutter when the native `NSScrollView` is created, retaining the saved outer-width ratio. Hosted content explicitly inherits the complete `EnvironmentValues` and measures images and wrapping text at the clip view's available width, without a later scan. `SubtleScrollbarTests` covers first layout, environment propagation, dynamic height and scroll position, width-dependent content, and retaining the saved ratio when the complete `PhotoDetailPage` is recreated offscreen. Offscreen checks do not establish a visible first frame or a fix for the user's original scenario.
+
+`LinkedRegionTests` covers filling only missing region values, preserving existing text and drafts, frozen targets, late results and busy states. `SaveAddressTests` covers skipping lookups when the existing preference is off, filling only missing fields during save, retaining coordinates after lookup failure and preserving ineligible snapshots. Settings and the sidebar share `SettingsPreferences.writeRegionKey` (`PhotoTrailWriteRegionWithLocation`, default true); there is no second persistent switch.
+
 ### Shared photos and preset regression coverage
 
 All tabs import through `ContentView` and `OpenHelper.importFiles`; `PhotoTrailState` owns photos and selection. Rename has no independent file URL list. Removal uses `.removeImages` and undo; rename/restore mappings update shared objects through `.filesRenamed`. Imports are rejected while saving or renaming.
@@ -105,7 +109,7 @@ The batch field model expands copy-out destinations into existing v1 copy operat
 
 `MetadataWorkflowCardTests` covers the first-three default, persisted preset shortcuts, deduplication and deleted-name filtering. `MetadataBatchEditingTests` covers quit protection when retained rules and inline input are separate. Cards, overlay animation and divider stability require separate native interaction checks.
 
-`PhotoListClearTests` covers clearing all photos including unselected items, restoring photos and drafts with Undo, preserving tracks/files/access scopes, and blocking removal during save/import/rename or for an empty list. Cmd-K and the toolbar share confirmation; native checks separately cover the three workspaces and region-fill dialog.
+`PhotoListClearTests` covers clearing all photos including unselected items, restoring photos and drafts with Undo, preserving tracks/files/access scopes, and blocking removal during save/import/rename or for an empty list. Cmd-K and the toolbar share confirmation; native checks separately cover the three workspaces and linked-region control.
 
 
 Rename directory access uses security-scoped bookmarks in `RenameWorkspace`. `project.yml` explicitly generates the `com.apple.security.files.bookmarks.app-scope` entitlement alongside user-selected read/write access. Directory coverage compares resolved path components; preview and execution recheck modification access. Pairing and conflict scans receive only the actual input files’ parent directories. `RenameTests` covers persisted parent grants, nested pairing/conflicts, read-only directories, sibling prefixes and escaping symlinks. Automated tests do not replace native folder-picker, cross-process or external-volume remount checks.

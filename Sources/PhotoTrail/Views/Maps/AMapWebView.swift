@@ -83,6 +83,8 @@ struct AMapWebView: NSViewRepresentable {
             workspace.moveAMapPhoto = nil
             workspace.focusPhoto = nil
             workspace.zoomAMap = nil
+            workspace.searchCities = nil
+            workspace.focusSearchCity = nil
         }
         view.stopLoading()
         view.configuration.userContentController.removeScriptMessageHandler(forName: "photoTrail")
@@ -159,6 +161,16 @@ struct AMapWebView: NSViewRepresentable {
                 browserView?.callAsyncJavaScript("window.photoTrail.clearPreview();", in: nil, in: .page) { _ in }
             }
             parent.workspace.search = { [weak self] query in self?.search(query) }
+            parent.workspace.searchCities = { [weak self] query in
+                guard let self else { throw URLError(.cancelled) }
+                return try await cities(query)
+            }
+            parent.workspace.focusSearchCity = { [weak self] city in
+                guard let self, !disposed, ready, city.isValid else { return }
+                browserView?.callAsyncJavaScript("window.photoTrail.focusCity(city);",
+                    arguments: ["city": ["latitude": city.coordinate.latitude,
+                                          "longitude": city.coordinate.longitude]], in: nil, in: .page) { _ in }
+            }
             parent.workspace.previewSearch = { [weak self] result in
                 self?.preview(result.coordinate, wgs84: false, name: result.name)
             }
@@ -212,15 +224,27 @@ struct AMapWebView: NSViewRepresentable {
             guard !disposed, ready, !query.isEmpty else { return }
             searchSequence += 1
             let request = searchSequence
+            let scope = parent.workspace.searchScope
+            let revision = parent.workspace.searchRevision
             parent.workspace.searching = true
-            browserView?.callAsyncJavaScript("return await window.photoTrail.search(query);",
-                arguments: ["query": query], in: nil, in: .page) { [weak self] response in
+            parent.workspace.searchAreaChanged = false
+            parent.workspace.searchError = nil
+            browserView?.callAsyncJavaScript("return await window.photoTrail.search(query, scope);",
+                arguments: ["query": query, "scope": scope.arguments], in: nil, in: .page) { [weak self] response in
                 guard let self, !disposed, request == searchSequence,
+                      parent.workspace.amapConnectionID == connectionID,
+                      revision == parent.workspace.searchRevision, scope == parent.workspace.searchScope,
                       query == parent.workspace.query.trimmingCharacters(in: .whitespacesAndNewlines) else { return }
                 parent.workspace.searching = false
                 guard case .success(let value) = response, let rows = value as? [[String: Any]] else {
                     parent.workspace.results = []
-                    report(L10n.text("搜索失败，请检查网络或服务配额。"))
+                    if case .failure(let error) = response,
+                       ((error as NSError).userInfo["WKJavaScriptExceptionMessage"] as? String)?
+                        .contains("invalid_search_bounds") == true {
+                        parent.workspace.searchError = L10n.text("请放大地图后再搜索此区域。")
+                    } else {
+                        parent.workspace.searchError = L10n.text("搜索失败，请检查网络或服务配额。")
+                    }
                     return
                 }
                 parent.workspace.results = rows.compactMap { row in
@@ -229,10 +253,35 @@ struct AMapWebView: NSViewRepresentable {
                           let longitude = row["longitude"] as? Double else { return nil }
                     let point = MapCoordinate(latitude: latitude, longitude: longitude)
                     guard point.isValid else { return nil }
+                    let city = row["kind"] as? String == "city" ? Self.city(row) : nil
+                    if row["kind"] as? String == "city", city == nil { return nil }
                     return AMapSearchResult(id: id, name: name, address: row["address"] as? String ?? "",
-                                            coordinate: point)
+                                            coordinate: point, city: city)
                 }
-                report(parent.workspace.results.isEmpty ? L10n.text("没有找到地点，请补充城市或详细名称。") : L10n.text("选择搜索结果可预览位置。"))
+            }
+        }
+
+        private static func city(_ row: [String: Any]) -> AMapSearchCity? {
+            guard let name = row["name"] as? String, let code = row["adcode"] as? String,
+                  let latitude = row["latitude"] as? Double, let longitude = row["longitude"] as? Double else { return nil }
+            let city = AMapSearchCity(name: name, adcode: code,
+                                      coordinate: MapCoordinate(latitude: latitude, longitude: longitude))
+            return city.isValid ? city : nil
+        }
+
+        private func cities(_ query: String) async throws -> [AMapSearchCity] {
+            guard ready, !disposed, let browserView else { throw URLError(.notConnectedToInternet) }
+            return try await withCheckedThrowingContinuation { continuation in
+                browserView.callAsyncJavaScript("return await window.photoTrail.cities(query);",
+                    arguments: ["query": query], in: nil, in: .page) { [weak self] response in
+                    guard let self, !disposed, parent.workspace.amapConnectionID == connectionID else {
+                        continuation.resume(throwing: URLError(.cancelled)); return
+                    }
+                    guard case .success(let value) = response, let rows = value as? [[String: Any]] else {
+                        continuation.resume(throwing: URLError(.cannotParseResponse)); return
+                    }
+                    continuation.resume(returning: rows.compactMap(Self.city))
+                }
             }
         }
 
@@ -396,6 +445,11 @@ struct AMapWebView: NSViewRepresentable {
                   message.frameInfo.request.url == pageURL,
                   let body = message.body as? [String: Any],
                   let type = body["type"] as? String else { return }
+            if type == "searchAreaChanged", parent.workspace.searchScope == .viewport,
+               !parent.workspace.query.isEmpty {
+                parent.workspace.searchAreaChanged = true
+                return
+            }
             if type == "tracks", ready,
                let request = body["request"] as? Int,
                let id = activeTracks.first(where: { $0.value == request })?.key,
@@ -547,8 +601,8 @@ struct AMapWebView: NSViewRepresentable {
                     parent.workspace.favoriteDraft = SavedLocation(name: name, note: "", coordinate: wgs)
                     report(L10n.text("地点已校验，可保存收藏。"))
                 } else {
+                    parent.workspace.status = L10n.text("位置已设置，请保存照片。")
                     parent.onPick(photoID, wgs)
-                    report(L10n.text("位置已设置，请保存照片。"))
                 }
             }
         }

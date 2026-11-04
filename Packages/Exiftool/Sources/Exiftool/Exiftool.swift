@@ -785,6 +785,8 @@ extension Exiftool {
                     eleRefArg += "1"
                 }
             }
+        }
+        if metadata.location != nil || metadata.preserveGPSOnSave {
             sublocationArg += metadata.sublocation ?? ""
             cityArg += metadata.city ?? ""
             stateArg += metadata.state ?? ""

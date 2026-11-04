@@ -17,6 +17,7 @@ struct SearchView: View {
     var expandedWidth: CGFloat = 360
     @State private var searching = false
     @State private var error: String?
+    @State private var choosingCity = false
 
     private var editable: Bool {
         !store.saveInProgress && !store.selection.isEmpty && store.selection.allSatisfy { store[$0].updatable }
@@ -32,6 +33,14 @@ struct SearchView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            if expanded && provider == "amap" && workspace.searchScope == .viewport
+                && workspace.searchAreaChanged && !query.isEmpty {
+                Button(L10n.text("搜索此区域"), systemImage: "arrow.clockwise") {
+                    workspace.searchRefresh += 1
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("amapSearchThisArea")
+            }
             if expanded && !query.isEmpty {
                 resultsPanel
                     .padding(12)
@@ -74,6 +83,9 @@ struct SearchView: View {
                 }.buttonStyle(.plain).help(L10n.text("搜索地点"))
                     .accessibilityLabel(L10n.text("展开地点搜索"))
                 if expanded {
+                    if provider == "amap" {
+                        AMapSearchScopeMenu(choosingCity: $choosingCity).padding(.trailing, 6)
+                    }
                     TextField(L10n.text("搜索地点"), text: $query)
                         .textFieldStyle(.plain)
                         .focused(mapFocus, equals: .search)
@@ -97,10 +109,15 @@ struct SearchView: View {
         }
         .buttonStyle(.bordered)
         .onChange(of: mapFocus.wrappedValue) {
-            store.send(.textfieldFocusChanged(mapFocus.wrappedValue == .search), undoable: false)
+            store.send(.textfieldFocusChanged(mapFocus.wrappedValue == .search || choosingCity), undoable: false)
+        }
+        .onChange(of: choosingCity) {
+            store.send(.textfieldFocusChanged(choosingCity || mapFocus.wrappedValue == .search), undoable: false)
+            if !choosingCity && expanded { mapFocus.wrappedValue = .search }
         }
         .onChange(of: expanded) {
             if !expanded {
+                choosingCity = false
                 query = ""
                 mapFocus.wrappedValue = nil
             }
@@ -110,18 +127,22 @@ struct SearchView: View {
         }
         .onChange(of: provider) { query = "" }
         .onDisappear { store.send(.textfieldFocusChanged(false), undoable: false) }
-        .task(id: "\(provider):\(workspace.ready):\(query)") {
+        .task(id: "\(provider):\(workspace.ready):\(query):\(workspace.searchScope.id):\(workspace.searchRefresh)") {
+            workspace.searchRevision += 1
             workspace.invalidateSelection?()
             workspace.query = query.trimmingCharacters(in: .whitespacesAndNewlines)
             workspace.results = []
             workspace.selectedResult = nil
             workspace.searching = false
+            workspace.searchError = nil
+            workspace.searchAreaChanged = false
             searchInfo.searchResponse = []
             searchInfo.selection = nil
             searching = false
             error = nil
             let current = workspace.query
             guard !current.isEmpty else { return }
+            if provider == "amap", workspace.ready { workspace.searching = true }
             do { try await Task.sleep(for: .milliseconds(300)) } catch { return }
             if provider == "amap" {
                 if workspace.ready { workspace.search?(current) }
@@ -147,16 +168,39 @@ struct SearchView: View {
         VStack(alignment: .leading, spacing: 10) {
                 if searching || workspace.searching { ProgressView(L10n.text("搜索中…")).controlSize(.small) }
                 if let error { Text(error).font(.caption).foregroundStyle(.secondary) }
+                if provider == "amap", !workspace.ready {
+                    Text(L10n.text("地图尚未就绪")).font(.caption).foregroundStyle(.secondary)
+                } else if provider == "amap", !workspace.searching {
+                    if let failure = workspace.searchError {
+                        Text(failure).font(.caption).foregroundStyle(.secondary)
+                        Button(L10n.text("重试")) { workspace.searchRefresh += 1 }
+                    } else if resultCount == 0 {
+                        Text(L10n.text("%1$@未找到相关地点", workspace.searchScope.title))
+                            .font(.caption).foregroundStyle(.secondary)
+                        if workspace.searchScope != .nationwide {
+                            Button(L10n.text("改搜全国")) { workspace.searchScope = .nationwide }
+                        }
+                    }
+                }
                 if resultCount > 0 {
                     ScrollView {
                         VStack(spacing: 4) {
                             if provider == "amap" {
                                 ForEach(workspace.results) { result in
-                                    resultButton(result.name, subtitle: result.address,
-                                                 selected: workspace.selectedResult?.id == result.id) {
+                                    resultButton(result.name, subtitle: result.city == nil ? result.address : "",
+                                                 selected: workspace.selectedResult?.id == result.id,
+                                                 icon: result.city == nil ? nil : "building.2") {
                                         rememberSearch(query)
-                                        workspace.selectedResult = result
-                                        workspace.previewSearch?(result)
+                                        if let city = result.city {
+                                            workspace.selectSearchCity(city)
+                                            if city.name.contains(query.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                                                query = ""
+                                            }
+                                            mapFocus.wrappedValue = .search
+                                        } else {
+                                            workspace.selectedResult = result
+                                            workspace.previewSearch?(result)
+                                        }
                                     }
                                 }
                             } else {
@@ -184,19 +228,24 @@ struct SearchView: View {
                     }
                 } else if let place = searchInfo.selection {
                     Button(L10n.text("应用到照片")) {
+                        let ids = store.selection
                         store.send(.placeSelection(place))
-                        store.send(.locationChanged(place.coordinate.coord2D), description: "search selection")
+                        store.send(.confirmedWGS84Location(place.coordinate.coord2D), description: "search selection")
+                        LocationHelper.scheduleLinkedRegions(store, workspace: workspace, ids: ids)
                     }.disabled(!editable)
                 }
         }.frame(width: expandedWidth - 24)
     }
 
-    private func resultButton(_ name: String, subtitle: String, selected: Bool,
+    private func resultButton(_ name: String, subtitle: String, selected: Bool, icon: String? = nil,
                               action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(name).font(.system(size: 13)).foregroundStyle(.primary).lineLimit(1)
-                Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            HStack(spacing: 8) {
+                if let icon { Image(systemName: icon).foregroundStyle(.secondary) }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(name).font(.system(size: 13)).foregroundStyle(.primary).lineLimit(1)
+                    Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
             }.frame(maxWidth: .infinity, alignment: .leading).padding(8)
                 .background(selected ? Color.blue.opacity(0.10) : .clear, in: RoundedRectangle(cornerRadius: 6))
                 .contentShape(RoundedRectangle(cornerRadius: 6))

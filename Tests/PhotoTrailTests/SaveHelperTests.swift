@@ -10,30 +10,36 @@ import UDF
 
 @MainActor
 struct SaveHelperTests {
-    @Test func regionSaveUsesCachePreservesDateOnlyEditsAndClearsStaleAddress() async throws {
+    @Test func regionSaveUsesCacheAndPreservesDateOnlyEditsAndExistingAddress() async throws {
         var original = Metadata(source: .xmp(URL(fileURLWithPath: "/tmp/region-save.xmp")))
         original.location = Coords(latitude: 30, longitude: 120)
         original.city = "旧市"
         original.sublocation = "旧区"
         var image = ImageData(metadata: original, name: "region-save.jpg")
         let workspace = LocationWorkspace()
+        let domain = "PhotoTrail.RegionSaveTests." + UUID().uuidString
+        let defaults = try #require(UserDefaults(suiteName: domain))
+        defer { defaults.removePersistentDomain(forName: domain) }
         image.metadata.dateTimeCreated = "2026:10:09 12:00:00"
-        var result = await SaveHelper.resolveAddresses([image.id: image.metadata], images: [image], workspace: workspace)
+        var result = await SaveHelper.resolveAddresses([image.id: image.metadata], images: [image],
+            workspace: workspace, defaults: defaults)
         #expect(result[image.id] == image.metadata)
 
         image.metadata.location = Coords(latitude: 45.7, longitude: 126.7)
-        result = await SaveHelper.resolveAddresses([image.id: image.metadata], images: [image], workspace: workspace)
+        result = await SaveHelper.resolveAddresses([image.id: image.metadata], images: [image],
+            workspace: workspace, defaults: defaults)
         #expect(result[image.id]?.location == image.metadata.location)
-        #expect(result[image.id]?.city == nil && result[image.id]?.sublocation == nil)
+        #expect(result[image.id] == image.metadata)
 
-        let provider = UserDefaults.standard.string(forKey: "PhotoTrailMapProvider") ?? "amap"
+        let provider = defaults.string(forKey: "PhotoTrailMapProvider") ?? "amap"
         workspace.regionCache["\(L10n.language.rawValue):\(provider):45.7:126.7"] = Place(
             name: "", city: "哈尔滨市", state: "黑龙江省", country: "中国", countryCode: "CN",
             coordinate: Coordinate(latitude: 45.7, longitude: 126.7), sublocation: "香坊区")
-        result = await SaveHelper.resolveAddresses([image.id: image.metadata], images: [image], workspace: workspace)
+        result = await SaveHelper.resolveAddresses([image.id: image.metadata], images: [image],
+            workspace: workspace, defaults: defaults)
         let saved = try #require(result[image.id])
-        #expect(saved.city == "哈尔滨市" && saved.state == "黑龙江省")
-        #expect(saved.sublocation == "香坊区" && saved.countryCode == "CN")
+        #expect(saved.city == "旧市" && saved.state == "黑龙江省")
+        #expect(saved.sublocation == "旧区" && saved.countryCode == "CN")
         #expect(saved.location == image.metadata.location)
         #expect(image.metadata.sublocation == "旧区")
     }

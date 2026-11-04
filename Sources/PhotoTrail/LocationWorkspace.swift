@@ -15,6 +15,7 @@ struct AMapSearchResult: Identifiable {
     let name: String
     let address: String
     let coordinate: MapCoordinate // GCJ-02, only for AMap preview/validation.
+    var city: AMapSearchCity?
 }
 
 struct AMapPhotoPosition: Identifiable, Equatable {
@@ -35,9 +36,26 @@ struct AMapPhotoEdgePosition: Identifiable, Equatable {
 final class LocationWorkspace {
     var listMatchResults: [LocationHelper.LocationById] = []
     var status = L10n.text("选择照片后，在地图上点选拍摄地点。")
+    var fillRegionsOnLocationChange = false {
+        didSet {
+            if fillRegionsOnLocationChange != oldValue { linkedRegionsRevision = UUID() }
+        }
+    }
+    @ObservationIgnored private(set) var linkedRegionsRevision = UUID()
     var query = ""
     var results: [AMapSearchResult] = []
     var searching = false
+    var searchScope: AMapSearchScope = .viewport {
+        didSet {
+            guard searchScope != oldValue else { return }
+            searchRevision += 1
+            results = []; selectedResult = nil; searchError = nil; searchAreaChanged = false
+        }
+    }
+    var searchRevision = 0
+    var searchRefresh = 0
+    var searchAreaChanged = false
+    var searchError: String?
     var ready = false
     var session = UUID()
     var settingsPresented = false
@@ -64,6 +82,8 @@ final class LocationWorkspace {
     @ObservationIgnored var setSatellite: ((Bool) -> Void)?
     @ObservationIgnored var invalidateSelection: (() -> Void)?
     @ObservationIgnored var search: ((String) -> Void)?
+    @ObservationIgnored var searchCities: ((String) async throws -> [AMapSearchCity])?
+    @ObservationIgnored var focusSearchCity: ((AMapSearchCity) -> Void)?
     @ObservationIgnored var previewSearch: ((AMapSearchResult) -> Void)?
     @ObservationIgnored var chooseSearch: ((AMapSearchResult, String) -> Void)?
     @ObservationIgnored var previewWGS84: ((MapCoordinate) -> Void)?
@@ -83,6 +103,18 @@ final class LocationWorkspace {
         }
         self.favoritesURL = current
         self.tracks = tracks ?? TrackLibrary()
+    }
+
+    func selectSearchCity(_ city: AMapSearchCity, defaults: UserDefaults = .standard) {
+        guard city.isValid else { return }
+        searchScope = .city(city)
+        searchAreaChanged = false
+        focusSearchCity?(city)
+        if defaults.object(forKey: SettingsPreferences.recordSearchesKey) as? Bool != false {
+            let previous = AMapSearchCity.recent(from: defaults.data(forKey: AMapSearchCity.recentKey) ?? Data())
+            defaults.set(try? JSONEncoder().encode(AMapSearchCity.updated(city, in: previous)),
+                         forKey: AMapSearchCity.recentKey)
+        }
     }
 
     func address(at point: MapCoordinate, provider: String) async throws -> Place {

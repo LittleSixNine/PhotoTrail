@@ -28,11 +28,16 @@ PhotoTrail é uma ferramenta gratuita para organizar fotos no macOS. Adicione lo
 
 **Registre a viagem mesmo com uma câmera sem GPS.**
 
-- **Localizar pelo trajeto:** importe GPX, KML ou KMZ com horários, associe às datas de captura e confira antes de aplicar.
+- **Localizar pelo trajeto:** clique em + para importar GPX, KML ou KMZ com horários. Na barra lateral, siga a etapa 1 para selecionar fotos feitas no período registrado e a etapa 2 para preencher as localizações ausentes. Os resultados ficam pendentes até você salvar as fotos.
 - **Ajustar no mapa:** use Apple Maps ou AMap para buscar, salvar favoritos, mover marcadores ou definir um local para várias fotos.
+  A busca do AMap usa a área visível por padrão e permite mudar para uma cidade ou todo o país, com navegação por cidades e consulta de endereços. Após mover o mapa, use “Pesquisar nesta área” para atualizar; as fotos só mudam ao aplicar um resultado.
 - **Criar trajetos com fotos:** gere GPX a partir de fotos localizadas ou exporte cópias com localização e um relatório de verificação.
 
-Também é possível completar dados de região, como estado e cidade. Rotas sem horários por ponto servem apenas para visualização. A associação respeita os segmentos e o período registrado.
+A estrela salva o local atual como favorito; o botão largo abaixo da lista expande os demais favoritos. A caixa de seleção de cada trajeto controla de forma independente sua exibição no mapa.
+
+A caixa para completar a região usa a mesma preferência de Ajustes. Ela vem ativada e mantém sua escolha anterior. Quando ativada, ao aplicar localizações e salvar, preenche apenas os campos de região vazios e preserva o texto existente. As alterações ficam pendentes até você salvar as fotos.
+
+Rotas sem horários por ponto servem apenas para visualização. A associação respeita os segmentos e o período registrado.
 
 ### 2. Consulta e edição de metadados
 
@@ -67,7 +72,7 @@ A fototeca da Apple usa a interface do sistema apenas para localização e data,
 ## Primeiros passos
 
 1. **Importe:** abra ou arraste fotos e confira o horário de captura e o fuso da câmera.
-2. **Adicione locais:** revise a associação ao trajeto ou escolha um ponto no mapa.
+2. **Adicione locais:** siga as etapas da barra lateral para selecionar fotos e preencher as localizações ausentes, ou escolha um ponto no mapa.
 3. **Complete os dados:** edite campos ou aplique um preset.
 4. **Salve:** confira e grave as alterações; depois visualize e execute a renomeação se necessário.
 

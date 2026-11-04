@@ -186,38 +186,45 @@ enum SaveHelper {
     }
 
     static func resolveAddresses(_ snapshots: [ImageData.ID: Metadata], images: [ImageData],
-                                 workspace: LocationWorkspace?, onFailure: ((String) -> Void)? = nil) async -> [ImageData.ID: Metadata] {
-        guard let workspace else { return snapshots }
-        guard UserDefaults.standard.object(forKey: SettingsPreferences.writeRegionKey) as? Bool != false else {
+                                 workspace: LocationWorkspace?, onFailure: ((String) -> Void)? = nil,
+                                 defaults: UserDefaults = .standard,
+                                 lookupAddress: ((MapCoordinate, String) async throws -> Place)? = nil
+    ) async -> [ImageData.ID: Metadata] {
+        guard let workspace,
+              defaults.object(forKey: SettingsPreferences.writeRegionKey) as? Bool != false else {
             return snapshots
         }
-        let locationChanged = Dictionary(uniqueKeysWithValues: images.map {
-            ($0.id, $0.metadata.location != $0.original?.location)
-        })
-        let provider = UserDefaults.standard.string(forKey: "PhotoTrailMapProvider") ?? "amap"
+        let revision = workspace.linkedRegionsRevision
+        func isCurrent() -> Bool {
+            !Task.isCancelled && defaults.object(forKey: SettingsPreferences.writeRegionKey) as? Bool != false
+                && workspace.linkedRegionsRevision == revision
+        }
+        let originals = Dictionary(uniqueKeysWithValues: images.map { ($0.id, $0) })
+        let provider = defaults.string(forKey: "PhotoTrailMapProvider") ?? "amap"
+        let lookup = lookupAddress ?? { try await workspace.address(at: $0, provider: $1) }
         var resolved = snapshots
         for (id, snapshot) in snapshots {
-            guard let point = snapshot.location, snapshot.canDisplayAsWGS84,
-                  locationChanged[id] == true else { continue }
-            var metadata = snapshot
-            metadata.city = nil
-            metadata.state = nil
-            metadata.sublocation = nil
-            metadata.country = nil
-            metadata.countryCode = nil
+            guard isCurrent() else { return snapshots }
+            guard var image = originals[id] else { continue }
+            image.metadata = snapshot
+            guard LocationHelper.canFillRegion(image), let point = snapshot.location,
+                  snapshot.location != image.original?.location else { continue }
             do {
-                let address = try await workspace.address(at:
-                    MapCoordinate(latitude: point.latitude, longitude: point.longitude), provider: provider)
-                metadata.city = address.city
-                metadata.state = address.state
-                metadata.sublocation = address.sublocation
-                metadata.country = address.country
-                metadata.countryCode = address.countryCode
+                let address = try await lookup(
+                    MapCoordinate(latitude: point.latitude, longitude: point.longitude), provider)
+                guard isCurrent() else { return snapshots }
+                var metadata = snapshot
+                if LocationHelper.isMissingRegionValue(metadata.city) { metadata.city = address.city }
+                if LocationHelper.isMissingRegionValue(metadata.state) { metadata.state = address.state }
+                if LocationHelper.isMissingRegionValue(metadata.sublocation) { metadata.sublocation = address.sublocation }
+                if LocationHelper.isMissingRegionValue(metadata.country) { metadata.country = address.country }
+                if LocationHelper.isMissingRegionValue(metadata.countryCode) { metadata.countryCode = address.countryCode }
+                resolved[id] = metadata
             } catch {
-                let name = images.first { $0.id == id }?.name ?? String(id)
-                onFailure?(OperationFailure.message(name + ": " + L10n.text("地区查询失败，坐标仍会保存，旧地区字段将清空。"), error: error))
+                guard isCurrent() else { return snapshots }
+                onFailure?(OperationFailure.message(image.name + ": "
+                    + L10n.text("地区查询失败，坐标与已有地区仍会保留。"), error: error))
             }
-            resolved[id] = metadata
         }
         return resolved
     }
@@ -326,6 +333,9 @@ extension SaveHelper {
         tagFiles: Bool, tagName: String
     ) async -> SaveStatus {
         let started = ContinuousClock.now
+        let originals = await MainActor.run {
+            Dictionary(uniqueKeysWithValues: store.imageData.map { ($0.id, $0.original) })
+        }
         var failed = 0
         var tagFailed = 0
         var status: SaveStatus = .saveOK
@@ -352,13 +362,20 @@ extension SaveHelper {
                 if createSidecar {
                     try sandbox.makeSidecarFile()
                     created = true
+                    let preserveGPS = metadata.preserveGPSOnSave
                     metadata = metadata.xmp()
+                    metadata.preserveGPSOnSave = preserveGPS
                 }
+                let regionSnapshot = try RegionSaveSnapshot(metadata, original: originals[id] ?? nil)
+                metadata = regionSnapshot.published
                 let writeInterval = signposter.beginInterval("WriteMetadata", id: signposter.makeSignpostID())
-                let frozenMetadata = metadata
+                let frozenMetadata = regionSnapshot.writing
                 var failure: String?
                 let outcome = await saveThenTag(
-                    save: { try await sandbox.saveChanges(from: frozenMetadata, timeZone: timeZone) },
+                    save: {
+                        try regionSnapshot.validate()
+                        try await sandbox.saveChanges(from: frozenMetadata, timeZone: timeZone)
+                    },
                     tag: tagFiles ? { try await sandbox.setTag(name: tagName) } : nil,
                     onFailure: { failure = $0.localizedDescription })
                 signposter.endInterval("WriteMetadata", writeInterval)
@@ -430,8 +447,24 @@ extension SaveHelper {
                 store.send(.saveProgress(1), undoable: false)
                 continue
             }
-            let map = mapMetadata[item.id]
-            let result = await item.save(backup: backup, mapMetadata: map, timeZone: store.timeZone)
+            let map: Metadata?
+            let writingMap: Metadata?
+            do {
+                if let snapshot = mapMetadata[item.id] {
+                    let regionSnapshot = try RegionSaveSnapshot(snapshot, original: store[item.id].original)
+                    map = regionSnapshot.published
+                    writingMap = regionSnapshot.writing
+                } else {
+                    map = nil
+                    writingMap = nil
+                }
+            } catch {
+                status = .saveError
+                store.send(.saveFailure(OperationFailure.message(item.target.lastPathComponent, error: error)), undoable: false)
+                store.send(.saveProgress(1), undoable: false)
+                continue
+            }
+            let result = await item.save(backup: backup, mapMetadata: writingMap, timeZone: store.timeZone)
             store.send(.creatorSaveResult(item.id, result), undoable: false)
             if result == .saved || result == .unchanged {
                 if let map {

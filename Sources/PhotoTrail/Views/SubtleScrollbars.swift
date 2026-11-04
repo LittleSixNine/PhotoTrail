@@ -2,6 +2,69 @@ import AppKit
 import QuartzCore
 import SwiftUI
 
+/// Own the map sidebar's scroll container so its gutter exists before the first layout.
+struct SidebarScrollView<Content: View>: NSViewRepresentable {
+    private let content: Content
+
+    init(@ViewBuilder content: () -> Content) { self.content = content() }
+
+    func makeNSView(context: Context) -> SidebarScrollContainer {
+        SidebarScrollContainer(content: hostedContent(context))
+    }
+
+    func updateNSView(_ scroll: SidebarScrollContainer, context: Context) {
+        scroll.updateContent(hostedContent(context))
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, nsView: SidebarScrollContainer,
+                     context: Context) -> CGSize? {
+        proposal.replacingUnspecifiedDimensions()
+    }
+
+    private func hostedContent(_ context: Context) -> AnyView {
+        AnyView(content.environment(\.self, context.environment))
+    }
+}
+
+final class SidebarScrollContainer: NSScrollView {
+    private let document = NSHostingView(rootView: AnyView(EmptyView()))
+    private var content: AnyView
+    private var measuredWidth: CGFloat = 0
+
+    init(content: AnyView) {
+        self.content = content
+        super.init(frame: .zero)
+        drawsBackground = false
+        hasHorizontalScroller = false
+        SubtleScrollbars.Installer.configure(self, reservesVerticalScroller: true)
+        document.translatesAutoresizingMaskIntoConstraints = false
+        documentView = document
+        NSLayoutConstraint.activate([
+            document.topAnchor.constraint(equalTo: contentView.topAnchor),
+            document.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            document.widthAnchor.constraint(equalTo: contentView.widthAnchor)
+        ])
+        updateContent(content)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
+
+    override func tile() {
+        super.tile()
+        if contentView.bounds.width > 0, contentView.bounds.width != measuredWidth {
+            updateContent(content)
+        }
+    }
+
+    func updateContent(_ content: AnyView) {
+        self.content = content
+        measuredWidth = contentView.bounds.width
+        // An explicit proposal makes wrapping text and aspect-ratio previews measure at the clip width.
+        document.rootView = AnyView(content.frame(width: measuredWidth, alignment: .topLeading))
+    }
+}
+
 /// Attach only to an app-owned scroll container, never to a whole window or WebKit.
 struct SubtleScrollbars: NSViewRepresentable {
     var reservesVerticalScroller = false

@@ -78,11 +78,11 @@ extension PhotoTrailReducer {
                   state[id].metadata.location == Coords(latitude: address.coordinate.latitude,
                                                            longitude: address.coordinate.longitude) else { continue }
             var metadata = state[id].metadata
-            if metadata.city?.isEmpty != false { metadata.city = address.city }
-            if metadata.state?.isEmpty != false { metadata.state = address.state }
-            if metadata.sublocation?.isEmpty != false { metadata.sublocation = address.sublocation }
-            if metadata.country?.isEmpty != false { metadata.country = address.country }
-            if metadata.countryCode?.isEmpty != false { metadata.countryCode = address.countryCode }
+            if LocationHelper.isMissingRegionValue(metadata.city) { metadata.city = address.city }
+            if LocationHelper.isMissingRegionValue(metadata.state) { metadata.state = address.state }
+            if LocationHelper.isMissingRegionValue(metadata.sublocation) { metadata.sublocation = address.sublocation }
+            if LocationHelper.isMissingRegionValue(metadata.country) { metadata.country = address.country }
+            if LocationHelper.isMissingRegionValue(metadata.countryCode) { metadata.countryCode = address.countryCode }
             state[id].metadata = metadata
         }
         state.unsavedChanges = state.imageData.contains { $0.hasPendingChanges }

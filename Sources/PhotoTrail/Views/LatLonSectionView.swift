@@ -6,6 +6,7 @@ import UDF
 
 struct LatLonSectionView: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) var store
+    @Environment(LocationWorkspace.self) private var workspace
 
     var image: ImageData
 
@@ -66,20 +67,11 @@ struct LatLonSectionView: View {
         .onSubmit {
             if validateLocation() {
                 if let latitude, let longitude {
+                    let selected = store.selection
                     store.send(.locationChanged(Coords(latitude: latitude,
                                                        longitude: longitude)),
-                               description: "update location") {
-                        let selected = store.selection
-                        Task {
-                            let address =
-                            await ReverseLocationFinder.reverseGeocode(store: store,
-                                                                       id: image.id)
-                            if let address {
-                                store.send(.addressChanged(selected, address),
-                                           undoable: false)
-                            }
-                        }
-                    }
+                               description: "update location")
+                    LocationHelper.scheduleLinkedRegions(store, workspace: workspace, ids: selected)
                     isFocused = false
                 }
             }

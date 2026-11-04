@@ -45,7 +45,9 @@
         .replace(/</g, "&lt;").replace(/>/g, "&gt;");
       if (document.documentElement) document.documentElement.lang = locale.language;
       if (document.title !== undefined) document.title = t("PhotoTrail 地图");
-      let map, geocoder, placeSearch, marker, previewMarker, deviceMarker, locationPopup;
+      let map, geocoder, marker, previewMarker, deviceMarker, locationPopup;
+      let searchArea = { mode: "nationwide", bounds: null, notified: "", gesture: false };
+      let cityIndex;
       let previewGeneration = 0;
       let deviceGeneration = 0, previewLocation = null, deviceLocation = null;
       let startup = { allowed: true, center: null, zoom: 12 };
@@ -495,19 +497,143 @@
         } catch (_) { if (generation === deviceGeneration) status(t("设备位置暂时无法显示，请检查网络。")); }
       }
 
-      async function search(query) {
-        if (!query.trim()) return [];
-        const results = await timedCall(done => placeSearch.search(query, (state, result) => {
+      function searchService(register, extract) {
+        return timedCall(done => register((state, result) => {
           if (state === "no_data") return done(null, []);
           if (state !== "complete") return done(new Error("search_failed"));
-          done(null, result?.poiList?.pois || []);
+          done(null, extract(result) || []);
         }));
-        return results.filter(poi => poi.location && valid({
-          latitude: poi.location.getLat(), longitude: poi.location.getLng()
-        })).map((poi, index) => ({ id: String(poi.id || index), name: String(poi.name || t("未命名地点")),
-          address: [poi.pname, poi.cityname, poi.adname, poi.address]
-            .filter(value => typeof value === "string" && value).join(" "),
-          latitude: poi.location.getLat(), longitude: poi.location.getLng() }));
+      }
+
+      function cityRecord(district) {
+        const municipalities = ["110000", "120000", "310000", "500000"];
+        const point = district.center;
+        if (!(district.level === "city" || municipalities.includes(String(district.adcode)))
+          || typeof point?.getLat !== "function" || typeof point?.getLng !== "function") return null;
+        const value = { name: String(district.name || ""), adcode: String(district.adcode || ""),
+          latitude: point.getLat(), longitude: point.getLng() };
+        return value.name && /^\d{6}$/.test(value.adcode) && valid(value) ? value : null;
+      }
+
+      async function cities(query, allowFallback = true) {
+        const keyword = query.trim().toLocaleLowerCase();
+        if (!keyword) return [];
+        if (!cityIndex) {
+          cityIndex = searchService(done => new AMap.DistrictSearch({ level: "country", subdistrict: 2,
+            extensions: "base", showbiz: false }).search("中国", done), result => {
+              const found = [];
+              function visit(item) {
+                const city = cityRecord(item);
+                if (city) found.push(city);
+                else for (const child of item.districtList || []) visit(child);
+              }
+              for (const root of result.districtList || []) visit(root);
+              return found;
+            }).catch(error => { cityIndex = null; throw error; });
+        }
+        const matches = (await cityIndex).filter(city => city.name.toLocaleLowerCase().includes(keyword)
+          || city.adcode.startsWith(keyword));
+        if (matches.length) return matches.slice(0, 20);
+        if (!allowFallback) return [];
+        return searchService(done => new AMap.DistrictSearch({ level: "city", subdistrict: 0,
+          extensions: "base", showbiz: false }).search(query, done),
+          result => (result.districtList || []).map(cityRecord).filter(Boolean));
+      }
+
+      function viewportBounds() {
+        const bounds = map.getBounds();
+        if (!bounds) throw new Error("invalid_search_bounds");
+        const sw = bounds.getSouthWest(), ne = bounds.getNorthEast();
+        const box = [sw.getLng(), sw.getLat(), ne.getLng(), ne.getLat()];
+        if (!box.every(Number.isFinite) || box[0] < -180 || box[2] > 180 || box[0] >= box[2]
+          || box[1] < -90 || box[3] > 90 || box[1] >= box[3]) throw new Error("invalid_search_bounds");
+        return box;
+      }
+
+      function noticeSearchArea() {
+        if (!searchArea.gesture || searchArea.mode !== "viewport" || !searchArea.bounds) return;
+        try {
+          const box = viewportBounds(), key = box.map(value => value.toFixed(6)).join(",");
+          if (box.some((value, index) => Math.abs(value - searchArea.bounds[index]) > 0.000001)
+            && key !== searchArea.notified) {
+            searchArea.notified = key;
+            post({ type: "searchAreaChanged" });
+          }
+        } catch (_) { /* A later valid camera change can offer a refresh. */ }
+      }
+
+      async function search(query, scope = { mode: "viewport" }) {
+        if (!query.trim()) return [];
+        if (!["nationwide", "city", "viewport"].includes(scope.mode)
+          || (scope.mode === "city" && !/^\d{6}$/.test(scope.adcode))) throw new Error("invalid_search_scope");
+        const box = scope.mode === "viewport" ? viewportBounds() : null;
+        Object.assign(searchArea, { mode: scope.mode, bounds: box, notified: "", gesture: false });
+        const options = { city: scope.mode === "city" ? scope.adcode : "全国",
+          citylimit: scope.mode === "city", pageSize: 10, extensions: "base", autoFitView: false };
+        const service = new AMap.PlaceSearch(options);
+        let citySuggestions = [];
+        const requests = [searchService(done => {
+          if (box) service.searchInBounds(query, new AMap.Bounds([box[0], box[1]], [box[2], box[3]]), done);
+          else service.search(query, done);
+        }, result => {
+          if (scope.mode === "nationwide") citySuggestions = result?.cityList || [];
+          return result?.poiList?.pois;
+        })];
+        if (!box) {
+          requests.push(searchService(done => new AMap.AutoComplete(options).search(query, done), result => result.tips));
+        }
+        if (/[街路巷弄号栋]|\d|street|road/i.test(query)) {
+          requests.unshift(searchService(done => new AMap.Geocoder({ city: options.city, extensions: "base" })
+            .getLocation(query, done), result => (result.geocodes || [])
+            .filter(item => !["国家", "省", "城市", "市", "区县"].includes(item.level)).map(item => ({ ...item,
+              id: "address:" + item.formattedAddress, name: query, address: item.formattedAddress }))));
+        }
+        const pendingCities = scope.mode === "nationwide" && query.trim().length <= 12
+          ? cities(query, false).catch(() => []) : Promise.resolve([]);
+        const settled = await Promise.allSettled(requests);
+        if (settled.every(item => item.status === "rejected")) throw new Error("search_failed");
+        const candidates = settled.flatMap(item => item.status === "fulfilled" ? item.value : []);
+        const results = [], seen = new Set(), seenIDs = new Set();
+        const namedCities = await pendingCities;
+        if (citySuggestions.length && cityIndex) {
+          for (const suggested of citySuggestions.slice(0, 5)) {
+            const city = (await cityIndex).find(item => item.adcode === String(suggested.adcode || "")
+              || item.name.replace(/市$/, "") === String(suggested.name || "").replace(/市$/, ""));
+            if (city && !namedCities.some(item => item.adcode === city.adcode)) namedCities.push(city);
+          }
+        }
+        for (const city of namedCities) {
+          // Only city-name matches are navigation entries; addresses remain ordinary location results.
+          if (citySuggestions.length || city.name.includes(query.trim()) || city.name.replace(/市$/, "") === query.trim())
+            results.push({ ...city, id: "city:" + city.adcode, kind: "city", address: city.name });
+        }
+        for (const poi of candidates) {
+          if (typeof poi.location?.getLat !== "function" || typeof poi.location?.getLng !== "function") continue;
+          const point = { latitude: poi.location.getLat(), longitude: poi.location.getLng() };
+          if (!valid(point)) continue;
+          if (box && (point.longitude < box[0] || point.longitude > box[2]
+            || point.latitude < box[1] || point.latitude > box[3])) continue;
+          if (scope.mode === "city") {
+            const prefix = /^(11|12|31|50)0000$/.test(scope.adcode) ? scope.adcode.slice(0, 2) : scope.adcode.slice(0, 4);
+            if (!String(poi.adcode || "").startsWith(prefix)) continue;
+          }
+          const name = String(poi.name || t("未命名地点"));
+          const key = name + ":" + point.latitude.toFixed(6) + ":" + point.longitude.toFixed(6);
+          if (seen.has(key) || (poi.id && seenIDs.has(String(poi.id)))) continue;
+          seen.add(key);
+          if (poi.id) seenIDs.add(String(poi.id));
+          results.push({ id: String(poi.id || key), name, ...point,
+            address: [...new Set([poi.pname, poi.province, poi.cityname, poi.city, poi.adname, poi.district, poi.address]
+              .filter(value => typeof value === "string" && value))].join(" ") });
+        }
+        return results.slice(0, 12);
+      }
+
+      function focusCity(city) {
+        if (!valid(city)) return;
+        startup.allowed = false;
+        clearPreview();
+        map.setZoomAndCenter(11, [city.longitude, city.latitude]);
       }
 
       async function selectSearch(point, purpose, name) {
@@ -526,7 +652,8 @@
           document.head.appendChild(script);
         });
         const api = await timedCall(done => AMapLoader.load({
-          key: config.key, version: "2.0", plugins: ["AMap.Geocoder", "AMap.PlaceSearch", "AMap.Scale"]
+          key: config.key, version: "2.0", plugins: ["AMap.Geocoder", "AMap.PlaceSearch", "AMap.AutoComplete",
+            "AMap.DistrictSearch", "AMap.Scale"]
         }).then(value => done(null, value), () => done(new Error("authentication_failed"))));
         const center = Array.isArray(config.initialCenter) && config.initialCenter.length === 2
           && Number.isFinite(config.initialCenter[0]) && Number.isFinite(config.initialCenter[1])
@@ -539,8 +666,10 @@
         startup.center = center;
         startup.zoom = zoom;
         geocoder = new api.Geocoder({ extensions: "base" });
-        placeSearch = new api.PlaceSearch({ pageSize: 6, extensions: "base" });
         map.addControl(new api.Scale());
+        map.on("dragstart", () => { searchArea.gesture = true; });
+        map.on("dragend", () => { noticeSearchArea(); searchArea.gesture = false; });
+        document.getElementById("map").addEventListener?.("wheel", () => { searchArea.gesture = true; }, { passive: true });
         map.on("complete", () => post({ type: "rendering", metrics: renderingInfo() }));
         setTimeout(() => post({ type: "rendering", metrics: renderingInfo() }), 5000);
         map.on("rotatechange", () => post({ type: "heading", value: map.getRotation() }));
@@ -550,6 +679,7 @@
           map.on(event, () => {
             emitPhotoPositions(true);
             if (event === "zoomend" || event === "resize") refreshDeviceSize();
+            if (event === "zoomend") { noticeSearchArea(); searchArea.gesture = false; }
             if (event === "moveend" || event === "zoomend") {
               const point = map.getCenter();
               if (point.getLat() !== startup.center[1] || point.getLng() !== startup.center[0]
@@ -589,6 +719,7 @@
       function navigate(command) {
         if (!map) return;
         startup.allowed = false;
+        searchArea.gesture = command === "zoomIn" || command === "zoomOut";
         if (command === "zoomIn") map.setZoom(Math.min(20, map.getZoom() + 1));
         if (command === "zoomOut") map.setZoom(Math.max(2, map.getZoom() - 1));
         if (command === "north") map.setRotation(0);
@@ -597,6 +728,7 @@
         if (!map || !Number.isFinite(steps) || steps === 0
           || !pixel || !Number.isFinite(pixel.x) || !Number.isFinite(pixel.y)) return;
         startup.allowed = false;
+        searchArea.gesture = true;
         const oldZoom = map.getZoom();
         const newZoom = Math.min(20, Math.max(2, oldZoom + steps * 0.22));
         if (newZoom === oldZoom) return;
@@ -644,7 +776,7 @@
         }
         if (satelliteLayer) enabled ? satelliteLayer.show() : satelliteLayer.hide();
       }
-      return { start, updateSnapshot, convertGPS, search, preview, selectSearch, clearPreview, setDeviceLocation,
+      return { start, updateSnapshot, convertGPS, search, cities, focusCity, preview, selectSearch, clearPreview, setDeviceLocation,
         setMapStyle, setSatellite, navigate, zoomByWheel, region, renderingInfo, convertTracks, cancelTrack, renderTracks, fitTracks,
         setTrackStyle, pickPhotoAt, focusPhoto, focusWGS84, cancelStartup };
     })();

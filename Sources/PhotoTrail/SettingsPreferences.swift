@@ -2,6 +2,11 @@ import Foundation
 import ImageData
 
 enum SettingsPreferences {
+    static func clearRecentSearches(in defaults: UserDefaults = .standard) {
+        defaults.removeObject(forKey: recentSearchesKey)
+        defaults.removeObject(forKey: AMapSearchCity.recentKey)
+    }
+
     static let metadataTextSizeKey = "PhotoTrailMetadataTextSize"
     static let metadataSpacingKey = "PhotoTrailMetadataSpacing"
     static let metadataTagNamesKey = "PhotoTrailMetadataTagNames"

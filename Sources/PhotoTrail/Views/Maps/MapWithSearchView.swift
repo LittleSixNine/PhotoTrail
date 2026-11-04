@@ -147,6 +147,9 @@ public struct MapWithSearchView: View {
             workspace.ready = false
             workspace.status = ""
             workspace.query = ""
+            workspace.searchScope = .viewport
+            workspace.searchError = nil
+            workspace.searchAreaChanged = false
             workspace.previewCoordinate = nil
             workspace.selectedResult = nil
             workspace.results = []

@@ -8,6 +8,7 @@ import UDF
 
 struct PasteboardCommands: Commands {
     var store: Store<PhotoTrailState, PhotoTrailEvent>
+    let locationWorkspace: LocationWorkspace
     @FocusedValue(\.metadataFieldSelection) private var metadataFieldSelection
     @FocusedValue(\.metadataFieldClipboard) private var metadataFieldClipboard
     @AppStorage(SettingsView.extendedTimeKey) var extendedTime = 120.0
@@ -42,19 +43,11 @@ struct PasteboardCommands: Commands {
                         NSApp.sendAction(#selector(NSText.paste(_:)),
                                          to: nil, from: nil)
                     } else {
-                        store.send(.pasteRequest) {
-                            // remember the current selection
-                            guard let id = store.mostSelected else { return }
-                            let selected = store.selection
-                            Task {
-                                let address =
-                                await ReverseLocationFinder.reverseGeocode(store: store,
-                                                                           id: id)
-                                if let address {
-                                    store.send(.addressChanged(selected, address),
-                                               undoable: false)
-                                }
-                            }
+                        let selected = store.selection
+                        let revision = store.imageRevision
+                        store.send(.pasteRequest)
+                        if store.imageRevision != revision {
+                            LocationHelper.scheduleLinkedRegions(store, workspace: locationWorkspace, ids: selected)
                         }
                     }
                 }

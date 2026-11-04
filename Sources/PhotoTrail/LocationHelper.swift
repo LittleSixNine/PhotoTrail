@@ -3,10 +3,23 @@ import CoreLocation
 import Foundation
 import GpxTrackLog
 import ImageData
+import Metadata
 import UDF
 
 @MainActor
 enum LocationHelper {
+
+    static func favoriteCoordinate(_ metadata: Metadata) -> MapCoordinate? {
+        guard let location = metadata.location,
+              metadata.gpsMapDatum?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+              metadata.canDisplayAsWGS84 else { return nil }
+        let point = MapCoordinate(latitude: location.latitude, longitude: location.longitude)
+        return point.isValid ? point : nil
+    }
+
+    static func isMissingRegionValue(_ value: String?) -> Bool {
+        value?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false
+    }
 
     static func canFillRegion(_ image: ImageData) -> Bool {
         guard image.updatable, image.creatorDraft == nil, image.metadata.location != nil,
@@ -16,34 +29,101 @@ enum LocationHelper {
         case .photos, .copy: return false
         }
         return [image.metadata.city, image.metadata.state, image.metadata.sublocation,
-                image.metadata.country, image.metadata.countryCode].contains { $0?.isEmpty != false }
+                image.metadata.country, image.metadata.countryCode].contains(where: isMissingRegionValue)
+    }
+
+    @MainActor private struct RegionRequest {
+        let images: [ImageData]
+        let imageRevision: UUID
+        let versions: [ImageData.ID: [MetadataInspectionFileVersion]]
+        let provider: String
+
+        init(_ state: PhotoTrailState, ids: Set<ImageData.ID>) {
+            images = state.imageData.filter { ids.contains($0.id) }
+            imageRevision = state.imageRevision
+            versions = Dictionary(uniqueKeysWithValues: images.filter { canFillRegion($0) }.map {
+                ($0.id, $0.metadataInspectionVersions)
+            })
+            provider = UserDefaults.standard.string(forKey: "PhotoTrailMapProvider") ?? "amap"
+        }
+
+        func matches(_ state: PhotoTrailState, checkFiles: Bool = false) -> Bool {
+            guard !state.saveInProgress, !state.renameInProgress, !state.importProgress.isActive,
+                  state.imageRevision == imageRevision else { return false }
+            return !checkFiles || images.filter { canFillRegion($0) }.allSatisfy {
+                $0.metadataInspectionVersions == versions[$0.id]
+            }
+        }
+    }
+
+    // Freeze the targets before starting the task; later selection changes cannot redirect a lookup.
+    @discardableResult
+    static func scheduleLinkedRegions(
+        _ store: Store<PhotoTrailState, PhotoTrailEvent>, workspace: LocationWorkspace,
+        ids: Set<ImageData.ID>,
+        lookupAddress: ((MapCoordinate, String) async throws -> Place)? = nil
+    ) -> Task<Void, Never>? {
+        guard workspace.fillRegionsOnLocationChange, !store.saveInProgress,
+              !store.renameInProgress, !store.importProgress.isActive else { return nil }
+        var targets = ids
+        for image in store.imageData where ids.contains(image.id) && image.updatable {
+            if let pairedID = image.pairedID, store[pairedID].updatable,
+               store[pairedID].metadata.location == image.metadata.location {
+                targets.insert(pairedID)
+            }
+        }
+        let request = RegionRequest(store.state, ids: targets)
+        guard request.images.contains(where: canFillRegion) else { return nil }
+        let revision = workspace.linkedRegionsRevision
+        return Task {
+            await fillRegions(store, workspace: workspace, request: request,
+                              linkedRevision: revision, lookupAddress: lookupAddress)
+        }
     }
 
     static func fillRegions(_ store: Store<PhotoTrailState, PhotoTrailEvent>, workspace: LocationWorkspace) async {
-        guard !store.saveInProgress, !store.importProgress.isActive else { return }
-        let images = store.imageData.filter { store.selection.contains($0.id) }
-        let provider = UserDefaults.standard.string(forKey: "PhotoTrailMapProvider") ?? "amap"
+        let request = RegionRequest(store.state, ids: store.selection)
+        await fillRegions(store, workspace: workspace, request: request)
+    }
+
+    private static func fillRegions(
+        _ store: Store<PhotoTrailState, PhotoTrailEvent>, workspace: LocationWorkspace,
+        request: RegionRequest, linkedRevision: UUID? = nil,
+        lookupAddress: ((MapCoordinate, String) async throws -> Place)? = nil
+    ) async {
+        func isCurrent(checkFiles: Bool = false) -> Bool {
+            !Task.isCancelled && request.matches(store.state, checkFiles: checkFiles)
+                && (linkedRevision == nil || (workspace.fillRegionsOnLocationChange
+                    && workspace.linkedRegionsRevision == linkedRevision))
+        }
+        guard isCurrent() else { return }
         var addresses: [ImageData.ID: Place] = [:]
-        var failed = 0
         var failures: [String] = []
-        for image in images where canFillRegion(image) {
-            guard let point = image.metadata.location else { continue }
+        let lookup = lookupAddress ?? { try await workspace.address(at: $0, provider: $1) }
+        for image in request.images where canFillRegion(image) {
+            guard isCurrent(), let point = image.metadata.location else { return }
+            let coordinate = MapCoordinate(latitude: point.latitude, longitude: point.longitude)
             do {
-                addresses[image.id] = try await workspace.address(at:
-                    MapCoordinate(latitude: point.latitude, longitude: point.longitude), provider: provider)
+                var address = try await lookup(coordinate, request.provider)
+                address.coordinate = Coordinate(latitude: point.latitude, longitude: point.longitude)
+                addresses[image.id] = address
             } catch {
-                failed += 1
+                if error is CancellationError { return }
                 failures.append(OperationFailure.message(image.name, error: error))
             }
-            if Task.isCancelled { return }
         }
-        guard !store.saveInProgress, !store.importProgress.isActive else { return }
-        let before = Dictionary(uniqueKeysWithValues: images.map { ($0.id, store[$0.id].metadata) })
-        store.send(.missingAddressesFilled(addresses), description: L10n.text("补齐地区信息"))
-        let changed = images.filter { before[$0.id] != store[$0.id].metadata }.count
-        workspace.status = L10n.text("地区信息已暂存：%1$@ 张；查询失败：%2$@ 张；未补齐：%3$@ 张。请写入所有元数据。",
-                                     changed, failed, images.count - changed - failed)
-        if !failures.isEmpty { OperationFailure.present(workspace.status + "\n\n" + failures.joined(separator: "\n")) }
+        guard isCurrent(checkFiles: true) else { return }
+        if !addresses.isEmpty {
+            store.send(.missingAddressesFilled(addresses), description: L10n.text("补齐地区信息"))
+        }
+        let changed = request.images.filter { $0.metadata != store[$0.id].metadata }.count
+        var summary = L10n.text("地区信息已暂存：%1$@ 张", changed)
+        if linkedRevision == nil {
+            summary = L10n.text("地区信息已暂存：%1$@ 张；查询失败：%2$@ 张；未补齐：%3$@ 张。请写入所有元数据。",
+                                changed, failures.count, request.images.count - changed - failures.count)
+        }
+        workspace.status = ([summary] + failures).joined(separator: "\n\n")
+        if linkedRevision == nil, !failures.isEmpty { OperationFailure.present(workspace.status) }
     }
 
     static func photoIDs(in images: [ImageData], timeZone: TimeZone,

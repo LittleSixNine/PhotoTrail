@@ -93,6 +93,7 @@ struct MapView: View {
                                                                           from: .named("photoMap")) else { return }
                                     store.send(.locationForImageChanged(pin.id, location),
                                                description: L10n.text("拖动照片位置"))
+                                    LocationHelper.scheduleLinkedRegions(store, workspace: workspace, ids: [pin.id])
                                 }, including: allowDragPin && selected && pin.editable ? .all : .none)
                     }
                 }
@@ -140,23 +141,12 @@ struct MapView: View {
             .gesture(SpatialTapGesture(count: 2).onEnded { position in
                 startupCancelled = true
                 mapFocus.wrappedValue = nil  // get rid of any search views
-                if allowDoubleClick, !store.saveInProgress, let id = store.mostSelected {
-                    if let loc = mapProxy.convert(position.location, from: .local) {
-                        store.send(.confirmedWGS84Location(loc),
-                                   description: L10n.text("双击地图设置所选照片位置")) {
-                            // remember the current selection
-                            let selected = store.selection
-                            Task {
-                                let address =
-                                await ReverseLocationFinder.reverseGeocode(store: store,
-                                                                           id: id)
-                                if let address {
-                                    store.send(.addressChanged(selected, address),
-                                               undoable: false)
-                                }
-                            }
-                        }
-                    }
+                if allowDoubleClick, !store.saveInProgress, store.mostSelected != nil,
+                   let loc = mapProxy.convert(position.location, from: .local) {
+                    let ids = store.selection
+                    store.send(.confirmedWGS84Location(loc),
+                               description: L10n.text("双击地图设置所选照片位置"))
+                    LocationHelper.scheduleLinkedRegions(store, workspace: workspace, ids: ids)
                 }
             })
             .onChange(of: workspace.previewID) {
@@ -307,9 +297,11 @@ extension MapView {
                     && store.selection.allSatisfy { store[$0].updatable },
                 apply: {
                     activeMarker = nil
+                    let ids = store.selection
                     store.send(.confirmedWGS84Location(Coords(latitude: point.latitude,
                                                                longitude: point.longitude)),
                                description: L10n.text("写入地图定位到所选照片"))
+                    LocationHelper.scheduleLinkedRegions(store, workspace: workspace, ids: ids)
                 }, favorite: {
                     activeMarker = nil
                     workspace.favoriteDraft = SavedLocation(name: name, note: "", coordinate: point)

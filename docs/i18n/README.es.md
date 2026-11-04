@@ -28,11 +28,16 @@ PhotoTrail es una herramienta gratuita para organizar fotos en macOS. Añade ubi
 
 **Conserva el recorrido, aunque tu cámara no tenga GPS.**
 
-- **Ubicar desde un recorrido:** importa GPX, KML o KMZ con marcas de tiempo, compara las horas de captura y revisa antes de aplicar.
+- **Ubicar desde un recorrido:** pulsa + para importar GPX, KML o KMZ con marcas de tiempo. En la barra lateral, sigue el paso 1 para seleccionar las fotos tomadas durante el intervalo registrado y el paso 2 para completar las ubicaciones que faltan. Los resultados quedan pendientes hasta que guardes las fotos.
 - **Ajustar en el mapa:** usa Apple Maps o AMap para buscar, guardar favoritos, mover marcadores o asignar un lugar a varias fotos.
+  La búsqueda de AMap usa el área visible de forma predeterminada y permite cambiar a una ciudad o a todo el país, y ofrece navegación por ciudades y búsqueda de direcciones. Tras mover el mapa, pulsa «Buscar en esta área» para actualizar; las fotos solo cambian al aplicar un resultado.
 - **Crear recorridos desde fotos:** genera GPX con fotos geolocalizadas o exporta copias con ubicación y un informe de verificación.
 
-También puedes completar datos de región, como provincia y ciudad. Las rutas sin tiempos por punto solo se visualizan. La asociación respeta los segmentos y el intervalo registrado.
+La estrella guarda la ubicación actual como favorita; el botón ancho bajo la lista despliega los demás favoritos. La casilla de cada recorrido controla por separado si se muestra en el mapa.
+
+La casilla para completar la región comparte una única preferencia con Ajustes. Está activada de forma predeterminada y conserva tu elección anterior. Cuando está activada, al aplicar ubicaciones y guardar solo completa campos de región vacíos y conserva el texto existente. Los cambios quedan pendientes hasta que guardes las fotos.
+
+Las rutas sin tiempos por punto solo se visualizan. La asociación respeta los segmentos y el intervalo registrado.
 
 ### 2. Consulta y edición de metadatos
 
@@ -67,7 +72,7 @@ La fototeca de Apple usa la interfaz del sistema para ubicación y fecha, con l�
 ## Primeros pasos
 
 1. **Importa:** abre o arrastra fotos y comprueba la hora de captura y la zona horaria de la cámara.
-2. **Añade lugares:** revisa la asociación con el recorrido o elige un punto en el mapa.
+2. **Añade lugares:** sigue los pasos de la barra lateral para seleccionar fotos y completar las ubicaciones que faltan, o elige un punto en el mapa.
 3. **Completa detalles:** edita campos o aplica un preajuste.
 4. **Guarda:** revisa y escribe los cambios; después previsualiza y ejecuta el renombrado si lo necesitas.
 

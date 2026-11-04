@@ -124,6 +124,10 @@ PhotoTrail 基于 GeoTag v6.0.2 派生，仍使用其部分应用基础设施与
 
 `PhotoInteractionTests` 覆盖 2000 张照片连续选择、时间／时区变化、配对、缓存分离和撤销后继续编辑；`MapPhotoPerformanceTests` 覆盖地图分组及滚动容器替换。逻辑检查不等同于实际滚动帧率或真实 RAW／外置盘验收。
 
+地图侧栏使用 `SidebarScrollView`，在创建原生 `NSScrollView` 时就配置固定竖向栏位；外栏继续使用已保存的宽度比例。托管内容显式继承完整 `EnvironmentValues`，并按 clip view 可用宽度测量图片与换行文字，不依赖后装扫描。`SubtleScrollbarTests` 覆盖首轮布局、环境传递、动态高度和滚动位置、宽度相关内容，以及完整 `PhotoDetailPage` 离屏重建后保留已保存比例。离屏检查不代表真实窗口首帧或用户原场景已修复。
+
+`LinkedRegionTests` 覆盖地区联动仅补空值、已有文字与草稿保护、固定目标、迟到结果和忙碌状态；`SaveAddressTests` 覆盖关闭既有开关时不查询、保存时只补缺失字段、失败后保留定位及不符合条件的快照。设置与侧栏共用 `SettingsPreferences.writeRegionKey`（`PhotoTrailWriteRegionWithLocation`，默认 true），不引入第二个持久开关。
+
 ### 共享照片集合与预设回归
 
 三页导入统一为 `ContentView` 的导入入口和 `OpenHelper.importFiles`，照片集合／选择在 `PhotoTrailState`；重命名不再保存独立文件 URL 列表。移除复用 `.removeImages` 与撤销，改名／恢复仍通过 `.filesRenamed` 回写共享对象。导入层在保存或改名执行期间拒绝新任务。
@@ -153,7 +157,7 @@ PhotoTrail 基于 GeoTag v6.0.2 派生，仍使用其部分应用基础设施与
 
 `MetadataWorkflowCardTests` 覆盖常用预设默认前三项、持久选择、去重及删除名称过滤；`MetadataBatchEditingTests` 覆盖隐藏规则与单字段输入分离时的退出保护。界面卡片、覆盖动画和分隔线稳定性另做原生交互验收，不以逻辑测试代替。
 
-`PhotoListClearTests` 覆盖全列表（含未选项）清空、照片与草稿撤销、轨迹／文件／访问范围保留，以及保存、导入、重命名执行和空列表阻止清空；菜单 ⌘K 与工具栏共用确认流程，原生检查另验三页入口与地区补齐窗口。
+`PhotoListClearTests` 覆盖全列表（含未选项）清空、照片与草稿撤销、轨迹／文件／访问范围保留，以及保存、导入、重命名执行和空列表阻止清空；菜单 ⌘K 与工具栏共用确认流程，原生检查另验三页入口与地区联动控件。
 
 
 重命名目录授权使用 `RenameWorkspace` 的安全作用域书签；`project.yml` 显式生成 `com.apple.security.files.bookmarks.app-scope` entitlement，与原用户选择读写权限一起使用。目录覆盖按真实路径组件检查，修改权限每次预览／执行重新核对；只把实际输入文件的父目录传给配对与冲突扫描。`RenameTests` 覆盖上级目录持久授权、子目录配对／冲突、只读目录、相似前缀及符号链接越界。自动测试不替代系统目录选择器及跨进程／外置宗卷重挂载实测。

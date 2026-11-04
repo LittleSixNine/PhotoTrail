@@ -28,11 +28,16 @@ PhotoTrail is a free macOS tool for organizing photos. Add locations to camera s
 
 **Keep a record of the journey, even without a GPS camera.**
 
-- **Locate photos from a track:** import timestamped GPX, KML or KMZ, match capture times and preview before applying.
+- **Locate photos from a track:** click + to import timestamped GPX, KML or KMZ. In the sidebar, follow step 1 to select photos within the track's recorded times, then step 2 to fill missing locations. Results are staged until you save the photos.
 - **Adjust on a map:** use Apple Maps or AMap, search and favorite places, drag markers or set one location for several photos.
+  AMap search defaults to the visible map area, with selected-city and nationwide options, city navigation, and address lookup. After moving the map, choose “Search this area” to refresh; results update photos only when explicitly applied.
 - **Turn photos into a track:** generate GPX from geotagged photos, or export geotagged photo copies with a verification report.
 
-Locations can also fill region details such as state and city. Untimed routes are view-only; matching stays within recorded segments and their time coverage.
+The star saves the current location as a favorite; the wide button below the favorites expands the remaining places. Each track's checkbox independently controls its visibility on the map.
+
+The region-filling checkbox shares one preference with Settings. It defaults to on and preserves your existing choice. When enabled, applying locations and saving fill only empty region fields, preserving existing text. Changes are staged until you save the photos.
+
+Untimed routes are view-only; matching stays within recorded segments and their time coverage.
 
 ### 2. Metadata viewing and editing
 
@@ -67,7 +72,7 @@ Apple Photos uses the system interface for location and date updates, with diffe
 ## Getting started
 
 1. **Import photos:** open or drag in files; check capture times and the camera time zone.
-2. **Add locations:** preview track matches or choose a point on the map.
+2. **Add locations:** follow the sidebar steps to select photos and fill missing locations, or choose a point on the map.
 3. **Complete details:** edit common fields or apply a batch preset.
 4. **Save:** review changes and write them; preview and run renaming afterward if needed.
 

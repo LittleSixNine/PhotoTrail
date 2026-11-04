@@ -35,8 +35,6 @@ struct TrackSidebar: View {
                     }
                     ForEach(library.activeRecords) { record in trackRow(record) }
                     if !store.gpxTracks.isEmpty {
-                        Text(L10n.text("匹配范围：含时间轨迹（%1$@ 条）", store.gpxTracks.filter(\.hasRecordedTimes).count))
-                            .font(.caption).foregroundStyle(.secondary)
                         matchingControls
                     }
                     Divider()
@@ -47,8 +45,11 @@ struct TrackSidebar: View {
                     Label(L10n.text("轨迹"), systemImage: "point.topleft.down.to.point.bottomright.curvepath")
                         .font(.headline)
                     Spacer(minLength: 0)
-                    Button(L10n.text("导入…")) { importing = true }
+                    Button { importing = true } label: {
+                        Image(systemName: "plus").frame(width: 24, height: 24)
+                    }
                         .buttonStyle(.borderless)
+                        .accessibilityLabel(L10n.text("导入轨迹"))
                         .help(L10n.text("导入轨迹")).disabled(store.saveInProgress)
                     Menu {
                         Button(L10n.text("刷新全部可见轨迹")) {
@@ -62,12 +63,10 @@ struct TrackSidebar: View {
                         Divider()
                         Button(L10n.text("轨迹与隐私说明")) { showsPrivacy = true }
                     } label: { Image(systemName: "ellipsis") }
-                        .menuStyle(.borderlessButton).fixedSize().help(L10n.text("轨迹操作"))
+                        .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().help(L10n.text("轨迹操作"))
                 }
             }
             if !expansion.wrappedValue {
-                Text(L10n.text("按拍摄时间，批量补齐照片定位。"))
-                    .font(.caption).foregroundStyle(.secondary)
                 if matching { ProgressView(L10n.text("正在匹配轨迹…")).controlSize(.small) }
                 if library.states.values.contains(where: { if case .failed = $0 { return true }; return false }) {
                     Button(L10n.text("轨迹转换失败，展开查看。")) { tracksExpanded = true }
@@ -193,53 +192,108 @@ private extension TrackSidebar {
 
     private var matchingControls: some View {
         let selection = MapPhotoSelectionSummary(images: store.imageData, selectedIDs: store.selection)
-        let blocked = store.selection.isEmpty || !store.gpxTracks.contains(where: \.hasRecordedTimes) || store.saveInProgress || matching || !library.readingSources.isEmpty
-        return VStack(alignment: .leading, spacing: 10) {
-            Text(L10n.text("匹配所选照片：%1$@ 张", store.selection.count)).font(.callout.weight(.medium))
-            Button(L10n.text("按轨迹时段选择照片")) { selectPhotosInTrackTime() }
-                .buttonStyle(.borderless)
-                .disabled(!store.gpxTracks.contains(where: \.hasRecordedTimes) || store.saveInProgress || matching || !library.readingSources.isEmpty)
-                .help(L10n.text("选中拍摄时间落在任一已导入轨迹记录段内的照片"))
-            Button { applyTrackLocations(overwrite: false) } label: {
-                Text(L10n.text("补齐缺失定位")).frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent).controlSize(.large)
-            .disabled(blocked || selection.missing == 0 || selection.readOnly == selection.total)
-            Text(L10n.text("仅为没有定位的照片匹配位置，不覆盖已有定位。"))
-                .font(.caption).foregroundStyle(.secondary)
-            Text(L10n.text("匹配后暂存，可撤销。"))
-                .font(.caption).foregroundStyle(.secondary)
-            if store.saveInProgress {
-                Text(L10n.text("正在保存")).font(.caption).foregroundStyle(.secondary)
-            } else if selection.total == 0 {
-                Text(L10n.text("选择照片后再匹配定位。")).font(.caption).foregroundStyle(.secondary)
-            } else if selection.readOnly > 0 {
-                Text(L10n.text("%1$@ 张照片无法编辑，将跳过。", selection.readOnly))
-                    .font(.caption).foregroundStyle(.secondary)
-            } else if selection.missing == 0 {
-                Text(L10n.text("所选照片均已有定位，可在更多匹配选项中重新匹配。"))
-                    .font(.caption).foregroundStyle(.secondary)
+        let missingPhotos = store.imageData.filter {
+            store.selection.contains($0.id) && $0.updatable && $0.metadata.readable && $0.metadata.location == nil
+        }
+        let hasMatchablePhotos = missingPhotos.contains { $0.metadata.parsedDate(timeZone: store.timeZone) != nil }
+        let hasTimedTracks = store.gpxTracks.contains(where: \.hasRecordedTimes)
+        let busy = store.saveInProgress || store.importProgress.isActive || matching || !library.readingSources.isEmpty
+        let canSelect = hasTimedTracks && !busy
+        let canFill = canSelect && hasMatchablePhotos
+        let blocked = store.selection.isEmpty || !canSelect
+        return VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 9) {
+                    matchingStep(1, current: canSelect && !canFill)
+                    VStack(alignment: .leading, spacing: 5) {
+                        matchingButton(L10n.text("按轨迹时段选择照片"), primary: !canFill) {
+                            selectPhotosInTrackTime()
+                        }
+                        .disabled(!canSelect)
+                        .help(L10n.text("选中拍摄时间落在任一已导入轨迹记录段内的照片"))
+                        Text(selection.total == 0 ? L10n.text("未选择照片") : L10n.text("已选 %1$@ 张", selection.total))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                .background(alignment: .topLeading) {
+                    Rectangle().fill(Color.secondary.opacity(0.20)).frame(width: 1)
+                        .padding(.leading, 10.5).padding(.top, 18).padding(.bottom, -30)
+                        .accessibilityHidden(true)
+                }
+                HStack(alignment: .top, spacing: 9) {
+                    matchingStep(2, current: canFill || matching)
+                    VStack(alignment: .leading, spacing: 5) {
+                        matchingButton(L10n.text("补齐缺失定位"), primary: canFill) {
+                            applyTrackLocations(overwrite: false)
+                        }
+                        .disabled(!canFill)
+                        .help(L10n.text("仅为没有定位的照片匹配位置，不覆盖已有定位。") + "\n" + L10n.text("匹配后暂存，可撤销。"))
+                        if matching {
+                            ProgressView(L10n.text("正在匹配轨迹…")).controlSize(.small)
+                        } else if store.saveInProgress {
+                            Text(L10n.text("正在保存")).font(.caption).foregroundStyle(.secondary)
+                        } else if !library.readingSources.isEmpty {
+                            Text(L10n.text("正在读取轨迹…")).font(.caption).foregroundStyle(.secondary)
+                        } else if !hasTimedTracks {
+                            Text(L10n.text("轨迹缺少时间，无法匹配照片。"))
+                                .font(.caption).foregroundStyle(.secondary)
+                        } else if selection.total > 0 {
+                            if selection.located == selection.total {
+                                Text(L10n.text("所选照片均已有定位")).font(.caption).foregroundStyle(.secondary)
+                            } else if !missingPhotos.isEmpty && !hasMatchablePhotos {
+                                Text(L10n.text("缺少有效拍摄时间，无法匹配。"))
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            if selection.readOnly > 0 {
+                                Text(L10n.text("%1$@ 张照片无法编辑，将跳过。", selection.readOnly))
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            if selection.unreadable > 0 {
+                                Text(L10n.text("%1$@ 张照片读取失败，将跳过。", selection.unreadable))
+                                    .font(.caption).foregroundStyle(.orange)
+                            }
+                        }
+                    }
+                }
             }
             DisclosureGroup(L10n.text("更多匹配选项"), isExpanded: $matchingOptionsExpanded) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Button(L10n.text("覆盖所有定位")) { applyTrackLocations(overwrite: true) }
-                        .buttonStyle(.bordered)
-                        .disabled(blocked || selection.readOnly == selection.total)
-                    Text(L10n.text("重新匹配所选照片，成功匹配的位置会替换现有定位，写入前可撤销。"))
-                        .font(.caption).foregroundStyle(.secondary)
-                }.frame(maxWidth: .infinity, alignment: .leading).padding(.top, 8)
+                Button(L10n.text("覆盖所有定位")) { applyTrackLocations(overwrite: true) }
+                    .buttonStyle(.bordered)
+                    .disabled(blocked || selection.readOnly == selection.total)
+                    .help(L10n.text("重新匹配所选照片，成功匹配的位置会替换现有定位，写入前可撤销。"))
+                    .padding(.top, 8)
             }
-            if matching { ProgressView(L10n.text("正在匹配轨迹…")).controlSize(.small) }
+            .font(.caption).foregroundStyle(.secondary).padding(.leading, 31)
+        }
+        .padding(.top, 4)
+    }
+
+    private func matchingStep(_ number: Int, current: Bool) -> some View {
+        Text(verbatim: "\(number)").font(.caption.weight(.semibold))
+            .foregroundStyle(current ? Color.white : Color.secondary)
+            .frame(width: 22, height: 22)
+            .background(current ? Color.accentColor : Color(nsColor: .controlBackgroundColor), in: Circle())
+            .padding(.top, 5).accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private func matchingButton(_ title: String, primary: Bool, action: @escaping () -> Void) -> some View {
+        if primary {
+            Button(action: action) { Text(title).frame(maxWidth: .infinity) }
+                .buttonStyle(.borderedProminent).controlSize(.large)
+        } else {
+            Button(action: action) { Text(title).frame(maxWidth: .infinity) }
+                .buttonStyle(.bordered).controlSize(.large)
         }
     }
 
     private func trackRow(_ record: TrackRecord) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 Button { library.select(record.id, amap: amap) } label: {
                     HStack(alignment: .top, spacing: 8) {
                         TrackThumbnail(segments: record.segments)
-                            .frame(width: 48, height: 46)
+                            .frame(width: 36, height: 42)
                             .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 6) {
@@ -256,9 +310,10 @@ private extension TrackSidebar {
                             Text(record.timeRange).font(.caption).foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .help(L10n.text("轨迹记录时间，按本机时区显示"))
-                            Text(record.log.hasRecordedTimes ? L10n.text("含时间，可匹配照片")
-                                 : L10n.text("仅供查看：缺少轨迹点时间"))
-                                .font(.caption).foregroundStyle(record.log.hasRecordedTimes ? Color.secondary : .orange)
+                            if !record.log.hasRecordedTimes {
+                                Text(L10n.text("仅供查看：缺少轨迹点时间"))
+                                    .font(.caption).foregroundStyle(.orange)
+                            }
                             Text(summary(record)).font(.caption).foregroundStyle(.secondary)
                         }.frame(maxWidth: .infinity, alignment: .leading)
                     }.contentShape(Rectangle())
@@ -266,49 +321,54 @@ private extension TrackSidebar {
                     .accessibilityLabel(L10n.text("查看 %1$@ 的轨迹范围", record.name))
                     .accessibilityValue("\(record.timeRange)，\(summary(record))")
                     .accessibilityAddTraits(library.selected == record.id ? .isSelected : [])
-                VStack(spacing: 8) {
-                    Button { library.setVisible(record.id, !library.visible.contains(record.id), amap: amap) } label: {
-                        Image(systemName: library.visible.contains(record.id) ? "eye" : "eye.slash")
-                            .frame(width: 24, height: 24)
+                if library.readingSources[record.id] != nil { ProgressView().controlSize(.small) }
+                if record.sourceUnavailable {
+                    Text(L10n.text("原文件不可用，仍可查看已有缓存；请重新导入以匹配照片。"))
+                        .font(.caption).foregroundStyle(.orange)
+                }
+                if let state = library.states[record.id] {
+                    switch state {
+                    case .loading(let completed, let total):
+                        HStack(spacing: 8) {
+                            ProgressView(value: Double(completed), total: Double(max(total, 1))) {
+                                Text(library.nextRequestID == record.id
+                                     ? L10n.text("%1$@中 · %2$@ / %3$@ 点", record.converted == nil ? L10n.text("转换") : L10n.text("刷新"), completed, total)
+                                     : L10n.text("等待转换"))
+                                    .font(.caption)
+                            }
+                            Button(L10n.text("取消")) { library.cancel(record.id) }.buttonStyle(.borderless)
+                        }
+                        Text(library.nextRequestID != record.id ? L10n.text("前一条完成后自动开始。")
+                             : workspace.ready ? L10n.text("正在按顺序处理轨迹。") : L10n.text("等待高德地图就绪…"))
+                            .font(.caption2).foregroundStyle(.secondary)
+                    case .failed(let reason):
+                        HStack(alignment: .top) {
+                            Text(record.converted == nil ? L10n.text("转换失败：%1$@", reason) : L10n.text("刷新失败，保留原轨迹。%1$@", reason))
+                                .font(.caption).foregroundStyle(.orange)
+                            Spacer(minLength: 4)
+                            Button(L10n.text("重试")) { refresh(record.id) }.buttonStyle(.borderless)
+                        }
                     }
-                    .buttonStyle(.borderless)
+                }
+            }.frame(maxWidth: .infinity, alignment: .leading)
+            VStack(spacing: 0) {
+                Toggle(L10n.text("显示 %1$@", record.name), isOn: Binding(
+                    get: { library.visible.contains(record.id) },
+                    set: { library.setVisible(record.id, $0, amap: amap) }))
+                    .toggleStyle(SidebarCheckboxToggleStyle(size: 16, showsLabel: false)).labelsHidden()
+                    .frame(width: 28, height: 28)
                     .help(L10n.text("仅控制地图显示，不改变匹配范围。"))
                     .accessibilityLabel(L10n.text("显示 %1$@", record.name))
                     .accessibilityValue(library.visible.contains(record.id) ? L10n.text("已显示") : L10n.text("已隐藏"))
-                    Menu { trackActions(record) } label: { Image(systemName: "ellipsis").frame(width: 24, height: 20) }
-                        .menuStyle(.borderlessButton).fixedSize().help(L10n.text("轨迹操作"))
+                Spacer(minLength: 6)
+                Menu { trackActions(record) } label: {
+                    Image(systemName: "ellipsis").frame(width: 28, height: 24)
                 }
-            }
-            if library.readingSources[record.id] != nil { ProgressView().controlSize(.small) }
-            if record.sourceUnavailable {
-                Text(L10n.text("原文件不可用，仍可查看已有缓存；请重新导入以匹配照片。"))
-                    .font(.caption).foregroundStyle(.orange)
-            }
-            if let state = library.states[record.id] {
-                switch state {
-                case .loading(let completed, let total):
-                    HStack(spacing: 8) {
-                        ProgressView(value: Double(completed), total: Double(max(total, 1))) {
-                            Text(library.nextRequestID == record.id
-                                 ? L10n.text("%1$@中 · %2$@ / %3$@ 点", record.converted == nil ? L10n.text("转换") : L10n.text("刷新"), completed, total)
-                                 : L10n.text("等待转换"))
-                                .font(.caption)
-                        }
-                        Button(L10n.text("取消")) { library.cancel(record.id) }.buttonStyle(.borderless)
-                    }
-                    Text(library.nextRequestID != record.id ? L10n.text("前一条完成后自动开始。")
-                         : workspace.ready ? L10n.text("正在按顺序处理轨迹。") : L10n.text("等待高德地图就绪…"))
-                        .font(.caption2).foregroundStyle(.secondary)
-                case .failed(let reason):
-                    HStack(alignment: .top) {
-                        Text(record.converted == nil ? L10n.text("转换失败：%1$@", reason) : L10n.text("刷新失败，保留原轨迹。%1$@", reason))
-                            .font(.caption).foregroundStyle(.orange)
-                        Spacer(minLength: 4)
-                        Button(L10n.text("重试")) { refresh(record.id) }.buttonStyle(.borderless)
-                    }
-                }
+                .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().help(L10n.text("轨迹操作"))
+                .accessibilityLabel(L10n.text("轨迹操作"))
             }
         }
+        .fixedSize(horizontal: false, vertical: true)
         .padding(8)
         .background(library.selected == record.id ? Color.accentColor.opacity(0.10) : .clear,
                     in: RoundedRectangle(cornerRadius: 6))
@@ -392,7 +452,7 @@ private extension TrackSidebar {
         let ids = LocationHelper.photoIDs(in: store.visibleImages, timeZone: store.timeZone,
                                           tracks: store.gpxTracks)
         store.send(.selectionChanged(ids), undoable: false)
-        importNotice = L10n.text("已按全部导入轨迹的记录时段选中 %1$@ 张照片。", ids.count)
+        importNotice = nil
     }
 
     private func applyTrackLocations(overwrite: Bool) {
@@ -408,7 +468,7 @@ private extension TrackSidebar {
                 importNotice = L10n.text("照片选择已变化，请重新操作。")
                 return
             }
-            let editableIDs = Set(store.imageData.lazy.filter { $0.updatable }.map(\.id))
+            let editableIDs = Set(store.imageData.lazy.filter { $0.updatable && $0.metadata.readable }.map(\.id))
             let matched = store.trackMatches.filter {
                 $0.status == .matched && $0.coords != nil && editableIDs.contains($0.id)
             }
@@ -419,6 +479,7 @@ private extension TrackSidebar {
             }
             store.send(.locationFromTrack(matched), undoable: false)
             store.send(.applyTrackMatches, description: overwrite ? L10n.text("按轨迹重设定位") : L10n.text("按轨迹补齐定位"))
+            LocationHelper.scheduleLinkedRegions(store, workspace: workspace, ids: Set(matched.map(\.id)))
             importNotice = L10n.text("已修改 %1$@ 张照片，另有 %2$@ 张跳过；请写入所有元数据。",
                                     matched.count, selection.count - matched.count)
         }

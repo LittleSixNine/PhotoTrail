@@ -20,6 +20,7 @@ struct ContentView: View {
 
     @AppStorage(L10n.languageKey) private var language = L10n.language.rawValue
     @AppStorage("PhotoTrailMapProvider") private var mapProvider = "amap"
+    @AppStorage(SettingsPreferences.writeRegionKey) private var fillsMissingRegions = true
     @AppStorage(Self.alternateLayoutKey) var alternateLayout = false
 
     @Environment(LocationWorkspace.self) private var locationWorkspace
@@ -139,6 +140,7 @@ struct ContentView: View {
     var body: some View {
         workspaceContent
         .onAppear {
+            locationWorkspace.fillRegionsOnLocationChange = fillsMissingRegions
             if !startupApplied {
                 let page = SettingsPreferences.initialWorkspace()
                 renameSelected = page == .rename
@@ -151,6 +153,7 @@ struct ContentView: View {
             metadataQueue.synchronize(store.imageData)
         }
         .onChange(of: alternateLayout) { rememberWorkspace() }
+        .onChange(of: fillsMissingRegions) { locationWorkspace.fillRegionsOnLocationChange = fillsMissingRegions }
         .onChange(of: renameSelected) { rememberWorkspace() }
         .onChange(of: store.imageData.map(\.id)) { metadataQueue.synchronize(store.imageData) }
         .onChange(of: store.imageData.map(\.metadataInspectionURL)) { metadataQueue.synchronize(store.imageData) }

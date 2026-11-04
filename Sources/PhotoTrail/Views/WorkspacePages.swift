@@ -391,11 +391,9 @@ struct PhotoDetailPage: View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
                 HStack(spacing: 0) {
-                    ScrollView {
+                    SidebarScrollView {
                         LocationPanel()
                     }
-                    .scrollIndicators(.visible, axes: .vertical)
-                    .background(SubtleScrollbars(reservesVerticalScroller: true))
                     .frame(width: max(260, min(geometry.size.width * leftRatio, geometry.size.width - 420)))
                         .background(Color(nsColor: .windowBackgroundColor))
                     Divider().frame(width: 6).contentShape(Rectangle())
@@ -744,14 +742,9 @@ fileprivate extension PhotoDetailPage {
 
     func apply(_ coordinate: Coords, elevation: Double?, description: String) {
         let selected = store.selection
-        guard let id = selected.first else { return }
-        store.send(.locationFromPhoto(coordinate, elevation), description: description) {
-            Task {
-                if let address = await ReverseLocationFinder.reverseGeocode(store: store, id: id) {
-                    store.send(.addressChanged(selected, address), undoable: false)
-                }
-            }
-        }
+        guard !selected.isEmpty else { return }
+        store.send(.locationFromPhoto(coordinate, elevation), description: description)
+        LocationHelper.scheduleLinkedRegions(store, workspace: workspace, ids: selected)
     }
 
     var hasGPXPoints: Bool {

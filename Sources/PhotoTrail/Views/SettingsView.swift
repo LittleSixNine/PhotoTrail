@@ -43,8 +43,6 @@ struct SettingsView: View {
     @AppStorage(SettingsPreferences.metadataTextSizeKey) private var metadataTextSize = 0
     @AppStorage(SettingsPreferences.metadataSpacingKey) private var metadataSpacing = 0
     @AppStorage(SettingsPreferences.metadataTagNamesKey) private var metadataTagNames = true
-    @AppStorage(SettingsPreferences.recordSearchesKey) private var recordSearches = true
-    @AppStorage(SettingsPreferences.recentSearchesKey) private var recentSearches = Data()
 
     @State private var backupURL: URL?
     @State private var showAMapSettings = false
@@ -188,13 +186,7 @@ struct SettingsView: View {
                 Text(L10n.text("开启后拖动标记，松手即更新待保存的位置；关闭可避免误触。"))
                     .font(.footnote).foregroundStyle(.secondary)
             }
-            Section(L10n.text("最近搜索")) {
-                Toggle(L10n.text("记录最近搜索"), isOn: $recordSearches)
-                Text(L10n.text("关闭后隐藏并停止记录；已有记录保留，重新开启后可见。"))
-                    .font(.footnote).foregroundStyle(.secondary)
-                Button(L10n.text("清除最近搜索记录")) { recentSearches = Data() }
-                    .disabled(recentSearches.isEmpty)
-            }
+            SearchHistorySettings()
             Section(L10n.text("地区名称")) {
                 Picker(L10n.text("查询方式"), selection: $automaticRegion) {
                     Text(L10n.text("自动查询")).tag(true)
@@ -223,8 +215,9 @@ struct SettingsView: View {
                 Toggle(L10n.text("创建 XMP 附属文件"), isOn: $createSidecarFiles)
                 Toggle(L10n.text("设置文件修改时间"), isOn: $updateFileModificationTimes)
                 Toggle(L10n.text("更新 GPS 日期与时间"), isOn: $updateGPSTimestamps)
-                Toggle(L10n.text("保存定位时自动补齐地区信息"), isOn: $writeRegion)
-                Text(L10n.text("包括省／州、市、区县、国家和国家代码；手动补齐不受此开关影响。"))
+                Toggle(L10n.text("定位时补齐缺失地区信息"), isOn: linkedRegionBinding)
+                    .disabled(store.saveInProgress)
+                Text(L10n.text("与地图侧栏的“补齐地区”共用开关；保留已有文字。"))
                     .font(.footnote).foregroundStyle(.secondary)
                 Toggle(L10n.text("给更新的文件添加 Finder 标签"), isOn: $addTags)
                 if addTags {
@@ -433,6 +426,13 @@ extension Notification.Name {
 }
 
 private extension SettingsView {
+    var linkedRegionBinding: Binding<Bool> {
+        Binding(get: { writeRegion }, set: { enabled in
+            writeRegion = enabled
+            locationWorkspace.fillRegionsOnLocationChange = enabled
+        })
+    }
+
     var metadata: some View {
         let selected = MetadataFieldFilter.commonTags(from: commonFieldsData)
         return settingsPage {
@@ -478,4 +478,20 @@ private extension SettingsView {
         }
     }
 
+}
+
+private struct SearchHistorySettings: View {
+    @AppStorage(SettingsPreferences.recordSearchesKey) private var recordSearches = true
+    @AppStorage(SettingsPreferences.recentSearchesKey) private var recentSearches = Data()
+    @AppStorage(AMapSearchCity.recentKey) private var recentCities = Data()
+
+    var body: some View {
+        Section(L10n.text("最近搜索")) {
+            Toggle(L10n.text("记录最近搜索"), isOn: $recordSearches)
+            Text(L10n.text("关闭后隐藏并停止记录；已有记录保留，重新开启后可见。"))
+                .font(.footnote).foregroundStyle(.secondary)
+            Button(L10n.text("清除最近搜索记录")) { SettingsPreferences.clearRecentSearches() }
+                .disabled(recentSearches.isEmpty && recentCities.isEmpty)
+        }
+    }
 }

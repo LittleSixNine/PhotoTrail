@@ -19,7 +19,8 @@ struct PhotoTrailReducer: Reducer, Sendable {
         if state.saveInProgress || state.importProgress.isActive {
             switch event {
             case .addressChanged, .missingAddressesFilled, .clearImagesRequest, .deleteRequest, .removeImages, .discardChangesRequest,
-                 .creatorDraftApplied, .creatorDraftRemoved, .locationChanged, .applyTrackMatches,
+                 .creatorDraftApplied, .creatorDraftRemoved, .locationChanged, .locationForImageChanged,
+                 .locationFromPhoto, .confirmedWGS84Location, .applyTrackMatches,
                  .newTimestamp, .pasteRequest,
                  .placeSelection, .timeZoneChanged, .openCommand, .openFiles, .saveRequest, .savePageRequest:
                 return state
@@ -228,9 +229,13 @@ struct PhotoTrailReducer: Reducer, Sendable {
             newState.trackMatches = updates.filter { photoIDs.contains($0.id) }
 
         case .applyTrackMatches:
-            for entry in state.trackMatches where entry.status == .matched {
+            for entry in state.trackMatches where entry.status == .matched && entry.coords != nil {
                 update(&newState, id: entry.id,
                        location: entry.coords, elevation: entry.elevation)
+                newState[entry.id].metadata.gpsMapDatum = "WGS-84"
+                if let pairedID = state[entry.id].pairedID, state[pairedID].updatable {
+                    newState[pairedID].metadata.gpsMapDatum = "WGS-84"
+                }
             }
             newState.trackMatches = []
 
