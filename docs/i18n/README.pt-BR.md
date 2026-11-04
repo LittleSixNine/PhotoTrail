@@ -98,7 +98,7 @@ O software é gratuito. Os pacotes atuais ainda não têm assinatura Developer I
 
 ## Serviço AMap e custos
 
-O AMap exige sua própria Web JS API Key e securityJsCode, armazenados no Chaves do macOS. O Apple Maps não exige credenciais AMap.
+O AMap exige sua própria Web JS API Key e securityJsCode, criptografados localmente por padrão para novos usuários e compartilhados entre as versões oficiais e de teste. Os registros existentes do Chaves continuam compatíveis e podem ser transferidos para o armazenamento local compartilhado nos ajustes. As outras preferências permanecem separadas. O Apple Maps não exige credenciais AMap.
 
 Serviços pagos ou uso além da franquia gratuita são cobrados pelo AMap na sua conta de desenvolvedor. O PhotoTrail é gratuito e não cobra tarifas de mapas.
 

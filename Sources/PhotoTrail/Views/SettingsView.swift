@@ -46,7 +46,6 @@ struct SettingsView: View {
 
     @State private var backupURL: URL?
     @State private var showAMapSettings = false
-    @State private var credentials: AMapCredentials?
     @State private var gapText = ""
     @State private var trackWidthText = ""
     @State private var extendedTimeText = ""
@@ -62,8 +61,8 @@ struct SettingsView: View {
         }
         .frame(width: 640, height: 560)
         .sheet(isPresented: $showAMapSettings) {
-            AMapSettingsView(initialCredentials: credentials) {
-                credentials = $0
+            AMapSettingsView(initialCredentials: locationWorkspace.credentials) {
+                locationWorkspace.credentials = $0
                 NotificationCenter.default.post(name: .photoTrailAMapCredentialsChanged, object: $0)
             }
         }
@@ -71,10 +70,6 @@ struct SettingsView: View {
             backupURL = store.backupURL
             if store.backupURL != nil {
                 store.send(.backupFolderSizeCheck, undoable: false)
-            }
-            if ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] != "1" {
-                do { credentials = try await Task.detached { try AMapCredentials.load() }.value }
-                catch { OperationFailure.present(L10n.text("高德地图设置"), error: error) }
             }
             gapText = String(SettingsPreferences.photoGPXGap / 60)
             trackWidthText = String(trackWidth)

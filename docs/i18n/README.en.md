@@ -98,7 +98,7 @@ PhotoTrail is free. Current packages have not completed Developer ID signing or 
 
 ## AMap service and charges
 
-AMap requires your own Web JS API Key and securityJsCode, stored in the local macOS Keychain. Apple Maps needs no AMap credentials.
+AMap requires your own Web JS API Key and securityJsCode, encrypted locally by default for new users and shared by release and test builds. Existing Keychain records remain supported and can be switched to shared local storage in settings. Other preferences remain separate. Apple Maps needs no AMap credentials.
 
 AMap bills your developer account for paid services or usage beyond its free allowance. PhotoTrail is free and does not collect map-service fees.
 

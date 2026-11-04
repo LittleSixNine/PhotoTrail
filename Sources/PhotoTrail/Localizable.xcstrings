@@ -1,6 +1,11 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "旧钥匙串需要授权，请点击“从钥匙串读取”。也可改用本地共享，保存后不再请求钥匙串。": {"extractionState": "manual", "localizations": {"zh-Hans": {"stringUnit": {"state": "translated", "value": "旧钥匙串需要授权，请点击“从钥匙串读取”。也可改用本地共享，保存后不再请求钥匙串。"}}, "en": {"stringUnit": {"state": "translated", "value": "The existing Keychain needs authorization. Click “Read from keychain”, or switch to shared local storage to avoid future Keychain requests after saving."}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "舊鑰匙圈需要授權，請按一下「從鑰匙圈讀取」。也可改用本機共用，儲存後不再要求鑰匙圈授權。"}}, "ja": {"stringUnit": {"state": "translated", "value": "既存のキーチェーンには認証が必要です。「キーチェーンから読み込む」をクリックしてください。ローカル共有に切り替えて保存すると、以降はキーチェーンへの要求がなくなります。"}}, "ko": {"stringUnit": {"state": "translated", "value": "기존 키체인에 접근하려면 인증이 필요합니다. “키체인에서 읽기”를 클릭하세요. 로컬 공유로 전환해 저장하면 이후 키체인 인증을 요청하지 않습니다."}}, "es": {"stringUnit": {"state": "translated", "value": "El llavero existente requiere autorización. Pulsa «Leer del llavero» o cambia al almacenamiento local compartido para evitar solicitudes al llavero después de guardar."}}, "pt-BR": {"stringUnit": {"state": "translated", "value": "O Chaves existente exige autorização. Clique em “Ler do Chaves” ou mude para o armazenamento local compartilhado para evitar novas solicitações após salvar."}}}},
+    "本机加密 · 正式版与测试版共用": {"extractionState": "manual", "localizations": {"zh-Hans": {"stringUnit": {"state": "translated", "value": "本机加密 · 正式版与测试版共用"}}, "en": {"stringUnit": {"state": "translated", "value": "Encrypted locally · shared by release and test builds"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "本機加密 · 正式版與測試版共用"}}, "ja": {"stringUnit": {"state": "translated", "value": "このMacで暗号化 · 正式版とテスト版で共有"}}, "ko": {"stringUnit": {"state": "translated", "value": "로컬 암호화 · 정식 버전과 테스트 버전 공유"}}, "es": {"stringUnit": {"state": "translated", "value": "Cifrado local · compartido entre versiones"}}, "pt-BR": {"stringUnit": {"state": "translated", "value": "Criptografia local · compartilhada entre versões"}}}},
+    "钥匙串 · 旧版兼容": {"extractionState": "manual", "localizations": {"zh-Hans": {"stringUnit": {"state": "translated", "value": "钥匙串 · 旧版兼容"}}, "en": {"stringUnit": {"state": "translated", "value": "Keychain · legacy support"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "鑰匙圈 · 舊版相容"}}, "ja": {"stringUnit": {"state": "translated", "value": "キーチェーン · 旧版との互換性"}}, "ko": {"stringUnit": {"state": "translated", "value": "키체인 · 이전 버전 호환"}}, "es": {"stringUnit": {"state": "translated", "value": "Llavero · compatibilidad anterior"}}, "pt-BR": {"stringUnit": {"state": "translated", "value": "Chaves · compatibilidade anterior"}}}},
+    "改用本地共享": {"extractionState": "manual", "localizations": {"zh-Hans": {"stringUnit": {"state": "translated", "value": "改用本地共享"}}, "en": {"stringUnit": {"state": "translated", "value": "Use shared local storage"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "改用本機共用"}}, "ja": {"stringUnit": {"state": "translated", "value": "ローカル共有に切り替える"}}, "ko": {"stringUnit": {"state": "translated", "value": "로컬 공유로 전환"}}, "es": {"stringUnit": {"state": "translated", "value": "Usar almacenamiento local compartido"}}, "pt-BR": {"stringUnit": {"state": "translated", "value": "Usar armazenamento local compartilhado"}}}},
+    "本地高德凭据读写失败，原文件已保留。%1$@": {"extractionState": "manual", "localizations": {"zh-Hans": {"stringUnit": {"state": "translated", "value": "本地高德凭据读写失败，原文件已保留。%1$@"}}, "en": {"stringUnit": {"state": "translated", "value": "Could not read or save local AMap credentials. Existing files were preserved. %1$@"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "本機高德憑據讀寫失敗，原始檔案已保留。%1$@"}}, "ja": {"stringUnit": {"state": "translated", "value": "ローカルのAMap認証情報を読み書きできません。既存のファイルは保持されています。%1$@"}}, "ko": {"stringUnit": {"state": "translated", "value": "로컬 AMap 인증 정보를 읽거나 저장하지 못했습니다. 기존 파일은 보존되었습니다. %1$@"}}, "es": {"stringUnit": {"state": "translated", "value": "No se pudieron leer o guardar las credenciales locales de AMap. Se conservaron los archivos existentes. %1$@"}}, "pt-BR": {"stringUnit": {"state": "translated", "value": "Não foi possível ler ou salvar as credenciais locais do AMap. Os arquivos existentes foram preservados. %1$@"}}}},
     "全国": {"extractionState": "manual", "localizations": {"zh-Hans": {"stringUnit": {"state": "translated", "value": "全国"}}, "en": {"stringUnit": {"state": "translated", "value": "Nationwide"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "全國"}}, "ja": {"stringUnit": {"state": "translated", "value": "全国"}}, "ko": {"stringUnit": {"state": "translated", "value": "전국"}}, "es": {"stringUnit": {"state": "translated", "value": "Todo el país"}}, "pt-BR": {"stringUnit": {"state": "translated", "value": "Todo o país"}}}},
     "当前画面": {"extractionState": "manual", "localizations": {"zh-Hans": {"stringUnit": {"state": "translated", "value": "当前画面"}}, "en": {"stringUnit": {"state": "translated", "value": "Current map area"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "目前畫面"}}, "ja": {"stringUnit": {"state": "translated", "value": "現在の表示範囲"}}, "ko": {"stringUnit": {"state": "translated", "value": "현재 지도 영역"}}, "es": {"stringUnit": {"state": "translated", "value": "Área visible"}}, "pt-BR": {"stringUnit": {"state": "translated", "value": "Área visível"}}}},
     "选择城市…": {"extractionState": "manual", "localizations": {"zh-Hans": {"stringUnit": {"state": "translated", "value": "选择城市…"}}, "en": {"stringUnit": {"state": "translated", "value": "Choose city…"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "選擇城市…"}}, "ja": {"stringUnit": {"state": "translated", "value": "都市を選択…"}}, "ko": {"stringUnit": {"state": "translated", "value": "도시 선택…"}}, "es": {"stringUnit": {"state": "translated", "value": "Elegir ciudad…"}}, "pt-BR": {"stringUnit": {"state": "translated", "value": "Escolher cidade…"}}}},
@@ -14229,53 +14234,7 @@
         }
       }
     },
-    "使用高德地图及相关坐标转换功能，需由你自行申请并填写高德开发者密钥。超出账号免费额度或使用付费服务时，可能产生费用（但个人用户很难使用超过每月免费额度），由高德向你的开发者账号计费。相关付费操作在高德开放平台完成，本软件完全免费，不收取或代收任何费用。\n\n高德开发者密钥保存在本机的 macOS 钥匙串中，不以明文写入配置文件，也不会上传至本软件开发者的服务器。调用高德服务时，密钥仅用于向高德进行身份验证。": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "To use AMap and its coordinate conversion services, obtain and enter your own developer credentials. Usage beyond your free allowance or paid services may incur charges from AMap to your developer account. Manage payments on the AMap platform. PhotoTrail is free and does not collect these charges.\n\nThe AMap key is stored in the Keychain on this Mac, not in plain-text settings or on PhotoTrail developer servers. It is used only to authenticate requests to AMap."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "使用高德地图及相关坐标转换功能，需由你自行申请并填写高德开发者密钥。超出账号免费额度或使用付费服务时，可能产生费用（但个人用户很难使用超过每月免费额度），由高德向你的开发者账号计费。相关付费操作在高德开放平台完成，本软件完全免费，不收取或代收任何费用。\n\n高德开发者密钥保存在本机的 macOS 钥匙串中，不以明文写入配置文件，也不会上传至本软件开发者的服务器。调用高德服务时，密钥仅用于向高德进行身份验证。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "使用高德地圖及相關坐標轉換功能，需由你自行申請並填寫高德開發者密鑰。超出賬號免費額度或使用付費服務時，可能產生費用（但個人用戶很難使用超過每月免費額度），由高德向你的開發者賬號計費。相關付費操作在高德開放平台完成，本軟體完全免費，不收取或代收任何費用。\n\n高德開發者密鑰保存在本機的 macOS 鑰匙串中，不以明文寫入配置檔案，也不會上傳至本軟體開發者的服務器。調用高德服務時，密鑰僅用於向高德進行身份驗證。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "AMapと関連する座標変換を使うには、ご自身の開発者キーを取得して入力してください。無料枠を超えたり有料サービスを使ったりすると、AMapから開発者アカウントに課金される場合があります。支払いはAMapのプラットフォームで管理してください。PhotoTrailは無料で、料金の徴収や代行は行いません。\n\nAMapキーはこのMacのキーチェーンに保存され、設定ファイルに平文で書き込まれたり、PhotoTrail開発者のサーバーに送信されたりしません。AMap利用時の認証にのみ使われます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "AMap과 관련 좌표 변환 기능을 사용하려면 본인의 개발자 키를 발급받아 입력해야 합니다. 무료 할당량을 초과하거나 유료 서비스를 사용하면 AMap이 개발자 계정에 요금을 청구할 수 있습니다. 결제는 AMap 플랫폼에서 관리합니다. PhotoTrail은 무료이며 요금을 징수하거나 대행하지 않습니다.\n\nAMap 키는 이 Mac의 키체인에 저장되며 설정 파일에 평문으로 기록되거나 PhotoTrail 개발자 서버에 업로드되지 않습니다. AMap 서비스를 호출할 때 인증 용도로만 사용됩니다."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Para usar AMap y su conversión de coordenadas necesitas tus propias credenciales de desarrollador. Superar la cuota gratuita o usar servicios de pago puede generar cargos de AMap en tu cuenta. Gestiona los pagos en la plataforma de AMap. PhotoTrail es gratuito y no cobra ni recauda esas tarifas.\n\nLa clave se guarda en el llavero de este Mac, no en texto claro en ajustes ni en servidores del desarrollador de PhotoTrail. Solo se usa para autenticar las solicitudes a AMap."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Para usar o AMap e sua conversão de coordenadas, obtenha suas próprias credenciais de desenvolvedor. Exceder a cota gratuita ou usar serviços pagos pode gerar cobranças do AMap na sua conta. Gerencie os pagamentos na plataforma do AMap. O PhotoTrail é gratuito e não cobra nem recolhe essas tarifas.\n\nA chave fica nas Chaves deste Mac, não em texto simples nos ajustes nem em servidores do desenvolvedor do PhotoTrail. É usada apenas para autenticar solicitações ao AMap."
-          }
-        }
-      }
-    },
+    "使用高德地图及相关坐标转换功能，需由你自行申请并填写高德开发者密钥。超出账号免费额度或使用付费服务时，可能产生费用（但个人用户很难使用超过每月免费额度），由高德向你的开发者账号计费。相关付费操作在高德开放平台完成，本软件完全免费，不收取或代收任何费用。\n\n高德凭据默认在本机加密保存，正式版和测试版共用；旧版钥匙串记录继续兼容，不会上传至本软件开发者的服务器。调用高德服务时，密钥仅用于向高德进行身份验证。": {"extractionState": "manual", "localizations": {"en": {"stringUnit": {"state": "translated", "value": "To use AMap and its coordinate conversion services, obtain and enter your own developer credentials. Usage beyond your free allowance or paid services may incur charges from AMap to your developer account. Manage payments on the AMap platform. PhotoTrail is free and does not collect these charges.\n\nAMap credentials are encrypted locally by default and shared by PhotoTrail release and test builds. Existing Keychain records remain supported. Credentials are not uploaded to PhotoTrail developer servers and are used only to authenticate requests to AMap."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "使用高德地图及相关坐标转换功能，需由你自行申请并填写高德开发者密钥。超出账号免费额度或使用付费服务时，可能产生费用（但个人用户很难使用超过每月免费额度），由高德向你的开发者账号计费。相关付费操作在高德开放平台完成，本软件完全免费，不收取或代收任何费用。\n\n高德凭据默认在本机加密保存，正式版和测试版共用；旧版钥匙串记录继续兼容，不会上传至本软件开发者的服务器。调用高德服务时，密钥仅用于向高德进行身份验证。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "使用高德地圖及相關坐標轉換功能，需由你自行申請並填寫高德開發者密鑰。超出賬號免費額度或使用付費服務時，可能產生費用（但個人用戶很難使用超過每月免費額度），由高德向你的開發者賬號計費。相關付費操作在高德開放平台完成，本軟體完全免費，不收取或代收任何費用。\n\n高德憑據預設在本機加密儲存，正式版與測試版共用；舊版鑰匙圈記錄繼續相容，不會上傳至本軟體開發者的伺服器。呼叫高德服務時，憑據僅用於向高德進行身分驗證。"}}, "ja": {"stringUnit": {"state": "translated", "value": "AMapと関連する座標変換を使うには、ご自身の開発者キーを取得して入力してください。無料枠を超えたり有料サービスを使ったりすると、AMapから開発者アカウントに課金される場合があります。支払いはAMapのプラットフォームで管理してください。PhotoTrailは無料で、料金の徴収や代行は行いません。\n\nAMapの認証情報は標準でこのMacに暗号化して保存され、正式版とテスト版で共有されます。既存のキーチェーン記録も引き続き利用できます。認証情報はPhotoTrail開発者のサーバーへ送信されず、AMapへの認証にのみ使用されます。"}}, "ko": {"stringUnit": {"state": "translated", "value": "AMap과 관련 좌표 변환 기능을 사용하려면 본인의 개발자 키를 발급받아 입력해야 합니다. 무료 할당량을 초과하거나 유료 서비스를 사용하면 AMap이 개발자 계정에 요금을 청구할 수 있습니다. 결제는 AMap 플랫폼에서 관리합니다. PhotoTrail은 무료이며 요금을 징수하거나 대행하지 않습니다.\n\nAMap 인증 정보는 기본적으로 이 Mac에 암호화되어 저장되며 정식 버전과 테스트 버전이 공유합니다. 기존 키체인 기록도 계속 지원합니다. 인증 정보는 PhotoTrail 개발자 서버에 업로드되지 않으며 AMap 요청 인증에만 사용됩니다."}}, "es": {"stringUnit": {"state": "translated", "value": "Para usar AMap y su conversión de coordenadas necesitas tus propias credenciales de desarrollador. Superar la cuota gratuita o usar servicios de pago puede generar cargos de AMap en tu cuenta. Gestiona los pagos en la plataforma de AMap. PhotoTrail es gratuito y no cobra ni recauda esas tarifas.\n\nLas credenciales de AMap se cifran localmente de forma predeterminada y se comparten entre las versiones oficiales y de prueba. Se mantienen compatibles los registros existentes del llavero. No se suben a los servidores del desarrollador de PhotoTrail y solo se usan para autenticar solicitudes a AMap."}}, "pt-BR": {"stringUnit": {"state": "translated", "value": "Para usar o AMap e sua conversão de coordenadas, obtenha suas próprias credenciais de desenvolvedor. Exceder a cota gratuita ou usar serviços pagos pode gerar cobranças do AMap na sua conta. Gerencie os pagamentos na plataforma do AMap. O PhotoTrail é gratuito e não cobra nem recolhe essas tarifas.\n\nAs credenciais do AMap são criptografadas localmente por padrão e compartilhadas entre as versões oficiais e de teste. Os registros existentes do Chaves continuam compatíveis. As credenciais não são enviadas aos servidores do desenvolvedor do PhotoTrail e são usadas apenas para autenticar solicitações ao AMap."}}}},
     "保存": {
       "extractionState": "manual",
       "localizations": {

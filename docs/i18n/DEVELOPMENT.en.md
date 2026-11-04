@@ -57,6 +57,8 @@ The app, module, target and scheme are named PhotoTrail. The default `PHOTOTRAIL
 
 Behavior, coordinate handling, saving and privacy contracts are recorded in [BEHAVIOR.md (Chinese)](../BEHAVIOR.md). GeoTag v6.0.2 is the upstream base; see the [license](../../LICENSE) and [third-party notices](../../THIRD_PARTY_NOTICES.md).
 
+AMap credentials are shared in `Library/Application Support/PhotoTrail/` under the real user home, outside each bundle’s container. The project grants read/write access only to this directory while retaining App Sandbox. Background legacy Keychain access suppresses interaction and restores its previous state; explicit reads still use system authorization. `AMapCredentialStoreTests` covers storage defaults, encrypted reload, migration, corrupted or missing files, symbolic links and concurrent first saves with synthetic credentials. Cross-bundle sandbox access is verified separately without reading private credentials.
+
 ## Updates
 
 The app reads GitHub's public latest-release endpoint with URLSession. Automatic DMG downloads are optional and off by default. Downloads must match the release asset name and URL and pass size and SHA-256 checks. The app stores the DMG in its sandbox and offers it on a later launch. Installation remains manual: open the image, quit, then drag to Applications. There is no automatic replacement or additional update framework. Offline tests disable checks and downloads.

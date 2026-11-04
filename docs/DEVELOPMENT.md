@@ -80,6 +80,8 @@ make test      # 上述四项
 
 `PHOTOTRAIL_BUNDLE_ID` 默认仍为 `local.GeoTagCN`，用于沿用已发布版本的沙盒。旧的 `GeoTagCN` 偏好、钥匙串服务名和缓存路径仅用于数据迁移，不能随目录重命名而直接删除或替换。地图网页与 Swift 的当前桥接名称为 `photoTrail`。
 
+高德本地共享凭据目录为真实用户主目录下的 `Library/Application Support/PhotoTrail/`，不使用各 bundle 的沙盒主目录。`project.yml` 只为该目录声明 home-relative read/write entitlement，继续启用 App Sandbox；正式版与测试版须使用相同目录权限。旧钥匙串后台读取使用非交互上下文，并在序列化的调用范围内关闭及恢复传统钥匙串交互；显式读取／保存仍沿用系统授权。`AMapCredentialStoreTests` 用临时目录与虚拟钥匙串验证新旧默认值、加密回读、迁移、损坏／缺失密钥／符号链接保护和并发首次保存；跨 bundle 访问另用独立沙盒进程验证，不读取真实凭据。
+
 Git 标签参与版本号计算，具体逻辑见 `scripts/build-version.sh`。重构目录不改变版本标签，也不改变既有用户数据格式。
 
 ## 功能约定与来源
