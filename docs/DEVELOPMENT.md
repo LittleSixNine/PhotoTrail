@@ -185,3 +185,10 @@ Exiftool 包的 `MetadataCodecPlugin` 使用 Xcode 的 clang 编译 `Tools/Metad
 默认日期规则的定向回归同时验证十个接收字段、IPTC 日期／时间拆分、七语言旧内置规则的一次升级，以及改名、编辑、删除和伴随时区参数的保留；升级失败不更新完成标志。文件时间仍复用 `MetadataFileTimeSaveTests` 的副本保存与回读检查。
 
 `RenameTests` 覆盖缺字段默认跳过单条规则／显式保留原名、旧方案缺省与可选设置往返、关联文件、读取失败及冲突保护，并分别验证两种策略不复用后续编号；`SettingsTrackRenameTests` 回归排序、筛选和工作区集成。
+
+
+### Imagetool 临时工作区回归
+
+`swift test --package-path Packages/Imagetool` 覆盖临时位置、初始化中途失败、处理失败与取消、最后持有者清理、活跃工作保护、遗留回收、符号链接边界，以及照片／XMP 保存与备份。`WorkDirectory` 在专用系统临时子目录中使用 0700 目录、0600 所有权锁和 `flock`；目录创建／回收以根锁串行，文件描述符设置 close-on-exec，避免 ExifTool 子进程延长持锁寿命。正常清理可重复调用；不要在仍使用同一 Sandbox 的其他副本时显式结束它。
+
+真实权限验证须另用启用 App Sandbox、仅有用户选择文件读写权限及 XMP related-item 声明的独立进程：通过系统选择器只选测试照片，验证原图读取／保存、已有 XMP 读写、新建 XMP、协调备份、清理后回读及原素材不变。两个使用相同容器的进程还须验证活跃目录不被回收、异常终止后下一项操作回收遗留。包测试或非沙盒进程通过不能代替上述验证；无需修改正式应用 entitlement。完整日志、机器路径、探针及副本留在私人验证区。

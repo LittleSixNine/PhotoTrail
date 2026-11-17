@@ -14,6 +14,10 @@ public struct Imagetool {
 
     public static func metadata(from imageURL: URL) -> Metadata {
         var metadata = Metadata(source: .image(imageURL))
+        guard !WorkDirectory.contains(imageURL) else {
+            metadata.readable = false
+            return metadata
+        }
         if MetadataImageFormat.usesXMPGPS(extension: imageURL.pathExtension) {
             return Exiftool.helper.metadata(from: nil, primaryURL: imageURL)
         }
@@ -138,7 +142,9 @@ public struct Imagetool {
                                                 primaryURL: imageURL)
         } else {
             Self.logger.error("\(#function, privacy: .public): Can't create sandbox for \(imageURL.path, privacy: .public)")
-            metadata = Metadata(source: .xmp(imageURL))
+            var failed = Metadata(source: .xmp(imageURL))
+            failed.readable = false
+            metadata = failed
         }
 
         return metadata

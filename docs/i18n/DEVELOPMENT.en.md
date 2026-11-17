@@ -137,3 +137,10 @@ The Exiftool package's `MetadataCodecPlugin` compiles `Tools/MetadataBrotli.c` w
 Default-date regression checks all ten recipients, IPTC date/time splitting, one-time migration of unchanged defaults in all seven languages, and preservation of renamed, edited, deleted presets and local timezone policies. Failed migration leaves its completion flag unset. `MetadataFileTimeSaveTests` continues to check file-time saves and readback on copies.
 
 `RenameTests` covers skipping only the affected rule by default, explicitly keeping the original name, legacy settings and optional-policy round trips, paired files, read failures and conflicts, plus counter advancement under both policies. `SettingsTrackRenameTests` checks ordering, filtering and workspace integration.
+
+
+### Imagetool temporary workspace regression
+
+Run `swift test --package-path Packages/Imagetool` for temporary placement, partial initialization rollback, operation errors and cancellation, last-owner cleanup, live-work protection, stale-work recovery, symlink boundaries, and photo/XMP writes and backups. `WorkDirectory` uses a dedicated system temporary subdirectory, 0700 directories, 0600 ownership locks and `flock`. A root lock serializes creation/recovery; close-on-exec descriptors prevent ExifTool children from extending ownership. Explicit cleanup is idempotent; do not end a Sandbox while another copy is still using it.
+
+Verify actual permissions separately with an isolated App Sandbox process using only user-selected file read/write access and the XMP related-item declaration. Select a test photo through the system picker, then check photo reads/writes, existing and newly created XMP files, coordinated backups, and readback after cleanup. Source fixtures must remain unchanged. Two processes sharing the same container must preserve live work and recover abandoned work after one is killed. Unsandboxed package tests do not replace this check; production entitlements need no expansion. Keep machine paths, full logs, probes and copies in private validation storage.

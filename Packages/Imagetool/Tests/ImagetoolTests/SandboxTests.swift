@@ -77,7 +77,8 @@ struct SandboxTests {
         let contents =
             try FileManager.default.contentsOfDirectory(at: sandbox.imgDir,
                                                         includingPropertiesForKeys: [.isSymbolicLinkKey])
-        for link in contents {
+        #expect(contents.count == 3) // Two links plus the ownership lock.
+        for link in contents where link.lastPathComponent != ".phototrail-work-v1" {
             let wrapper = try FileWrapper(url: link)
             #expect(wrapper.isSymbolicLink)
             let original = link.resolvingSymlinksInPath()
@@ -110,7 +111,8 @@ struct SandboxTests {
         let contents =
             try FileManager.default.contentsOfDirectory(at: sandbox.imgDir,
                                                         includingPropertiesForKeys: [.isSymbolicLinkKey])
-        for link in contents {
+        #expect(contents.count == 3) // Two links plus the ownership lock.
+        for link in contents where link.lastPathComponent != ".phototrail-work-v1" {
             let wrapper = try FileWrapper(url: link)
             #expect(wrapper.isSymbolicLink)
             let original = link.resolvingSymlinksInPath()

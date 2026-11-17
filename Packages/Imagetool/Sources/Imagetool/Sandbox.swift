@@ -9,22 +9,27 @@ import SwiftUI
 
 public struct Sandbox {
     let orgURL: URL         // URL of image
-    let imgDir: URL         // URL of unique folder in document folder
+    let imgDir: URL         // Application-owned temporary work directory
     let imgURL: URL         // URL of symlink in imgDir -> orgURL
     let xmpURL: URL         // URL of symline in imgDir -> orgURL xmp file
+    private let workDirectory: WorkDirectory
     let xmpPresenter: XmpPresenter
 
     public init(for url: URL) throws {
+        try Task.checkCancellation()
+        guard url.isFileURL, !WorkDirectory.contains(url) else {
+            throw CocoaError(.fileReadInvalidFileName)
+        }
         orgURL = url
         let sidecar = url.deletingPathExtension()
                          .appendingPathExtension(xmpExtension)
 
         let fileManager = FileManager.default
-        let uuid = UUID().uuidString
-        imgDir = URL.documentsDirectory
-                    .appendingPathComponent(uuid, isDirectory: true)
-        try fileManager.createDirectory(at: imgDir,
-                                        withIntermediateDirectories: true)
+        let work = try WorkDirectory()
+        var initialized = false
+        defer { if !initialized { work.remove() } }
+        workDirectory = work
+        imgDir = work.url
 
         // create symbolic links to the image and xmp file in the folder
         imgURL = imgDir.appendingPathComponent(url.lastPathComponent)
@@ -37,6 +42,7 @@ public struct Sandbox {
 
         // create an NSFilePresenter for the symbolic links
         xmpPresenter = XmpPresenter(for: imgURL, sidecar: xmpURL)
+        initialized = true
     }
 
     public var sidecarExists: Bool {
@@ -52,11 +58,7 @@ public struct Sandbox {
 
 extension Sandbox {
     public func removeSandboxFolder() {
-        do {
-            try FileManager.default.removeItem(at: imgDir)
-        } catch {
-            Imagetool.logger.error("\(#function, privacy: .public): \(error.localizedDescription, privacy: .public)")
-        }
+        workDirectory.remove()
     }
 }
 
@@ -64,6 +66,7 @@ extension Sandbox {
 
 extension Sandbox {
     public func makeSidecarFile() throws {
+        try Task.checkCancellation()
         guard !sidecarExists else {
             throw CocoaError(.fileWriteFileExists,
                              userInfo: [NSFilePathErrorKey: xmpURL.path])
@@ -85,6 +88,7 @@ extension Sandbox {
     // the link in the sandbox.
 
     public func makeImageBackup(_ backupFolder: URL) async throws {
+        try Task.checkCancellation()
         let fileName = orgURL.lastPathComponent
         let saveFileURL = backupName(for: fileName, in: backupFolder)
 
@@ -108,6 +112,7 @@ extension Sandbox {
     // an error.
 
     public func makeSidecarBackup(_ backupFolder: URL) async throws {
+        try Task.checkCancellation()
         let fileName = imgURL.deletingPathExtension()
                              .appendingPathExtension(xmpExtension)
                              .lastPathComponent
@@ -159,6 +164,7 @@ extension Sandbox {
     public func updateMetadataTags(_ changes: [MetadataTag: MetadataTagChange],
                                    sidecar: Bool, mapMetadata: Metadata? = nil,
                                    timeZone: TimeZone? = nil) throws -> [MetadataTag: MetadataTagValue] {
+        try Task.checkCancellation()
         NSFileCoordinator.addFilePresenter(xmpPresenter)
         defer { NSFileCoordinator.removeFilePresenter(xmpPresenter) }
         return try Exiftool.helper.update(image: sidecar ? xmpURL : imgURL,
@@ -179,6 +185,7 @@ extension Sandbox {
 
     public func saveChanges(from metadata: Metadata,
                             timeZone: TimeZone?) async throws {
+        try Task.checkCancellation()
         let url: URL
         if case .xmp = metadata.source {
             url = xmpURL
@@ -195,6 +202,7 @@ extension Sandbox {
     // add a Finder tag to the image file
 
     public func setTag(name: String) async throws {
+        try Task.checkCancellation()
         var tagValues: [String]
         let tags = try orgURL.resourceValues(forKeys: [.tagNamesKey])
         if let tagNames = tags.tagNames {
