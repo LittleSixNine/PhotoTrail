@@ -432,10 +432,15 @@ extension Exiftool {
             _ = try update(image: image, changes: changes.filter { !$0.key.isFileTime },
                            mapMetadata: mapMetadata, timeZone: timeZone)
             do {
-                try FileManager.default.setAttributes(attributes, ofItemAtPath: image.resolvingSymlinksInPath().path)
+                let target = image.resolvingSymlinksInPath()
+                try FileManager.default.setAttributes(attributes, ofItemAtPath: target.path)
                 let values = try metadataTags(Set(changes.keys), from: image)
                 for (tag, change) in changes {
                     if case .set(let expected) = change, !tag.matches(values[tag], expected) {
+                        if tag.isFileTime, MetadataFileTime.matchesExFAT(values[tag], expected, tag: tag),
+                           MetadataFileTime.isExFAT(target) {
+                            continue
+                        }
                         throw MetadataTagUpdateError.readbackMismatch(tag: tag)
                     }
                 }

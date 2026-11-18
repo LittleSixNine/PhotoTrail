@@ -119,6 +119,8 @@ Rename directory access uses security-scoped bookmarks in `RenameWorkspace`. `pr
 
 The ExFAT rename fallback runs only after renamex_np(RENAME_EXCL) returns ENOTSUP. It creates the destination with O_EXCL/O_NOFOLLOW, copies data and attributes with fcopyfile, synchronizes and verifies hashes/source versions, then unlinks the old name. It does not use an ordinary move that could overwrite a racing target. Copied files may change inode; optional copyCompatible identity metadata supports content/time checks, and optional journal failure stores errors. Native creation-time attributes are applied, but ExFAT fractional seconds are not guaranteed and must be disclosed. RenameTests covers copy moves, collisions/symlinks, persisted errors, old journals and alert state. Real-volume verification uses isolated generated fixtures, never private originals.
 
+`MetadataTagTests/fileTimesAndGPSOnCard` verifies a combined save of file creation time, file modification time, EXIF capture time and GPS on a real exFAT volume. Set `PHOTOTRAIL_EXFAT_TEST_DIRECTORY` to a dedicated directory on that volume and run `swift test --package-path Packages/Exiftool --filter fileTimesAndGPSOnCard`. The test creates and removes its own copy there and writes through a symlink in a temporary workspace, as the app does. Set `PHOTOTRAIL_EXFAT_TEST_FIXTURE` to use a specific JPEG as the copy source.
+
 `MetadataHEICEditingTests` covers single-field edits/removal, HEIC/HEIF/JPEG batch presets, date shifts and copies, IPTC skips, combined location saves, original backups and unchanged image data using public synthetic fixtures. Exiftool also checks EXIF/XMP readback on its HEIC sample.
 
 ### Static image formats and JPEG XL metadata

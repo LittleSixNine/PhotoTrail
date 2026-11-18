@@ -1,8 +1,26 @@
+import Darwin
 import Foundation
 import Metadata
 
 // File timestamps are absolute instants. Missing offsets use the user's local time zone.
 enum MetadataFileTime {
+    static func isExFAT(_ url: URL) -> Bool {
+        var volume = statfs()
+        guard statfs(url.path, &volume) == 0 else { return false }
+        return withUnsafeBytes(of: volume.f_fstypename) { bytes in
+            bytes.prefix { $0 != 0 }.elementsEqual("exfat".utf8)
+        }
+    }
+
+    static func matchesExFAT(_ actual: MetadataTagValue?, _ expected: MetadataTagValue, tag: MetadataTag) -> Bool {
+        guard case .text(let actual) = actual, case .text(let expected) = expected,
+              let actual = try? parse(actual), let expected = try? parse(expected) else { return false }
+        // macOS can truncate exFAT creation times to seconds and modification times to centiseconds.
+        let unitsPerSecond = tag == .fileCreateDate ? 1.0 : 100.0
+        let stored = floor(expected.timeIntervalSince1970 * unitsPerSecond) / unitsPerSecond
+        return abs(actual.timeIntervalSince1970 - stored) < 0.00001
+    }
+
     static func parse(_ text: String) throws -> Date {
         guard text.range(of: #"^\d{4}:\d{2}:\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,9})?(Z|[+-]\d{2}:\d{2})?$"#, options: .regularExpression) != nil else {
             throw Exiftool.ExiftoolError.invalidTagValue(tag: "System:FileDate")

@@ -109,6 +109,8 @@ PhotoTrail 基于 GeoTag v6.0.2 派生，仍使用其部分应用基础设施与
 
 `swift test --package-path Packages/Exiftool` 验证白名单、默认语言分支、精确 Unicode、日期成组写入、文件系统时间、IPTC 时区规则和保护字段；`swift test --package-path Packages/ImageData` 验证草稿、日期边界、预设与 CSV 往返；App 的 `MetadataCreatorBatchTests` 覆盖 1／20／100 张、取消和主日期保存／重开。全部只使用公开测试资源的临时副本。
 
+`MetadataTagTests/fileTimesAndGPSOnCard` 可在真实 exFAT 卷验证文件创建时间、修改时间、EXIF 拍摄时间和 GPS 一起保存。将 `PHOTOTRAIL_EXFAT_TEST_DIRECTORY` 指向卷上的专用测试目录，再运行 `swift test --package-path Packages/Exiftool --filter fileTimesAndGPSOnCard`。测试在目录内创建并清理独立副本，与应用一样通过临时工作目录中的符号链接写入。可用 `PHOTOTRAIL_EXFAT_TEST_FIXTURE` 指定供复制的 JPEG。
+
 千文件验证默认跳过；需要测量时执行 `PHOTOTRAIL_SCALE_TESTS=1 swift test --package-path Packages/ImageData --filter MetadataScaleTests`。输出读取、计划、保存／核对耗时；这是包级测量，不代表 App UI 内存或用户验收。缓存／沙箱受限时可按实际环境指定临时 `CLANG_MODULE_CACHE_PATH` 并使用 `--disable-sandbox`，不要把环境权限失败视为测试通过。
 
 元数据产品形态验收使用独立 Debug 标识 `local.PhotoTrail.MetadataReference…`；该前缀在共享凭据读取入口直接返回空值，避免元数据验证请求日常高德钥匙串。此保护只编译于 Debug，不改变发行 App 的凭据行为或系统钥匙串权限。

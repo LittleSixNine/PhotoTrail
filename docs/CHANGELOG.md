@@ -1,5 +1,9 @@
 # 开发历史 / Development history
 
+## 0.5.18 · 2026-11-18
+
+- 修复 macOS 在 exFAT 卷上截断文件时间的小数秒后，PhotoTrail 将已写入的定位和元数据报为结果未确认的问题。
+
 ## 0.5.17 · 2026-11-18
 
 - Mac 照片／XMP 临时工作区移至系统临时目录，停止在 Documents 创建 UUID 目录。
