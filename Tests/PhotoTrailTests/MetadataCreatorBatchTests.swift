@@ -105,6 +105,9 @@ struct MetadataCreatorBatchTests {
         #expect(store.imageData.allSatisfy { $0.creatorDraft?.changes.count == 5 })
         #expect(try urls.map { try Data(contentsOf: $0) } == before)
         await store.send(.saveRequest) { _ = await SaveHelper.save(store).result }
+        if let index = store.imageData.firstIndex(where: { store.creatorSaveResults[$0.id] == .staleSource }) {
+            print("Unexpected version change for batch item \(index): \(snapshots[index].version) -> \(MetadataInspectionFileVersion.read(urls[index]))")
+        }
         #expect(!store.unsavedChanges && store.saveCompleted == count,
                 Comment(rawValue: "Save outcomes: \(store.creatorSaveResults.filter { $0.value != .saved && $0.value != .unchanged })"))
         #expect(store.imageData.allSatisfy { $0.creatorDraft == nil })

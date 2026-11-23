@@ -28,7 +28,7 @@ struct PhotoListTests {
         #expect(reads == 2)
     }
 
-    @Test func photosCacheRetainsOriginalTransferSizeInsteadOfTinyBitmapAccounting() async {
+    @Test func photosCacheLoadsEachRequestedBitmapSizeOnce() async {
         var sizes: [Double] = []
         let cache = PhotoThumbnailCache { _, _, size in
             sizes.append(size)
@@ -38,7 +38,8 @@ struct PhotoListTests {
                               name: "library.jpg")
         _ = await cache.image(for: image, scale: 2, maxDimension: 160)
         _ = await cache.image(for: image, scale: 2, maxDimension: 1024)
-        #expect(sizes == [1024])
+        _ = await cache.image(for: image, scale: 2, maxDimension: 160)
+        #expect(sizes == [160, 1024])
     }
 
     @Test func cancellingOneThumbnailConsumerDoesNotCancelAnother() async {
