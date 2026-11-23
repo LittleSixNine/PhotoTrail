@@ -31,7 +31,7 @@ import XCTest
         videos.click()
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.click()
-        let shot = XCTAttachment(screenshot: app.screenshot())
+        let shot = XCTAttachment(screenshot: app.windows["main"].screenshot())
         shot.name = "Video inspection and media filter"
         shot.lifetime = .keepAlways
         add(shot)
