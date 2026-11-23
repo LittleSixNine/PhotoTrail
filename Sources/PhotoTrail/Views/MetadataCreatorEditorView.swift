@@ -127,7 +127,7 @@ struct MetadataCreatorEditorView: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 6) {
                     Text(L10n.text("已选择 %1$@ 张照片", readings.count))
-                    Text(L10n.text("编辑 → 应用 → 保存照片"))
+                    Text(L10n.text("编辑 → 应用 → 保存"))
                         .font(.callout).foregroundStyle(.secondary)
                 }
             }

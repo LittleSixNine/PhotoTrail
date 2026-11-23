@@ -37,7 +37,7 @@ struct MetadataPresetQuickView: View {
             .disabled(session.busy)
             if !session.notice.isEmpty { Text(session.notice).font(.caption).foregroundStyle(.orange) }
             if session.preparing {
-                ProgressView(L10n.text("正在准备全部照片：%1$@/%2$@", session.preparationCount, photoCount)).controlSize(.small)
+                ProgressView(L10n.text("正在准备文件：%1$@/%2$@", session.preparationCount, photoCount)).controlSize(.small)
             } else if !session.application.notice.isEmpty {
                 Text(session.application.notice).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
             }

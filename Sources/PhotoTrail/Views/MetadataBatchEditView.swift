@@ -74,7 +74,7 @@ struct MetadataBatchEditView: View {
                     }
                     if let preview = session.recipePreview, !preview.issues.isEmpty {
                         let groups = Dictionary(grouping: preview.issues, by: \.photoID)
-                        DisclosureGroup(L10n.text("%1$@ 张照片有跳过项", groups.count)) {
+                        DisclosureGroup(L10n.text("%1$@ 个文件有字段被跳过", groups.count)) {
                             ForEach(session.readings.filter { groups[$0.image.id] != nil }, id: \.image.id) { reading in
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(reading.image.name)
@@ -370,7 +370,7 @@ struct MetadataBatchResultView: View {
                             ForEach(Array(result.skipDetails.prefix(100).enumerated()), id: \.offset) { _, item in
                                 Text(item.filename + " · " + item.tag.rawValue + " · " + reason(item.reason)).font(.caption).textSelection(.enabled)
                             }
-                            if result.skipDetails.count > 100 { Text(L10n.text("仅显示前 100 项；选择未处理照片可继续检查。")) .font(.caption) }
+                            if result.skipDetails.count > 100 { Text(L10n.text("仅显示前 100 项。可选择未处理的文件继续检查。")) .font(.caption) }
                         }.padding(.top, 8)
                     }
                 }
@@ -379,10 +379,10 @@ struct MetadataBatchResultView: View {
                         .foregroundStyle(.orange).textSelection(.enabled)
                 }
                 if !unprocessed.isEmpty, let select {
-                    Button(L10n.text("选中未处理照片")) { select(unprocessed) }
+                    Button(L10n.text("选中未处理的文件")) { select(unprocessed) }
                 }
                 if !result.skipDetails.isEmpty, let select {
-                    Button(L10n.text("选中有跳过项的照片")) { select(Set(result.skipDetails.map(\.photoID))) }
+                    Button(L10n.text("选中有字段被跳过的文件")) { select(Set(result.skipDetails.map(\.photoID))) }
                 }
                 if application.applied {
                     Button(L10n.text("撤销本次批量修改"), systemImage: "arrow.uturn.backward") { application.undo(in: store) }

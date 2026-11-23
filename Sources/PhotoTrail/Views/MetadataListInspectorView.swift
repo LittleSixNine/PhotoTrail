@@ -802,7 +802,7 @@ private extension MetadataListInspectorView {
             }
             if !presetIssues.isEmpty {
                 let groups = Dictionary(grouping: presetIssues, by: \.photoID)
-                DisclosureGroup(L10n.text("%1$@ 张照片有跳过项", groups.count)) {
+                DisclosureGroup(L10n.text("%1$@ 个文件有字段被跳过", groups.count)) {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 6) {
                             ForEach(presetIssues.map(\.photoID).reduce(into: [ImageData.ID]()) { if !$0.contains($1) { $0.append($1) } }, id: \.self) { id in
@@ -964,7 +964,7 @@ private extension MetadataListInspectorView {
             .popover(isPresented: $showsEditingHelp) {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(L10n.text("字段编辑帮助")).font(.headline)
-                    Text(L10n.text("编辑 → 应用 → 保存照片"))
+                    Text(L10n.text("编辑 → 应用 → 保存"))
                     Text(L10n.text("单击选择，⌘ / Shift 多选；双击或点铅笔编辑。"))
                     Text(L10n.text("搜索包含全部字段。")).foregroundStyle(.secondary)
                 }.font(.callout).padding(16).frame(width: 300)
