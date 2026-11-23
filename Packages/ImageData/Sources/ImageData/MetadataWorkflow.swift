@@ -4,6 +4,15 @@ import Foundation
 public struct MetadataOperation: Codable, Equatable, Sendable {
     public let tag: MetadataTag
     public let action: MetadataFieldEditAction
+    public var supportsMovieEditing: Bool {
+        if case .copy(let source) = action { return tag.supportsMovieEditing && source.supportsMovieEditing }
+        return tag.supportsMovieEditing
+    }
+
+    public func applies(to image: ImageData) -> Bool {
+        image.supportsMetadataEditing(tag) && (!image.isLocalMovie || supportsMovieEditing)
+    }
+
     public init(tag: MetadataTag, action: MetadataFieldEditAction) { self.tag = tag; self.action = action }
 }
 
@@ -32,7 +41,7 @@ public struct MetadataWorkflowPreview: Sendable {
     public let items: [MetadataCreatorEditPlan.Item]
     public let steps: [MetadataCreatorEditPlan.Item]
     public let skipped: [String]
-    public enum SkipReason: Equatable, Sendable { case missingValue, filenameMismatch, unsupportedField }
+    public enum SkipReason: Equatable, Sendable { case missingValue, filenameMismatch, unsupportedField, missingVideoTimeZone, localizedMovieField }
     public struct SkippedItem: Equatable, Sendable {
         public let photoID: ImageData.ID
         public let filename: String
@@ -55,6 +64,19 @@ public struct MetadataWorkflowPreview: Sendable {
         self.operationResults = operationResults
     }
 
+    private static func adjustedDate(_ date: MetadataDate, action: MetadataFieldEditAction, amount: Int) throws -> String {
+        switch action {
+        case .shiftDate: return try date.shifting(seconds: amount).text
+        case .calendarDays(_, let zone): return try date.addingCalendarDays(amount, timeZoneID: zone).text
+        case .dateComponent(let name, let value):
+            let components: [String: Calendar.Component] = ["year": .year, "month": .month, "day": .day,
+                                                          "hour": .hour, "minute": .minute, "second": .second]
+            guard let component = components[name] else { throw MetadataDateError.invalidDate }
+            return try date.replacing(component, with: value).text
+        default: throw MetadataFieldEditError.invalidAction
+        }
+    }
+
     public static func prepare(
         _ readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)],
         operations: [MetadataOperation]
@@ -71,10 +93,10 @@ public struct MetadataWorkflowPreview: Sendable {
         for operation in operations {
             var changedIDs = Set<ImageData.ID>(), unchangedIDs = Set<ImageData.ID>(), skippedIDs = Set<ImageData.ID>()
             try Task.checkCancellation()
-            try MetadataCreatorEditPlan.validate(working.filter { $0.image.supportsMetadataEditing(operation.tag) },
+            try MetadataCreatorEditPlan.validate(working.filter { operation.applies(to: $0.image) },
                                                 tag: operation.tag, validation: validation)
             try validateDateParameters(operation)
-            let eligibleCount = working.filter { $0.image.supportsMetadataEditing(operation.tag) }.count
+            let eligibleCount = working.filter { operation.applies(to: $0.image) }.count
             var sequenceIndex = 0
             let sequence: [String]?
             switch operation.action {
@@ -89,12 +111,19 @@ public struct MetadataWorkflowPreview: Sendable {
             for index in working.indices {
                 try Task.checkCancellation()
                 let reading = working[index]
-                guard reading.image.supportsMetadataEditing(operation.tag) else {
-                    let entry = "\(reading.image.name) · \(operation.tag.rawValue)"
-                    skipped.append(entry); skipReasons[entry] = .unsupportedField
-                    skipDetails.append(SkippedItem(photoID: reading.image.id, filename: reading.image.name,
-                                                   tag: operation.tag, reason: .unsupportedField))
+                func skip(_ reason: SkipReason, source: MetadataTag? = nil) {
+                    let entry = "\(reading.image.name) · \((source ?? operation.tag).rawValue)"
+                    skipped.append(entry)
+                    skipReasons[entry] = reason
+                    skipDetails.append(SkippedItem(photoID: reading.image.id, filename: reading.image.name, tag: operation.tag, reason: reason))
                     skippedIDs.insert(reading.image.id)
+                }
+                guard operation.applies(to: reading.image) else {
+                    skip(.unsupportedField)
+                    continue
+                }
+                if operation.action == .remove, reading.image.videoInfo?.localizedFields.contains(operation.tag) == true {
+                    skip(.localizedMovieField)
                     continue
                 }
                 var action = operation.action
@@ -112,22 +141,16 @@ public struct MetadataWorkflowPreview: Sendable {
                     let name = reading.image.name
                     guard let match = expression.firstMatch(in: name, range: NSRange(name.startIndex..., in: name)),
                           let parsed = try? MetadataDate(expression.replacementString(for: match, in: name, offset: 0, template: template)) else {
-                        let entry = "\(name) · \(operation.tag.rawValue)"
-                        skipped.append(entry); skipReasons[entry] = .filenameMismatch
-                        skipDetails.append(SkippedItem(photoID: reading.image.id, filename: reading.image.name,
-                                                       tag: operation.tag, reason: .filenameMismatch))
-                        skippedIDs.insert(reading.image.id)
+                        skip(.filenameMismatch)
                         continue
                     }
-                    action = .setText(parsed.text)
+                    if reading.image.isLocalMovie, parsed.offset.isEmpty, case .text(let prior) = value(.captureDate) {
+                        action = .setText(parsed.text + ((try? MetadataDate(prior).offset) ?? ""))
+                    } else { action = .setText(parsed.text) }
                 case .copy(let source):
                     guard reading.snapshot.requestedTags.contains(source) else { throw MetadataCreatorPlanError.invalidValue }
                     guard let original = value(source) else {
-                        let entry = "\(reading.image.name) · \(source.rawValue)"
-                        skipped.append(entry); skipReasons[entry] = .missingValue
-                        skipDetails.append(SkippedItem(photoID: reading.image.id, filename: reading.image.name,
-                                                       tag: operation.tag, reason: .missingValue))
-                        skippedIDs.insert(reading.image.id)
+                        skip(.missingValue, source: source)
                         continue
                     }
                     switch (operation.tag, original) {
@@ -138,38 +161,26 @@ public struct MetadataWorkflowPreview: Sendable {
                     }
                 case .shiftDate(let seconds), .calendarDays(let seconds, _), .dateComponent(_, let seconds):
                     guard let current = value(operation.tag) else {
-                        let entry = "\(reading.image.name) · \(operation.tag.rawValue)"
-                        skipped.append(entry); skipReasons[entry] = .missingValue
-                        skipDetails.append(SkippedItem(photoID: reading.image.id, filename: reading.image.name,
-                                                       tag: operation.tag, reason: .missingValue))
-                        skippedIDs.insert(reading.image.id)
+                        skip(.missingValue)
                         continue
                     }
                     guard case .text(let text) = current else { throw MetadataFieldEditError.invalidValue }
                     let date = try MetadataDate(text)
-                    switch action {
-                    case .shiftDate: action = .setText(try date.shifting(seconds: seconds).text)
-                    case .calendarDays(_, let zone): action = .setText(try date.addingCalendarDays(seconds, timeZoneID: zone).text)
-                    case .dateComponent(let name, let value):
-                        let components: [String: Calendar.Component] = ["year": .year, "month": .month, "day": .day,
-                                                                      "hour": .hour, "minute": .minute, "second": .second]
-                        guard let component = components[name] else { throw MetadataDateError.invalidDate }
-                        action = .setText(try date.replacing(component, with: value).text)
-                    default: break
-                    }
+                    action = .setText(try adjustedDate(date, action: action, amount: seconds))
                 case .offsetDate:
                     guard operation.tag.isDate else { throw MetadataFieldEditError.invalidAction }
                     if value(operation.tag) == nil {
-                        let entry = "\(reading.image.name) · \(operation.tag.rawValue)"
-                        skipped.append(entry); skipReasons[entry] = .missingValue
-                        skipDetails.append(SkippedItem(photoID: reading.image.id, filename: reading.image.name,
-                                                       tag: operation.tag, reason: .missingValue))
-                        skippedIDs.insert(reading.image.id)
+                        skip(.missingValue)
                         continue
                     }
                 default: break
                 }
                 let item = try MetadataCreatorEditPlan.prepare([reading], tag: operation.tag, action: action, validation: validation).items[0]
+                if reading.image.isLocalMovie, operation.tag == .captureDate,
+                   case .set(.text(let time)) = item.changes[.captureDate], try MetadataDate(time).offset.isEmpty {
+                    skip(.missingVideoTimeZone)
+                    continue
+                }
                 let before = value(operation.tag)
                 working[index].image.applyMetadataDraft(item)
                 let after: MetadataTagValue?

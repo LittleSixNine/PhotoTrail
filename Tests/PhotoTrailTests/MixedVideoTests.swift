@@ -1,5 +1,5 @@
 import Coords
-import Exiftool
+@testable import Exiftool
 import Foundation
 import ImageData
 import Testing
@@ -29,10 +29,12 @@ private final class VideoTestResources {}
         #expect(videos.ids == [movie.id] && videos.movieCount == 1 && videos.photoCount == 0)
         #expect(projection.table(store.state, search: "", hideInvalid: false, filter: .all, unmatchedIDs: nil, media: .photos).images.isEmpty)
         store.send(.selectionChanged([movie.id]), undoable: false)
-        let snapshot = try MetadataInspectionSnapshot.read([.captureLocation], from: url)
+        let snapshot = try MetadataInspectionSnapshot.read([.captureLocation, .captureDate, .model, .titleDefault], from: url)
         let preset = try MetadataPreset(name: "Lens", operations: [.init(tag: .lens, action: .setText("A"))])
         #expect(try MetadataPresetSession(preset: preset, parameters: Data()).targets(store.imageData).isEmpty)
-        let recipe = MetadataWorkflowCard(operations: [.init(tag: .captureLocation, action: .setText("-42.5, 71.25"))])
+        let recipe = MetadataWorkflowCard(operations: [.init(tag: .captureLocation, action: .setText("-42.5, 71.25")),
+            .init(tag: .captureDate, action: .setText("2026:01:02 03:04:05+08:00")),
+            .init(tag: .model, action: .setText("Camera 2")), .init(tag: .titleDefault, action: .setText("First light"))])
         let plan = try MetadataBatchRecipe.prepare([(movie, snapshot)], cards: [recipe])
         store.send(.creatorDraftApplied(plan.preview.items), description: "Location")
         #expect(store[movie.id].metadata.location?.latitude == -42.5)
@@ -42,8 +44,10 @@ private final class VideoTestResources {}
         await store.send(.savePageRequest(.metadata)) { _ = await SaveHelper.save(store).result }
         #expect(!store[movie.id].hasPendingChanges && store.saveFailures.isEmpty)
         #expect(ImageData(from: url).metadata.location?.latitude == -42.5)
+        #expect(store[movie.id].videoInfo?.model == "Camera 2" && store[movie.id].videoInfo?.zonedCreationDate == "2026:01:02 03:04:05+08:00")
+        #expect(ImageData(from: url).videoInfo?.editableValues[.titleDefault] == .text("First light"))
         let current = store[movie.id]
-        let nextSnapshot = try MetadataInspectionSnapshot.read([.captureLocation], from: url)
+        let nextSnapshot = try MetadataInspectionSnapshot.read([.captureLocation, .titleDefault], from: url)
         let nextPlan = try MetadataWorkflowPreview.prepare([(current, nextSnapshot)], operations: [
             .init(tag: .captureLocation, action: .setText("1, 2"))])
         store.send(.creatorDraftApplied(nextPlan.items), description: "Location")
@@ -53,6 +57,38 @@ private final class VideoTestResources {}
         #expect(!store[movie.id].hasPendingChanges && store.saveFailures.isEmpty)
         #expect(ImageData(from: url).metadata.location?.longitude == -70.5)
         #expect(!FileManager.default.fileExists(atPath: url.deletingPathExtension().appendingPathExtension("xmp").path))
+        let prior = store[movie.id]
+        let combinedSnapshot = try MetadataInspectionSnapshot.read([.captureLocation, .titleDefault], from: url)
+        let combination = try MetadataWorkflowPreview.prepare([(prior, combinedSnapshot)], operations: [
+            .init(tag: .titleDefault, action: .setText("Map and title")), .init(tag: .captureLocation, action: .setText("4, 5"))])
+        store.send(.creatorDraftApplied(combination.items), description: "Fields")
+        store.send(.locationForImageChanged(movie.id, Coords(latitude: 6, longitude: 7)), description: "Map")
+        #expect(store[movie.id].creatorDraft?.changes[.titleDefault] != nil && store[movie.id].creatorDraft?.changes[.captureLocation] == nil)
+        await store.send(.savePageRequest(.all)) { _ = await SaveHelper.save(store).result }
+        #expect(store.saveFailures.isEmpty && !store[movie.id].hasPendingChanges)
+        let combined = try Exiftool.helper.quickTimeVideoInfo(from: url)
+        #expect(combined.editableValues[.titleDefault] == .text("Map and title") && combined.location?.latitude == 6)
+    }
+
+    @Test func unselectedLiveCompanionProtectsStillDuringSimpleRename() async throws {
+        let root = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let fixture = try #require(Bundle(for: VideoTestResources.self).url(forResource: "tagged", withExtension: "mov"))
+        let stillFixture = try #require(Bundle.main.url(forResource: "L1000051", withExtension: "JPG"))
+        let still = root.appendingPathComponent("pair.jpg"), control = root.appendingPathComponent("solo.jpg")
+        let movie = root.appendingPathComponent("PAIR.MOV")
+        for target in [still, control] { try FileManager.default.copyItem(at: stillFixture, to: target) }
+        try FileManager.default.copyItem(at: fixture, to: movie)
+        try Exiftool.helper.run(["-overwrite_original", "-Keys:ContentIdentifier=" + UUID().uuidString, movie.path])
+        let workspace = RenameWorkspace()
+        workspace.rules = [RenameRule(action: 23)]
+        workspace.settings = RenameSettings()
+        workspace.refresh(images: [still, control].map { ImageData(from: $0) }, selection: [], directoryScopes: [root])
+        for _ in 0..<600 where workspace.busy { try await Task.sleep(for: .milliseconds(25)) }
+        let rows = try #require(workspace.plan).rows
+        #expect(rows.contains { $0.source == still && $0.issues.contains(.livePhoto) && !$0.changes })
+        #expect(rows.contains { $0.source == control && !$0.issues.contains(.livePhoto) })
     }
 
     @Test func movieRenameRespectsRecordedZoneAndProtectsCompanion() throws {

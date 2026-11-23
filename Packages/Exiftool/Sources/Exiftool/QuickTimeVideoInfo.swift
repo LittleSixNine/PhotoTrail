@@ -8,12 +8,16 @@ public struct QuickTimeVideoInfo: Equatable, Sendable {
     public let height: Int?
     public let codec: String?
     public let frameRate: Double?
-    public let model: String?
+    public private(set) var model: String?
     public let hasContentIdentifier: Bool
-    public let location: Coords?
+    public private(set) var location: Coords?
     let userDataLocation: Bool
     let altitude: Double?
-    public let creationDate: String?
+    let alternateLanguages: [MetadataTag: [String: String]]
+    public var localizedFields: Set<MetadataTag> { Set(alternateLanguages.keys) }
+    let nativeLists: Set<MetadataTag>
+    public private(set) var editableValues: [MetadataTag: MetadataTagValue]
+    public private(set) var creationDate: String?
     /// Some cameras encode a local clock in the UTC movie header. Keep this separate from capture time.
     public let containerDate: String?
 
@@ -41,11 +45,11 @@ public struct QuickTimeVideoInfo: Equatable, Sendable {
         let header = "Track\(track):MOV-Movie-Track-TrackHeader:"
         let samples = "Track\(track):MOV-Movie-Track-Media-MediaInfo-SampleTable"
         let keys = "Keys:MOV-Movie-Meta-Keys:"
-        width = (tags[header + "ImageWidth"] as? NSNumber)?.intValue
-        height = (tags[header + "ImageHeight"] as? NSNumber)?.intValue
+        width = (tags[header + "ImageWidth"] as? String).flatMap(Int.init)
+        height = (tags[header + "ImageHeight"] as? String).flatMap(Int.init)
         codec = tags[samples + "-VisualSampleDesc:CompressorID"] as? String
-        frameRate = (tags[samples + ":VideoFrameRate"] as? NSNumber)?.doubleValue
-        duration = (tags["QuickTime:MOV-Movie-MovieHeader:Duration"] as? NSNumber)?.doubleValue
+        frameRate = (tags[samples + ":VideoFrameRate"] as? String).flatMap(Double.init)
+        duration = (tags["QuickTime:MOV-Movie-MovieHeader:Duration"] as? String).flatMap(Double.init)
         model = tags[keys + "Model"] as? String
         hasContentIdentifier = tags[keys + "ContentIdentifier"] != nil
         creationDate = Self.date(tags[keys + "CreationDate"])
@@ -59,6 +63,48 @@ public struct QuickTimeVideoInfo: Equatable, Sendable {
         } else {
             location = nil
         }
+        var localized = [MetadataTag: [String: String]](), native = Set<MetadataTag>()
+        var values = [MetadataTag: MetadataTagValue]()
+        for tag in MetadataTag.allCases {
+            guard let field = tag.movieField else { continue }
+            let nativeName = tag.nativeMovieList ?? String(field.split(separator: ":").last!)
+            let prefix = keys + nativeName + "-"
+            for (key, raw) in tags where key.hasPrefix(prefix) {
+                guard let text = raw as? String else { throw Exiftool.ExiftoolError.invalidTagOutput }
+                localized[tag, default: [:]]["Keys:" + nativeName + "-" + key.dropFirst(prefix.count)] = text
+            }
+            if tag.nativeMovieList != nil, tags[keys + nativeName] != nil { native.insert(tag) }
+            if tag == .captureLocation {
+                values[tag] = location.map { .text(CaptureLocationField.text($0)) }
+            } else if tag == .creator || tag == .subject {
+                let suffix = ":" + String(field.split(separator: ":").last!)
+                let raw = tags.first { $0.key.hasPrefix("XMP-dc:MOV-") && !$0.key.contains("-Track-") && $0.key.hasSuffix(suffix) }?.value
+                if let list = raw as? [String] { values[tag] = .list(list) }
+                else if let text = raw as? String { values[tag] = .list([text]) }
+                else if let text = tags[keys + nativeName] as? String { values[tag] = .list([text]) }
+            } else if let name = field.split(separator: ":").last,
+                      let text = tags[keys + name] as? String {
+                values[tag] = .text(text)
+            }
+        }
+        alternateLanguages = localized
+        nativeLists = native
+        editableValues = values
+    }
+
+    public mutating func applySavedChanges(_ changes: [MetadataTag: MetadataTagChange]) {
+        for (tag, change) in changes where tag.supportsMovieEditing {
+            switch change {
+            case .remove: editableValues[tag] = nil
+            case .set(let value): editableValues[tag] = value
+            }
+            if tag == .captureLocation { location = change.coordinate }
+            if tag == .model || tag == .captureDate {
+                let text: String?
+                if case .set(.text(let saved)) = change { text = saved } else { text = nil }
+                if tag == .model { model = text } else { creationDate = text }
+            }
+        }
     }
 
     private static func date(_ value: Any?) -> String? {
@@ -70,9 +116,10 @@ public struct QuickTimeVideoInfo: Equatable, Sendable {
 public extension Exiftool {
     func quickTimeVideoInfo(from url: URL) throws -> QuickTimeVideoInfo {
         guard QuickTimeVideoInfo.acceptsExtension(url) else { throw ExiftoolError.invalidTagOutput }
-        let data = try run(["-j", "-G1:5", "-s", "-a", "-n", "-api", "LargeFileSupport=1", "-api", "QuickTimeUTC=0", "-FileType",
+        let data = try run(["-j", "-G1:5", "-s", "-a", "-n", "-api", "LargeFileSupport=1", "-api", "QuickTimeUTC=0", "-api", "StructFormat=JSONQ", "-FileType",
                             "-HandlerType", "-ImageWidth", "-ImageHeight", "-CompressorID", "-VideoFrameRate",
-                            "-Duration", "-Model", "-ContentIdentifier", "-GPSCoordinates", "-CreationDate", "-CreateDate", url.path])
+                            "-Duration", "-Keys:Title*", "-Keys:Description*", "-Keys:Copyright*", "-Keys:Make*", "-Keys:Author*", "-Keys:Keywords*", "-XMP-dc:Creator", "-XMP-dc:Subject",
+                            "-Keys:Model*", "-ContentIdentifier", "-GPSCoordinates", "-Keys:CreationDate*", "-CreateDate", url.path])
         guard let rows = try JSONSerialization.jsonObject(with: data) as? [[String: Any]],
               let row = rows.first else { throw ExiftoolError.invalidTagOutput }
         return try QuickTimeVideoInfo(tags: row)
@@ -111,8 +158,7 @@ public enum CaptureLocationField {
 }
 
 extension Exiftool {
-    func updateMovieLocation(_ change: MetadataTagChange, in url: URL) throws -> [MetadataTag: MetadataTagValue] {
-        let before = try quickTimeVideoInfo(from: url)
+    private func movieLocationArguments(_ change: MetadataTagChange, before: QuickTimeVideoInfo) throws -> [String] {
         let value: String
         switch change {
         case .set(.text(let text)):
@@ -122,17 +168,70 @@ extension Exiftool {
         case .remove: value = ""
         default: throw ExiftoolError.invalidTagValue(tag: "GPSPosition")
         }
-        var args = ["-api", "LargeFileSupport=1", "-overwrite_original_in_place", "-Keys:GPSCoordinates=" + value]
+        var args = ["-Keys:GPSCoordinates=" + value]
         if before.userDataLocation { args.append("-UserData:GPSCoordinates=" + value) }
-        do { try run(args + [url.path]) } catch { throw MetadataTagUpdateError.writeFailed(underlying: error) }
-        let tags: [MetadataTag: MetadataTagValue]
-        do { tags = try metadataTags([.captureLocation], from: url) }
-        catch { throw MetadataTagUpdateError.readbackFailed(underlying: error) }
-        switch change {
-        case .set(let expected) where MetadataTag.captureLocation.matches(tags[.captureLocation], expected): return tags
-        case .remove where tags.isEmpty: return tags
-        default: throw MetadataTagUpdateError.readbackMismatch(tag: .captureLocation)
+        return args
+    }
+
+    func updateMovieMetadata(_ changes: [MetadataTag: MetadataTagChange], in url: URL) throws -> [MetadataTag: MetadataTagValue] {
+        guard !changes.isEmpty else { return [:] }
+        let before = try quickTimeVideoInfo(from: url)
+        var args = ["-api", "LargeFileSupport=1", "-overwrite_original_in_place"]
+        var record: [String: Any] = ["SourceFile": "*"]
+        for (tag, change) in changes {
+            guard let field = tag.movieField else { throw ExiftoolError.invalidTagValue(tag: tag.rawValue) }
+            if tag == .captureLocation {
+                args += try movieLocationArguments(change, before: before)
+                continue
+            }
+            // An unqualified QuickTime write replaces all languages. Include every existing
+            // alternate explicitly and verify it after writing, alongside the requested value.
+            if let alternatives = before.alternateLanguages[tag] {
+                for (key, value) in alternatives { record[key] = value }
+            }
+            switch change {
+            case .remove:
+                guard !before.localizedFields.contains(tag) else { throw ExiftoolError.invalidTagValue(tag: field) }
+                args.append("-" + field + "=")
+                if let native = tag.nativeMovieList, before.nativeLists.contains(tag) { args.append("-Keys:" + native + "=") }
+            case .set(.list(let list)) where tag.isList && !list.isEmpty && list.allSatisfy({ !$0.isEmpty }):
+                record[field] = list
+                if let name = tag.nativeMovieList, before.nativeLists.contains(tag) {
+                    record["Keys:" + name] = tag == .creator ? list[0] : list.joined(separator: ", ")
+                }
+            case .set(.text(let text)) where !tag.isList && !text.isEmpty:
+                if tag == .captureDate {
+                    guard Self.hasMovieTimeZone(text), (try? MetadataFileTime.parse(text)) != nil else { throw ExiftoolError.invalidTagValue(tag: field) }
+                }
+                record[field] = text
+            default: throw ExiftoolError.invalidTagValue(tag: field)
+            }
         }
+        let input = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+        defer { try? FileManager.default.removeItem(at: input) }
+        if record.count > 1 {
+            try JSONSerialization.data(withJSONObject: [record]).write(to: input, options: .atomic)
+            args.append("-json=" + input.path)
+        }
+        do { try run(args + [url.path]) } catch { throw MetadataTagUpdateError.writeFailed(underlying: error) }
+        let values: [MetadataTag: MetadataTagValue]
+        let after: QuickTimeVideoInfo
+        do { after = try quickTimeVideoInfo(from: url) }
+        catch { throw MetadataTagUpdateError.readbackFailed(underlying: error) }
+        values = after.editableValues.filter { changes[$0.key] != nil }
+        for (tag, change) in changes {
+            guard before.alternateLanguages[tag] == after.alternateLanguages[tag] else { throw MetadataTagUpdateError.readbackMismatch(tag: tag) }
+            switch change {
+            case .set(let expected) where !tag.matches(values[tag], expected): throw MetadataTagUpdateError.readbackMismatch(tag: tag)
+            case .remove where values[tag] != nil: throw MetadataTagUpdateError.readbackMismatch(tag: tag)
+            default: break
+            }
+        }
+        return values
+    }
+
+    private static func hasMovieTimeZone(_ text: String) -> Bool {
+        text.range(of: #"^\d{4}:\d{2}:\d{2} \d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-](?:(?:0\d|1[0-3]):[0-5]\d|14:00))$"#, options: .regularExpression) != nil
     }
 }
 
@@ -169,4 +268,31 @@ public extension Exiftool {
             return VideoTrackPoint(seconds: seconds, location: point, gpsDate: row[prefix + "GPSDateTime"] as? String)
         }.sorted { $0.seconds < $1.seconds }
     }
+}
+
+
+public extension MetadataTag {
+    fileprivate var nativeMovieList: String? {
+        switch self {
+        case .creator: "Author"
+        case .subject: "Keywords"
+        default: nil
+        }
+    }
+
+    var movieField: String? {
+        switch self {
+        case .captureLocation: "Keys:GPSCoordinates"
+        case .captureDate: "Keys:CreationDate"
+        case .titleDefault: "Keys:Title"
+        case .descriptionDefault: "Keys:Description"
+        case .rightsDefault: "Keys:Copyright"
+        case .make: "Keys:Make"
+        case .model: "Keys:Model"
+        case .creator, .subject: rawValue
+        default: nil
+        }
+    }
+
+    var supportsMovieEditing: Bool { movieField != nil }
 }

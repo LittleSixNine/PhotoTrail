@@ -69,7 +69,7 @@ public extension ImageData {
 
     func supportsMetadataEditing(_ tag: MetadataTag) -> Bool {
         guard supportsMetadataEditing else { return false }
-        if isLocalMovie { return tag == .captureLocation }
+        if isLocalMovie { return tag.supportsMovieEditing }
         switch metadata.source {
         case .xmp: return tag.supportsSidecar
         case .image(let url):

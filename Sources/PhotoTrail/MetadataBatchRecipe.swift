@@ -86,8 +86,7 @@ enum MetadataBatchRecipe {
             for result in results {
                 for detail in result.skipDetails {
                     issues.append(MetadataRecipeIssue(photoID: detail.photoID, filename: detail.filename, tag: detail.tag,
-                        reason: detail.reason == .missingValue ? L10n.text("来源值缺失")
-                            : detail.reason == .filenameMismatch ? L10n.text("文件名未匹配日期规则") : L10n.text("文件不支持此字段")))
+                        reason: detail.reason.displayText))
                 }
                 for step in result.steps {
                     if let index = working.firstIndex(where: { $0.image.id == step.id }) { working[index].image.applyMetadataDraft(step) }

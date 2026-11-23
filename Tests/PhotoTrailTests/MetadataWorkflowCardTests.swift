@@ -149,7 +149,8 @@ struct MetadataWorkflowCardTests {
             defaults.set(true, forKey: "PhotoTrail.MetadataDefaultPresets.v1")
             try MetadataPreset.installDefaultsIfNeeded(in: defaults)
             let installed = try MetadataPreset.stored(in: #require(defaults.data(forKey: "PhotoTrail.MetadataPresets")))
-            #expect(installed.count == 1 && installed[0].name == name)
+            let additions = try MetadataPreset.mixedMediaPresets()
+            #expect(Array(installed.dropFirst()) == additions && installed[0].name == name)
             #expect(installed[0].operations == expected)
             defaults.set(Data("[]".utf8), forKey: "PhotoTrail.MetadataPresets")
             try MetadataPreset.installDefaultsIfNeeded(in: defaults)
@@ -181,7 +182,13 @@ struct MetadataWorkflowCardTests {
                 #expect(throws: Error.self) { try MetadataPreset.installDefaultsIfNeeded(in: defaults) }
                 #expect(!defaults.bool(forKey: "PhotoTrail.MetadataUnifiedDatePreset.v2"))
             } else { try MetadataPreset.installDefaultsIfNeeded(in: defaults) }
-            #expect(defaults.data(forKey: "PhotoTrail.MetadataPresets") == data)
+            if mode == "deleted" || mode == "corrupt" {
+                #expect(defaults.data(forKey: "PhotoTrail.MetadataPresets") == data)
+            } else {
+                let stored = try MetadataPreset.stored(in: #require(defaults.data(forKey: "PhotoTrail.MetadataPresets")))
+                let additions = try MetadataPreset.mixedMediaPresets()
+                #expect(stored == [preset] + additions)
+            }
             #expect(defaults.data(forKey: MetadataPresetParameters.key) == parameters)
         }
     }

@@ -46,16 +46,22 @@ final class MetadataPresetSession: Identifiable {
         application.cancel()
     }
 
-    var targetTags: Set<MetadataTag> { Set(cards.flatMap(\.operations).map(\.tag)) }
+    var onlySelected = false
+    func scope(in state: PhotoTrailState) -> [ImageData] {
+        onlySelected ? state.imageData.filter { state.selection.contains($0.id) } : state.imageData
+    }
+
+    var targetOperations: [MetadataOperation] { cards.flatMap(\.operations) }
     func targets(_ images: [ImageData]) -> [ImageData] {
-        let tags = targetTags
-        return images.filter { image in tags.contains { image.supportsMetadataEditing($0) } }
+        let operations = targetOperations
+        return images.filter { image in operations.contains { $0.applies(to: image) } }
     }
 
     func applyAll(in store: Store<PhotoTrailState, PhotoTrailEvent>, queue: MetadataLoadingQueue) {
         guard !busy, isValid, !store.imageData.isEmpty, !store.saveInProgress,
               !store.renameInProgress, !store.importProgress.isActive else { return }
-        let images = targets(store.imageData).sorted(using: store.sortOrder)
+        let selectedScope = onlySelected ? store.selection : nil
+        let images = targets(scope(in: store.state)).sorted(using: store.sortOrder)
         guard !images.isEmpty else { return }
         queue.synchronize(store.imageData)
         let cards = cards
@@ -76,11 +82,12 @@ final class MetadataPresetSession: Identifiable {
                 }
                 try Task.checkCancellation()
                 guard generation == token,
-                      MetadataDraftRequest(readings: readings, requiresSelection: false, requiresAllPhotos: true, allTargetTags: targetTags).matches(store.state, checkFiles: true) else {
+                      MetadataDraftRequest(readings: readings, requiresSelection: false, requiresAllPhotos: true,
+                                           selectedScope: selectedScope, allTargetOperations: targetOperations).matches(store.state, checkFiles: true) else {
                     throw MetadataCreatorPlanError.sourceChanged
                 }
                 application.apply(readings: readings, operations: [], requiresSelection: false,
-                                  cards: cards, requiresAllPhotos: true, store: store)
+                                  cards: cards, requiresAllPhotos: true, selectedScope: selectedScope, store: store)
             } catch {
                 guard generation == token else { return }
                 notice = error is CancellationError ? L10n.text("已取消，未加入待保存修改。")

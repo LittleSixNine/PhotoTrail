@@ -37,10 +37,7 @@ extension PhotoTrailReducer {
             \(logFormat(location, elevation: elevation), privacy: .public)
             """)
 
-        if state[id].isLocalMovie {
-            // A movie has one writable field. A later map edit replaces its pending field edit.
-            state[id].creatorDraft = nil
-        }
+        state[id].supersedeMovieLocationDraft()
         state[id].metadata.location = location
         state[id].metadata.gpsMapDatum = state[id].isLocalMovie && location != nil ? "WGS-84" : nil
         if !state[id].isLocalMovie {

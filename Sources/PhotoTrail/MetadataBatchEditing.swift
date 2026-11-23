@@ -252,7 +252,11 @@ enum MetadataBatchValues {
         for tag in tags where !fields.contains(where: { $0.tag == tag }) { add(tag) }
     }
 
-    var hasInput: Bool { editingInput || application.busy || (application.result == nil && !application.applied && (workflowCards.map { !$0.isEmpty } ?? fields.contains { $0.mode != .keep })) }
+    var hasInput: Bool {
+        if editingInput || application.busy { return true }
+        guard !application.applied, application.result == nil || (inline && !inlineResultAccepted) else { return false }
+        return workflowCards.map { !$0.isEmpty } ?? fields.contains { $0.mode != .keep }
+    }
     var changedFieldCount: Int { fields.filter { $0.mode != .keep }.count }
     var operations: [MetadataOperation] { get throws { if let workflowCards { return workflowCards.flatMap(\.operations) }; return try fields.flatMap { try $0.operations } } }
     var isValid: Bool { (workflowCards?.allSatisfy(\.isComplete) ?? true) && (try? operations.isEmpty) == false }
@@ -359,17 +363,22 @@ enum MetadataBatchValues {
         return await finishInline(in: store)
     }
 
+    private var inlineResultAccepted: Bool {
+        guard let result = application.result else { return false }
+        return result.skipDetails.isEmpty
+    }
+
     @MainActor func finishInline(in store: Store<PhotoTrailState, PhotoTrailEvent>) async -> Bool {
         guard inline else { return false }
         if application.busy {
             while application.busy { try? await Task.sleep(for: .milliseconds(10)) }
-            return application.result != nil
+            return inlineResultAccepted
         }
-        if application.applied || application.result != nil { return true }
+        if application.applied || application.result != nil { return inlineResultAccepted }
         guard let operations = try? operations, !operations.isEmpty else { return !hasInput }
         application.apply(readings: readings, operations: operations, requiresSelection: false, store: store)
         while application.busy { try? await Task.sleep(for: .milliseconds(10)) }
-        return application.result != nil
+        return inlineResultAccepted
     }
 
     @MainActor func requestSave(in store: Store<PhotoTrailState, PhotoTrailEvent>, workspace: LocationWorkspace) async {

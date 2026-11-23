@@ -18,6 +18,16 @@ public struct ImageData: Identifiable, Sendable {
         return QuickTimeVideoInfo.acceptsExtension(url)
     }
     public private(set) var movieVersion: MetadataInspectionFileVersion?
+    public mutating func supersedeMovieLocationDraft() {
+        guard isLocalMovie, var draft = creatorDraft, draft.changes.removeValue(forKey: .captureLocation) != nil else { return }
+        creatorDraft = draft.changes.isEmpty ? nil : draft
+    }
+
+    public mutating func finishMovieSave(_ changes: [MetadataTag: MetadataTagChange]) {
+        videoInfo?.applySavedChanges(changes)
+        refreshMovieVersion()
+    }
+
     public mutating func refreshMovieVersion() {
         if isLocalMovie { movieVersion = MetadataInspectionFileVersion.read(metadataCreatorImageURL) }
     }

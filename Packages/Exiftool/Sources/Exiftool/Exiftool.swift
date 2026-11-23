@@ -355,9 +355,8 @@ extension Exiftool {
                              from image: URL) throws -> [MetadataTag: MetadataTagValue] {
         guard !tags.isEmpty else { return [:] }
         if QuickTimeVideoInfo.acceptsExtension(image) {
-            guard tags.contains(.captureLocation) else { return [:] }
-            let info = try quickTimeVideoInfo(from: image)
-            return info.location.map { [.captureLocation: .text(CaptureLocationField.text($0))] } ?? [:]
+            guard tags.contains(where: \.supportsMovieEditing) else { return [:] }
+            return try quickTimeVideoInfo(from: image).editableValues.filter { tags.contains($0.key) }
         }
         if tags.contains(where: \.isFileTime) {
             var values = try metadataTags(Set(tags.filter { !$0.isFileTime }), from: image)
@@ -438,10 +437,8 @@ extension Exiftool {
             }
         }
         if QuickTimeVideoInfo.acceptsExtension(image) {
-            guard changes.count == 1, let change = changes[.captureLocation], mapMetadata == nil else {
-                throw ExiftoolError.invalidTagValue(tag: MetadataTag.captureLocation.rawValue)
-            }
-            return try updateMovieLocation(change, in: image)
+            guard mapMetadata == nil else { throw ExiftoolError.invalidTagValue(tag: "QuickTime") }
+            return try updateMovieMetadata(changes, in: image)
         }
         if changes.keys.contains(where: \.isFileTime) {
             guard image.pathExtension.lowercased() != "xmp" else {

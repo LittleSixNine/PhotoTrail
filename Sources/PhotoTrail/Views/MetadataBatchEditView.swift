@@ -50,10 +50,21 @@ struct MetadataBatchEditView: View {
                         Text(L10n.text("选择或照片内容已变化。请返回字段列表后重新开始，当前输入会保留到你关闭编辑。"))
                             .font(.callout).foregroundStyle(.orange)
                     }
+                    if cards.isEmpty || choosingAction {
+                        Text(L10n.text("先选要修改的字段。图标表示可用的媒体类型，每条规则单独计算适用数量。"))
+                            .font(.callout).foregroundStyle(.secondary)
+                    }
                     if cards.isEmpty { actionChoices }
                     ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
-                        Text(card.scopeDescription(for: session.readings.map(\.image)))
+                        HStack {
+                            Text(card.scopeDescription(for: session.readings.map(\.image)))
+                            Spacer()
+                            MetadataMediaIcons(operations: card.operations)
+                        }
                             .font(.caption).foregroundStyle(.secondary)
+                        if let guidance = card.parameterGuidance {
+                            Text(guidance).font(.caption).foregroundStyle(.secondary)
+                        }
                         MetadataOperationCardView(operations: operationBinding(card.id), readings: session.readings,
                             selected: Binding(get: { selectedCard == card.id }, set: { selectedCard = $0 ? card.id : nil }),
                             availableTags: MetadataTag.allCases.filter { tag in session.readings.contains { $0.image.supportsMetadataEditing(tag) } }, index: index,
@@ -78,7 +89,7 @@ struct MetadataBatchEditView: View {
                             ForEach(session.readings.filter { groups[$0.image.id] != nil }, id: \.image.id) { reading in
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(reading.image.name)
-                                    ForEach(Array(Set((groups[reading.image.id] ?? []).map(\.reason))).sorted(), id: \.self) { reason in
+                                    ForEach(Array(Set((groups[reading.image.id] ?? []).map { $0.tag.displayName + " · " + $0.reason })).sorted(), id: \.self) { reason in
                                         Text(reason).foregroundStyle(.secondary)
                                     }
                                 }.font(.caption).padding(.vertical, 4)
@@ -162,25 +173,34 @@ struct MetadataBatchEditView: View {
     private var presets: [MetadataPreset] { (try? MetadataPreset.stored(in: presetData)) ?? [] }
     private var actionChoices: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-            ForEach(["location", "set", "copy", "offset", "clear", "filename"], id: \.self) { mode in
+            ForEach(["location", "time", "set", "copy", "offset", "clear", "filename"], id: \.self) { mode in
                 Button { add(mode) } label: {
-                    Label(L10n.text(["location": "拍摄地点", "set": "设置值", "copy": "复制字段", "offset": "调整时间", "clear": "清除字段", "filename": "从文件名恢复拍摄时间"][mode] ?? "添加操作"),
-                          systemImage: ["location": "mappin", "set": "textformat", "copy": "doc.on.doc", "offset": "clock", "clear": "eraser", "filename": "calendar"][mode] ?? "plus")
-                        .frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 5)
-                }.disabled(mode != "location" && session.readings.allSatisfy { $0.image.isLocalMovie })
+                    HStack {
+                        Label(L10n.text(["location": "拍摄地点", "time": "统一拍摄时间", "set": "设置值", "copy": "复制字段",
+                                         "offset": "调整时间", "clear": "清除字段", "filename": "从文件名恢复拍摄时间"][mode] ?? "添加操作"),
+                          systemImage: ["location": "mappin", "time": "calendar.badge.clock", "set": "textformat", "copy": "doc.on.doc",
+                                        "offset": "clock", "clear": "eraser", "filename": "calendar"][mode] ?? "plus")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        MetadataMediaIcons(operations: [initialOperation(mode)])
+                    }.padding(.vertical, 5)
+                }.disabled(!session.readings.contains { initialOperation(mode).applies(to: $0.image) })
             }
         }
     }
-    private func add(_ mode: String) {
-        let operation: MetadataOperation
+    private func initialOperation(_ mode: String) -> MetadataOperation {
         switch mode {
-        case "location": operation = MetadataOperation(tag: .captureLocation, action: .setText(""))
-        case "copy": operation = MetadataOperation(tag: .dateOriginal, action: .copy(.captureDate))
-        case "offset": operation = MetadataOperation(tag: .captureDate, action: .offsetDate(years: 0, months: 0, days: 0, hours: 1, minutes: 0, seconds: 0))
-        case "clear": operation = MetadataOperation(tag: .titleDefault, action: .remove)
-        case "filename": operation = MetadataOperation(tag: .captureDate, action: MetadataFilenameDateFormat.compactDateTime.action)
-        default: operation = MetadataOperation(tag: .titleDefault, action: .setText(""))
+        case "time": .init(tag: .captureDate, action: .setText(""))
+        case "location": .init(tag: .captureLocation, action: .setText(""))
+        case "copy": .init(tag: .descriptionDefault, action: .copy(.titleDefault))
+        case "offset": .init(tag: .captureDate, action: .offsetDate(years: 0, months: 0, days: 0, hours: 1, minutes: 0, seconds: 0))
+        case "clear": .init(tag: .titleDefault, action: .remove)
+        case "filename": .init(tag: .captureDate, action: MetadataFilenameDateFormat.compactDateTime.action)
+        default: .init(tag: .titleDefault, action: .setText(""))
         }
+    }
+
+    private func add(_ mode: String) {
+        let operation = initialOperation(mode)
         let card = MetadataWorkflowCard(operations: [operation]); cards.append(card); selectedCard = card.id; choosingAction = false
     }
     private func operationBinding(_ id: UUID) -> Binding<[MetadataOperation]> {
@@ -368,7 +388,7 @@ struct MetadataBatchResultView: View {
                     DisclosureGroup(L10n.text("跳过了 %1$@ 项字段操作，查看原因", result.skipDetails.count)) {
                         VStack(alignment: .leading, spacing: 8) {
                             ForEach(Array(result.skipDetails.prefix(100).enumerated()), id: \.offset) { _, item in
-                                Text(item.filename + " · " + item.tag.rawValue + " · " + reason(item.reason)).font(.caption).textSelection(.enabled)
+                                Text(item.filename + " · " + item.tag.rawValue + " · " + item.reason.displayText).font(.caption).textSelection(.enabled)
                             }
                             if result.skipDetails.count > 100 { Text(L10n.text("仅显示前 100 项。可选择未处理的文件继续检查。")) .font(.caption) }
                         }.padding(.top, 8)
@@ -392,10 +412,15 @@ struct MetadataBatchResultView: View {
         }
     }
 
-    private func reason(_ reason: MetadataWorkflowPreview.SkipReason) -> String {
-        switch reason {
+}
+
+extension MetadataWorkflowPreview.SkipReason {
+    var displayText: String {
+        switch self {
         case .missingValue: L10n.text("来源值缺失")
         case .filenameMismatch: L10n.text("文件名未匹配日期规则")
+        case .localizedMovieField: L10n.text("此字段含多语言版本，已跳过清除")
+        case .missingVideoTimeZone: L10n.text("视频拍摄时间需要时区，例如 +08:00")
         case .unsupportedField: L10n.text("文件不支持此字段")
         }
     }

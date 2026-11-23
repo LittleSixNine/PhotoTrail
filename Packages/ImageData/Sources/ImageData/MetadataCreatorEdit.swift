@@ -179,7 +179,7 @@ public struct MetadataCreatorEditPlan: Sendable {
         public let originalValue: MetadataTagValue?
         public let version: MetadataInspectionFileVersion
         public let change: MetadataTagChange?
-        public let changes: [MetadataTag: MetadataTagChange]
+        public internal(set) var changes: [MetadataTag: MetadataTagChange]
     }
 
     public let items: [Item]
@@ -359,10 +359,18 @@ public extension MetadataCreatorEditPlan.Item {
         }
         guard MetadataInspectionFileVersion.read(target) == version else { return .staleSource }
 
-        return Self.write(changes: changes, update: {
-            _ = try sandbox.updateMetadataTags(changes, sidecar: sidecar, mapMetadata: mapMetadata, timeZone: timeZone)
+        var changes = self.changes
+        var extraMap = mapMetadata
+        if QuickTimeVideoInfo.acceptsExtension(target), let mapMetadata {
+            if !mapMetadata.preserveGPSOnSave {
+                changes[.captureLocation] = mapMetadata.location.map { .set(.text(CaptureLocationField.text($0))) } ?? .remove
+            }
+            extraMap = nil
+        }
+        return Self.write(changes: changes, reconcile: !QuickTimeVideoInfo.acceptsExtension(target), update: {
+            _ = try sandbox.updateMetadataTags(changes, sidecar: sidecar, mapMetadata: extraMap, timeZone: timeZone)
         }, readback: {
-            try sandbox.metadataTags(Set(changes.keys), sidecar: sidecar, mapMetadata: mapMetadata)
+            try sandbox.metadataTags(Set(changes.keys), sidecar: sidecar, mapMetadata: extraMap)
         })
     }
 
@@ -378,6 +386,7 @@ public extension MetadataCreatorEditPlan.Item {
 
     internal static func write(
         changes: [MetadataTag: MetadataTagChange],
+        reconcile: Bool = true,
         update: () throws -> Void,
         readback: () throws -> [MetadataTag: MetadataTagValue]
     ) -> MetadataCreatorSaveResult {
@@ -385,7 +394,7 @@ public extension MetadataCreatorEditPlan.Item {
             try update()
             return .saved
         } catch is MetadataTagUpdateError {
-            guard let actual = try? readback() else { return .resultUnknown }
+            guard reconcile, let actual = try? readback() else { return .resultUnknown }
             for (tag, change) in changes {
                 switch change {
                 case .set(let expected) where tag.matches(actual[tag], expected): break

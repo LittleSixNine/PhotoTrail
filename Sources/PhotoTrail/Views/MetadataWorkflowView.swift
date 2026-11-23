@@ -220,6 +220,7 @@ private extension MetadataWorkflowView {
                             HStack {
                                 Text(preset.name).lineLimit(2)
                                 Spacer()
+                                MetadataMediaIcons(operations: preset.operations)
                                 if selectedPreset == preset.name { Image(systemName: "checkmark") }
                             }.padding(10).frame(maxWidth: .infinity, alignment: .leading)
                                 .background(selectedPreset == preset.name ? Color.accentColor.opacity(0.12) : .clear,
@@ -434,7 +435,7 @@ extension MetadataTag {
         case .rightsDefault: "版权"
         case .creator: "作者"
         case .subject: "关键词"
-        case .captureDate: "拍摄时间（EXIF，含亚秒与时区）"
+        case .captureDate: "拍摄时间"
         case .sidecarDate: "列表时间（XMP CreateDate）"
         case .dateOriginal: "拍摄日期（XMP）"
         case .dateDigitized: "数字化日期（XMP）"
@@ -650,11 +651,23 @@ struct MetadataWorkflowCard: Identifiable, Equatable, Sendable {
     var operations: [MetadataOperation]
     var datePolicy = MetadataDateCopyPolicy()
     var isComplete: Bool { !operations.isEmpty && !operations.contains { $0.action.hasEmptyInput } }
+    var parameterGuidance: String? {
+        guard let first = operations.first else { return nil }
+        switch (first.tag, first.action) {
+        case (.captureDate, .setText): return L10n.text("例如 2026:11:23 14:30:00+08:00。视频需要时区。")
+        case (.captureDate, .offsetDate): return L10n.text("按每个文件原有的拍摄时间调整；缺少时间的文件会跳过。")
+        case (.captureDate, .filenameDate): return L10n.text("例如 IMG_20261123_143000.mov。视频沿用已有时区，缺少时区时跳过。")
+        case (.captureLocation, _): return L10n.text("输入纬度和经度，例如 31.23, 121.47。视频只更新整段的拍摄地点。")
+        case (.creator, .fillMissingAuthors), (.rightsDefault, .fillMissingText): return L10n.text("填入要补齐的值，保留已有署名和版权。")
+        case (_, .copy(.captureDate)): return L10n.text("把每个文件自己的拍摄时间复制到选定的日期字段。")
+        default: return nil
+        }
+    }
+
     func scopeDescription(for images: [ImageData]) -> String {
-        let tags = Set(operations.map(\.tag))
         var photos = 0, videos = 0, skippedVideos = 0
         for image in images {
-            if tags.contains(where: image.supportsMetadataEditing) {
+            if operations.contains(where: { $0.applies(to: image) }) {
                 if image.isLocalMovie { videos += 1 } else { photos += 1 }
             } else if image.isLocalMovie { skippedVideos += 1 }
         }
@@ -1099,7 +1112,9 @@ private extension MetadataOperationCardView {
 // Names follow the existing preset identity; removed or renamed presets cannot leave dead buttons.
 enum MetadataPresetShortcuts {
     static func names(in presets: [MetadataPreset], data: Data) -> [String] {
-        let saved = (try? JSONDecoder().decode([String].self, from: data)) ?? Array(presets.prefix(3).map(\.name))
+        let shared = presets.first { $0.operations.contains { $0.supportsMovieEditing } }
+        let defaults = (shared.map { [$0.name] } ?? []) + presets.filter { $0.name != shared?.name }.map(\.name)
+        let saved = (try? JSONDecoder().decode([String].self, from: data)) ?? Array(defaults.prefix(3))
         var seen = Set<String>()
         return saved.filter { name in presets.contains { $0.name == name } && seen.insert(name).inserted }
     }

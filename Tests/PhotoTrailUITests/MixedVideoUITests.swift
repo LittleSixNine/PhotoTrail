@@ -34,8 +34,9 @@ import XCTest
         attachWindow(app, "Video fields")
         search.click()
         search.typeText("TestCam")
-        let model = app.staticTexts.matching(NSPredicate(format: "value == %@ OR label == %@", "TestCam", "TestCam")).firstMatch
+        let model = app.descendants(matching: .any).matching(identifier: "metadataField.XMP-tiff:Model").firstMatch
         XCTAssertTrue(model.waitForExistence(timeout: 10))
+        XCTAssertEqual(model.value as? String, "TestCam")
         search.typeKey("a", modifierFlags: .command)
         search.typeKey(.delete, modifierFlags: [])
         XCTAssertEqual(search.value as? String, "")

@@ -14,7 +14,7 @@ PhotoTrail is a free macOS tool for organizing photos. Add locations to camera s
 | Complete photo details | Correct dates; add authors, copyright and keywords |
 | Organize file names | Combine dates, places and sequences; keep related files together |
 
-**Video support on the development branch.** Import local MOV and MP4 files alongside photos. Set a capture location across a mixed selection and see which files each rule applies to. Timed GPS tracks are read-only. Renaming a video by capture time requires a recorded time zone. Photo and video details use the same grouped field layout. Search by field name, tag or value.
+**Video support on the development branch.** Import local MOV and MP4 files alongside photos. Icons mark file types and rule compatibility. Mixed selections can share a capture time or location and edits to titles, descriptions, creators, copyright, keywords, camera makes and models. Apply a preset to all imported files or the selection. Video capture times require a time zone. Timed GPS tracks are read-only.
 
 ## Preview
 

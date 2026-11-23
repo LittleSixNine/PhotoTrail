@@ -3,6 +3,7 @@ import CryptoKit
 import Darwin
 import Exiftool
 import ImageData
+import ImageIO
 import Observation
 import UDF
 
@@ -591,6 +592,12 @@ extension RenameWorkspace {
                                            filter: RenameFileFilter, manual: [String],
                                            progress: @escaping @Sendable (Int, Int, Bool) -> Void) throws -> Prepared {
         let urls = try RenameExecutor.pairedSources(urls, settings: settings, directories: directories)
+        let readableFolders = Set(urls.map { $0.deletingLastPathComponent().standardizedFileURL }).intersection(directories)
+        let names = try Dictionary(uniqueKeysWithValues: readableFolders.map { directory in
+            (directory, try FileManager.default.contentsOfDirectory(atPath: directory.path))
+        })
+        let occupied = Dictionary(uniqueKeysWithValues: names.map { ($0.key.path, Set($0.value.map(RenameEngine.key))) })
+        let protectedBases = try protectedVideoBases.union(liveCompanionBases(for: urls, filenames: names, imported: protectedVideoBases))
         progress(0, urls.count, false)
         var lastReport = ProcessInfo.processInfo.systemUptime
         let referenceDate = Date()
@@ -607,7 +614,7 @@ extension RenameWorkspace {
             let input = try Self.readInput(url: url, version: before, cached: cache[url], needsTags: needsTags)
             guard try RenameFileIdentity.read(url) == before else { throw RenameError.stalePlan }
             var prepared = input
-            if protectedVideoBases.contains(RenameEngine.key(url.standardizedFileURL.deletingPathExtension().path)) {
+            if protectedBases.contains(RenameEngine.key(url.standardizedFileURL.deletingPathExtension().path)) {
                 prepared.tags["PhotoTrail:LivePhoto"] = "1"
             }
             prepared.referenceDate = referenceDate
@@ -620,7 +627,6 @@ extension RenameWorkspace {
         }
         try Task.checkCancellation()
         progress(urls.count, urls.count, true)
-        let occupied = try RenameExecutor.occupied(Set(urls.map { $0.deletingLastPathComponent() }).intersection(directories))
         let grouped = Dictionary(grouping: inputs) { RenameEngine.groupID($0, settings: settings) }
         var seen = Set<String>()
         let automatic = RenameEngine.ordered(inputs, settings: settings).map { RenameEngine.groupID($0, settings: settings) }
@@ -643,6 +649,34 @@ extension RenameWorkspace {
             plan.counterAdvances[rule.counter] = try RenameEngine.nextCounter(rule, rows: rows)
         }
         return Prepared(plan: plan, cache: updated, groupOrder: groupOrder)
+    }
+
+    nonisolated private static func hasStillPairIdentifier(_ url: URL) -> Bool {
+        guard ["jpg", "jpeg", "heic", "heif"].contains(url.pathExtension.lowercased()),
+              let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any],
+              let maker = properties[kCGImagePropertyMakerAppleDictionary as String] as? [String: Any],
+              let identifier = maker["17"] as? String else { return false }
+        return !identifier.isEmpty
+    }
+
+    // A still can be imported on its own. Inspect only matching movie names in authorized directories.
+    nonisolated private static func liveCompanionBases(for urls: [URL], filenames: [URL: [String]], imported: Set<String>) throws -> Set<String> {
+        let stills = urls.filter { ["jpeg", "jpg", "heic", "heif"].contains($0.pathExtension.lowercased()) }
+        let bases = Set(stills.map { RenameEngine.key($0.standardizedFileURL.deletingPathExtension().path) }).subtracting(imported)
+        guard !bases.isEmpty else { return [] }
+        var protected = Set<String>()
+        for (folder, names) in filenames {
+            for name in names {
+                let url = folder.appendingPathComponent(name)
+                guard QuickTimeVideoInfo.acceptsExtension(url) else { continue }
+                let base = RenameEngine.key(url.deletingPathExtension().path)
+                guard bases.contains(base) else { continue }
+                try Task.checkCancellation()
+                if (try? Exiftool.helper.quickTimeVideoInfo(from: url))?.hasContentIdentifier == true { protected.insert(base) }
+            }
+        }
+        return protected
     }
 
     nonisolated private static func readInput(url: URL, version: RenameFileIdentity,
@@ -671,7 +705,7 @@ extension RenameWorkspace {
                     if info.hasContentIdentifier { tags["PhotoTrail:LivePhoto"] = "1" }
                 } catch { failed = true }
             }
-            if tags["Apple:ContentIdentifier"] != nil { tags["PhotoTrail:LivePhoto"] = "1" }
+            if tags["Apple:ContentIdentifier"] != nil || hasStillPairIdentifier(url) { tags["PhotoTrail:LivePhoto"] = "1" }
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.sortedKeys]
             let seed = try encoder.encode(version)

@@ -1,4 +1,5 @@
 import CoreLocation
+import Exiftool
 import Foundation
 import ImageData
 import Metadata
@@ -104,7 +105,10 @@ extension PhotoTrailReducer {
                 // Saving can resolve region fields that were not present in the editable snapshot.
                 newState.imageData[index].metadata.restore(from: result.metadata)
                 newState.imageData[index].original = Metadata(copying: result.metadata)
-                newState.imageData[index].refreshMovieVersion()
+                if newState.imageData[index].isLocalMovie {
+                    let change = result.metadata.location.map { MetadataTagChange.set(.text(CaptureLocationField.text($0))) } ?? .remove
+                    newState.imageData[index].finishMovieSave([.captureLocation: change])
+                }
             }
         }
         newState.saveCompleted = min(newState.saveTotal, newState.saveCompleted + results.count)
@@ -127,8 +131,11 @@ extension PhotoTrailReducer {
                 let snapshot = state.imageData[index].metadata
                 state.imageData[index].original?.location = snapshot.location
                 state.imageData[index].original?.gpsMapDatum = snapshot.gpsMapDatum
-                state.imageData[index].refreshMovieVersion()
+
             }
+        }
+        if !discard, let changes = state.imageData[index].creatorDraft?.changes {
+            state.imageData[index].finishMovieSave(changes)
         }
         state.imageData[index].creatorDraft = nil
         if discard {

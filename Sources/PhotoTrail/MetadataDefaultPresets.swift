@@ -19,21 +19,30 @@ extension MetadataPreset {
                 MetadataOperation(tag: .creator, action: .fillMissingAuthors([])),
                 MetadataOperation(tag: .rightsDefault, action: .fillMissingText(""))
             ])
-        ]
+        ] + mixedMediaPresets()
+    }
+
+    static func mixedMediaPresets() throws -> [MetadataPreset] {
+        try [MetadataPreset(name: L10n.text("统一拍摄地点"), operations: [
+            MetadataOperation(tag: .captureLocation, action: .setText(""))
+        ]), MetadataPreset(name: L10n.text("统一拍摄时间"), operations: [
+            MetadataOperation(tag: .captureDate, action: .setText(""))
+        ])]
     }
 
     static func installDefaultsIfNeeded(in defaults: UserDefaults = .standard) throws {
         let installedKey = "PhotoTrail.MetadataDefaultPresets.v1"
         let updatedDateKey = "PhotoTrail.MetadataUnifiedDatePreset.v2"
         let installed = defaults.bool(forKey: installedKey)
-        guard !installed || !defaults.bool(forKey: updatedDateKey) else { return }
+        let mediaKey = "PhotoTrail.MetadataMixedMediaPresets.v1"
+        guard !installed || !defaults.bool(forKey: updatedDateKey) || !defaults.bool(forKey: mediaKey) else { return }
         let key = "PhotoTrail.MetadataPresets"
         guard defaults.object(forKey: key) == nil || defaults.data(forKey: key) != nil else {
             throw CocoaError(.fileReadCorruptFile)
         }
         let original = try stored(in: defaults.data(forKey: key) ?? Data())
         var entries = original
-        if installed {
+        if installed && !defaults.bool(forKey: updatedDateKey) {
             let names = Set(AppLanguage.allCases.map { L10n.string("统一照片的日期字段", language: $0) })
             let previous = [MetadataTag.dateOriginal, .sidecarDate].map { MetadataOperation(tag: $0, action: .copy(.captureDate)) }
             let candidates = entries.indices.filter { names.contains(entries[$0].name) && entries[$0].operations == previous }
@@ -49,13 +58,18 @@ extension MetadataPreset {
                     entries[index] = try MetadataPreset(name: entries[index].name, operations: unifiedDateOperations)
                 }
             }
-        } else {
+        } else if !installed {
             let names = Set(entries.map(\.name))
             entries += try defaultPresets().filter { !names.contains($0.name) }
+        }
+        if installed && !defaults.bool(forKey: mediaKey) && !entries.isEmpty {
+            let names = Set(entries.map(\.name))
+            entries += try mixedMediaPresets().filter { !names.contains($0.name) }
         }
         if !installed || entries != original { defaults.set(try JSONEncoder().encode(entries), forKey: key) }
         defaults.set(true, forKey: installedKey)
         defaults.set(true, forKey: updatedDateKey)
+        defaults.set(true, forKey: mediaKey)
     }
 
     private static var unifiedDateOperations: [MetadataOperation] {

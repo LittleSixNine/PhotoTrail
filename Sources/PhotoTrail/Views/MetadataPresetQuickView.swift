@@ -16,18 +16,28 @@ struct MetadataPresetQuickView: View {
     @State private var active = false
     @Environment(\.metadataEditSession) private var inlineSession
 
-    private var targets: [ImageData] { session.targets(store.imageData) }
+    private var targets: [ImageData] { session.targets(session.scope(in: store.state)) }
     private var photoCount: Int { targets.count }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(session.original.name).font(.headline)
+            Picker(L10n.text("操作范围"), selection: $session.onlySelected) {
+                Text(L10n.text("全部导入文件")).tag(false)
+                Text(L10n.text("当前选中项")).tag(true)
+            }.pickerStyle(.segmented).disabled(session.busy)
             ForEach(Array(session.cards.enumerated()), id: \.element.id) { index, card in
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(card.operations.map(\.tag.displayName).joined(separator: " · "))
-                        .font(.subheadline.weight(.medium))
+                    HStack {
+                        Text(card.operations.map(\.tag.displayName).joined(separator: " · ")).font(.subheadline.weight(.medium))
+                        Spacer()
+                        MetadataMediaIcons(operations: card.operations)
+                    }
+                    if let guidance = card.parameterGuidance {
+                        Text(guidance).font(.caption).foregroundStyle(.secondary)
+                    }
                     if store.imageData.contains(where: \.isLocalMovie) {
-                        Text(card.scopeDescription(for: store.imageData)).font(.caption).foregroundStyle(.secondary)
+                        Text(card.scopeDescription(for: session.scope(in: store.state))).font(.caption).foregroundStyle(.secondary)
                     }
                     MetadataOperationCardView(operations: operations(card.id), readings: [], selected: .constant(true),
                         availableTags: MetadataTag.allCases, index: index, moveUp: nil, moveDown: nil, remove: {},
@@ -51,7 +61,7 @@ struct MetadataPresetQuickView: View {
                 if session.busy {
                     Button(L10n.text("取消")) { session.cancel() }
                 } else {
-                    Button(session.targetTags.contains(.captureLocation) ? L10n.text("应用到 %1$@ 项", photoCount) : L10n.text("应用到全部 %1$@ 张照片", photoCount)) {
+                    Button(L10n.text("应用到 %1$@ 项", photoCount)) {
                         guard !launching else { return }
                         launching = true
                         Task { @MainActor in
@@ -104,5 +114,23 @@ struct MetadataPresetQuickView: View {
             presetData = data.0; parameterData = data.1; baseline = session.cards
             session.notice = L10n.text("预设已保存。")
         } catch { session.notice = L10n.text("预设未保存，请检查名称、参数或已有预设数据。") }
+    }
+}
+
+struct MetadataMediaIcons: View {
+    let supportsVideo: Bool
+
+    init(operations: [MetadataOperation]) { self.supportsVideo = operations.contains { $0.supportsMovieEditing } }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "photo")
+            if supportsVideo { Image(systemName: "video") }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(L10n.text(supportsVideo ? "适用于照片和视频" : "仅适用于照片"))
+        .help(L10n.text(supportsVideo ? "适用于照片和视频" : "仅适用于照片"))
     }
 }

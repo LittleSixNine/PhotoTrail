@@ -129,7 +129,12 @@ struct ImageTableView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
             }.width(min: 68, ideal: 76, max: 220)
             TableColumn(L10n.text("文件名"), value: \.name) { image in
-                Text(image.name).lineLimit(1).truncationMode(.middle).help(image.fullPath)
+                HStack(spacing: 6) {
+                    Image(systemName: image.isLocalMovie ? "video" : "photo")
+                        .foregroundStyle(.secondary).frame(width: 16)
+                        .accessibilityLabel(L10n.text(image.isLocalMovie ? "视频" : "照片"))
+                    Text(image.name).lineLimit(1).truncationMode(.middle)
+                }.help(image.fullPath)
                     .foregroundStyle(image.updatable ? .primary : .secondary)
                     .contextMenu {
                         ContextMenuView(targets: [image.id], inspectorPresented: $inspectorPresented,

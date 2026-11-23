@@ -9,11 +9,14 @@ struct MetadataDraftRequest: Sendable {
     let selection: Set<ImageData.ID>
     let order: [ImageData.ID]
     let requiresSelection: Bool
-    let allTargetTags: Set<MetadataTag>?
+    let selectedScope: Set<ImageData.ID>?
+    let allTargetOperations: [MetadataOperation]?
     let requiresAllPhotos: Bool
 
-    init(readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)], requiresSelection: Bool = true, requiresAllPhotos: Bool = false, allTargetTags: Set<MetadataTag>? = nil) {
-        self.allTargetTags = allTargetTags
+    init(readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)], requiresSelection: Bool = true, requiresAllPhotos: Bool = false,
+         selectedScope: Set<ImageData.ID>? = nil, allTargetOperations: [MetadataOperation]? = nil) {
+        self.selectedScope = selectedScope
+        self.allTargetOperations = allTargetOperations
         self.requiresSelection = requiresSelection
         self.requiresAllPhotos = requiresAllPhotos
         self.readings = readings
@@ -25,8 +28,10 @@ struct MetadataDraftRequest: Sendable {
         guard !state.saveInProgress, !state.renameInProgress, !state.importProgress.isActive, (!requiresSelection || state.selection == selection),
               (!requiresSelection || state.imageData.filter({ selection.contains($0.id) }).sorted(using: state.sortOrder).map(\.id) == order) else { return false }
         if requiresAllPhotos {
+            if let selectedScope, selectedScope != state.selection { return false }
             let targets = state.imageData.filter { image in
-                allTargetTags.map { tags in tags.contains { image.supportsMetadataEditing($0) } } ?? !image.isLocalMovie
+                if let selectedScope, !selectedScope.contains(image.id) { return false }
+                return allTargetOperations.map { operations in operations.contains { $0.applies(to: image) } } ?? !image.isLocalMovie
             }
             guard targets.sorted(using: state.sortOrder).map(\.id) == order else { return false }
         }
@@ -77,10 +82,10 @@ final class MetadataDraftApplication {
     func apply(readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)],
                operations: [MetadataOperation], imported: MetadataWorkflowPreview? = nil,
                description: String? = nil, requiresSelection: Bool = true, dateBatch: MetadataDateBatch? = nil, cards: [MetadataWorkflowCard]? = nil, requiresAllPhotos: Bool = false,
-               store: Store<PhotoTrailState, PhotoTrailEvent>) {
+               selectedScope: Set<ImageData.ID>? = nil, store: Store<PhotoTrailState, PhotoTrailEvent>) {
         guard !busy, !applied, !store.saveInProgress else { return }
         let request = MetadataDraftRequest(readings: readings, requiresSelection: requiresSelection, requiresAllPhotos: requiresAllPhotos,
-            allTargetTags: cards.map { Set($0.flatMap(\.operations).map(\.tag)) })
+            selectedScope: selectedScope, allTargetOperations: cards.map { $0.flatMap(\.operations) })
         guard request.matches(store.state) else {
             notice = L10n.text("来源文件已变化；请重新读取元数据。")
             OperationFailure.present(notice); return
@@ -122,6 +127,9 @@ final class MetadataDraftApplication {
                 notice = L10n.text("结果：%1$@ 张修改；%2$@ 张无变化；缺失跳过 %3$@ 项；文件名未匹配 %4$@ 项。",
                     result.items.count, Set(result.steps.map(\.id)).subtracting(result.items.map(\.id)).count, missing, unmatched)
                 if !result.skipped.isEmpty && result.skipReasons.isEmpty { notice += "\n" + result.skipped.joined(separator: "\n") }
+                for reason in [MetadataWorkflowPreview.SkipReason.missingVideoTimeZone, .localizedMovieField] where result.skipDetails.contains(where: { $0.reason == reason }) {
+                    notice += "\n" + reason.displayText
+                }
                 let unsupported = result.skipped.filter { result.skipReasons[$0] == .unsupportedField }
                 if !unsupported.isEmpty {
                     notice += "\n" + L10n.text("已跳过不支持的文件或字段") + "\n" + unsupported.joined(separator: "\n")

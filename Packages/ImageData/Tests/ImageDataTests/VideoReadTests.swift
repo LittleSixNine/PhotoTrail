@@ -1,4 +1,4 @@
-import Exiftool
+@testable import Exiftool
 import Foundation
 import Testing
 @testable import ImageData
@@ -39,7 +39,7 @@ struct VideoReadTests {
         let info = try #require(item.videoInfo)
         #expect(info.width == 160 && info.height == 90)
         #expect(info.containerDate == nil && info.creationDate == nil && info.location == nil)
-        #expect(!item.supportsMetadataEditing(.captureDate))
+        #expect(item.supportsMetadataEditing(.captureDate))
         let audio = ImageData(from: try fixture("audio", "mp4"))
         #expect(audio.videoInfo == nil && !audio.metadata.readable && !audio.updatable)
     }
@@ -60,7 +60,7 @@ extension VideoReadTests {
         try FileManager.default.createDirectory(at: backup, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
         var readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)] = []
-        let tags: Set<MetadataTag> = [.captureLocation, .lens]
+        let tags: Set<MetadataTag> = [.captureLocation, .lens, .captureDate]
         for index in 0..<10 {
             let source = try index < 8 ? #require(Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
                 : fixture(index == 8 ? "tagged" : "plain", index == 8 ? "mov" : "mp4")
@@ -70,7 +70,8 @@ extension VideoReadTests {
         }
         let target = "-12.375 34.54321"
         let ops = [MetadataOperation(tag: .captureLocation, action: .setText(target)),
-                   MetadataOperation(tag: .lens, action: .setText("Test lens"))]
+                   MetadataOperation(tag: .lens, action: .setText("Test lens")),
+                   MetadataOperation(tag: .captureDate, action: .setText("2026:11:23 14:30:00+08:00"))]
         let preview = try MetadataWorkflowPreview.prepare(readings, operations: ops)
         #expect(preview.items.count == 10 && preview.skipDetails.count == 2)
         for (reading, item) in zip(readings, preview.items) {
@@ -78,12 +79,13 @@ extension VideoReadTests {
             var draft = reading.image
             draft.applyMetadataDraft(item)
             #expect(draft.metadata.location?.latitude == -12.375 && !draft.hasLegacyChanges)
-            #expect(item.changes.count == (draft.isLocalMovie ? 1 : 2))
+            #expect(item.changes.count == (draft.isLocalMovie ? 2 : 3))
             #expect(await item.save(backup: .folder(backup)) == .saved)
             #expect(try Data(contentsOf: backup.appendingPathComponent(item.target.lastPathComponent)) == original)
             let reopened = ImageData(from: item.target)
             #expect(abs((reopened.metadata.location?.longitude ?? 0) - 34.54321) < 0.000002)
             let values = try Exiftool.helper.metadataTags(tags, from: item.target)
+            #expect(values[.captureDate] == .text("2026:11:23 14:30:00+08:00"))
             #expect(values[.lens] == (draft.isLocalMovie ? nil : .text("Test lens")))
         }
     }
@@ -114,9 +116,9 @@ extension VideoReadTests {
         let points = try Exiftool.helper.timedVideoLocations(from: file)
         #expect(points.count > 1)
         let image = ImageData(from: file)
-        let snapshot = try MetadataInspectionSnapshot.read([.captureLocation], from: file)
+        let snapshot = try MetadataInspectionSnapshot.read(Set(movieOperations.map(\.tag) + [.captureLocation]), from: file)
         let result = try MetadataWorkflowPreview.prepare([(image, snapshot)], operations: [
-            MetadataOperation(tag: .captureLocation, action: .setText("12.5, 34.25"))])
+            MetadataOperation(tag: .captureLocation, action: .setText("12.5, 34.25"))] + movieOperations)
         let item = try #require(result.items.first)
         #expect(await item.save(backup: .disabled) == .saved)
         let after = try Exiftool.helper.timedVideoLocations(from: file)
@@ -139,9 +141,9 @@ extension VideoReadTests {
         let identifier = try #require(Exiftool.helper.inspectionTags(from: file)[tag])
         let image = ImageData(from: file)
         #expect(image.videoInfo?.hasContentIdentifier == true)
-        let snapshot = try MetadataInspectionSnapshot.read([.captureLocation], from: file)
+        let snapshot = try MetadataInspectionSnapshot.read(Set(movieOperations.map(\.tag) + [.captureLocation]), from: file)
         let preview = try MetadataWorkflowPreview.prepare([(image, snapshot)], operations: [
-            .init(tag: .captureLocation, action: .setText("-10, -34"))])
+            .init(tag: .captureLocation, action: .setText("-10, -34"))] + movieOperations)
         let item = try #require(preview.items.first)
         #expect(await item.save(backup: .disabled) == .saved)
         #expect(try Exiftool.helper.inspectionTags(from: file)[tag] == identifier)
@@ -171,5 +173,72 @@ extension VideoReadTests {
         let cleared = try Exiftool.helper.update(image: sidecar, changes: [.captureLocation: .remove])
         #expect(cleared[.captureLocation] == nil)
         #expect(try [photo, video].map { try Data(contentsOf: $0) } == original)
+    }
+}
+
+extension VideoReadTests {
+    private var movieOperations: [MetadataOperation] {
+        [.init(tag: .captureDate, action: .setText("2024:12:31 23:59:58.123+08:00")),
+         .init(tag: .titleDefault, action: .setText("海边")),
+         .init(tag: .descriptionDefault, action: .setText("第一行\n第二行")),
+         .init(tag: .rightsDefault, action: .setText("© 六九")),
+         .init(tag: .creator, action: .replaceAuthors(["甲,乙", "六九"])),
+         .init(tag: .subject, action: .replaceKeywords(["海边", "A; B"])),
+         .init(tag: .make, action: .setText("品牌")),
+         .init(tag: .model, action: .setText("设备"))]
+    }
+
+    @Test(arguments: ["mov", "mp4"]) func editableMovieFieldsRoundTripAndClear(ext: String) async throws {
+        let source = try fixture(ext == "mov" ? "tagged" : "plain", ext)
+        let file = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString + "." + ext)
+        try FileManager.default.copyItem(at: source, to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+        let tags = Set(movieOperations.map(\.tag))
+        let before = try Exiftool.helper.quickTimeVideoInfo(from: file)
+        let snapshot = try MetadataInspectionSnapshot.read(tags, from: file)
+        let preview = try MetadataWorkflowPreview.prepare([(ImageData(from: file), snapshot)], operations: movieOperations)
+        let item = try #require(preview.items.first)
+        #expect(await item.save(backup: .disabled) == .saved)
+        let info = try Exiftool.helper.quickTimeVideoInfo(from: file)
+        for (tag, change) in item.changes {
+            if case .set(let expected) = change { #expect(tag.matches(info.editableValues[tag], expected)) }
+        }
+        #expect(info.containerDate == before.containerDate && info.duration == before.duration && info.location == before.location)
+        let newSnapshot = try MetadataInspectionSnapshot.read(tags, from: file)
+        let bad = try MetadataWorkflowPreview.prepare([(ImageData(from: file), newSnapshot)], operations: [
+            .init(tag: .captureDate, action: .setText("2024:01:10 12:00:00"))])
+        #expect(bad.items.isEmpty && bad.skipDetails.first?.reason == .missingVideoTimeZone)
+        let clear = try MetadataWorkflowPreview.prepare([(ImageData(from: file), newSnapshot)],
+            operations: tags.map { .init(tag: $0, action: .remove) })
+        let removal = try #require(clear.items.first)
+        #expect(await removal.save(backup: .disabled) == .saved)
+        #expect(try Exiftool.helper.metadataTags(tags, from: file).isEmpty)
+    }
+}
+
+extension VideoReadTests {
+    @Test func nativeAuthorsAndLocalizedTitlesSurviveEditing() async throws {
+        let file = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".mov")
+        try FileManager.default.copyItem(at: fixture("tagged", "mov"), to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+        try Exiftool.helper.run(["-overwrite_original", "-Keys:Author=Original", "-Keys:Title-und=Hello", "-Keys:Title-fra=Bonjour", file.path])
+        let tags: Set<MetadataTag> = [.titleDefault, .creator, .model]
+        let before = try MetadataInspectionSnapshot.read(tags, from: file)
+        #expect(before.values[.creator] == .list(["Original"]))
+        let edit = try MetadataWorkflowPreview.prepare([(ImageData(from: file), before)], operations: [
+            .init(tag: .titleDefault, action: .setText("123")), .init(tag: .model, action: .setText("007")),
+            .init(tag: .creator, action: .replaceAuthors(["New", "Other"]))])
+        let item = try #require(edit.items.first)
+        #expect(await item.save(backup: .disabled) == .saved)
+        let after = try MetadataInspectionSnapshot.read(tags, from: file)
+        #expect(after.values[.creator] == .list(["New", "Other"]) && after.values[.titleDefault] == .text("123") && after.values[.model] == .text("007"))
+        let localized = try Exiftool.helper.run(["-s3", "-Keys:Title-fra", file.path])
+        #expect(String(decoding: localized, as: UTF8.self).trimmingCharacters(in: .newlines) == "Bonjour")
+        let remove = try MetadataWorkflowPreview.prepare([(ImageData(from: file), after)], operations: [
+            .init(tag: .titleDefault, action: .remove), .init(tag: .creator, action: .remove)])
+        #expect(remove.skipDetails.first?.reason == .localizedMovieField)
+        let removal = try #require(remove.items.first)
+        #expect(await removal.save(backup: .disabled) == .saved)
+        #expect(try Exiftool.helper.metadataTags([.creator], from: file).isEmpty)
     }
 }
