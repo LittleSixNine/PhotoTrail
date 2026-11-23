@@ -4,16 +4,54 @@ import Foundation
 public struct MetadataOperation: Codable, Equatable, Sendable {
     public let tag: MetadataTag
     public let action: MetadataFieldEditAction
+    public let photosOnly: Bool
+
+    private var source: MetadataTag? {
+        if case .copy(let source) = action { return source }
+        return nil
+    }
     public var supportsMovieEditing: Bool {
-        if case .copy(let source) = action { return tag.supportsMovieEditing && source.supportsMovieEditing }
-        return tag.supportsMovieEditing
+        !photosOnly && tag.supportsMovieEditing && source?.supportsMovieEditing != false
+    }
+    public var supportsPhotoEditing: Bool {
+        tag.supportsPhotoEditing && source?.supportsPhotoEditing != false
     }
 
     public func applies(to image: ImageData) -> Bool {
-        image.supportsMetadataEditing(tag) && (!image.isLocalMovie || supportsMovieEditing)
+        image.supportsMetadataEditing(tag) && (image.isLocalMovie ? supportsMovieEditing : supportsPhotoEditing)
     }
 
-    public init(tag: MetadataTag, action: MetadataFieldEditAction) { self.tag = tag; self.action = action }
+    public init(tag: MetadataTag, action: MetadataFieldEditAction, photosOnly: Bool = false) {
+        self.tag = tag
+        self.action = action
+        self.photosOnly = photosOnly
+    }
+
+    public init(from decoder: Decoder) throws {
+        let fields = try decoder.container(keyedBy: CodingKeys.self)
+        tag = try fields.decode(MetadataTag.self, forKey: .tag)
+        action = try fields.decode(MetadataFieldEditAction.self, forKey: .action)
+        // These existing fields gained movie support after RC2. Keep old recipes scoped
+        // to photos even when one of them occurs only as the source of a copy.
+        photosOnly = try fields.decodeIfPresent(Bool.self, forKey: .photosOnly) ?? Self.wasPhotoOnly(tag, action)
+    }
+
+    private static func wasPhotoOnly(_ tag: MetadataTag, _ action: MetadataFieldEditAction) -> Bool {
+        let expanded: Set<MetadataTag> = [.lens, .rating]
+        if case .copy(let source) = action, expanded.contains(source) { return true }
+        return expanded.contains(tag)
+    }
+
+    private enum CodingKeys: String, CodingKey { case tag, action, photosOnly }
+
+    public func encode(to encoder: Encoder) throws {
+        var fields = encoder.container(keyedBy: CodingKeys.self)
+        try fields.encode(tag, forKey: .tag)
+        try fields.encode(action, forKey: .action)
+        if photosOnly != Self.wasPhotoOnly(tag, action) {
+            try fields.encode(photosOnly, forKey: .photosOnly)
+        }
+    }
 }
 
 public struct MetadataPreset: Codable, Equatable, Sendable {
@@ -41,7 +79,7 @@ public struct MetadataWorkflowPreview: Sendable {
     public let items: [MetadataCreatorEditPlan.Item]
     public let steps: [MetadataCreatorEditPlan.Item]
     public let skipped: [String]
-    public enum SkipReason: Equatable, Sendable { case missingValue, filenameMismatch, unsupportedField, missingVideoTimeZone, localizedMovieField }
+    public enum SkipReason: Equatable, Sendable { case missingValue, filenameMismatch, unsupportedField, readOnlyFile, missingVideoTimeZone, localizedMovieField }
     public struct SkippedItem: Equatable, Sendable {
         public let photoID: ImageData.ID
         public let filename: String
@@ -119,7 +157,7 @@ public struct MetadataWorkflowPreview: Sendable {
                     skippedIDs.insert(reading.image.id)
                 }
                 guard operation.applies(to: reading.image) else {
-                    skip(.unsupportedField)
+                    skip(reading.image.metadataTargetWritable ? .unsupportedField : .readOnlyFile)
                     continue
                 }
                 if operation.action == .remove, reading.image.videoInfo?.localizedFields.contains(operation.tag) == true {

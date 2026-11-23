@@ -27,7 +27,14 @@ extension MetadataPreset {
             MetadataOperation(tag: .captureLocation, action: .setText(""))
         ]), MetadataPreset(name: L10n.text("统一拍摄时间"), operations: [
             MetadataOperation(tag: .captureDate, action: .setText(""))
-        ])]
+        ])] + catalogPresets()
+    }
+
+    private static func catalogPresets() throws -> [MetadataPreset] {
+        try [MetadataPreset(name: L10n.text("补录活动地名"), operations:
+            [MetadataTag.city, .regionState, .country].map { MetadataOperation(tag: $0, action: .setText("")) }),
+             MetadataPreset(name: L10n.text("视频署名"), operations:
+            [MetadataTag.director, .producer].map { MetadataOperation(tag: $0, action: .setText("")) })]
     }
 
     static func installDefaultsIfNeeded(in defaults: UserDefaults = .standard) throws {
@@ -35,7 +42,8 @@ extension MetadataPreset {
         let updatedDateKey = "PhotoTrail.MetadataUnifiedDatePreset.v2"
         let installed = defaults.bool(forKey: installedKey)
         let mediaKey = "PhotoTrail.MetadataMixedMediaPresets.v1"
-        guard !installed || !defaults.bool(forKey: updatedDateKey) || !defaults.bool(forKey: mediaKey) else { return }
+        let catalogKey = "PhotoTrail.MetadataCatalogPresets.v1"
+        guard !defaults.bool(forKey: catalogKey) || !installed || !defaults.bool(forKey: updatedDateKey) || !defaults.bool(forKey: mediaKey) else { return }
         let key = "PhotoTrail.MetadataPresets"
         guard defaults.object(forKey: key) == nil || defaults.data(forKey: key) != nil else {
             throw CocoaError(.fileReadCorruptFile)
@@ -66,6 +74,11 @@ extension MetadataPreset {
             let names = Set(entries.map(\.name))
             entries += try mixedMediaPresets().filter { !names.contains($0.name) }
         }
+        if installed && defaults.bool(forKey: mediaKey) && !defaults.bool(forKey: catalogKey) && !entries.isEmpty {
+            let names = Set(entries.map(\.name))
+            entries += try catalogPresets().filter { !names.contains($0.name) }
+        }
+        defaults.set(true, forKey: catalogKey)
         if !installed || entries != original { defaults.set(try JSONEncoder().encode(entries), forKey: key) }
         defaults.set(true, forKey: installedKey)
         defaults.set(true, forKey: updatedDateKey)

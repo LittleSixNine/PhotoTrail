@@ -16,7 +16,15 @@ final class MetadataPresetSession: Identifiable {
     private var preparation: Task<Void, Never>?
     private var generation = UUID()
     var busy: Bool { preparing || application.busy }
-    var isValid: Bool { !cards.isEmpty && cards.allSatisfy(\.isComplete) }
+    var activeCards: [MetadataWorkflowCard] {
+        cards.filter { card in
+            !card.operations.allSatisfy { operation in
+                [.city, .regionState, .country, .director, .producer].contains(operation.tag)
+                    && operation.action == .setText("")
+            }
+        }
+    }
+    var isValid: Bool { !activeCards.isEmpty && activeCards.allSatisfy(\.isComplete) }
 
     init(preset: MetadataPreset, parameters: Data) throws {
         original = preset
@@ -51,7 +59,7 @@ final class MetadataPresetSession: Identifiable {
         onlySelected ? state.imageData.filter { state.selection.contains($0.id) } : state.imageData
     }
 
-    var targetOperations: [MetadataOperation] { cards.flatMap(\.operations) }
+    var targetOperations: [MetadataOperation] { activeCards.flatMap(\.operations) }
     func targets(_ images: [ImageData]) -> [ImageData] {
         let operations = targetOperations
         return images.filter { image in operations.contains { $0.applies(to: image) } }
@@ -64,7 +72,7 @@ final class MetadataPresetSession: Identifiable {
         let images = targets(scope(in: store.state)).sorted(using: store.sortOrder)
         guard !images.isEmpty else { return }
         queue.synchronize(store.imageData)
-        let cards = cards
+        let cards = activeCards
         let token = UUID(); generation = token; preparing = true; preparationCount = 0; notice = ""
         preparation = Task {
             do {

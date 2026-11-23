@@ -117,7 +117,7 @@ enum SaveHelper {
             guard confirm(targets) else { return false }
         } else if ProcessInfo.processInfo.environment["PHOTOTRAIL_OFFLINE_TESTS"] != "1",
                   prompt || UserDefaults.standard.bool(forKey: SettingsPreferences.showSaveSummaryKey) {
-            guard let chosen = confirmSave(targets, backupURL: store.backupURL, scope: scope,
+            guard let chosen = confirmSave(targets, images: store.imageData, selection: store.selection, backupURL: store.backupURL, scope: scope,
                                            allowCurrentPage: !forceAll && !requiresCombined, showScopeOptions: prompt) else { return false }
             scope = chosen
             targets = SaveTargets(images: store.imageData, scope: scope)
@@ -465,8 +465,12 @@ extension SaveHelper {
             do {
                 if let snapshot = mapMetadata[item.id] {
                     let regionSnapshot = try RegionSaveSnapshot(snapshot, original: store[item.id].original)
-                    map = regionSnapshot.published
-                    writingMap = regionSnapshot.writing
+                    var published = regionSnapshot.published
+                    var writing = regionSnapshot.writing
+                    published.applyCatalogRegions(item.changes)
+                    writing.applyCatalogRegions(item.changes)
+                    map = published
+                    writingMap = writing
                 } else {
                     map = nil
                     writingMap = nil
@@ -523,7 +527,7 @@ extension SaveHelper {
         return currentPageScope
     }
 
-    private static func confirmSave(_ targets: SaveTargets, backupURL: URL?, scope: MetadataSaveScope,
+    private static func confirmSave(_ targets: SaveTargets, images: [ImageData], selection: Set<ImageData.ID>, backupURL: URL?, scope: MetadataSaveScope,
                                     allowCurrentPage: Bool, showScopeOptions: Bool) -> MetadataSaveScope? {
         let localCount = targets.files.count + targets.xmp.count + targets.creator.count
         let backupMessage: String
@@ -543,13 +547,29 @@ extension SaveHelper {
         let alert = NSAlert()
         alert.messageText = scope == .all ? L10n.text("同时保存两个页面的元数据？") : L10n.text("保存当前页的元数据？")
         alert.informativeText = L10n.text(
-            "本地照片：%1$@ 项\n已导入的 XMP：%2$@ 项\n照片图库：%3$@ 项\n\n%4$@%5$@",
+            "本地媒体：%1$@ 项\n已导入的 XMP：%2$@ 项\n照片图库：%3$@ 项\n\n%4$@%5$@",
             targets.files.count + targets.creatorFiles,
             targets.xmp.count + targets.creator.count - targets.creatorFiles,
             targets.library.count, backupMessage, sidecarMessage)
             + "\n\n" + (scope == .all
                 ? L10n.text("保存元数据编辑和地图定位两个页面的全部待保存修改，不限当前页或选中的照片。")
                 : L10n.text("只保存当前页的待保存修改，其他页修改保留。"))
+        let indices = (targets.files + targets.xmp + targets.creator + targets.library).sorted()
+        let files = indices.map { images[$0] }
+        if !selection.isEmpty {
+            let outside = files.filter { !selection.contains($0.id) }.count
+            if outside > 0 { alert.informativeText += "\n" + L10n.text("其中 %1$@ 项在当前选区之外。", outside) }
+        }
+        let scroll = NSScrollView(frame: NSRect(x: 0, y: 0, width: 380, height: min(96, max(32, files.count * 18))))
+        let list = NSTextView(frame: scroll.contentView.bounds)
+        list.isEditable = false
+        list.isVerticallyResizable = true
+        list.autoresizingMask = [.width]
+        list.string = files.map(\.fullPath).joined(separator: "\n")
+        list.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        scroll.documentView = list
+        scroll.hasVerticalScroller = true
+        alert.accessoryView = scroll
         alert.addButton(withTitle: L10n.text("保存"))
         alert.addButton(withTitle: L10n.text("取消"))
         if showScopeOptions {

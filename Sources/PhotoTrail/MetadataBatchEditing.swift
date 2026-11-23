@@ -427,7 +427,7 @@ enum MetadataBatchValues {
                     action = .setText(try first.shifting(seconds: delta).text)
                 default: action = operation.action
                 }
-                return MetadataOperation(tag: operation.tag, action: action)
+                return MetadataOperation(tag: operation.tag, action: action, photosOnly: operation.photosOnly)
             }
             let result = try MetadataWorkflowPreview.prepare([reading], operations: sampled)
             let final = result.items.first?.changes ?? reading.image.creatorDraft?.changes ?? [:]

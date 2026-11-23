@@ -393,6 +393,18 @@ private struct MovieInspectorField {
     var action: Action = .readOnly
 }
 
+private extension MetadataTag {
+    var movieInspectorSection: String {
+        switch self {
+        case .captureDate: "Date and Time"
+        case .city, .regionState, .country: "Location Address"
+        case .make, .model: "Camera"
+        case .lens, .lensMake: "Lens"
+        default: "Information"
+        }
+    }
+}
+
 private extension MetadataListInspectorView {
     @ViewBuilder
     func movieFields(_ image: ImageData, info: QuickTimeVideoInfo) -> some View {
@@ -400,6 +412,7 @@ private extension MetadataListInspectorView {
         let size = info.width.flatMap { w in info.height.map { h in "\(w) × \(h)" } }
         let groups: [(name: String, fields: [MovieInspectorField])] = [
             ("File", [.init(label: "文件名", source: "File:FileName", value: image.name)]),
+            ("Information", []), ("Location Address", []), ("Camera", []), ("Lens", []),
             ("Date and Time", [
                 .init(label: "QuickTime CreateDate", source: "QuickTime:CreateDate", value: info.containerDate)
             ]),
@@ -419,23 +432,21 @@ private extension MetadataListInspectorView {
             tag.supportsMovieEditing && tag != .captureLocation && (fieldQuery.isEmpty ||
                 [tag.displayName, tag.movieField ?? "", display(MetadataSelectionValue.summarize(values, tag: tag), tag: tag)].contains { $0.localizedCaseInsensitiveContains(fieldQuery) })
         }
-        if !editable.isEmpty {
-            Section {
-                ForEach(editable, id: \.self) { tag in
-                    field(tag.displayName, tag: tag, values: values, selected: [image], readings: editableCreatorReadings)
-                }
-                if case .text(let date) = values.first?[.captureDate], (try? MetadataDate(date).offset.isEmpty) == true {
-                    Text(L10n.text("拍摄时间或时区待确认")).font(.caption).foregroundStyle(.secondary)
-                }
-            } header: { fieldSectionHeader("照片和视频共用字段") }
-        }
         ForEach(groups, id: \.name) { group in
             let fields = group.fields.filter { field in
                 fieldQuery.isEmpty || [L10n.text(group.name), L10n.text(field.label), field.source, field.value ?? ""]
                     .contains { $0.localizedCaseInsensitiveContains(fieldQuery) }
             }
-            if !fields.isEmpty {
+            let tags = editable.filter { $0.movieInspectorSection == group.name }
+            if !fields.isEmpty || !tags.isEmpty {
                 Section {
+                    ForEach(tags, id: \.self) { tag in
+                        field(tag.displayName, tag: tag, values: values, selected: [image], readings: editableCreatorReadings)
+                    }
+                    if tags.contains(.captureDate), case .text(let date) = values.first?[.captureDate],
+                       (try? MetadataDate(date).offset.isEmpty) == true {
+                        Text(L10n.text("拍摄时间或时区待确认")).font(.caption).foregroundStyle(.secondary)
+                    }
                     ForEach(fields, id: \.source) { field in
                         movieFieldRow(field, image: image)
                     }
@@ -1133,9 +1144,12 @@ private extension MetadataListInspectorView {
             source = selected.allSatisfy(\.isLocalMovie) || movieField == tag.rawValue ? movieField : tag.rawValue + " / " + movieField
         } else { source = tag.rawValue }
         let fieldName = tag.isDate && !(hasMovie && tag.supportsMovieEditing) ? MetadataFieldSourceLabel.label(label, tag: tag.rawValue) : label
-        let photosOnly = !tag.supportsMovieEditing && selected.contains(where: \.isLocalMovie)
-        let label = photosOnly ? fieldName + " · " + L10n.text("照片") : fieldName
-        let counted = photosOnly ? zip(selected, values).compactMap { $0.0.isLocalMovie ? nil : $0.1 } : values
+        let photosOnly = !tag.supportsMovieEditing && hasMovie
+        let moviesOnly = !tag.supportsPhotoEditing && selected.contains { !$0.isLocalMovie }
+        let label = moviesOnly ? fieldName + " · " + L10n.text("视频") : photosOnly ? fieldName + " · " + L10n.text("照片") : fieldName
+        let counted = zip(selected, values).compactMap { image, value in
+            (image.isLocalMovie ? tag.supportsMovieEditing : tag.supportsPhotoEditing) ? value : nil
+        }
         let summary = MetadataSelectionValue.summarize(counted, tag: tag)
         let canEdit = readings != nil && selected.contains { $0.supportsMetadataEditing(tag) }
         let value = display(summary, tag: tag)
@@ -1276,13 +1290,13 @@ private extension MetadataListInspectorView {
                     (fieldQuery.isEmpty || [$0.displayName, $0.rawValue].contains { $0.localizedCaseInsensitiveContains(fieldQuery) }) }, id: \.self) { tag in
                     field(tag.displayName, tag: tag, values: completeValues, selected: selected, readings: readings)
                 }
-            } header: { fieldSectionHeader("照片和视频共用字段") }
+            } header: { fieldSectionHeader("可编辑的元数据") }
         }
         ForEach(selected.allSatisfy(\.isLocalMovie) ? [] : sections, id: \.name) { section in
             let tags = section.tags.filter { matchesQuery($0, section.name) &&
                 !(hasMovies && MetadataFieldFilter.mappedTag($0)?.supportsMovieEditing == true) }
             let extraTags = readOnlyExtras.filter { advancedGroup($0) == section.name }
-            let editableTags = MetadataTag.allCases.filter { !mappedTags.contains($0) && !(hasMovies && $0.supportsMovieEditing)
+            let editableTags = MetadataTag.allCases.filter { !mappedTags.contains($0) && $0.supportsPhotoEditing && !(hasMovies && $0.supportsMovieEditing)
                 && advancedGroup($0.rawValue) == section.name && matchesQuery($0.rawValue, section.name) }
             if !tags.isEmpty || !editableTags.isEmpty || !extraTags.isEmpty {
                 Section {

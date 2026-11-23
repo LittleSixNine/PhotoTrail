@@ -69,19 +69,23 @@ public struct QuickTimeVideoInfo: Equatable, Sendable {
             guard let field = tag.movieField else { continue }
             let nativeName = tag.nativeMovieList ?? String(field.split(separator: ":").last!)
             let prefix = keys + nativeName + "-"
-            for (key, raw) in tags where key.hasPrefix(prefix) {
+            for (key, raw) in tags where (field.hasPrefix("Keys:") || tag.nativeMovieList != nil) && key.hasPrefix(prefix) {
                 guard let text = raw as? String else { throw Exiftool.ExiftoolError.invalidTagOutput }
                 localized[tag, default: [:]]["Keys:" + nativeName + "-" + key.dropFirst(prefix.count)] = text
             }
             if tag.nativeMovieList != nil, tags[keys + nativeName] != nil { native.insert(tag) }
             if tag == .captureLocation {
                 values[tag] = location.map { .text(CaptureLocationField.text($0)) }
-            } else if tag == .creator || tag == .subject {
-                let suffix = ":" + String(field.split(separator: ":").last!)
-                let raw = tags.first { $0.key.hasPrefix("XMP-dc:MOV-") && !$0.key.contains("-Track-") && $0.key.hasSuffix(suffix) }?.value
-                if let list = raw as? [String] { values[tag] = .list(list) }
-                else if let text = raw as? String { values[tag] = .list([text]) }
-                else if let text = tags[keys + nativeName] as? String { values[tag] = .list([text]) }
+            } else if field.hasPrefix("XMP-") {
+                let parts = field.components(separatedBy: ":")
+                let raw = tags.first {
+                    $0.key.hasPrefix(parts[0] + ":MOV-") && !$0.key.contains("-Track-") && $0.key.hasSuffix(":" + parts[1])
+                }?.value
+                if tag.isList {
+                    if let list = raw as? [String] { values[tag] = .list(list) }
+                    else if let text = raw as? String { values[tag] = .list([text]) }
+                    else if let text = tags[keys + nativeName] as? String { values[tag] = .list([text]) }
+                } else if let text = raw as? String { values[tag] = .text(text) }
             } else if let name = field.split(separator: ":").last,
                       let text = tags[keys + name] as? String {
                 values[tag] = .text(text)
@@ -116,10 +120,13 @@ public struct QuickTimeVideoInfo: Equatable, Sendable {
 public extension Exiftool {
     func quickTimeVideoInfo(from url: URL) throws -> QuickTimeVideoInfo {
         guard QuickTimeVideoInfo.acceptsExtension(url) else { throw ExiftoolError.invalidTagOutput }
+        let editable = MetadataTag.allCases.compactMap { tag -> String? in
+            guard let field = tag.movieField else { return nil }
+            return "-" + field + (field.hasPrefix("Keys:") ? "*" : "")
+        }
         let data = try run(["-j", "-G1:5", "-s", "-a", "-n", "-api", "LargeFileSupport=1", "-api", "QuickTimeUTC=0", "-api", "StructFormat=JSONQ", "-FileType",
                             "-HandlerType", "-ImageWidth", "-ImageHeight", "-CompressorID", "-VideoFrameRate",
-                            "-Duration", "-Keys:Title*", "-Keys:Description*", "-Keys:Copyright*", "-Keys:Make*", "-Keys:Author*", "-Keys:Keywords*", "-XMP-dc:Creator", "-XMP-dc:Subject",
-                            "-Keys:Model*", "-ContentIdentifier", "-GPSCoordinates", "-Keys:CreationDate*", "-CreateDate", url.path])
+                            "-Duration", "-Keys:Author*", "-Keys:Keywords*", "-ContentIdentifier", "-GPSCoordinates", "-CreateDate"] + editable + [url.path])
         guard let rows = try JSONSerialization.jsonObject(with: data) as? [[String: Any]],
               let row = rows.first else { throw ExiftoolError.invalidTagOutput }
         return try QuickTimeVideoInfo(tags: row)
@@ -203,7 +210,7 @@ extension Exiftool {
                 if tag == .captureDate {
                     guard Self.hasMovieTimeZone(text), (try? MetadataFileTime.parse(text)) != nil else { throw ExiftoolError.invalidTagValue(tag: field) }
                 }
-                record[field] = text
+                record[field] = try tag.checkedText(text)
             default: throw ExiftoolError.invalidTagValue(tag: field)
             }
         }
@@ -289,10 +296,13 @@ public extension MetadataTag {
         case .rightsDefault: "Keys:Copyright"
         case .make: "Keys:Make"
         case .model: "Keys:Model"
-        case .creator, .subject: rawValue
+        case .lens: "XMP-exifEX:LensModel"
+        case .creator, .subject, .city, .regionState, .country, .lensMake, .rating, .director, .producer: rawValue
         default: nil
         }
     }
+
+    var supportsPhotoEditing: Bool { self != .director && self != .producer }
 
     var supportsMovieEditing: Bool { movieField != nil }
 }

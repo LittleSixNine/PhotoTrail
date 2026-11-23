@@ -9,6 +9,20 @@ import UDF
 private final class VideoTestResources {}
 
 @MainActor struct MixedVideoTests {
+    @Test func oldRecipesPreservePhotoOnlySourcesAndTargets() throws {
+        for operation in [MetadataOperation(tag: .lens, action: .setText("Prime")),
+                          MetadataOperation(tag: .descriptionDefault, action: .copy(.rating)),
+                          MetadataOperation(tag: .titleDefault, action: .setText("Event"))] {
+            var json = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(operation)) as? [String: Any])
+            json.removeValue(forKey: "photosOnly")
+            let decoded = try JSONDecoder().decode(MetadataOperation.self, from: JSONSerialization.data(withJSONObject: json))
+            #expect(decoded.supportsMovieEditing == (operation.tag == .titleDefault))
+            #expect(try JSONDecoder().decode(MetadataOperation.self, from: JSONEncoder().encode(decoded)) == decoded)
+            #expect(operation.supportsMovieEditing)
+        }
+        #expect(!MetadataOperation(tag: .descriptionDefault, action: .copy(.director)).supportsPhotoEditing)
+    }
+
     @Test func importedMovieCanBeFilteredEditedAndSavedFromBothPages() async throws {
         let bundle = Bundle(for: VideoTestResources.self)
         let fixture = try #require(bundle.url(forResource: "tagged", withExtension: "mov"))
@@ -30,7 +44,7 @@ private final class VideoTestResources {}
         #expect(projection.table(store.state, search: "", hideInvalid: false, filter: .all, unmatchedIDs: nil, media: .photos).images.isEmpty)
         store.send(.selectionChanged([movie.id]), undoable: false)
         let snapshot = try MetadataInspectionSnapshot.read([.captureLocation, .captureDate, .model, .titleDefault], from: url)
-        let preset = try MetadataPreset(name: "Lens", operations: [.init(tag: .lens, action: .setText("A"))])
+        let preset = try MetadataPreset(name: "Lens", operations: [.init(tag: .lens, action: .setText("A"), photosOnly: true)])
         #expect(try MetadataPresetSession(preset: preset, parameters: Data()).targets(store.imageData).isEmpty)
         let recipe = MetadataWorkflowCard(operations: [.init(tag: .captureLocation, action: .setText("-42.5, 71.25")),
             .init(tag: .captureDate, action: .setText("2026:01:02 03:04:05+08:00")),
@@ -58,8 +72,9 @@ private final class VideoTestResources {}
         #expect(ImageData(from: url).metadata.location?.longitude == -70.5)
         #expect(!FileManager.default.fileExists(atPath: url.deletingPathExtension().appendingPathExtension("xmp").path))
         let prior = store[movie.id]
-        let combinedSnapshot = try MetadataInspectionSnapshot.read([.captureLocation, .titleDefault], from: url)
+        let combinedSnapshot = try MetadataInspectionSnapshot.read([.captureLocation, .titleDefault, .city, .director], from: url)
         let combination = try MetadataWorkflowPreview.prepare([(prior, combinedSnapshot)], operations: [
+            .init(tag: .city, action: .setText("杭州")), .init(tag: .director, action: .setText("Chen")),
             .init(tag: .titleDefault, action: .setText("Map and title")), .init(tag: .captureLocation, action: .setText("4, 5"))])
         store.send(.creatorDraftApplied(combination.items), description: "Fields")
         store.send(.locationForImageChanged(movie.id, Coords(latitude: 6, longitude: 7)), description: "Map")
@@ -67,6 +82,8 @@ private final class VideoTestResources {}
         await store.send(.savePageRequest(.all)) { _ = await SaveHelper.save(store).result }
         #expect(store.saveFailures.isEmpty && !store[movie.id].hasPendingChanges)
         let combined = try Exiftool.helper.quickTimeVideoInfo(from: url)
+        #expect(ImageData(from: url).metadata.city == "杭州" && store[movie.id].metadata.city == "杭州")
+        #expect(combined.editableValues[.director] == .text("Chen"))
         #expect(combined.editableValues[.titleDefault] == .text("Map and title") && combined.location?.latitude == 6)
     }
 

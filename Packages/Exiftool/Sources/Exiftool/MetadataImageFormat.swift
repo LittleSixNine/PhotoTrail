@@ -25,7 +25,7 @@ public enum MetadataImageFormat {
 
     public static func supportsEditing(_ tag: MetadataTag, extension ext: String) -> Bool {
         let ext = ext.lowercased()
-        guard writableExtensions.contains(ext) else { return false }
+        guard tag.supportsPhotoEditing, writableExtensions.contains(ext) else { return false }
         if tag.isFileTime || tag.supportsSidecar { return true }
         if tag.rawValue.hasPrefix("IPTC:") { return exifIPTCXMP.contains(ext) }
         return exifIPTCXMP.contains(ext) || exifXMP.contains(ext)

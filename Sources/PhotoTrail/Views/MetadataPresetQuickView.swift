@@ -54,7 +54,7 @@ struct MetadataPresetQuickView: View {
             }
             HStack {
                 Button(L10n.text("更新预设")) { update() }
-                    .disabled(!changed || !session.isValid || session.busy)
+                    .disabled(!changed || !session.cards.allSatisfy(\.isComplete) || session.busy)
                     .accessibilityIdentifier("metadataPresetUpdate")
                 Button(L10n.text("编辑规则")) { editRules(session.cards) }.disabled(session.busy)
                 Spacer(minLength: 8)
@@ -118,19 +118,30 @@ struct MetadataPresetQuickView: View {
 }
 
 struct MetadataMediaIcons: View {
+    let supportsPhotos: Bool
     let supportsVideo: Bool
 
-    init(operations: [MetadataOperation]) { self.supportsVideo = operations.contains { $0.supportsMovieEditing } }
+    init(operations: [MetadataOperation]) {
+        supportsPhotos = operations.contains(where: \.supportsPhotoEditing)
+        supportsVideo = operations.contains(where: \.supportsMovieEditing)
+    }
+
+    private var label: String {
+        if supportsPhotos && supportsVideo { return L10n.text("适用于照片和视频") }
+        if supportsPhotos { return L10n.text("仅适用于照片") }
+        if supportsVideo { return L10n.text("仅适用于视频") }
+        return L10n.text("文件不支持此字段")
+    }
 
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: "photo")
+            if supportsPhotos { Image(systemName: "photo") }
             if supportsVideo { Image(systemName: "video") }
         }
         .font(.caption)
         .foregroundStyle(.secondary)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(L10n.text(supportsVideo ? "适用于照片和视频" : "仅适用于照片"))
-        .help(L10n.text(supportsVideo ? "适用于照片和视频" : "仅适用于照片"))
+        .accessibilityLabel(label)
+        .help(label)
     }
 }

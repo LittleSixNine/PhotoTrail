@@ -45,6 +45,12 @@ public enum MetadataTag: String, CaseIterable, Codable, Sendable {
     case dateModified = "XMP-xmp:ModifyDate"
     case make = "XMP-tiff:Make"
     case model = "XMP-tiff:Model"
+    case city = "XMP-photoshop:City"
+    case regionState = "XMP-photoshop:State"
+    case country = "XMP-photoshop:Country"
+    case lensMake = "XMP-exifEX:LensMake"
+    case director = "Keys:Director"
+    case producer = "Keys:Producer"
     case lens = "XMP-aux:Lens"
     case exposureTime = "XMP-exif:ExposureTime"
     case fNumber = "XMP-exif:FNumber"
@@ -109,6 +115,15 @@ public enum MetadataTag: String, CaseIterable, Codable, Sendable {
     case lensSerial = "XMP-aux:LensSerialNumber"
     case rating = "XMP-xmp:Rating"
     case label = "XMP-xmp:Label"
+
+    public var legacyRegion: MetadataTag? {
+        switch self {
+        case .city: .iptcCity
+        case .regionState: .iptcProvince
+        case .country: .iptcCountry
+        default: nil
+        }
+    }
 
     public var isFileTime: Bool { self == .fileCreateDate || self == .fileModifyDate }
     public var isPartialDate: Bool { self == .iptcDateCreated || self == .iptcTimeCreated }
@@ -358,6 +373,8 @@ extension Exiftool {
             guard tags.contains(where: \.supportsMovieEditing) else { return [:] }
             return try quickTimeVideoInfo(from: image).editableValues.filter { tags.contains($0.key) }
         }
+        let tags = tags.filter(\.supportsPhotoEditing)
+        guard !tags.isEmpty else { return [:] }
         if tags.contains(where: \.isFileTime) {
             var values = try metadataTags(Set(tags.filter { !$0.isFileTime }), from: image)
             guard image.pathExtension.lowercased() != "xmp" else { return values }
@@ -373,6 +390,7 @@ extension Exiftool {
         var args = ["-j", "-G1", "-n", "-api", "StructFormat=JSONQ", "-Warning"]
         args += sortedTags.map { "-\($0.readName)" }
         let dateFallbacks: [MetadataTag: String] = [.captureDate: "ExifIFD:DateTimeOriginal", .exifCreateDate: "ExifIFD:CreateDate", .exifModifyDate: "IFD0:ModifyDate"]
+        args += sortedTags.compactMap { $0.legacyRegion.map { "-" + $0.rawValue } }
         args += sortedTags.compactMap { dateFallbacks[$0].map { "-" + $0 } }
         args.append(image.path)
         let data = try run(args)
@@ -390,7 +408,7 @@ extension Exiftool {
         }
         var result: [MetadataTag: MetadataTagValue] = [:]
         for tag in sortedTags {
-            switch (tag.valueKind, entry[tag.readName] ?? dateFallbacks[tag].flatMap { entry[$0] }) {
+            switch (tag.valueKind, entry[tag.readName] ?? tag.legacyRegion.flatMap { entry[$0.rawValue] } ?? dateFallbacks[tag].flatMap { entry[$0] }) {
             case (.text, .text(let value)):
                 if tag == .captureLocation, let point = CaptureLocationField.parse(value) {
                     result[tag] = .text(CaptureLocationField.text(point))
@@ -440,6 +458,9 @@ extension Exiftool {
             guard mapMetadata == nil else { throw ExiftoolError.invalidTagValue(tag: "QuickTime") }
             return try updateMovieMetadata(changes, in: image)
         }
+        if let tag = changes.keys.first(where: { !$0.supportsPhotoEditing }) {
+            throw ExiftoolError.invalidTagValue(tag: tag.rawValue)
+        }
         if changes.keys.contains(where: \.isFileTime) {
             guard image.pathExtension.lowercased() != "xmp" else {
                 throw ExiftoolError.invalidTagValue(tag: "System")
@@ -468,9 +489,23 @@ extension Exiftool {
             } catch let error as MetadataTagUpdateError { throw error }
             catch { throw MetadataTagUpdateError.writeFailed(underlying: error) }
         }
-        return try update(
+        // Keep an existing legacy region in sync so older photo readers see the edit.
+        // Sidecars and containers without IPTC write only the canonical XMP field.
+        var writing = changes
+        let mirrors = Set(changes.keys.compactMap(\.legacyRegion))
+        if !mirrors.isEmpty, image.pathExtension.lowercased() != "xmp" {
+            let existing = try metadataTags(mirrors, from: image)
+            for (tag, change) in changes {
+                guard let mirror = tag.legacyRegion, existing[mirror] != nil else { continue }
+                guard changes[mirror] == nil || changes[mirror] == change else {
+                    throw ExiftoolError.invalidTagValue(tag: mirror.rawValue)
+                }
+                writing[mirror] = change
+            }
+        }
+        let saved = try update(
             image: image,
-            changes: changes,
+            changes: writing,
             write: { args in
                 let mapArgs = mapMetadata.map {
                     metadataArguments(image: image, from: $0, timeZone: timeZone,
@@ -480,9 +515,10 @@ extension Exiftool {
             },
             readback: { tags, image in
                 let values = try metadataTags(tags, from: image)
-                if let mapMetadata { try verifyMapMetadata(mapMetadata, in: image) }
+                if let mapMetadata { try verifyMapMetadata(mapMetadata, in: image, editedTags: Set(changes.keys)) }
                 return values
             }, hasMapChanges: mapMetadata != nil)
+        return saved.filter { changes[$0.key] != nil }
     }
 
     func update(
@@ -885,7 +921,7 @@ extension Exiftool {
         return args
     }
 
-    public func verifyMapMetadata(_ expected: Metadata, in image: URL) throws {
+    public func verifyMapMetadata(_ expected: Metadata, in image: URL, editedTags: Set<MetadataTag> = []) throws {
         let usingXMP = MetadataImageFormat.usesXMPGPS(extension: image.pathExtension)
         let gpsGroup = usingXMP ? "XMP-exif" : "Composite"
         let detailGroup = usingXMP ? "XMP-exif" : "EXIF"
@@ -915,8 +951,10 @@ extension Exiftool {
         }
         let fields = [("Location", expected.sublocation), ("City", expected.city), ("State", expected.state),
                       ("Country", expected.country), ("CountryCode", expected.countryCode)]
+        let explicitRegions = Set(editedTags.filter { $0.legacyRegion != nil }.map(\.rawValue))
         for (key, value) in fields {
-            let wanted = expected.location == nil ? "" : value ?? ""
+            let keep = expected.location != nil || expected.preserveGPSOnSave || explicitRegions.contains("XMP-photoshop:" + key)
+            let wanted = keep ? value ?? "" : ""
             guard (row[key] as? String ?? "") == wanted else { throw ExiftoolError.invalidTagValue(tag: key) }
         }
     }

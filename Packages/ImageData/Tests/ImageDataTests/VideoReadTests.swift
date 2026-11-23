@@ -23,7 +23,7 @@ struct VideoReadTests {
         let before = try files.map { try Data(contentsOf: $0) }
         let item = ImageData(from: video)
         let info = try #require(item.videoInfo)
-        #expect(item.metadata.readable && item.updatable && item.supportsMetadataEditing(.captureLocation) && !item.supportsMetadataEditing(.lens))
+        #expect(item.metadata.readable && item.updatable && item.supportsMetadataEditing(.captureLocation) && item.supportsMetadataEditing(.lens))
         #expect(item.metadataInspectionURL == video)
         #expect(item.name == "shared.MOV")
         #expect(info.duration == 1 && info.frameRate == 5)
@@ -70,7 +70,7 @@ extension VideoReadTests {
         }
         let target = "-12.375 34.54321"
         let ops = [MetadataOperation(tag: .captureLocation, action: .setText(target)),
-                   MetadataOperation(tag: .lens, action: .setText("Test lens")),
+                   MetadataOperation(tag: .lens, action: .setText("Test lens"), photosOnly: true),
                    MetadataOperation(tag: .captureDate, action: .setText("2026:11:23 14:30:00+08:00"))]
         let preview = try MetadataWorkflowPreview.prepare(readings, operations: ops)
         #expect(preview.items.count == 10 && preview.skipDetails.count == 2)
@@ -185,7 +185,11 @@ extension VideoReadTests {
          .init(tag: .creator, action: .replaceAuthors(["甲,乙", "六九"])),
          .init(tag: .subject, action: .replaceKeywords(["海边", "A; B"])),
          .init(tag: .make, action: .setText("品牌")),
-         .init(tag: .model, action: .setText("设备"))]
+         .init(tag: .model, action: .setText("设备")),
+         .init(tag: .city, action: .setText("杭州")), .init(tag: .regionState, action: .setText("浙江")),
+         .init(tag: .country, action: .setText("中国")), .init(tag: .lensMake, action: .setText("Lens maker")),
+         .init(tag: .lens, action: .setText("Prime 35")), .init(tag: .rating, action: .setText("4")),
+         .init(tag: .director, action: .setText("陈某")), .init(tag: .producer, action: .setText("赵某"))]
     }
 
     @Test(arguments: ["mov", "mp4"]) func editableMovieFieldsRoundTripAndClear(ext: String) async throws {
@@ -240,5 +244,90 @@ extension VideoReadTests {
         let removal = try #require(remove.items.first)
         #expect(await removal.save(backup: .disabled) == .saved)
         #expect(try Exiftool.helper.metadataTags([.creator], from: file).isEmpty)
+    }
+}
+
+extension VideoReadTests {
+    @Test func mixedCityAndDirectorCountsAndDiskValues() async throws {
+        let parent = ProcessInfo.processInfo.environment["PHOTOTRAIL_CATALOG_TEST_DIRECTORY"].map {
+            URL(fileURLWithPath: $0, isDirectory: true)
+        } ?? URL.temporaryDirectory
+        let folder = parent.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let tags: Set<MetadataTag> = [.city, .director]
+        let operations = [MetadataOperation(tag: .city, action: .setText("杭州")),
+                          MetadataOperation(tag: .director, action: .setText("陈某"))]
+        var urls = [URL]()
+        for index in 0..<10 {
+            let src = try index < 8 ? #require(Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
+                : fixture(index == 8 ? "tagged" : "plain", index == 8 ? "mov" : "mp4")
+            let url = folder.appendingPathComponent("\(index)." + src.pathExtension)
+            try FileManager.default.copyItem(at: src, to: url)
+            urls.append(url)
+        }
+        func preview() throws -> MetadataWorkflowPreview {
+            let readings = try urls.map { (ImageData(from: $0), try MetadataInspectionSnapshot.read(tags, from: $0)) }
+            return try MetadataWorkflowPreview.prepare(readings, operations: operations)
+        }
+        let changes = try preview()
+        #expect(changes.items.count == 10)
+        #expect(changes.operationResults.map { $0.changed.count } == [10, 2])
+        #expect(changes.operationResults.map { $0.skipped.count } == [0, 8])
+        for item in changes.items {
+            var pending = ImageData(from: item.target)
+            pending.applyMetadataDraft(item)
+            #expect(pending.metadata.city == "杭州" && !pending.hasLegacyChanges)
+            #expect(await item.save(backup: .disabled) == .saved)
+            #expect(ImageData(from: item.target).metadata.city == "杭州")
+            let reopened = try Exiftool.helper.metadataTags(tags, from: item.target)
+            #expect(reopened[.city] == .text("杭州"))
+            #expect(reopened[.director] == (QuickTimeVideoInfo.acceptsExtension(item.target) ? .text("陈某") : nil))
+        }
+        let unchanged = try preview()
+        #expect(unchanged.items.isEmpty && unchanged.operationResults.map { $0.unchanged.count } == [10, 2])
+    }
+
+    @Test(arguments: ["jpg", "heic", "xmp"])
+    func catalogFieldsInPhotoFormats(ext: String) throws {
+        let stem = ["jpg": "alldata", "heic": "blank", "xmp": "262M1559"][ext]!
+        let source = try #require(Bundle.module.url(forResource: stem, withExtension: ext))
+        let file = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString + "." + ext)
+        try FileManager.default.copyItem(at: source, to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+        let fields: [MetadataTag: String] = [.city: "杭州", .regionState: "浙江", .country: "中国",
+            .lensMake: "Maker", .lens: "35 mm", .rating: "4"]
+        let sets = fields.mapValues { MetadataTagChange.set(.text($0)) }
+        let written = try Exiftool.helper.update(image: file, changes: sets)
+        #expect(written == fields.mapValues { .text($0) })
+        #expect(throws: Exiftool.ExiftoolError.self) {
+            try Exiftool.helper.update(image: file, changes: [.director: .set(.text("no"))])
+        }
+        _ = try Exiftool.helper.update(image: file, changes: fields.mapValues { _ in .remove })
+        #expect(try Exiftool.helper.metadataTags(Set(fields.keys), from: file).isEmpty)
+    }
+}
+
+extension VideoReadTests {
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["PHOTOTRAIL_LARGE_MOVIE_FIXTURE"] != nil))
+    func catalogSaveInLargeContainer() async throws {
+        let path = try #require(ProcessInfo.processInfo.environment["PHOTOTRAIL_LARGE_MOVIE_FIXTURE"])
+        let source = URL(fileURLWithPath: path)
+        let size = try source.resourceValues(forKeys: [.fileSizeKey]).fileSize
+        #expect((size ?? 0) > Int(UInt32.max))
+        let file = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString + "." + source.pathExtension)
+        try FileManager.default.copyItem(at: source, to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+        let image = ImageData(from: file)
+        let tags: Set<MetadataTag> = [.city, .director]
+        let snapshot = try MetadataInspectionSnapshot.read(tags, from: file)
+        let changes = try MetadataWorkflowPreview.prepare([(image, snapshot)], operations: [
+            .init(tag: .city, action: .setText("杭州")), .init(tag: .director, action: .setText("Chen"))
+        ])
+        let item = try #require(changes.items.first)
+        #expect(await item.save(backup: .disabled) == .saved)
+        let reopened = try Exiftool.helper.quickTimeVideoInfo(from: file)
+        #expect(reopened.editableValues[.director] == .text("Chen") && reopened.editableValues[.city] == .text("杭州"))
+        #expect(reopened.duration == image.videoInfo?.duration)
     }
 }

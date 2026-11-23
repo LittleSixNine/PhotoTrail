@@ -428,6 +428,12 @@ extension MetadataTag {
         case .exifYResolution: "Metadata field: YResolution"
         case .exifResolutionUnit: "Metadata field: ResolutionUnit"
         case .lensSerial: "Metadata field: LensSerialNumber"
+        case .city: "城市"
+        case .regionState: "省／州"
+        case .country: "国家"
+        case .lensMake: "Metadata field: LensMake"
+        case .director: "导演"
+        case .producer: "制片人"
         case .rating: "XMP Rating"
         case .label: "XMP Label"
         case .titleDefault: "标题"
@@ -654,6 +660,8 @@ struct MetadataWorkflowCard: Identifiable, Equatable, Sendable {
     var parameterGuidance: String? {
         guard let first = operations.first else { return nil }
         switch (first.tag, first.action) {
+        case (.city, _), (.regionState, _), (.country, _): return L10n.text("选填文字地名，留空跳过。拍摄坐标单独编辑。")
+        case (.director, _), (.producer, _): return L10n.text("选填视频署名，留空跳过。保留原有作者。")
         case (.captureDate, .setText): return L10n.text("例如 2026:11:23 14:30:00+08:00。视频需要时区。")
         case (.captureDate, .offsetDate): return L10n.text("按每个文件原有的拍摄时间调整；缺少时间的文件会跳过。")
         case (.captureDate, .filenameDate): return L10n.text("例如 IMG_20261123_143000.mov。视频沿用已有时区，缺少时区时跳过。")
@@ -674,6 +682,9 @@ struct MetadataWorkflowCard: Identifiable, Equatable, Sendable {
         let skipped = images.count - photos - videos
         if photos > 0, videos == 0, skippedVideos > 0, skipped == skippedVideos {
             return L10n.text("仅更改 %1$@ 张照片，跳过 %2$@ 段视频。", photos, skippedVideos)
+        }
+        if videos > 0, photos == 0, skipped > 0, skippedVideos == 0 {
+            return L10n.text("仅更改 %1$@ 段视频，跳过 %2$@ 张照片。", videos, skipped)
         }
         return L10n.text("本规则适用于 %1$@ 张照片、%2$@ 段视频，跳过 %3$@ 项", photos, videos, skipped)
     }
@@ -735,6 +746,7 @@ struct MetadataOperationCardView: View {
     var duplicate: (() -> Void)?
     @State private var expanded = true
     @State private var loaded = false
+    @State private var restrictedTargets = Set<MetadataTag>()
     @State private var lastDraft: [MetadataOperation] = []
     @State private var tag = MetadataTag.captureDate
     @State private var mode = "offset"
@@ -835,6 +847,9 @@ struct MetadataOperationCardView: View {
 
     private var editor: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if !restrictedTargets.isEmpty {
+                Button(L10n.text("将这一步扩展到视频")) { restrictedTargets.removeAll() }
+            }
             if !quickParameters {
                 Picker(L10n.text("字段操作"), selection: $mode) {
                     ForEach(modes + (["shift", "days"].contains(mode) ? [mode] : []), id: \.self) {
@@ -976,7 +991,7 @@ struct MetadataOperationCardView: View {
         default: action = tag == .creator ? .replaceAuthors(words) : tag.isList && tag != .creator ? .replaceKeywords(words) : .setText(input)
         }
         let targets = mode == "copy" ? availableTags.filter { $0 != tag && copyTargets.contains($0) } : [tag]
-        return targets.map { MetadataOperation(tag: $0, action: action) }
+        return targets.map { MetadataOperation(tag: $0, action: action, photosOnly: restrictedTargets.contains($0)) }
     }
 
     private func value(_ reading: (image: ImageData, snapshot: MetadataInspectionSnapshot), tag: MetadataTag) -> MetadataTagValue? {
@@ -1101,6 +1116,7 @@ private extension MetadataOperationCardView {
         if case .copy(let source) = first.action {
             tag = source; copyTargets = Set(operations.map(\.tag))
         } else { tag = first.tag }
+        restrictedTargets = Set(operations.filter(\.photosOnly).map(\.tag))
         loadAction(first.action)
         lastDraft = draftOperations
         if mode == "filename" && !filenameAdvanced { operations = lastDraft }

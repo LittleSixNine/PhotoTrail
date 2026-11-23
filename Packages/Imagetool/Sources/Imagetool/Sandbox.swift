@@ -183,7 +183,7 @@ extension Sandbox {
         defer { NSFileCoordinator.removeFilePresenter(xmpPresenter) }
         let target = sidecar ? xmpURL : imgURL
         let values = try Exiftool.helper.metadataTags(tags, from: target)
-        if let mapMetadata { try Exiftool.helper.verifyMapMetadata(mapMetadata, in: target) }
+        if let mapMetadata { try Exiftool.helper.verifyMapMetadata(mapMetadata, in: target, editedTags: tags) }
         return values
     }
 

@@ -66,12 +66,14 @@ extension PhotoTrailReducer {
             state[id].metadata.state = address.state
             state[id].metadata.country = address.country
             state[id].metadata.countryCode = address.countryCode
+            if let changes = state[id].creatorDraft?.changes { state[id].metadata.applyCatalogRegions(changes) }
             if let pairedID = state[id].pairedID, state[pairedID].updatable {
                 state[pairedID].metadata.sublocation = address.sublocation
                 state[pairedID].metadata.city = address.city
                 state[pairedID].metadata.state = address.state
                 state[pairedID].metadata.country = address.country
                 state[pairedID].metadata.countryCode = address.countryCode
+                if let changes = state[pairedID].creatorDraft?.changes { state[pairedID].metadata.applyCatalogRegions(changes) }
             }
         }
     }

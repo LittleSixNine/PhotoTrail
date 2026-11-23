@@ -107,7 +107,7 @@ extension PhotoTrailReducer {
                 newState.imageData[index].original = Metadata(copying: result.metadata)
                 if newState.imageData[index].isLocalMovie {
                     let change = result.metadata.location.map { MetadataTagChange.set(.text(CaptureLocationField.text($0))) } ?? .remove
-                    newState.imageData[index].finishMovieSave([.captureLocation: change])
+                    newState.imageData[index].finishMetadataSave([.captureLocation: change])
                 }
             }
         }
@@ -134,8 +134,9 @@ extension PhotoTrailReducer {
 
             }
         }
+        if discard { state.imageData[index].restoreCatalogDraft() }
         if !discard, let changes = state.imageData[index].creatorDraft?.changes {
-            state.imageData[index].finishMovieSave(changes)
+            state.imageData[index].finishMetadataSave(changes)
         }
         state.imageData[index].creatorDraft = nil
         if discard {

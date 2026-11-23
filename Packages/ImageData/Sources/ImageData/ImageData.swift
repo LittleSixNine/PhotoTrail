@@ -8,6 +8,32 @@ import PhotosUI
 import Phototool
 import SwiftUI
 
+private extension MetadataTag {
+    var catalogRegionKey: WritableKeyPath<Metadata, String?>? {
+        switch self {
+        case .city: \.city
+        case .regionState: \.state
+        case .country: \.country
+        default: nil
+        }
+    }
+}
+
+public extension Metadata {
+    mutating func applyCatalogRegions(_ changes: [MetadataTag: MetadataTagChange]) {
+        for (tag, change) in changes {
+            guard let key = tag.catalogRegionKey else { continue }
+            let value: String?
+            switch change {
+            case .set(.text(let text)): value = text
+            case .remove: value = nil
+            default: continue
+            }
+            self[keyPath: key] = value
+        }
+    }
+}
+
 public struct ImageData: Identifiable, Sendable {
     public let id: Int
     public private(set) var name: String
@@ -17,13 +43,23 @@ public struct ImageData: Identifiable, Sendable {
         guard case .image(let url) = metadata.source else { return false }
         return QuickTimeVideoInfo.acceptsExtension(url)
     }
+    public private(set) var metadataTargetWritable = true
     public private(set) var movieVersion: MetadataInspectionFileVersion?
     public mutating func supersedeMovieLocationDraft() {
         guard isLocalMovie, var draft = creatorDraft, draft.changes.removeValue(forKey: .captureLocation) != nil else { return }
         creatorDraft = draft.changes.isEmpty ? nil : draft
     }
 
-    public mutating func finishMovieSave(_ changes: [MetadataTag: MetadataTagChange]) {
+    public mutating func restoreCatalogDraft() {
+        guard let draft = creatorDraft else { return }
+        for key in draft.changes.keys.compactMap(\.catalogRegionKey) {
+            metadata[keyPath: key] = original?[keyPath: key]
+        }
+    }
+
+    public mutating func finishMetadataSave(_ changes: [MetadataTag: MetadataTagChange]) {
+        metadata.applyCatalogRegions(changes)
+        original?.applyCatalogRegions(changes)
         videoInfo?.applySavedChanges(changes)
         refreshMovieVersion()
     }
@@ -74,6 +110,8 @@ public struct ImageData: Identifiable, Sendable {
             metadata.location = change.coordinate
             metadata.gpsMapDatum = metadata.location == nil ? original?.gpsMapDatum : "WGS-84"
         }
+        restoreCatalogDraft()
+        metadata.applyCatalogRegions(item.changes)
         creatorDraft = item.changes.isEmpty ? nil : item
         if item.captureDateChange != nil { metadata.dateTimeCreated = item.captureDateValue }
     }
@@ -88,6 +126,11 @@ public struct ImageData: Identifiable, Sendable {
         if let change = creatorDraft?.changes[.captureLocation], metadata.location == change.coordinate {
             comparison.location = original?.location
             comparison.gpsMapDatum = original?.gpsMapDatum
+        }
+        if let changes = creatorDraft?.changes {
+            for key in changes.keys.compactMap(\.catalogRegionKey) {
+                comparison[keyPath: key] = original?[keyPath: key]
+            }
         }
         return comparison != original
     }
@@ -140,12 +183,14 @@ public struct ImageData: Identifiable, Sendable {
             let read = Imagetool.readVideoInfo(from: url)
             let info = version == MetadataInspectionFileVersion.read(url) ? read : nil
             metadata.readable = info != nil
+            metadata.applyCatalogRegions((info?.editableValues ?? [:]).mapValues { .set($0) })
             metadata.location = info?.location
             metadata.gpsMapDatum = info?.location == nil ? nil : "WGS-84"
             metadata.dateTimeCreated = info?.zonedCreationDate
             self.init(metadata: metadata, name: url.lastPathComponent)
             videoInfo = info
-            if info != nil && FileManager.default.isWritableFile(atPath: url.path) {
+            metadataTargetWritable = FileManager.default.isWritableFile(atPath: url.path)
+            if info != nil && metadataTargetWritable {
                 original = Metadata(copying: metadata)
                 movieVersion = version
             }
@@ -164,6 +209,7 @@ public struct ImageData: Identifiable, Sendable {
             metadata = Imagetool.metadata(from: url)
         }
         self.init(metadata: metadata, name: name)
+        metadataTargetWritable = FileManager.default.isWritableFile(atPath: (hasSidecar ? sidecarURL : url).path)
     }
 
     // init given a PhotosPickerItem and an asset

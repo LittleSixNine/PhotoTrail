@@ -128,8 +128,8 @@ struct MetadataBatchEditView: View {
                     if session.statisticsBusy || session.application.busy { ProgressView().controlSize(.small) }
                     Button(L10n.text("取消")) { discard = true }.labelStyle(.titleOnly)
                         .disabled(session.application.busy)
-                    let tags = Set(cards.flatMap(\.operations).map(\.tag))
-                    let applicable = session.readings.filter { reading in tags.contains(where: reading.image.supportsMetadataEditing) }.count
+                    let operations = cards.flatMap(\.operations)
+                    let applicable = session.readings.filter { reading in operations.contains { $0.applies(to: reading.image) } }.count
                     Button(L10n.text("应用到 %1$@ 项", applicable)) {
                         session.application.apply(readings: session.readings, operations: [], cards: cards, store: store)
                     }.buttonStyle(.borderedProminent)
@@ -421,6 +421,7 @@ extension MetadataWorkflowPreview.SkipReason {
         case .filenameMismatch: L10n.text("文件名未匹配日期规则")
         case .localizedMovieField: L10n.text("此字段含多语言版本，已跳过清除")
         case .missingVideoTimeZone: L10n.text("视频拍摄时间需要时区，例如 +08:00")
+        case .readOnlyFile: L10n.text("只读")
         case .unsupportedField: L10n.text("文件不支持此字段")
         }
     }
