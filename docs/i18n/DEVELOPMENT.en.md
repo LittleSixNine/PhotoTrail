@@ -84,6 +84,8 @@ The map sidebar uses `SidebarScrollView` to configure its reserved vertical gutt
 
 Routine track-history writes share a serial queue. Clear, adjustment and deletion stage a complete archive in a same-volume system replacement directory, check the current state and publish it with an atomic rename. Normal termination drains pending writes. Migration and backup-ownership tests use isolated fixtures. Run app tests with a separate bundle identifier. Package tests cover 100,000 timestamped points and orientation-aware downsampling at list and preview sizes.
 
+The 100-photo save test creates a unique photo directory in the independent test container’s Application Support, checks five fields and each original backup, and removes the directory on exit. A separate test changes inode status time (ctime) while retaining the same file contents and verifies that the stale draft stops before backup. The settings UI tests open Settings with Command-comma and verify the selected temporary backup folder after reopening the window.
+
 ### Shared photos and preset regression coverage
 
 All tabs import through `ContentView` and `OpenHelper.importFiles`; `PhotoTrailState` owns photos and selection. Rename has no independent file URL list. Removal uses `.removeImages` and undo; rename/restore mappings update shared objects through `.filesRenamed`. Imports are rejected while saving or renaming.

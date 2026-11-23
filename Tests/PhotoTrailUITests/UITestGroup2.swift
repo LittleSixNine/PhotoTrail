@@ -16,29 +16,23 @@ final class UITestGroup2: XCTestCase {
     }
 
     func testAPathView() async throws {
-        let dismissID = TestIDs.DismissModifier.dismissButtonID
         let pathViewID = TestIDs.SettingsView.pathViewID
-        let settingsID = "Settings…"
         let closeButtonID = TestIDs.SettingsView.closeID
-
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: folder) }
         let app = XCUIApplication()
-        app.launchArguments.append("-NOBACKUPFOLDER")
-        app.activate()
-        let dismissButton = element(app, matching: dismissID)
-        if dismissButton.exists {
-            dismissButton.click()
-        }
-        let settingsButton = element(app, matching: settingsID)
-        XCTAssert(settingsButton.exists)
-        settingsButton.click()
-        app.buttons["存储"].click()
+        try await app.openSettingsForTest("-NOBACKUPFOLDER")
+        let storage = app.descendants(matching: .any).matching(identifier: "Storage").firstMatch
+        XCTAssertTrue(storage.waitForExistence(timeout: 5), app.debugDescription)
+        storage.click()
 
         let pathView = element(app, matching: pathViewID)
         XCTAssert(pathView.exists)
         pathView.click()
         pathView.menuItems["Choose…"].click()
         app.typeKey("g", modifierFlags: [.shift, .command])
-        app.typeText("/tmp")
+        app.typeText(folder.path)
         app.typeKey(.enter, modifierFlags: [])
         app.typeKey(.enter, modifierFlags: [])
 
@@ -47,10 +41,11 @@ final class UITestGroup2: XCTestCase {
         closeButton.click()
 
         // now check that the path we set is the path shown
-        settingsButton.click()
-        app.buttons["存储"].click()
+        app.typeKey(",", modifierFlags: .command)
+        storage.click()
         pathView.click()
-        XCTAssert(pathView.menuItems["tmp"].exists)
+        XCTAssertTrue(app.menuItems[folder.lastPathComponent].waitForExistence(timeout: 5), app.debugDescription)
+        app.typeKey(.escape, modifierFlags: [])
         closeButton.click()
 
         app.buttons["_XCUI:CloseWindow"].firstMatch.click()

@@ -65,6 +65,11 @@ private actor BoundedReaderProbe {
             _ = await queue.read(request(image), kind: .editable)
             _ = await queue.read(request(image), kind: .additional)
         }
+        // Read continuations can resume before the worker publishes its final phase.
+        let deadline = ContinuousClock.now + .seconds(3)
+        while queue.isPreparing && ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
     }
     @Test(arguments: [2, 4]) func boundedReadsDeduplicateAndTrackBothStages(concurrency: Int) async throws {
         let dir = try directory()
@@ -99,8 +104,6 @@ private actor BoundedReaderProbe {
         #expect(await probe.reads == 0)
         queue.resumeReading()
         await finish(queue, images)
-        // Let the worker clear its phase after delivering the final read.
-        await Task.yield()
         #expect(queue.completed == 100 && !queue.progress.isPaused)
         #expect(!queue.isPreparing)
         #expect(await probe.reads == 200)
@@ -114,7 +117,6 @@ private actor BoundedReaderProbe {
         queue.synchronize(images)
         #expect(queue.isPreparing)
         await finish(queue, images)
-        await Task.yield()
         #expect(!queue.isPreparing)
         queue.setPaused(true)
         queue.refresh(ids: Set(images.map(\.id)))

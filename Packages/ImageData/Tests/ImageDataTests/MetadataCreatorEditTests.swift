@@ -187,6 +187,33 @@ struct MetadataCreatorEditTests {
         }
     }
 
+    @Test func attributeOnlyChangeKeepsOriginalAndSkipsBackup() async throws {
+        let fm = FileManager.default
+        let folder = fm.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fm.createDirectory(at: folder, withIntermediateDirectories: false)
+        defer { try? fm.removeItem(at: folder) }
+        let fixture = try #require(Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
+        let photo = folder.appendingPathComponent("photo.jpg")
+        try fm.copyItem(at: fixture, to: photo)
+        let original = try Data(contentsOf: photo)
+        let image = ImageData(metadata: Metadata(source: .image(photo)), name: "photo.jpg")
+        let snapshot = try MetadataInspectionSnapshot.read([.creator], from: photo)
+        let item = try #require(MetadataCreatorEditPlan.prepare([(image, snapshot)], action: .set(["Test"])).items.first)
+
+        // A second directory entry for the same inode changes ctime without rewriting photo data.
+        try fm.linkItem(at: photo, to: folder.appendingPathComponent("alias.jpg"))
+        guard case let .file(dev, ino, size, sec, ns, _, _) = snapshot.version,
+              case let .file(newDev, newIno, newSize, newSec, newNs, _, _) = MetadataInspectionFileVersion.read(photo) else {
+            Issue.record("Missing test photo")
+            return
+        }
+        #expect(dev == newDev && ino == newIno && size == newSize && sec == newSec && ns == newNs)
+        #expect(MetadataInspectionFileVersion.read(photo) != snapshot.version)
+        #expect(await item.save(backup: .managedFolder(folder)) == .staleSource)
+        #expect(try Data(contentsOf: photo) == original)
+        #expect(!fm.fileExists(atPath: folder.appendingPathComponent("PhotoTrail Backups").path))
+    }
+
     @Test func creatorSaveUsesRealTargetBackupAndRejectsStaleOrUnbackedWrites() async throws {
         let folder = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

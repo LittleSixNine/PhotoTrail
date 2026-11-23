@@ -63,9 +63,12 @@ struct MetadataCreatorBatchTests {
                   url.pathExtension.lowercased() == "jpg" else { return nil }
             return url
         }.first)
-        let folder = URL.temporaryDirectory.appending(component: UUID().uuidString,
-                                                       directoryHint: .isDirectory)
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        // Model a photo directory with stable attributes throughout the edit and save.
+        let support = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
+                                                  appropriateFor: nil, create: true)
+        let folder = support.appending(component: "PhotoTrail-batch-test-" + UUID().uuidString,
+                                       directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: false)
         defer { try? FileManager.default.removeItem(at: folder) }
         let tags: Set<MetadataTag> = [.creator, .titleDefault, .descriptionDefault, .rightsDefault, .subject]
         let urls = (0..<count).map { folder.appending(component: "sample-\($0).jpg") }

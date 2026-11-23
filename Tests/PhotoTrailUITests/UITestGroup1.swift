@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 
 @MainActor
@@ -92,23 +93,34 @@ final class UITestGroup1: XCTestCase {
     }
 
     func testFSettingsWindow() async throws {
-        let settingsID = "Settings…"
         let closeButtonID = TestIDs.SettingsView.closeID
         let app = XCUIApplication()
-        app.launchArguments.append("-NOBACKUP")
-        app.activate()
-        let settingsButton = element(app, matching: settingsID)
-        XCTAssert(settingsButton.exists)
-        settingsButton.click()
-        sleep(1)
+        try await app.openSettingsForTest("-NOBACKUP")
+        let closeButton = element(app, matching: closeButtonID)
+        XCTAssertTrue(closeButton.waitForExistence(timeout: 5), app.debugDescription)
+        if !closeButton.isHittable {
+            let settings = app.windows.containing(.button, identifier: closeButtonID).firstMatch
+            settings.scrollViews.firstMatch.scroll(byDeltaX: 0, deltaY: -900)
+        }
         let screenshot = app.screenshot()
         let attachment = XCTAttachment(screenshot: screenshot)
         attachment.name = "Settings"
         attachment.lifetime = .keepAlways
         add(attachment)
-        let closeButton = element(app, matching: closeButtonID)
-        XCTAssert(closeButton.exists)
         closeButton.click()
+        XCTAssertTrue(closeButton.waitForNonExistence(timeout: 5))
         app.buttons["_XCUI:CloseWindow"].firstMatch.click()
+    }
+}
+
+extension XCUIApplication {
+    @MainActor func openSettingsForTest(_ backupMode: String) async throws {
+        launchEnvironment["PHOTOTRAIL_OFFLINE_TESTS"] = "1"
+        launchEnvironment["PHOTOTRAIL_TEST_LANGUAGE"] = "en"
+        launchArguments = ["-LOCALIZATIONPREVIEW", "-PhotoTrailSetupCompleted", "YES", backupMode]
+        launch()
+        let url = Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent("PhotoTrail.app")
+        _ = try await NSWorkspace.shared.openApplication(at: url, configuration: .init())
+        typeKey(",", modifierFlags: .command)
     }
 }
