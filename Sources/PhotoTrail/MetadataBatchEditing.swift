@@ -258,8 +258,14 @@ enum MetadataBatchValues {
         return workflowCards.map { !$0.isEmpty } ?? fields.contains { $0.mode != .keep }
     }
     var changedFieldCount: Int { fields.filter { $0.mode != .keep }.count }
-    var operations: [MetadataOperation] { get throws { if let workflowCards { return workflowCards.flatMap(\.operations) }; return try fields.flatMap { try $0.operations } } }
-    var isValid: Bool { (workflowCards?.allSatisfy(\.isComplete) ?? true) && (try? operations.isEmpty) == false }
+    var activeWorkflowCards: [MetadataWorkflowCard]? { workflowCards?.compactMap(\.executableCard) }
+    var operations: [MetadataOperation] {
+        get throws {
+            if let activeWorkflowCards { return activeWorkflowCards.flatMap(\.operations) }
+            return try fields.flatMap { try $0.operations }
+        }
+    }
+    var isValid: Bool { (activeWorkflowCards?.allSatisfy(\.isComplete) ?? true) && (try? operations.isEmpty) == false }
     var photoIDs: Set<ImageData.ID> { Set(readings.map(\.image.id)) }
 
     func add(_ tag: MetadataTag) {
@@ -291,7 +297,7 @@ enum MetadataBatchValues {
 
     func refreshStatistics() {
         cancelStatistics(); statistics = [:]; statisticsError = ""; recipePreview = nil
-        if let workflowCards {
+        if let workflowCards = activeWorkflowCards {
             guard !workflowCards.isEmpty, workflowCards.allSatisfy(\.isComplete) else { return }
             let readings = readings
             statisticsBusy = true

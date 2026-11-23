@@ -17,12 +17,7 @@ final class MetadataPresetSession: Identifiable {
     private var generation = UUID()
     var busy: Bool { preparing || application.busy }
     var activeCards: [MetadataWorkflowCard] {
-        cards.filter { card in
-            !card.operations.allSatisfy { operation in
-                [.city, .regionState, .country, .director, .producer].contains(operation.tag)
-                    && operation.action == .setText("")
-            }
-        }
+        cards.compactMap(\.executableCard)
     }
     var isValid: Bool { !activeCards.isEmpty && activeCards.allSatisfy(\.isComplete) }
 
@@ -33,8 +28,9 @@ final class MetadataPresetSession: Identifiable {
 
     static func stored(name: String, cards: [MetadataWorkflowCard], presetData: Data, parameterData: Data,
                        replace: Bool) throws -> (Data, Data) {
-        guard !cards.isEmpty, cards.allSatisfy(\.isComplete) else { throw MetadataFieldEditError.invalidValue }
-        try MetadataBatchRecipe.validate(cards)
+        guard !cards.isEmpty else { throw MetadataFieldEditError.invalidValue }
+        let active = cards.compactMap(\.executableCard)
+        if !active.isEmpty { try MetadataBatchRecipe.validate(active) }
         let preset = try MetadataPreset(name: name, operations: cards.flatMap(\.operations))
         var presets = try MetadataPreset.stored(in: presetData)
         if let index = presets.firstIndex(where: { $0.name == name }) {

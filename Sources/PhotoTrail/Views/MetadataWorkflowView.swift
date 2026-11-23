@@ -558,7 +558,7 @@ private extension MetadataWorkflowView {
         }
     }
     var activeOperations: [MetadataOperation] {
-        guard isBatch else { return operations }
+        guard isBatch else { return cards.compactMap(\.executableCard).flatMap(\.operations) }
         return initialTargets.map { target in
             let action: MetadataFieldEditAction
             switch mode {
@@ -657,11 +657,22 @@ struct MetadataWorkflowCard: Identifiable, Equatable, Sendable {
     var operations: [MetadataOperation]
     var datePolicy = MetadataDateCopyPolicy()
     var isComplete: Bool { !operations.isEmpty && !operations.contains { $0.action.hasEmptyInput } }
+    // Version-one presets keep the empty inputs so they can be filled on the next run.
+    var executableCard: Self? {
+        var card = self
+        card.operations.removeAll { operation in
+            guard case .setText(let text) = operation.action,
+                  [.city, .regionState, .country, .director, .producer].contains(operation.tag) else { return false }
+            return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        return !operations.isEmpty && card.operations.isEmpty ? nil : card
+    }
+
     var parameterGuidance: String? {
         guard let first = operations.first else { return nil }
         switch (first.tag, first.action) {
-        case (.city, _), (.regionState, _), (.country, _): return L10n.text("选填文字地名，留空跳过。拍摄坐标单独编辑。")
-        case (.director, _), (.producer, _): return L10n.text("选填视频署名，留空跳过。保留原有作者。")
+        case (.city, .setText), (.regionState, .setText), (.country, .setText): return L10n.text("选填文字地名，留空跳过。拍摄坐标单独编辑。")
+        case (.director, .setText), (.producer, .setText): return L10n.text("选填视频署名，留空跳过。保留原有作者。")
         case (.captureDate, .setText): return L10n.text("例如 2026:11:23 14:30:00+08:00。视频需要时区。")
         case (.captureDate, .offsetDate): return L10n.text("按每个文件原有的拍摄时间调整；缺少时间的文件会跳过。")
         case (.captureDate, .filenameDate): return L10n.text("例如 IMG_20261123_143000.mov。视频沿用已有时区，缺少时区时跳过。")
@@ -673,9 +684,10 @@ struct MetadataWorkflowCard: Identifiable, Equatable, Sendable {
     }
 
     func scopeDescription(for images: [ImageData]) -> String {
+        guard let card = executableCard else { return L10n.text("本步留空，将跳过。") }
         var photos = 0, videos = 0, skippedVideos = 0
         for image in images {
-            if operations.contains(where: { $0.applies(to: image) }) {
+            if card.operations.contains(where: { $0.applies(to: image) }) {
                 if image.isLocalMovie { videos += 1 } else { photos += 1 }
             } else if image.isLocalMovie { skippedVideos += 1 }
         }

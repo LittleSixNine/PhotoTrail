@@ -4,7 +4,7 @@
 
 ## 视频回归样本
 
-运行 ImageData 包测试会使用随库的小型 MOV／MP4。可给 `swift test --package-path Packages/ImageData` 设置 `PHOTOTRAIL_TIMED_GPS_FIXTURE`（含播放时间 GPS 的视频）和 `PHOTOTRAIL_LIVE_MOV_FIXTURE`（含配对标识的 MOV）。测试先复制文件再执行保存。应用测试 `MixedVideoTests` 检查导入、跨页保存及重命名，`MixedVideoUITests` 使用独立标识构建的测试实例检查视频详情与筛选。
+运行 ImageData 包测试会使用随库的小型 MOV／MP4。可给 `swift test --package-path Packages/ImageData` 设置 `PHOTOTRAIL_TIMED_GPS_FIXTURE`（含播放时间 GPS 的视频）和 `PHOTOTRAIL_LIVE_MOV_FIXTURE`（含配对标识的 MOV）。测试先复制文件再执行保存。应用测试 `MixedVideoTests` 检查导入、跨页保存及重命名，`MixedVideoUITests` 使用独立标识构建的测试实例检查视频详情与筛选，并在 Apple 地图上双击修改所选视频的坐标，核对草稿及撤销。
 
 可设置 `PHOTOTRAIL_CATALOG_TEST_DIRECTORY` 在指定测试卷的新临时目录运行 8＋2 城市与导演回归。`PHOTOTRAIL_LARGE_MOVIE_FIXTURE` 可指向超过 4 GiB 的 MOV／MP4，测试复制后保存并重读。
 

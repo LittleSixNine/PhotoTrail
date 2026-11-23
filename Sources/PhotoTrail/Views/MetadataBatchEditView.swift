@@ -123,15 +123,16 @@ struct MetadataBatchEditView: View {
                             Button(L10n.text("更新预设")) { save(name: presetName, replace: true) }
                         }
                     } label: { Label(L10n.text("保存预设"), systemImage: "bookmark") }
-                        .disabled(!session.isValid || session.application.busy)
+                        .disabled(cards.isEmpty || !cards.compactMap(\.executableCard).allSatisfy(\.isComplete) || session.application.busy)
                     Spacer(minLength: 6)
                     if session.statisticsBusy || session.application.busy { ProgressView().controlSize(.small) }
                     Button(L10n.text("取消")) { discard = true }.labelStyle(.titleOnly)
                         .disabled(session.application.busy)
-                    let operations = cards.flatMap(\.operations)
+                    let active = session.activeWorkflowCards ?? []
+                    let operations = active.flatMap(\.operations)
                     let applicable = session.readings.filter { reading in operations.contains { $0.applies(to: reading.image) } }.count
                     Button(L10n.text("应用到 %1$@ 项", applicable)) {
-                        session.application.apply(readings: session.readings, operations: [], cards: cards, store: store)
+                        session.application.apply(readings: session.readings, operations: [], cards: active, store: store)
                     }.buttonStyle(.borderedProminent)
                         .disabled(applicable == 0 || !session.isValid || !currentScope || session.statisticsBusy
                             || !session.statisticsError.isEmpty || session.application.busy || store.saveInProgress)

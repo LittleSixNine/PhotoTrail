@@ -7,6 +7,49 @@ import UDF
 @testable import PhotoTrail
 
 @MainActor struct MetadataUnifiedBatchTests {
+    @Test func optionalPresetFieldsSurviveEditingAndNeverBecomeClears() throws {
+        let city = MetadataOperation(tag: .city, action: .setText("杭州"))
+        let empty = MetadataOperation(tag: .regionState, action: .setText("  "))
+        let director = MetadataOperation(tag: .director, action: .setText(""))
+        let operations = [city, empty, director]
+        let cards = MetadataWorkflowCard.cards(from: operations)
+        let editor = MetadataBatchEditSession(readings: [], tags: [])
+        editor.workflowCards = cards
+        #expect(editor.isValid)
+        #expect(try editor.operations == [city])
+
+        let data = try MetadataPresetSession.stored(name: "活动", cards: cards,
+            presetData: Data(), parameterData: Data(), replace: false)
+        let preset = try #require(MetadataPreset.stored(in: data.0).first)
+        let quick = try MetadataPresetSession(preset: preset, parameters: data.1)
+        #expect(quick.cards.flatMap(\.operations) == operations)
+        #expect(quick.targetOperations == [city])
+
+        let (folder, readings) = try MetadataBatchEditingTests().input([[.regionState: .text("浙江")]])
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let result = try MetadataBatchRecipe.prepare(readings, cards: quick.activeCards)
+        #expect(result.preview.items.first?.changes == [.city: .set(.text("杭州"))])
+
+        editor.workflowCards = MetadataWorkflowCard.cards(from: [empty, director])
+        #expect(!editor.isValid)
+        let template = try MetadataPresetSession.stored(name: "活动", cards: try #require(editor.workflowCards),
+            presetData: data.0, parameterData: data.1, replace: true)
+        let saved = try #require(MetadataPreset.stored(in: template.0).first)
+        #expect(saved.operations == [empty, director])
+        #expect(try !MetadataPresetSession(preset: saved, parameters: template.1).isValid)
+
+        let clear = MetadataOperation(tag: .regionState, action: .remove)
+        editor.workflowCards = MetadataWorkflowCard.cards(from: [clear, director])
+        #expect(try editor.operations == [clear])
+        let missingTitle = MetadataOperation(tag: .titleDefault, action: .setText(""))
+        editor.workflowCards = MetadataWorkflowCard.cards(from: [city, missingTitle])
+        #expect(!editor.isValid)
+        #expect(throws: MetadataFieldEditError.self) {
+            try MetadataPresetSession.stored(name: "无效", cards: MetadataWorkflowCard.cards(from: [city, missingTitle]),
+                presetData: data.0, parameterData: data.1, replace: false)
+        }
+    }
+
     @Test func cardsReadEarlierResultsAndCopyPoliciesNeverChangeSource() throws {
         let time = "2024:02:29 12:34:56.123456789"
         let (folder, readings) = try MetadataBatchEditingTests().input([[.captureDate: .text(time)], [:]])

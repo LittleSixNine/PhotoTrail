@@ -54,7 +54,7 @@ struct MetadataPresetQuickView: View {
             }
             HStack {
                 Button(L10n.text("更新预设")) { update() }
-                    .disabled(!changed || !session.cards.allSatisfy(\.isComplete) || session.busy)
+                    .disabled(!changed || !session.activeCards.allSatisfy(\.isComplete) || session.busy)
                     .accessibilityIdentifier("metadataPresetUpdate")
                 Button(L10n.text("编辑规则")) { editRules(session.cards) }.disabled(session.busy)
                 Spacer(minLength: 8)

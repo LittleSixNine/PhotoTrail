@@ -138,7 +138,7 @@ struct MapView: View {
                                mapStyleName: $mapStyleName)
             }
             .simultaneousGesture(TapGesture().onEnded { onMapTap() })
-            .gesture(SpatialTapGesture(count: 2).onEnded { position in
+            .simultaneousGesture(SpatialTapGesture(count: 2).onEnded { position in
                 startupCancelled = true
                 mapFocus.wrappedValue = nil  // get rid of any search views
                 if allowDoubleClick, !store.saveInProgress, store.mostSelected != nil,

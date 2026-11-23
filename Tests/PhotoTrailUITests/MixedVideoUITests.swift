@@ -7,7 +7,9 @@ import XCTest
         let app = XCUIApplication()
         app.launchEnvironment["PHOTOTRAIL_OFFLINE_TESTS"] = "1"
         app.launchEnvironment["PHOTOTRAIL_TEST_LANGUAGE"] = "en"
-        app.launchArguments = ["-LOCALIZATIONPREVIEW", "-PhotoTrailSetupCompleted", "YES", "-NOBACKUP"]
+        app.launchArguments = ["-LOCALIZATIONPREVIEW", "-PhotoTrailSetupCompleted", "YES", "-NOBACKUP",
+                               "-PhotoTrailStartupWorkspace", "metadata", "-PhotoTrailMapProvider", "apple", "-PhotoTrailMapDoubleClickEdit", "YES",
+                               "-PhotoTrailAutomaticRegionLookup", "NO", "-PhotoTrailWriteRegionWithLocation", "NO"]
         app.launch()
         defer { app.terminate() }
         let fixture = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "tagged", withExtension: "mov"))
@@ -55,6 +57,17 @@ import XCTest
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.click()
         XCTAssertTrue(track.waitForExistence(timeout: 10))
+        app.buttons["workspaceMap"].firstMatch.click()
+        let originalLatitude = app.staticTexts.matching(NSPredicate(format: "value CONTAINS %@", "12.500000")).firstMatch
+        XCTAssertTrue(originalLatitude.waitForExistence(timeout: 10))
+        let window = app.windows["main"]
+        window.coordinate(withNormalizedOffset: CGVector(dx: 0.72, dy: 0.43)).doubleClick()
+        XCTAssertTrue(originalLatitude.waitForNonExistence(timeout: 5))
+        let changedMovie = app.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@",
+                                                             "Unsaved", movie.lastPathComponent)).firstMatch
+        XCTAssertTrue(changedMovie.waitForExistence(timeout: 5))
+        app.typeKey("z", modifierFlags: .command)
+        XCTAssertTrue(originalLatitude.waitForExistence(timeout: 5))
     }
 
     private func attachWindow(_ app: XCUIApplication, _ name: String) {

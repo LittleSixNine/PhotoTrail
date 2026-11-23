@@ -20,7 +20,7 @@ Application tests use `PHOTOTRAIL_OFFLINE_TESTS=1` to avoid private favorites, c
 
 ## Video regression fixtures
 
-The ImageData package includes small MOV and MP4 fixtures. For device coverage, run `swift test --package-path Packages/ImageData` with `PHOTOTRAIL_TIMED_GPS_FIXTURE` pointing to a video with timed GPS samples and `PHOTOTRAIL_LIVE_MOV_FIXTURE` to a MOV with a pairing identifier. The tests edit temporary copies. The app suite includes `MixedVideoTests` for import, cross-workspace saves and renaming. `MixedVideoUITests` checks the inspector and filters in a separately identified test app.
+The ImageData package includes small MOV and MP4 fixtures. For device coverage, run `swift test --package-path Packages/ImageData` with `PHOTOTRAIL_TIMED_GPS_FIXTURE` pointing to a video with timed GPS samples and `PHOTOTRAIL_LIVE_MOV_FIXTURE` to a MOV with a pairing identifier. The tests edit temporary copies. The app suite includes `MixedVideoTests` for import, cross-workspace saves and renaming. `MixedVideoUITests` checks the inspector and filters in a separately identified test app. The window test also double-clicks the Apple map and checks the selected video’s coordinate draft and undo.
 
 Set `PHOTOTRAIL_CATALOG_TEST_DIRECTORY` to run the mixed city/director test in a fresh directory on a test volume. Set `PHOTOTRAIL_LARGE_MOVIE_FIXTURE` to a MOV or MP4 larger than 4 GiB to exercise saving and reopening a disposable copy.
 
