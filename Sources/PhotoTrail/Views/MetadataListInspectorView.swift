@@ -898,6 +898,10 @@ private extension MetadataListInspectorView {
             Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
             TextField(L10n.text("搜索名称、标签或值"), text: $fieldQuery)
                 .textFieldStyle(.plain)
+                .focusedValue(\.metadataFieldClipboard, MetadataFieldClipboardActions(
+                    copy: { NSApp.sendAction(#selector(NSText.copy(_:)), to: nil, from: nil) },
+                    paste: { NSApp.sendAction(#selector(NSText.paste(_:)), to: nil, from: nil) },
+                    textInput: true))
                 .accessibilityIdentifier("metadataFieldSearch")
             if !fieldQuery.isEmpty {
                 Button { fieldQuery = "" } label: { Image(systemName: "xmark.circle.fill") }

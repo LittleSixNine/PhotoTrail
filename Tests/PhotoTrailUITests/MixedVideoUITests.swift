@@ -29,7 +29,7 @@ import XCTest
         let row = app.outlines.staticTexts.matching(NSPredicate(format: "value == %@", movie.lastPathComponent)).firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 35))
         row.click()
-        let search = app.textFields["metadataFieldSearch"]
+        let search = app.textFields.matching(NSPredicate(format: "placeholderValue == %@", "Search names, tags or values")).firstMatch
         XCTAssertTrue(search.waitForExistence(timeout: 15))
         attachWindow(app, "Video fields")
         search.click()
@@ -38,6 +38,7 @@ import XCTest
         XCTAssertTrue(model.waitForExistence(timeout: 10))
         search.typeKey("a", modifierFlags: .command)
         search.typeKey(.delete, modifierFlags: [])
+        XCTAssertEqual(search.value as? String, "")
         let track = app.buttons["View video GPS track"].firstMatch
         XCTAssertTrue(track.waitForExistence(timeout: 10))
         let photos = app.radioButtons.matching(NSPredicate(format: "label BEGINSWITH 'Photos 1'")).firstMatch
@@ -56,7 +57,7 @@ import XCTest
     }
 
     private func attachWindow(_ app: XCUIApplication, _ name: String) {
-        let shot = XCTAttachment(screenshot: app.windows["main"].screenshot())
+        let shot = XCTAttachment(string: app.windows["main"].debugDescription)
         shot.name = name
         shot.lifetime = .keepAlways
         add(shot)
