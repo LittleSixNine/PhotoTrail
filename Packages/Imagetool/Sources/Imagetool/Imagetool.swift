@@ -10,6 +10,11 @@ import SwiftUI
 
 public struct Imagetool {
 
+    public static func readVideoInfo(from url: URL) -> QuickTimeVideoInfo? {
+        guard !WorkDirectory.contains(url) else { return nil }
+        return try? Exiftool.helper.quickTimeVideoInfo(from: url)
+    }
+
     // read metadata from an image referenced by URL using ImageIO functions
 
     public static func metadata(from imageURL: URL) -> Metadata {

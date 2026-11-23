@@ -12,6 +12,7 @@ public struct ImageData: Identifiable, Sendable {
     public let id: Int
     public private(set) var name: String
     public var metadata: Metadata
+    public private(set) var videoInfo: QuickTimeVideoInfo?
     public var original: Metadata?
     public var creatorDraft: MetadataCreatorEditPlan.Item?
     public var pairedID: ImageData.ID?
@@ -79,13 +80,13 @@ public struct ImageData: Identifiable, Sendable {
         self.metadata = metadata
         switch metadata.source {
         case .image(let url):
-            if metadata.readable &&
+            if metadata.readable && !QuickTimeVideoInfo.acceptsExtension(url) &&
                url.pathExtension.lowercased() != xmpExtension &&
                Exiftool.helper.fileTypeIsWritable(for: url) {
                 original = Metadata(copying: metadata)
             }
-        case .xmp:
-            original = Metadata(copying: metadata)
+        case .xmp(let url):
+            if !QuickTimeVideoInfo.acceptsExtension(url) { original = Metadata(copying: metadata) }
         case .photos(_, let assets):
             if assets != nil {
                 original = Metadata(copying: metadata)
@@ -104,6 +105,15 @@ public struct ImageData: Identifiable, Sendable {
         let interval = Self.markStart(#function)
         defer {
             Self.markEnd(#function, interval: interval)
+        }
+        if QuickTimeVideoInfo.acceptsExtension(url) {
+            var metadata = Metadata(source: .image(url))
+            let info = Imagetool.readVideoInfo(from: url)
+            metadata.readable = info != nil
+            metadata.location = info?.location
+            self.init(metadata: metadata, name: url.lastPathComponent)
+            videoInfo = info
+            return
         }
         let sidecarURL = url.deletingPathExtension()
             .appendingPathExtension(xmpExtension)

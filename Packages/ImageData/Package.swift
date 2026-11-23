@@ -30,6 +30,7 @@ let package = Package(
             name: "ImageDataTests",
             dependencies: ["ImageData"],
             resources: [
+                .copy("VideoFixtures"),
                 .copy("alldata.jpg"),
                 .copy("blank.heic"),
                 .copy("262M1559.DNG"),
