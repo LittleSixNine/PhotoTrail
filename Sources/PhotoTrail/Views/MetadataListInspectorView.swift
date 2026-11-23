@@ -379,6 +379,89 @@ struct MetadataListInspectorView: View {
 
 }
 
+private struct MetadataFieldListStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content.listStyle(.inset).environment(\.defaultMinListRowHeight, 38)
+    }
+}
+
+private struct MovieInspectorField {
+    enum Action { case readOnly, location, track }
+    let label: String
+    let source: String
+    let value: String?
+    var action: Action = .readOnly
+}
+
+private extension MetadataListInspectorView {
+    @ViewBuilder
+    func movieFields(_ image: ImageData, info: QuickTimeVideoInfo) -> some View {
+        let coordinates = image.metadata.location.map { "\($0.latitude), \($0.longitude)" }
+        let size = info.width.flatMap { w in info.height.map { h in "\(w) × \(h)" } }
+        let date = info.creationDate.map { MetadataInspectorDateDisplay.text($0) ?? $0 }
+        let capture = MovieInspectorField(label: "拍摄时间", source: "Keys:CreationDate", value: date)
+        let groups: [(name: String, fields: [MovieInspectorField])] = [
+            ("File", [.init(label: "文件名", source: "File:FileName", value: image.name)]),
+            ("Date and Time", [capture] + (info.zonedCreationDate == nil ? [
+                .init(label: "QuickTime CreateDate", source: "QuickTime:CreateDate", value: info.containerDate)
+            ] : [])),
+            ("GPS Coordinates", [
+                .init(label: "拍摄地点", source: "QuickTime:GPSCoordinates", value: coordinates, action: .location),
+                .init(label: "轨迹", source: "GPS", value: L10n.text("查看视频 GPS 轨迹"), action: .track)
+            ]),
+            ("视频", [
+                .init(label: "时长", source: "QuickTime:Duration", value: info.duration.map { Duration.seconds($0).formatted(.time(pattern: .hourMinuteSecond)) }),
+                .init(label: "分辨率", source: "QuickTime:ImageWidth × ImageHeight", value: size),
+                .init(label: "编码", source: "QuickTime:CompressorID", value: info.codec),
+                .init(label: "帧率", source: "QuickTime:VideoFrameRate", value: info.frameRate.map { "\($0.formatted()) fps" })
+            ]),
+            ("Camera", [.init(label: "设备型号", source: "Keys:Model", value: info.model)])
+        ]
+        ForEach(groups, id: \.name) { group in
+            let fields = group.fields.filter { field in
+                fieldQuery.isEmpty || [L10n.text(group.name), L10n.text(field.label), field.source, field.value ?? ""]
+                    .contains { $0.localizedCaseInsensitiveContains(fieldQuery) }
+            }
+            if !fields.isEmpty {
+                Section {
+                    ForEach(fields, id: \.source) { field in
+                        movieFieldRow(field, image: image, uncertainTime: field.source == capture.source && info.zonedCreationDate == nil)
+                    }
+                    .listRowInsets(EdgeInsets())
+                } header: { fieldSectionHeader(group.name) }
+            }
+        }
+    }
+
+    func movieFieldRow(_ field: MovieInspectorField, image: ImageData, uncertainTime: Bool) -> some View {
+        let pending = field.action == .location && image.metadata.location != image.original?.location && image.updatable
+        return fieldRow(L10n.text(field.label), source: field.source, pending: pending) {
+            if field.action == .track, let url = image.metadataCreatorImageURL {
+                VideoTrackButton(url: url).buttonStyle(.borderless).frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                VStack(alignment: .leading, spacing: 3) {
+                    metadataValue(field.value ?? L10n.text("未填写"), isDate: field.source.contains("Date"),
+                                  color: pending ? .orange : field.value == nil ? .secondary : .primary)
+                        .textSelection(.enabled)
+                    if uncertainTime { Text(L10n.text("拍摄时间或时区待确认")).font(.caption).foregroundStyle(.secondary) }
+                }.frame(maxWidth: .infinity, alignment: .leading)
+                if field.action == .location, image.supportsMetadataEditing(.captureLocation), let readings = editableCreatorReadings {
+                    Button { startBatch(readings, tags: [.captureLocation]) } label: {
+                        Image(systemName: "pencil").font(.system(size: 12)).frame(width: 24, height: 26)
+                    }
+                    .buttonStyle(.borderless)
+                    .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 6))
+                    .accessibilityLabel(L10n.text("选择拍摄地点"))
+                    .help(L10n.text("选择拍摄地点"))
+                } else {
+                    Image(systemName: "lock").font(.system(size: 11)).foregroundStyle(.secondary)
+                        .frame(width: 24).accessibilityLabel(L10n.text("只读"))
+                }
+            }
+        }
+    }
+}
+
 private extension MetadataListInspectorView {
     var inspectorContent: some View {
         let images = selected
@@ -400,28 +483,14 @@ private extension MetadataListInspectorView {
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if images.count == 1, let image = images.first, let info = image.videoInfo {
-                    Form {
-                        LabeledContent(L10n.text("文件名"), value: image.name)
-                        if let date = info.creationDate {
-                            LabeledContent(L10n.text("拍摄时间"), value: date)
-                        }
-                        if info.zonedCreationDate == nil {
-                            if let date = info.containerDate { LabeledContent("QuickTime CreateDate", value: date) }
-                            Text(L10n.text("拍摄时间或时区待确认")).foregroundStyle(.secondary)
-                        }
-                        if let point = image.metadata.location {
-                            LabeledContent(L10n.text("拍摄地点"), value: "\(point.latitude), \(point.longitude)")
-                        }
-                        if let secs = info.duration { LabeledContent(L10n.text("时长"), value: Duration.seconds(secs).formatted(.time(pattern: .hourMinuteSecond))) }
-                        if let w = info.width, let h = info.height { LabeledContent(L10n.text("分辨率"), value: "\(w) × \(h)") }
-                        if let codec = info.codec { LabeledContent(L10n.text("编码"), value: codec) }
-                        if let fps = info.frameRate { LabeledContent(L10n.text("帧率"), value: "\(fps.formatted()) fps") }
-                        if let readings = editableCreatorReadings, image.supportsMetadataEditing(.captureLocation) {
-                            Button(L10n.text("选择拍摄地点")) { startBatch(readings, tags: [.captureLocation]) }
-                        }
-                        if let url = image.metadataCreatorImageURL { VideoTrackButton(url: url) }
-                        if let model = info.model { LabeledContent(L10n.text("设备型号"), value: model) }
-                    }.formStyle(.grouped).textSelection(.enabled)
+                    fieldSearch.padding(.horizontal, 14).padding(.vertical, 10)
+                    Divider()
+                    List {
+                        movieFields(image, info: info)
+                        creatorSaveSummary()
+                    }
+                    .modifier(MetadataFieldListStyle())
+                    .accessibilityIdentifier("metadataFieldsList")
                 } else {
                     inspectorTools(proxy: proxy)
                     Divider()
@@ -454,8 +523,7 @@ private extension MetadataListInspectorView {
                         }
                         .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                     }
-                    .listStyle(.inset)
-                    .environment(\.defaultMinListRowHeight, 38)
+                    .modifier(MetadataFieldListStyle())
                     .focusedValue(\.metadataFieldSelection, true)
                     .focusedValue(\.metadataFieldClipboard, fieldClipboardActions)
                     .onKeyPress(keys: ["c", "v"]) { press in
@@ -1042,13 +1110,7 @@ private extension MetadataListInspectorView {
         let canEdit = readings != nil && selected.contains { $0.supportsMetadataEditing(tag) }
         let value = display(summary, tag: tag)
         let pending = selected.contains { $0.creatorDraft?.changes[tag] != nil }
-        return HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(label).font(.system(size: 13 + fontDelta, weight: .medium))
-                    .foregroundStyle(pending ? Color.orange : Color.primary)
-                Text(showsTagNames ? tag.rawValue : String(tag.rawValue.split(separator: ":").first ?? ""))
-                    .font(.system(size: 10 + fontDelta)).foregroundStyle(.secondary).lineLimit(2)
-            }.frame(width: fieldColumnWidth, alignment: .leading)
+        return fieldRow(label, source: tag.rawValue, pending: pending) {
             fieldValue(tag, summary: summary, values: values, readings: readings)
             if pending {
                 Image(systemName: "circle.fill").font(.system(size: 6)).foregroundStyle(.orange)
@@ -1069,11 +1131,6 @@ private extension MetadataListInspectorView {
                     .frame(width: 24).accessibilityLabel(L10n.text("只读")).help(L10n.text("只读"))
             }
         }
-        .frame(minHeight: rowSpacing < 0 ? 30 : rowSpacing > 0 ? 48 : 40)
-        .padding(.horizontal, 10).padding(.vertical, rowPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .listRowSeparator(.visible)
-        .listRowSeparatorTint(Color(nsColor: .separatorColor))
         .contentShape(Rectangle())
         .tag(tag.rawValue)
         .help(tag.rawValue)
@@ -1218,13 +1275,7 @@ private extension MetadataListInspectorView {
                         }
                     }
                 } header: {
-                    Text(L10n.text(section.name))
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.primary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 10).padding(.vertical, rowPadding)
-                        .background(Color(nsColor: .separatorColor).opacity(0.12))
-                        .id(section.name).selectionDisabled()
+                    fieldSectionHeader(section.name)
                 }
             }
         }
@@ -1256,6 +1307,33 @@ private extension MetadataListInspectorView {
             })
     }
 
+    func fieldSectionHeader(_ name: String) -> some View {
+        Text(L10n.text(name))
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(.primary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 10).padding(.vertical, rowPadding)
+            .background(Color(nsColor: .separatorColor).opacity(0.12))
+            .id(name).selectionDisabled()
+    }
+
+    func fieldRow(_ label: String, source: String, pending: Bool = false, @ViewBuilder content: () -> some View) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(label).font(.system(size: 13 + fontDelta, weight: .medium))
+                    .foregroundStyle(pending ? Color.orange : Color.primary)
+                Text(showsTagNames ? source : String(source.split(separator: ":").first ?? ""))
+                    .font(.system(size: 10 + fontDelta)).foregroundStyle(.secondary).lineLimit(2)
+            }.frame(width: fieldColumnWidth, alignment: .leading)
+            content()
+        }
+        .frame(minHeight: rowSpacing < 0 ? 30 : rowSpacing > 0 ? 48 : 40)
+        .padding(.horizontal, 10).padding(.vertical, rowPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .listRowSeparator(.visible)
+        .listRowSeparatorTint(Color(nsColor: .separatorColor))
+    }
+
     func inspectionRow(_ tag: String, values: [String?], selected: [ImageData]) -> some View {
         let summary = MetadataDisplaySection.summarize(values)
         let name = tag.split(separator: ":").last.map(String.init) ?? tag
@@ -1272,22 +1350,12 @@ private extension MetadataListInspectorView {
         }
         let available = selected.allSatisfy { advanced[$0.id] != nil }
         let visibleText = available ? text : (advancedFailed ? L10n.text("未能读取") : L10n.text("正在读取元数据…"))
-        return HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(MetadataFieldFilter.displayName(tag)).font(.system(size: 13 + fontDelta, weight: .medium))
-                Text(showsTagNames ? tag : String(tag.split(separator: ":").first ?? ""))
-                    .font(.system(size: 10 + fontDelta)).foregroundStyle(.secondary).lineLimit(2)
-            }.frame(width: fieldColumnWidth, alignment: .leading)
+        return fieldRow(MetadataFieldFilter.displayName(tag), source: tag) {
             metadataValue(visibleText, isDate: isDate, color: summary == .absent ? .secondary : .primary)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Image(systemName: "lock").font(.system(size: 11)).foregroundStyle(.secondary)
                 .frame(width: 24).accessibilityLabel(L10n.text("只读"))
         }
-        .frame(minHeight: rowSpacing < 0 ? 30 : rowSpacing > 0 ? 48 : 40)
-        .padding(.horizontal, 10).padding(.vertical, rowPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .listRowSeparator(.visible)
-        .listRowSeparatorTint(Color(nsColor: .separatorColor))
         .tag("display:" + tag)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
