@@ -56,7 +56,7 @@ struct RenameWorkspaceView: View {
                             ProgressView().progressViewStyle(.linear).frame(width: 300)
                         }
                         Text(L10n.text(workspace.previewCalculating
-                            ? "正在计算文件名并检查冲突…" : "正在读取照片信息并计算文件名，请稍候。"))
+                            ? "正在计算文件名并检查冲突…" : "正在读取元数据并计算文件名…"))
                             .font(.callout).foregroundStyle(.secondary)
                     }
                     .padding(28)
@@ -166,11 +166,11 @@ private extension RenameWorkspaceView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(L10n.text("本次处理范围")).font(.headline)
-                    Picker(L10n.text("照片范围"), selection: $workspace.onlySelected) {
-                        Text(L10n.text("全部导入照片")).tag(false)
-                        Text(L10n.text("选中照片及配对文件")).tag(true)
+                    Picker(L10n.text("操作范围"), selection: $workspace.onlySelected) {
+                        Text(L10n.text("全部导入文件")).tag(false)
+                        Text(L10n.text("选中项及配对文件")).tag(true)
                     }
-                    Text(L10n.text("照片：%1$@；关联文件一并列入右侧预览。", scopedPhotos.count))
+                    Text(L10n.text("已选范围共 %1$@ 项，配对文件也列入预览。", scopedPhotos.count))
                         .font(.caption).foregroundStyle(.secondary)
                     if scopedPhotos.contains(where: { $0.metadataCreatorImageURL == nil }) {
                         Text(L10n.text("其中 %1$@ 张不是本地文件，无法直接重命名。", scopedPhotos.filter { $0.metadataCreatorImageURL == nil }.count))
@@ -500,7 +500,7 @@ private extension RenameWorkspaceView {
                         .font(.caption).foregroundStyle(.secondary).monospacedDigit()
                 }
                 Spacer()
-                Button(L10n.text("导入照片")) { store.send(.openCommand, undoable: false) }
+                Button(L10n.text("导入照片和视频")) { store.send(.openCommand, undoable: false) }
                     .disabled(workspace.executing || store.saveInProgress)
                     .accessibilityIdentifier("renameAddFiles")
                 if !workspace.rows.isEmpty && !workspace.directoriesAuthorized {
