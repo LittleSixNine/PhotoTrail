@@ -206,7 +206,8 @@ struct PhotoEdgeIndicator: View {
                    value: pointing)
         .onAppear { pointing = !reduceMotion }
         .onChange(of: reduceMotion) { pointing = !reduceMotion }
-        .accessibilityLabel(L10n.text("所选照片位于地图外：%1$@", image.name))
+        .accessibilityLabel(image.isLocalMovie ? L10n.text("在地图中显示 %1$@", image.name)
+                            : L10n.text("所选照片位于地图外：%1$@", image.name))
     }
 
     private func rotatedOffset(length: CGFloat) -> CGSize {

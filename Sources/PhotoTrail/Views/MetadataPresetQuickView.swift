@@ -24,7 +24,8 @@ struct MetadataPresetQuickView: View {
             Text(session.original.name).font(.headline)
             ForEach(Array(session.cards.enumerated()), id: \.element.id) { index, card in
                 VStack(alignment: .leading, spacing: 8) {
-                    if session.cards.count > 1 { Text(L10n.text("操作 %1$@", index + 1)).font(.caption).foregroundStyle(.secondary) }
+                    Text(card.operations.map(\.tag.displayName).joined(separator: " · "))
+                        .font(.subheadline.weight(.medium))
                     if store.imageData.contains(where: \.isLocalMovie) {
                         Text(card.scopeDescription(for: store.imageData)).font(.caption).foregroundStyle(.secondary)
                     }
