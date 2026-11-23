@@ -155,6 +155,27 @@ struct CombinedMetadataSaveTests {
         #expect(!SaveTargets(images: [image]).conflicts.isEmpty)
     }
 
+    @Test func cachedTargetCountStillChecksCurrentHardLinksOutsidePageScope() throws {
+        let (folder, target, store) = try fixture()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        addMap(store)
+        let otherURL = folder.appendingPathComponent("second.jpg")
+        try FileManager.default.copyItem(at: target, to: otherURL)
+        var other = ImageData(metadata: Imagetool.metadata(from: otherURL), name: "second.jpg")
+        other.metadata.location = Coords(latitude: 1, longitude: 2)
+        var state = store.state
+        let cache = SaveButtonTargets()
+        #expect(cache.current(state, scope: .map).total == 1)
+        state.imageData.append(other)
+        #expect(cache.current(state, scope: .map).total == 2)
+        let targets = cache.current(state, scope: .metadata)
+        #expect(targets.total == 0 && !targets.enablesSaveButton)
+        try FileManager.default.removeItem(at: otherURL)
+        try FileManager.default.linkItem(at: target, to: otherURL)
+        let refreshed = cache.current(state, scope: .metadata)
+        #expect(refreshed.total == 0 && refreshed.enablesSaveButton && refreshed.conflicts == [0, 1])
+    }
+
     @Test func metadataOnlyLeavesLocationPending() async throws {
         let restore = settings(); defer { restore() }
         let (folder, target, store) = try fixture()

@@ -161,6 +161,26 @@ struct PhotoListTests {
         #expect(state.visibleImages.map(\.id) == [jpg.id])
     }
 
+    @Test func multipleRawFilesKeepFirstMatchAndSelection() {
+        func image(_ ext: String) -> ImageData {
+            let url = URL(fileURLWithPath: "/tmp/first-raw").appendingPathExtension(ext)
+            return ImageData(metadata: Metadata(source: .image(url)), name: url.lastPathComponent)
+        }
+        let (jpg, first, second) = (image("JPEG"), image("DNG"), image("RAF"))
+        var state = PhotoTrailState()
+        state.imageData = [jpg, first, second]
+        state.selection = [first.id]
+        state.mostSelected = first.id
+        state.pairingEligibleIDs = [jpg.id, second.id]
+        state.linkPairedImages()
+        #expect(state[jpg.id].pairedID == nil)
+        state.pairingEligibleIDs = nil
+        state.linkPairedImages()
+        state.linkPairedImages()
+        #expect(state[jpg.id].pairedID == first.id && state[first.id].pairedID == jpg.id)
+        #expect(state[second.id].pairedID == nil && state.selection == [jpg.id] && state.mostSelected == jpg.id)
+    }
+
     @Test func pairedJPEGDisplaysOnceButSavesBothFiles() {
         let base = URL(fileURLWithPath: "/tmp/paired-photo")
         let raw = ImageData(metadata: Metadata(source: .xmp(base.appendingPathExtension("DNG"))),

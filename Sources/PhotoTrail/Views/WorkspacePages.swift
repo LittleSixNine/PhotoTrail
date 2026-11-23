@@ -232,6 +232,21 @@ final class PhotoThumbnailCache {
     }
 }
 
+@MainActor final class SaveButtonTargets {
+    private var revision: UUID?
+    private var scope: MetadataSaveScope?
+    private var targets = SaveTargets(images: [])
+
+    func current(_ state: PhotoTrailState, scope: MetadataSaveScope) -> SaveTargets {
+        if revision != state.imageRevision || self.scope != scope {
+            targets = SaveTargets(images: state.imageData, scope: scope)
+            revision = state.imageRevision
+            self.scope = scope
+        }
+        return targets
+    }
+}
+
 struct WorkspaceSaveButton: View {
     @AppStorage(SettingsPreferences.saveCurrentPageKey) private var saveCurrentPage = false
     @AppStorage(SettingsPreferences.lastWorkspaceKey) private var page = "metadata"
@@ -241,15 +256,18 @@ struct WorkspaceSaveButton: View {
     @State private var showCompletedRing = false
     @State private var saveHovered = false
     @State private var showSaveHint = false
-    private var targets: SaveTargets {
-        SaveTargets(images: store.imageData, scope: saveCurrentPage ? (page == "map" ? .map : .metadata) : .all)
-    }
+    @State private var targetCache = SaveButtonTargets()
     private var saveHint: String {
         saveCurrentPage ? L10n.text("只保存当前页的待保存修改，其他页修改保留。")
             : L10n.text("新的信息将写入文件，包括照片信息与定位修改，不限当前选中的照片。")
     }
 
     var body: some View {
+        let scope: MetadataSaveScope = saveCurrentPage ? (page == "map" ? .map : .metadata) : .all
+        let targets = store.saveInProgress ? nil : targetCache.current(store.state, scope: scope)
+        let total = targets?.total ?? 0
+        let hasInlineInput = metadataEditSession?.inline == true && metadataEditSession?.hasInput == true
+        let enabled = !store.saveInProgress && (hasInlineInput || targets?.enablesSaveButton == true)
         Button {
             saveHovered = false
             showSaveHint = false
@@ -265,13 +283,13 @@ struct WorkspaceSaveButton: View {
                      : L10n.text(saveCurrentPage ? "写入当前页元数据" : "写入所有元数据"))
                     .monospacedDigit()
                     .frame(minWidth: 110, alignment: .leading)
-                if !store.saveInProgress && targets.total > 0 {
-                    Text(L10n.text("%1$@ 张", targets.total)).font(.caption).monospacedDigit()
+                if total > 0 {
+                    Text(L10n.text("%1$@ 张", total)).font(.caption).monospacedDigit()
                 }
             }
         }
         .buttonStyle(WorkspaceToolbarButtonStyle(prominent: true))
-        .disabled(store.saveInProgress || (targets.total == 0 && targets.conflicts.isEmpty && !(metadataEditSession?.inline == true && metadataEditSession?.hasInput == true)))
+        .disabled(!enabled)
         .overlay {
             if store.saveInProgress || showCompletedRing {
                 ZStack {

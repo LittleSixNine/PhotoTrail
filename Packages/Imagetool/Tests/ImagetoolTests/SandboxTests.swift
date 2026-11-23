@@ -236,6 +236,55 @@ struct SandboxTests {
         #expect(contents.count == 2)
     }
 
+    @Test func crowdedBackupUsesFirstGapAndPreservesDanglingLink() async throws {
+        let source = try #require(Bundle.module.url(forResource: "alldata", withExtension: "jpg"))
+        let folder = try makeTestFolder(andCopy: source)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let sandbox = try Sandbox(for: folder.appendingPathComponent("alldata.jpg"))
+        defer { sandbox.removeSandboxFolder() }
+        let backup = folder.appendingPathComponent("backup")
+        try FileManager.default.createDirectory(at: backup, withIntermediateDirectories: true)
+        let sentinel = Data([42])
+        for suffix in 0...100 where suffix != 77 && suffix != 78 {
+            let name = suffix == 0 ? "alldata.jpg" : "alldata-\(suffix).jpg"
+            try sentinel.write(to: backup.appendingPathComponent(name))
+        }
+        let link = backup.appendingPathComponent("alldata-77.jpg")
+        let missing = folder.appendingPathComponent("missing.jpg")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: missing)
+        try await sandbox.makeImageBackup(backup)
+        #expect(try FileManager.default.destinationOfSymbolicLink(atPath: link.path) == missing.path)
+        #expect(!FileManager.default.fileExists(atPath: missing.path))
+        #expect(try Data(contentsOf: backup.appendingPathComponent("alldata-78.jpg")) == Data(contentsOf: source))
+        #expect(try Data(contentsOf: backup.appendingPathComponent("alldata-79.jpg")) == sentinel)
+    }
+
+    @Test func simultaneousSameNameBackupsKeepEverySource() async throws {
+        let root = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let backup = root.appendingPathComponent("backup")
+        try FileManager.default.createDirectory(at: backup, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for index in 0..<8 {
+                let folder = root.appendingPathComponent("camera-\(index)")
+                try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                let image = folder.appendingPathComponent("IMG.jpg")
+                try Data([UInt8(index)]).write(to: image)
+                group.addTask {
+                    let sandbox = try Sandbox(for: image)
+                    defer { sandbox.removeSandboxFolder() }
+                    try await sandbox.makeImageBackup(backup)
+                }
+            }
+            try await group.waitForAll()
+        }
+        let contents = try (0..<8).map { suffix in
+            let name = suffix == 0 ? "IMG.jpg" : "IMG-\(suffix).jpg"
+            return try Data(contentsOf: backup.appendingPathComponent(name))
+        }
+        #expect(Set(contents) == Set((0..<8).map { Data([UInt8($0)]) }))
+    }
+
     @Test func backupTargetsStayExplicitWhenBothFilesExist() async throws {
         // Copy test image to test folder
         let url = try #require(

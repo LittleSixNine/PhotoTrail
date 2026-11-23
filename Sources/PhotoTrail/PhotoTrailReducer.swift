@@ -290,6 +290,7 @@ struct PhotoTrailReducer: Reducer, Sendable {
             newState.saveFailures.append(message)
 
         case .saveComplete(let saveStatus):
+            newState.saveImageIndices.removeAll()
             newState.saveInProgress = false
             newState.libraryImages = []
             newState.fileImages = []

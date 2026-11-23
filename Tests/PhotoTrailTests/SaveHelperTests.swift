@@ -462,6 +462,26 @@ extension SaveHelperTests {
 
 @MainActor
 struct RegionSaveStateTests {
+    @Test func sortedOrRemovedSaveTargetsNeverUpdateAnotherPhoto() {
+        let url = URL(fileURLWithPath: "/tmp/indexed-save.jpg")
+        var photo = ImageData(metadata: Metadata(source: .image(url)), name: "indexed-save.jpg")
+        photo.metadata.location = Coords(latitude: 30, longitude: 120)
+        let other = ImageData(metadata: Metadata(source: .copy), name: "other")
+        var state = PhotoTrailState()
+        state.imageData = [photo, other]
+        let reducer = PhotoTrailReducer()
+        reducer.save(&state)
+        #expect(state.saveImageIndices[photo.id] == 0)
+        let result = SaveHelper.LocalSaveResult(id: photo.id, metadata: photo.metadata, sidecarCreated: false, outcome: .saved)
+        state.imageData.swapAt(0, 1)
+        reducer.applyLocalSaveBatch(&state, [result])
+        #expect(!state[photo.id].hasPendingChanges && state.imageData[0].metadata == other.metadata)
+        state.imageData.removeLast()
+        reducer.applyLocalSaveBatch(&state, [result])
+        #expect(state.imageData[0].metadata == other.metadata)
+        #expect(reducer.reduce(state, .saveComplete(.saveOK)).saveImageIndices.isEmpty)
+    }
+
     @Test func regionSaveSynchronizesCurrentMetadataAndDoesNotScheduleASecondWrite() {
         for sidecar in [false, true] {
             for outcome in [SaveHelper.FileSaveOutcome.saved, .savedWithoutTag, .failed] {

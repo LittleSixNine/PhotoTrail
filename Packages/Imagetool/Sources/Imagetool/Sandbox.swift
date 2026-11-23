@@ -1,3 +1,4 @@
+import Darwin
 import Exiftool
 import Metadata
 import SwiftUI
@@ -145,6 +146,17 @@ extension Sandbox {
                 candidate.insert(contentsOf: "-\(suffix)", at: dot)
             }
             let url = folder.appendingPathComponent(candidate, isDirectory: false)
+            // After a collision, skip occupied names cheaply (including dangling symlinks).
+            // The exclusive write still decides the winner if another process races us.
+            if suffix > 0 {
+                var info = stat()
+                if url.withUnsafeFileSystemRepresentation({ path in
+                    path.map { lstat($0, &info) == 0 } ?? false
+                }) {
+                    suffix += 1
+                    continue
+                }
+            }
             do { try write(url); return url }
             catch CocoaError.fileWriteFileExists { suffix += 1 }
         }

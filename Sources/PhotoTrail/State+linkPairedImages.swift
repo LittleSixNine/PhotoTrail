@@ -34,56 +34,28 @@ extension PhotoTrailState {
             "srw", "x3f"
         ]
 
-        struct URLBase {
-            let id: ImageData.ID
-            let url: URL
-            let base: String
+        var rawByBase: [String: Int] = [:]
+        for index in imageData.indices {
+            guard let url = imageData[index].metadataCreatorImageURL,
+                  rawExtensions.contains(url.pathExtension.lowercased()) else { continue }
+            let base = url.deletingPathExtension().path
+            if rawByBase[base] == nil { rawByBase[base] = index }
         }
+        guard !rawByBase.isEmpty else { return }
 
-        let jpegBase =
-            imageData.compactMap {
-                if case let .image(url) = $0.metadata.source  {
-                    let ext = url.pathExtension.lowercased()
-                    if ext == "jpg" || ext == "jpeg" {
-                        return URLBase(id: $0.id,
-                                       url: url,
-                                       base: url.deletingPathExtension().path)
-                    }
-                } else if case let .xmp(url) = $0.metadata.source, $0.isJPEG {
-                    return URLBase(id: $0.id, url: url, base: url.deletingPathExtension().path)
-                }
-                return nil
-            }
-        let rawBase =
-            imageData.compactMap {
-                if case .image(let url) = $0.metadata.source  {
-                    let ext = url.pathExtension.lowercased()
-                    if rawExtensions.contains(ext) {
-                        return URLBase(id: $0.id,
-                                       url: url,
-                                       base: url.deletingPathExtension().path)
-                    }
-                } else if case .xmp(let url) = $0.metadata.source,
-                          rawExtensions.contains(url.pathExtension.lowercased()) {
-                    return URLBase(id: $0.id, url: url, base: url.deletingPathExtension().path)
-                }
-                return nil
-            }
-        let rawByBase = Dictionary(rawBase.map { ($0.base, $0) }, uniquingKeysWith: { first, _ in first })
-
-        for jpeg in jpegBase {
-            if self[jpeg.id].pairedID == nil, let raw = rawByBase[jpeg.base],
-               self[raw.id].pairedID == nil,
-               pairingEligibleIDs.map({ $0.contains(jpeg.id) && $0.contains(raw.id) }) ?? true {
-                logger.notice("""
-                    Pairing \(jpeg.url.lastPathComponent, privacy: .public) \
-                    <> \(raw.url.lastPathComponent, privacy: .public)"
-                    """ )
-                self[jpeg.id].pairedID = raw.id
-                self[raw.id].pairedID = jpeg.id
-                if selection.remove(raw.id) != nil { selection.insert(jpeg.id) }
-                if mostSelected == raw.id { mostSelected = jpeg.id }
-            }
+        for index in imageData.indices {
+            let jpeg = imageData[index]
+            guard jpeg.pairedID == nil, jpeg.isJPEG, let url = jpeg.metadataCreatorImageURL,
+                  let rawIndex = rawByBase[url.deletingPathExtension().path] else { continue }
+            let raw = imageData[rawIndex]
+            guard raw.pairedID == nil,
+                  pairingEligibleIDs.map({ $0.contains(jpeg.id) && $0.contains(raw.id) }) ?? true else { continue }
+            let rawName = raw.metadataCreatorImageURL?.lastPathComponent ?? raw.name
+            logger.notice("Pairing \(url.lastPathComponent, privacy: .public) <> \(rawName, privacy: .public)")
+            imageData[index].pairedID = raw.id
+            imageData[rawIndex].pairedID = jpeg.id
+            if selection.remove(raw.id) != nil { selection.insert(jpeg.id) }
+            if mostSelected == raw.id { mostSelected = jpeg.id }
         }
     }
 }

@@ -18,10 +18,19 @@ struct PhotoTrailState {
     }
     var pairingEligibleIDs: Set<ImageData.ID>?
 
+    // Sorting can move an image while its file write is in flight.
+    func imageIndex(for id: ImageData.ID?) -> Int? {
+        guard let id else { return nil }
+        if let index = saveImageIndices[id], imageData.indices.contains(index), imageData[index].id == id {
+            return index
+        }
+        return imageData.firstIndex { $0.id == id }
+    }
+
     // individual images are accessed by ID.
     subscript(id: ImageData.ID?) -> ImageData {
         get {
-            if let index = imageData.firstIndex(where: { $0.id == id }) {
+            if let index = imageIndex(for: id) {
                 return imageData[index]
             }
 
@@ -31,7 +40,7 @@ struct PhotoTrailState {
             return ImageData()
         }
         set {
-            if let index = imageData.firstIndex(where: { $0.id == id }) {
+            if let index = imageIndex(for: id) {
                 imageData[index] = newValue
             } else {
                 let badId = id ?? -1
@@ -80,6 +89,7 @@ struct PhotoTrailState {
     var trackMatches: [LocationHelper.LocationById] = []
 
     // image save/update variables
+    var saveImageIndices: [ImageData.ID: Int] = [:]
     var saveInProgress = false
     var renameInProgress = false
     var metadataSaveCancelled = false

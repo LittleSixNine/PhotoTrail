@@ -13,36 +13,49 @@ struct SaveTargets {
     var creator: [Int] = []
     var combined: [Int] = []
     var creatorFiles = 0
-    var conflicts: [Int] = []
+    private var editConflicts: [Int] = []
+    private var changedFiles: [(index: Int, url: URL)] = []
+
+    // File identities must be current when checking conflicts, including after a confirmation dialog.
+    var conflicts: [Int] {
+        var result = editConflicts
+        guard changedFiles.count > 1 else { return result }
+        var targets: [String: Int] = [:]
+        for (index, url) in changedFiles {
+            let key: String
+            if case .file(let device, let inode, _, _, _, _, _) = MetadataInspectionFileVersion.read(url) {
+                key = "\(device):\(inode)"
+            } else {
+                key = url.standardizedFileURL.path
+            }
+            if let previous = targets[key] {
+                result.append(contentsOf: [previous, index])
+            } else {
+                targets[key] = index
+            }
+        }
+        return result
+    }
 
     init(images: [ImageData], scope: MetadataSaveScope = .all) {
-        var targets: [String: Int] = [:]
         for index in images.indices {
             let image = images[index]
             guard image.updatable else { continue }
-            let metadataChanged = image.hasLegacyChanges && scope != .metadata
-            let creatorChanged = image.creatorDraft?.changes.isEmpty == false && scope != .map
-            if image.hasLegacyChanges || image.creatorDraft?.changes.isEmpty == false, let url = image.metadataInspectionURL {
-                let key: String
-                if case .file(let device, let inode, _, _, _, _, _) = MetadataInspectionFileVersion.read(url) {
-                    key = "\(device):\(inode)"
-                } else {
-                    key = url.standardizedFileURL.path
-                }
-                if let previous = targets[key] {
-                    conflicts.append(contentsOf: [previous, index])
-                } else {
-                    targets[key] = index
-                }
+            let hasMap = image.hasLegacyChanges
+            let hasFields = image.creatorDraft?.changes.isEmpty == false
+            let metadataChanged = hasMap && scope != .metadata
+            let creatorChanged = hasFields && scope != .map
+            if hasMap || hasFields, let url = image.metadataInspectionURL {
+                changedFiles.append((index, url))
             }
             if creatorChanged, image.creatorDraft?.captureDateChange != nil, image.hasLegacyDateChanges {
-                conflicts.append(index)
+                editConflicts.append(index)
                 continue
             }
-            if image.hasLegacyChanges && image.creatorDraft?.changes.isEmpty == false && (metadataChanged || creatorChanged) {
+            if hasMap && hasFields && (metadataChanged || creatorChanged) {
                 // Map-only writes would invalidate the pending field snapshot; save both via All.
                 if image.hasLegacyDateChanges || scope == .map {
-                    conflicts.append(index)
+                    editConflicts.append(index)
                     continue
                 }
                 if scope == .all { combined.append(index) }
@@ -63,16 +76,17 @@ struct SaveTargets {
     }
 
     var total: Int { library.count + files.count + xmp.count + creator.count }
+
+    var enablesSaveButton: Bool {
+        total > 0 || !editConflicts.isEmpty || !conflicts.isEmpty
+    }
 }
 
 extension PhotoTrailReducer {
 
     func applyLocalSaveBatch(_ newState: inout PhotoTrailState, _ results: [SaveHelper.LocalSaveResult]) {
-        let indices = Dictionary(uniqueKeysWithValues: newState.imageData.indices.map {
-            (newState.imageData[$0].id, $0)
-        })
         for result in results {
-            guard let index = indices[result.id] else { continue }
+            guard let index = newState.imageIndex(for: result.id) else { continue }
             if result.sidecarCreated, case .image = newState.imageData[index].metadata.source {
                 newState.imageData[index].metadata = newState.imageData[index].metadata.xmp()
             }
@@ -92,15 +106,15 @@ extension PhotoTrailReducer {
     }
 
     func clearCreatorDraft(_ state: inout PhotoTrailState, id: ImageData.ID, discard: Bool) {
-        guard state.imageData.contains(where: { $0.id == id }) else { return }
-        if state[id].creatorDraft?.captureDateChange != nil {
-            if discard { state[id].metadata.dateTimeCreated = state[id].original?.dateTimeCreated }
+        guard let index = state.imageIndex(for: id) else { return }
+        if state.imageData[index].creatorDraft?.captureDateChange != nil {
+            if discard { state.imageData[index].metadata.dateTimeCreated = state.imageData[index].original?.dateTimeCreated }
             else {
-                let savedDate = state[id].metadata.dateTimeCreated
-                state[id].original?.dateTimeCreated = savedDate
+                let savedDate = state.imageData[index].metadata.dateTimeCreated
+                state.imageData[index].original?.dateTimeCreated = savedDate
             }
         }
-        state[id].creatorDraft = nil
+        state.imageData[index].creatorDraft = nil
         if discard {
             state.creatorSaveResults[id] = nil
             state.unsavedChanges = state.imageData.contains { $0.hasPendingChanges }
@@ -115,6 +129,10 @@ extension PhotoTrailReducer {
         state.saveInProgress = true
         state.metadataSaveCancelled = false
         let targets = SaveTargets(images: state.imageData, scope: scope)
+        state.saveImageIndices = [:]
+        for indices in [targets.library, targets.files, targets.xmp, targets.creator] {
+            for index in indices { state.saveImageIndices[state.imageData[index].id] = index }
+        }
         state.libraryImages = targets.library
         state.fileImages = targets.files
         state.xmpImages = targets.xmp
