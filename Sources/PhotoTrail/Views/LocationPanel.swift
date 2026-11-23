@@ -29,7 +29,7 @@ struct LocationPanel: View {
         let selection = MapPhotoSelectionSummary(images: store.imageData, selectedIDs: store.selection)
         let content = VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Text(L10n.text("照片定位")).font(.headline)
+                    Text(L10n.text("地图定位")).font(.headline)
                     Spacer()
                     mapSettings
                 }
@@ -126,7 +126,7 @@ private extension LocationPanel {
                     .help(store[id].name)
                 Text(store[id].metadata.timestamp).font(.caption).foregroundStyle(.secondary)
                 if store.selection.count > 1 {
-                    Text(L10n.text("上方仅预览当前照片"))
+                    Text(L10n.text("当前预览"))
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
@@ -141,7 +141,7 @@ private extension LocationPanel {
     private func statusSection(_ selection: MapPhotoSelectionSummary) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
-                Text(selection.total > 1 ? L10n.text("所选照片的定位") : L10n.text("当前照片的位置"))
+                Text(L10n.text("拍摄地点"))
                     .font(.headline)
                 Spacer(minLength: 4)
                 Button { toggleCurrentFavorite() } label: {
@@ -174,7 +174,7 @@ private extension LocationPanel {
                 }
                 currentLocation
                 if selection.pending > 0 {
-                    Label(L10n.text("定位修改待写入：%1$@ 张", selection.pending), systemImage: "pencil.circle")
+                    Label(L10n.text("待保存地点：%1$@ 项", selection.pending), systemImage: "pencil.circle")
                         .font(.caption).foregroundStyle(.orange)
                 }
             }
@@ -216,6 +216,10 @@ private extension LocationPanel {
     private var currentLocation: some View {
         VStack(alignment: .leading, spacing: 10) {
             let metadata = store[store.mostSelected].metadata
+            let placeName = [metadata.country, metadata.state, metadata.city].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
+            if !placeName.isEmpty {
+                Text(L10n.text("素材地名：%1$@", placeName)).font(.callout)
+            }
             if !metadata.readable {
                 Text(L10n.text("元数据读取失败")).foregroundStyle(.orange)
             } else if let point = metadata.location {
@@ -233,13 +237,13 @@ private extension LocationPanel {
                     }
                     .font(.system(size: 11)).monospacedDigit().foregroundStyle(.secondary)
                     Spacer(minLength: 0)
-                    regionControl
+                    if !store[store.mostSelected].isLocalMovie { regionControl }
                 }
 
             } else {
                 Label(L10n.text("暂无定位"), systemImage: "mappin.slash")
                     .font(.system(size: 18, weight: .semibold)).foregroundStyle(.secondary)
-                regionControl
+                if !store[store.mostSelected].isLocalMovie { regionControl }
             }
         }
     }

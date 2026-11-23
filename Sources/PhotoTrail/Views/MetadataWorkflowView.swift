@@ -63,7 +63,7 @@ struct MetadataWorkflowView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(quickPreset?.name ?? (isBatch ? L10n.text("批量编辑字段") : L10n.text(workflowTab == "presets" ? "管理预设…" : workflowTab == "exchange" ? "比较与交换" : "高级操作…")))
                         .font(.system(size: 24, weight: .semibold))
-                    Text(L10n.text("已选择 %1$@ 张照片", readings.count)).foregroundStyle(.secondary)
+                    Text(L10n.text("已选择 %1$@ 项", readings.count)).foregroundStyle(.secondary)
                 }
                 Spacer()
                 Text(L10n.text("编辑 → 应用 → 保存")).font(.callout).foregroundStyle(.secondary)

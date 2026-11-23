@@ -85,6 +85,13 @@ private final class VideoTestResources {}
         #expect(ImageData(from: url).metadata.city == "杭州" && store[movie.id].metadata.city == "杭州")
         #expect(combined.editableValues[.director] == .text("Chen"))
         #expect(combined.editableValues[.titleDefault] == .text("Map and title") && combined.location?.latitude == 6)
+        store.send(.selectionChanged([movie.id]), undoable: false)
+        store.send(.deleteRequest, description: "Clear movie point")
+        #expect(store[movie.id].metadata.location == nil && store[movie.id].metadata.city == "杭州")
+        await store.send(.savePageRequest(.map)) { _ = await SaveHelper.save(store).result }
+        let cleared = ImageData(from: url)
+        #expect(cleared.metadata.location == nil && cleared.metadata.city == "杭州")
+        #expect(store.saveFailures.isEmpty)
     }
 
     @Test func unselectedLiveCompanionProtectsStillDuringSimpleRename() async throws {

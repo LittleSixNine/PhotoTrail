@@ -14,19 +14,22 @@ extension PhotoTrailReducer {
 
     func delete(_ state: inout PhotoTrailState) {
         for id in state.selection
-            where state[id].metadata.location != nil {
+            where state[id].updatable && state[id].metadata.location != nil {
             update(&state, id: id, location: nil)
+            if state[id].isLocalMovie { continue }
             state[id].metadata.sublocation = nil
             state[id].metadata.city = nil
             state[id].metadata.state = nil
             state[id].metadata.country = nil
             state[id].metadata.countryCode = nil
+            if let changes = state[id].creatorDraft?.changes { state[id].metadata.applyCatalogRegions(changes) }
             if let pairedID = state[id].pairedID, state[pairedID].updatable {
                 state[pairedID].metadata.sublocation = nil
                 state[pairedID].metadata.city = nil
                 state[pairedID].metadata.state = nil
                 state[pairedID].metadata.country = nil
                 state[pairedID].metadata.countryCode = nil
+                if let changes = state[pairedID].creatorDraft?.changes { state[pairedID].metadata.applyCatalogRegions(changes) }
             }
         }
     }

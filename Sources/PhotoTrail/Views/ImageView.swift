@@ -90,7 +90,7 @@ struct PhotoSelectionPreview: View {
                 }
                 .overlay(alignment: .bottomTrailing) {
                     if selectionCount > 0 {
-                        Text(L10n.text("已选 %1$@ 张", selectionCount))
+                        Text(L10n.text("已选择 %1$@ 项", selectionCount))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.white)
                             .lineLimit(1)
@@ -98,7 +98,7 @@ struct PhotoSelectionPreview: View {
                             .padding(.horizontal, 7).padding(.vertical, 4)
                             .background(Color.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 6))
                             .padding(7)
-                            .accessibilityLabel(L10n.text("已选择 %1$@ 张照片", selectionCount))
+                            .accessibilityLabel(L10n.text("已选择 %1$@ 项", selectionCount))
                     }
                 }
                 // Reserve the same margin in every preset, including portrait photos and wide sidebars.

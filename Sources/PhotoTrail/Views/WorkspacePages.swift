@@ -545,13 +545,13 @@ struct PhotoDetailPage: View {
                 prepareGPX(minutes: minutes)
             }
         }
-        .confirmationDialog(L10n.text("清除所选照片定位？"), isPresented: $confirmClearLocations) {
-            Button(L10n.text("清除 %1$@ 张照片的定位", store.selection.count), role: .destructive) {
-                store.send(.deleteRequest, description: L10n.text("清除所选照片定位"))
+        .confirmationDialog(L10n.text("清除拍摄地点？"), isPresented: $confirmClearLocations) {
+            Button(L10n.text("清除定位"), role: .destructive) {
+                store.send(.deleteRequest, description: L10n.text("清除定位"))
             }
             Button(L10n.text("取消"), role: .cancel) {}
         } message: {
-            Text(L10n.text("照片将进入待保存状态；保存前仍可撤销。"))
+            Text(selectedImages.contains(where: \.isLocalMovie) ? L10n.text("视频只清除代表坐标，保留地名和行程轨迹。照片会清除坐标及关联地点，保存前可撤销。") : L10n.text("照片将进入待保存状态；保存前仍可撤销。"))
         }
         .alert(L10n.text("生成照片 GPX 失败"), isPresented: Binding(get: { gpxError != nil }, set: {
             if !$0 { gpxError = nil }
@@ -740,7 +740,7 @@ fileprivate extension PhotoDetailPage {
             choosingCopyDestination = true
         }.disabled(!hasCopyCandidates || copyExportInProgress)
         Divider()
-        Button(L10n.text("清除所选照片定位…"), systemImage: "mappin.slash", role: .destructive) {
+        Button(L10n.text("清除拍摄地点？"), systemImage: "mappin.slash", role: .destructive) {
             confirmClearLocations = true
         }.disabled(!editableSelection || selectedImages.allSatisfy { $0.metadata.location == nil })
         Button(L10n.text("在访达中显示"), systemImage: "folder") { showInFinder() }

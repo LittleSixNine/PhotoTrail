@@ -38,6 +38,13 @@ struct ImageTableView: View {
                                 filter: filter, unmatchedIDs: unmatchedIDs, media: media)
     }
 
+    private var clearLocationMessage: String {
+        if pendingClear.contains(where: { store[$0].isLocalMovie }) {
+            return L10n.text("视频只清除代表坐标，保留地名和行程轨迹。照片会清除坐标及关联地点，保存前可撤销。")
+        }
+        return L10n.text("保留照片和列表项目，清除这些照片的坐标及相关地点信息。配对 RAW 同步修改，点击保存后才写入原文件；可撤销。")
+    }
+
     var body: some View {
         let snapshot = listSnapshot
         let images = snapshot.images
@@ -64,7 +71,7 @@ struct ImageTableView: View {
                     }
                 } label: { Label(L10n.text("排序"), systemImage: "arrow.up.arrow.down") }
                     .fixedSize()
-                Picker(L10n.text("筛选照片"), selection: $filter) {
+                Picker(L10n.text("筛选处理文件…"), selection: $filter) {
                     ForEach(PhotoListFilter.allCases, id: \.self) { option in
                         Text("\(L10n.text(option.rawValue)) \(counts[option, default: 0])").tag(option)
                     }
@@ -177,17 +184,17 @@ struct ImageTableView: View {
         } message: {
             Text(L10n.text("不会删除或修改磁盘原文件。选中照片及其配对 RAW 会一起移出列表；未保存的修改将从当前列表移除，可撤销恢复。"))
         }
-        .alert(L10n.text("清除照片定位？"), isPresented: Binding(get: { !pendingClear.isEmpty }, set: {
+        .alert(L10n.text("清除拍摄地点？"), isPresented: Binding(get: { !pendingClear.isEmpty }, set: {
             if !$0 { pendingClear = [] }
         })) {
             Button(L10n.text("取消"), role: .cancel) { pendingClear = [] }
             Button(L10n.text("清除定位"), role: .destructive) {
                 store.send(.selectionChanged(pendingClear), undoable: false)
-                store.send(.deleteRequest, description: L10n.text("清除照片定位"))
+                store.send(.deleteRequest, description: L10n.text("清除定位"))
                 pendingClear = []
             }
         } message: {
-            Text(L10n.text("保留照片和列表项目，清除这些照片的坐标及相关地点信息。配对 RAW 同步修改，点击保存后才写入原文件；可撤销。"))
+            Text(clearLocationMessage)
         }
         .overlay {
             if store.imageData.isEmpty {
