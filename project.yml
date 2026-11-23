@@ -124,6 +124,12 @@ targets:
         NSPhotoLibraryUsageDescription: 用于读取并修改你选择的照片的拍摄时间和位置
         LSMultipleInstancesProhibited: YES
         CFBundleDocumentTypes:
+          - CFBundleTypeName: Video Files
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - com.apple.quicktime-movie
+              - public.mpeg-4
           - CFBundleTypeName: Image Files
             CFBundleTypeRole: Editor
             LSHandlerRank: Alternate
@@ -219,6 +225,8 @@ targets:
       - target: PhotoTrail
     sources:
       - Tests/PhotoTrailTests
+      - path: Packages/ImageData/Tests/ImageDataTests/VideoFixtures/tagged.mov
+        buildPhase: resources
     settings:
       GENERATE_INFOPLIST_FILE: YES
       PRODUCT_NAME: $(TARGET_NAME)
@@ -233,6 +241,8 @@ targets:
       - target: PhotoTrail
     sources:
       - Tests/PhotoTrailUITests
+      - path: Packages/ImageData/Tests/ImageDataTests/VideoFixtures/tagged.mov
+        buildPhase: resources
     settings:
       GENERATE_INFOPLIST_FILE: YES
       PRODUCT_NAME: $(TARGET_NAME)

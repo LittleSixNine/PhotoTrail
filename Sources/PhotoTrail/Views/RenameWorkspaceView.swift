@@ -361,7 +361,7 @@ private extension RenameWorkspaceView {
             case "unchanged": return !row.changes
             case "conflict": return row.issues.contains(.conflict)
             case "error": return row.issues.contains(.invalidName) || row.issues.contains(.metadataFailure)
-            case "skipped": return row.issues.contains(.excluded) || row.issues.contains(.missingDate) || row.issues.contains(.missingTag)
+            case "skipped": return row.issues.contains { [.livePhoto, .uncertainVideoTime, .excluded, .missingDate, .missingTag].contains($0) }
             default: return true
             }
         }
@@ -451,7 +451,12 @@ private extension RenameWorkspaceView {
     }
 
     private func originalCell(_ row: RenamePreview) -> some View {
-        Text(row.source.lastPathComponent).help(row.source.path)
+        VStack(alignment: .leading, spacing: 2) {
+            Text(row.source.lastPathComponent)
+            if let captureDate = row.movieCaptureDate {
+                Text("QuickTime CreationDate · " + captureDate).font(.caption2).foregroundStyle(.secondary)
+            }
+        }.help(row.source.path)
             .frame(maxWidth: .infinity, minHeight: 22, alignment: .leading)
             .contextMenu {
                 Button(L10n.text("上移文件组")) { moveGroup(row, down: false) }
@@ -538,7 +543,8 @@ private extension RenameWorkspaceView {
                 }.width(min: 160, ideal: 200)
                     .customizationID("final").disabledCustomizationBehavior([.reorder, .visibility])
                 TableColumn(L10n.text("状态")) { row in
-                    if let issue = row.issues.first(where: { $0 == .conflict || $0 == .invalidName || $0 == .metadataFailure }) ?? row.issues.first {
+                    if let issue = row.issues.first(where: { $0 == .conflict || $0 == .invalidName || $0 == .metadataFailure })
+                        ?? row.issues.first(where: { $0 == .uncertainVideoTime }) ?? row.issues.first {
                         let skipped = workspace.settings.skipMissingFields != false && (issue == .missingDate || issue == .missingTag)
                         let description = skipped ? L10n.text("已跳过缺失字段") : RenameCopy.issue(issue)
                         Label(description, systemImage: row.issues.contains(.conflict) || row.issues.contains(.invalidName) ? "xmark.octagon" : "info.circle")

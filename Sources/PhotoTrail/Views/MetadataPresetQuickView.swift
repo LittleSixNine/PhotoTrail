@@ -16,12 +16,18 @@ struct MetadataPresetQuickView: View {
     @State private var active = false
     @Environment(\.metadataEditSession) private var inlineSession
 
+    private var targets: [ImageData] { session.targets(store.imageData) }
+    private var photoCount: Int { targets.count }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(session.original.name).font(.headline)
             ForEach(Array(session.cards.enumerated()), id: \.element.id) { index, card in
                 VStack(alignment: .leading, spacing: 8) {
                     if session.cards.count > 1 { Text(L10n.text("操作 %1$@", index + 1)).font(.caption).foregroundStyle(.secondary) }
+                    if store.imageData.contains(where: \.isLocalMovie) {
+                        Text(card.scopeDescription(for: store.imageData)).font(.caption).foregroundStyle(.secondary)
+                    }
                     MetadataOperationCardView(operations: operations(card.id), readings: [], selected: .constant(true),
                         availableTags: MetadataTag.allCases, index: index, moveUp: nil, moveDown: nil, remove: {},
                         inlineLayout: true, quickParameters: true, datePolicy: policy(card.id))
@@ -31,7 +37,7 @@ struct MetadataPresetQuickView: View {
             .disabled(session.busy)
             if !session.notice.isEmpty { Text(session.notice).font(.caption).foregroundStyle(.orange) }
             if session.preparing {
-                ProgressView(L10n.text("正在准备全部照片：%1$@/%2$@", session.preparationCount, store.imageData.count)).controlSize(.small)
+                ProgressView(L10n.text("正在准备全部照片：%1$@/%2$@", session.preparationCount, photoCount)).controlSize(.small)
             } else if !session.application.notice.isEmpty {
                 Text(session.application.notice).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
             }
@@ -44,7 +50,7 @@ struct MetadataPresetQuickView: View {
                 if session.busy {
                     Button(L10n.text("取消")) { session.cancel() }
                 } else {
-                    Button(L10n.text("应用到全部 %1$@ 张照片", store.imageData.count)) {
+                    Button(session.targetTags.contains(.captureLocation) ? L10n.text("应用到 %1$@ 项", photoCount) : L10n.text("应用到全部 %1$@ 张照片", photoCount)) {
                         guard !launching else { return }
                         launching = true
                         Task { @MainActor in
@@ -56,7 +62,7 @@ struct MetadataPresetQuickView: View {
                             launching = false
                         }
                     }.buttonStyle(.borderedProminent)
-                        .disabled(launching || !session.isValid || store.imageData.isEmpty || store.saveInProgress || store.renameInProgress || store.importProgress.isActive)
+                        .disabled(launching || !session.isValid || photoCount == 0 || store.saveInProgress || store.renameInProgress || store.importProgress.isActive)
                         .accessibilityIdentifier("metadataPresetApplyAll")
                 }
             }

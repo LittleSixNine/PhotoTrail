@@ -22,7 +22,7 @@ enum LocationHelper {
     }
 
     static func canFillRegion(_ image: ImageData) -> Bool {
-        guard image.updatable, image.creatorDraft == nil, image.metadata.location != nil,
+        guard !image.isLocalMovie, image.updatable, image.creatorDraft == nil, image.metadata.location != nil,
               image.metadata.canDisplayAsWGS84 else { return false }
         switch image.metadata.source {
         case .image, .xmp: break

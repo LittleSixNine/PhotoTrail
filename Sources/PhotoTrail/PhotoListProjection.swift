@@ -2,6 +2,8 @@ import ImageData
 import Metadata
 import SwiftUI
 
+enum MediaListFilter: String { case all, photos, videos }
+
 /// View-local projections: selection and read-progress updates do not rebuild the photo list.
 @MainActor final class PhotoListProjection {
     struct TableSnapshot {
@@ -9,11 +11,14 @@ import SwiftUI
         var ids: Set<ImageData.ID> = []
         var counts: [PhotoListFilter: Int] = [:]
         var total = 0
+        var movieCount = 0
+        var photoCount = 0
     }
 
     private struct SearchKey: Equatable {
         let text: String
         let hideInvalid: Bool
+        let media: MediaListFilter
     }
     private struct FilterKey: Equatable {
         let filter: PhotoListFilter
@@ -72,13 +77,16 @@ import SwiftUI
     }
 
     func table(_ state: PhotoTrailState, search: String, hideInvalid: Bool,
-               filter: PhotoListFilter, unmatchedIDs: Set<ImageData.ID>?) -> TableSnapshot {
+               filter: PhotoListFilter, unmatchedIDs: Set<ImageData.ID>?, media: MediaListFilter = .all) -> TableSnapshot {
         update(state)
-        let searchKey = SearchKey(text: search, hideInvalid: hideInvalid)
+        let searchKey = SearchKey(text: search, hideInvalid: hideInvalid, media: media)
         if self.searchKey != searchKey {
             self.searchKey = searchKey
             filterKey = nil
             searchable = visible.filter { (!hideInvalid || $0.updatable) && (search.isEmpty || $0.name.fuzzy(search)) }
+            tableSnapshot.movieCount = searchable.filter(\.isLocalMovie).count
+            tableSnapshot.photoCount = searchable.count - tableSnapshot.movieCount
+            if media != .all { searchable = searchable.filter { media == .videos ? $0.isLocalMovie : !$0.isLocalMovie } }
             var counts: [PhotoListFilter: Int] = [:]
             for image in searchable {
                 for option in PhotoListFilter.allCases where option.includes(image) { counts[option, default: 0] += 1 }

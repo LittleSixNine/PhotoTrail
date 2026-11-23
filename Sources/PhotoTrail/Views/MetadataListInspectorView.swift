@@ -289,7 +289,7 @@ struct MetadataListInspectorView: View {
                   case .values(let snapshot, _) = results[image.id] else { return nil }
             readings.append((image, snapshot))
         }
-        guard readings.contains(where: { $0.image.supportsMetadataEditing }) else { return nil }
+        guard readings.contains(where: { $0.image.supportsMetadataEditing || $0.image.videoInfo != nil }) else { return nil }
         return readings
     }
 
@@ -309,6 +309,7 @@ struct MetadataListInspectorView: View {
 
     private var sourceDescription: String {
         if selected.count == 1, let image = selected.first {
+            if image.isLocalMovie { return L10n.text("视频") + " · " + image.name }
             switch image.metadata.source {
             case .image(let url):
                 return L10n.text("图像文件：%1$@", url.lastPathComponent)
@@ -320,6 +321,10 @@ struct MetadataListInspectorView: View {
             case .copy:
                 return L10n.text("此条目没有可读取的本地文件。")
             }
+        }
+        let movieCount = selected.filter(\.isLocalMovie).count
+        if movieCount > 0 {
+            return "\(L10n.text("照片")) \(selected.count - movieCount) · \(L10n.text("视频")) \(movieCount)"
         }
         let imageCount = selected.filter {
             if case .image = $0.metadata.source { return true }
@@ -394,6 +399,29 @@ private extension MetadataListInspectorView {
                     Text(L10n.text("Please select an image"))
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if images.count == 1, let image = images.first, let info = image.videoInfo {
+                    Form {
+                        LabeledContent(L10n.text("文件名"), value: image.name)
+                        if let date = info.creationDate {
+                            LabeledContent(L10n.text("拍摄时间"), value: date)
+                        }
+                        if info.zonedCreationDate == nil {
+                            if let date = info.containerDate { LabeledContent("QuickTime CreateDate", value: date) }
+                            Text(L10n.text("拍摄时间或时区待确认")).foregroundStyle(.secondary)
+                        }
+                        if let point = image.metadata.location {
+                            LabeledContent(L10n.text("拍摄地点"), value: "\(point.latitude), \(point.longitude)")
+                        }
+                        if let secs = info.duration { LabeledContent(L10n.text("时长"), value: Duration.seconds(secs).formatted(.time(pattern: .hourMinuteSecond))) }
+                        if let w = info.width, let h = info.height { LabeledContent(L10n.text("分辨率"), value: "\(w) × \(h)") }
+                        if let codec = info.codec { LabeledContent(L10n.text("编码"), value: codec) }
+                        if let fps = info.frameRate { LabeledContent(L10n.text("帧率"), value: "\(fps.formatted()) fps") }
+                        if let readings = editableCreatorReadings, image.supportsMetadataEditing(.captureLocation) {
+                            Button(L10n.text("选择拍摄地点")) { startBatch(readings, tags: [.captureLocation]) }
+                        }
+                        if let url = image.metadataCreatorImageURL { VideoTrackButton(url: url) }
+                        if let model = info.model { LabeledContent(L10n.text("设备型号"), value: model) }
+                    }.formStyle(.grouped).textSelection(.enabled)
                 } else {
                     inspectorTools(proxy: proxy)
                     Divider()
@@ -597,7 +625,7 @@ private extension MetadataListInspectorView {
             }
             if !selected.isEmpty {
                 HStack(spacing: 8) {
-                    Text(L10n.text("已选择 %1$@ 张（当前显示 %2$@ 张）", selected.count, selected.filter { visiblePhotoIDs?.contains($0.id) ?? true }.count))
+                    Text(L10n.text("已选择 %1$@ 项（当前显示 %2$@ 项）", selected.count, selected.filter { visiblePhotoIDs?.contains($0.id) ?? true }.count))
                     Text("·")
                     Text(loading || advancedLoading ? L10n.text("正在读取元数据…")
                          : readFailureCount > 0 || advancedFailed ? L10n.text("未能读取") : L10n.text("读取完成"))
@@ -694,9 +722,9 @@ private extension MetadataListInspectorView {
                     openPresetRules(cards, name: quickPresetSession.original.name)
                 }, completed: { result, issues in
                     let processed = Set(result.steps.map(\.id))
-                    presetNotice = L10n.text("已加入待保存：%1$@ 张 · 无变化：%2$@ 张 · 未处理：%3$@ 张",
+                    presetNotice = L10n.text("已加入待保存 %1$@ 项 · 无变化 %2$@ 项 · 未处理 %3$@ 项",
                         result.items.count, processed.subtracting(result.items.map(\.id)).count,
-                        store.imageData.count - processed.count)
+                        quickPresetSession.targets(store.imageData).count - processed.count)
                     presetIssues = issues
                     self.quickPresetSession = nil
                 })

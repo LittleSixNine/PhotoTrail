@@ -49,7 +49,7 @@ extension PhotoTrailReducer {
         var scoped: [URL] = []
         for url in urls {
             let access = url.startAccessingSecurityScopedResource()
-            if access && (url.isSupportedPhotoImage || url.isTrackFile || isFolder(url)) { scoped.append(url) }
+            if access && (url.isSupportedLocalMedia || url.isTrackFile || isFolder(url)) { scoped.append(url) }
             else if access { url.stopAccessingSecurityScopedResource() }
         }
         var seen = Set<String>()
@@ -66,7 +66,7 @@ extension PhotoTrailReducer {
             } catch { failures.append(OperationFailure.message(url.lastPathComponent, error: error)) }
         }
         requested = requested.filter { seen.insert($0.standardizedFileURL.path).inserted }
-        let accepted = requested.filter { $0.isSupportedPhotoImage || $0.isTrackFile }
+        let accepted = requested.filter { $0.isSupportedLocalMedia || $0.isTrackFile }
         return ScannedFiles(urls: accepted, ignored: requested.count - accepted.count, scoped: scoped, failures: failures)
     }
 
@@ -109,6 +109,8 @@ extension URL {
     var isTrackFile: Bool {
         GpxTrackLog.supportedExtensions.contains(pathExtension.lowercased())
     }
+
+    var isSupportedLocalMedia: Bool { isSupportedPhotoImage || QuickTimeVideoInfo.acceptsExtension(self) }
 
     var isSupportedPhotoImage: Bool {
         let ext = pathExtension.lowercased()

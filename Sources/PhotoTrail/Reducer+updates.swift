@@ -28,6 +28,7 @@ extension PhotoTrailReducer {
             return formatted
         }
 
+        guard state[id].updatable else { return }
         let logImg = state[id]
         logger.notice("""
             \(logImg.name, privacy: .public)
@@ -36,10 +37,16 @@ extension PhotoTrailReducer {
             \(logFormat(location, elevation: elevation), privacy: .public)
             """)
 
+        if state[id].isLocalMovie {
+            // A movie has one writable field. A later map edit replaces its pending field edit.
+            state[id].creatorDraft = nil
+        }
         state[id].metadata.location = location
-        state[id].metadata.gpsMapDatum = nil
-        state[id].metadata.gpsProcessingMethod = nil
-        state[id].metadata.elevation = elevation
+        state[id].metadata.gpsMapDatum = state[id].isLocalMovie && location != nil ? "WGS-84" : nil
+        if !state[id].isLocalMovie {
+            state[id].metadata.gpsProcessingMethod = nil
+            state[id].metadata.elevation = elevation
+        }
         if let pairedID = state[id].pairedID, state[pairedID].updatable {
             state[pairedID].metadata.location = location
             state[pairedID].metadata.gpsMapDatum = nil
@@ -55,7 +62,7 @@ extension PhotoTrailReducer {
                 address: Place) {
         guard UserDefaults.standard.object(forKey: SettingsPreferences.writeRegionKey) as? Bool != false else { return }
         for id in selected {
-            guard state[id].updatable, state[id].metadata.location == Coords(
+            guard !state[id].isLocalMovie, state[id].updatable, state[id].metadata.location == Coords(
                 latitude: address.coordinate.latitude, longitude: address.coordinate.longitude) else { continue }
             state[id].metadata.sublocation = address.sublocation
             state[id].metadata.city = address.city
@@ -93,7 +100,7 @@ extension PhotoTrailReducer {
 
     func update(_ state: inout PhotoTrailState,
                 date: Date, adjustment: TimeInterval) {
-        for id in state.selection {
+        for id in state.selection where !state[id].isLocalMovie {
             let updatedDate: Date
             if state[id].metadata.dateTimeCreated == nil {
                 updatedDate = date

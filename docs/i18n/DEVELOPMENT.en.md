@@ -18,6 +18,10 @@ make test-packages
 
 Application tests use `PHOTOTRAIL_OFFLINE_TESTS=1` to avoid private favorites, credentials, update downloads and interactive windows. `make test-unit` uses the separate `local.PhotoTrail.Validation` bundle identifier. Unit tests do not establish visual or live-service acceptance.
 
+## Video regression fixtures
+
+The ImageData package includes small MOV and MP4 fixtures. For device coverage, run `swift test --package-path Packages/ImageData` with `PHOTOTRAIL_TIMED_GPS_FIXTURE` pointing to a video with timed GPS samples and `PHOTOTRAIL_LIVE_MOV_FIXTURE` to a MOV with a pairing identifier. The tests edit temporary copies. The app suite includes `MixedVideoTests` for import, cross-workspace saves and renaming. `MixedVideoUITests` checks the inspector and filters in a separately identified test app.
+
 ## Layout
 
 - `Sources/PhotoTrail/`: app, state, photo operations and SwiftUI views.

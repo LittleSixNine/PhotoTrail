@@ -118,7 +118,8 @@ enum PhotoCopyExporter {
     }
 
     private static func sourceURL(for image: ImageData) -> URL? {
-        switch image.metadata.source {
+        guard !image.isLocalMovie else { return nil }
+        return switch image.metadata.source {
         case .image(let url), .xmp(let url): url.standardizedFileURL
         case .photos, .copy: nil
         }

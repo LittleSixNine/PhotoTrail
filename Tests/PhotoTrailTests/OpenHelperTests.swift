@@ -91,13 +91,13 @@ struct OpenHelperTests {
 
         let store = Store(initialState: PhotoTrailState(), reduce: PhotoTrailReducer())
         store.send(.openFiles([folder, folder.appendingPathComponent("clip.MOV")]))
-        #expect(store.ignoredFileCount == 5)
-        #expect(Set((store.uniqueURLs ?? []).map(\.lastPathComponent)) == ["photo.JPG", "track.gpx", "line.KML", "packed.KMZ"])
+        #expect(store.ignoredFileCount == 3)
+        #expect(Set((store.uniqueURLs ?? []).map(\.lastPathComponent)) == ["clip.MOV", "clip-2.mp4", "photo.JPG", "track.gpx", "line.KML", "packed.KMZ"])
         #expect(Set(UTType.photoTrailTracks.compactMap(\.preferredFilenameExtension)) == ["gpx", "kml", "kmz"])
 
         store.send(.openFiles([folder.appendingPathComponent("clip.MOV")]))
-        #expect(store.ignoredFileCount == 1)
-        #expect(store.uniqueURLs?.isEmpty == true)
+        #expect(store.ignoredFileCount == 0)
+        #expect(store.uniqueURLs?.map(\.lastPathComponent) == ["clip.MOV"])
     }
 
     @Test func kmlAndKMZUseTheSharedImportPath() async throws {

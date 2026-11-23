@@ -259,6 +259,10 @@ private extension MetadataWorkflowView {
                     Button(L10n.text("导出预设 JSON")) {
                         perform {
                             guard let preset = presets.first(where: { $0.name == selectedPreset }) else { return }
+                            if preset.operations.contains(where: { $0.tag == .captureLocation }) {
+                                notice = L10n.text("此地点预设仅支持本机格式。")
+                                return
+                            }
                             if try MetadataPresetParameters.cards(preset, data: parameterData).contains(where: { !$0.datePolicy.isEmpty }) {
                                 notice = L10n.text("此预设包含本机日期参数，无法导出为旧版 JSON。")
                                 return
@@ -322,7 +326,7 @@ private extension MetadataWorkflowView {
         }
     }
     private func exportCSV(displayOnly: Bool) {
-        perform { try saveFile(Data(MetadataCSV.export(records(), tags: MetadataTag.allCases, displayOnly: displayOnly).utf8),
+        perform { try saveFile(Data(MetadataCSV.export(records(), tags: MetadataTag.allCases.filter { $0 != .captureLocation }, displayOnly: displayOnly).utf8),
                                name: displayOnly ? "metadata-display.csv" : "metadata.csv", type: .commaSeparatedText) }
     }
     private func importCSV() {
@@ -413,6 +417,7 @@ private extension MetadataWorkflowView {
 extension MetadataTag {
     var displayName: String {
         let key: String = switch self {
+        case .captureLocation: "拍摄地点"
         case .fileCreateDate: "Metadata field: FileCreateDate"
         case .fileModifyDate: "Metadata field: FileModifyDate"
         case .iptcDateCreated: "Metadata field: DateCreated"
@@ -645,6 +650,21 @@ struct MetadataWorkflowCard: Identifiable, Equatable, Sendable {
     var operations: [MetadataOperation]
     var datePolicy = MetadataDateCopyPolicy()
     var isComplete: Bool { !operations.isEmpty && !operations.contains { $0.action.hasEmptyInput } }
+    func scopeDescription(for images: [ImageData]) -> String {
+        let tags = Set(operations.map(\.tag))
+        var photos = 0, videos = 0, skippedVideos = 0
+        for image in images {
+            if tags.contains(where: image.supportsMetadataEditing) {
+                if image.isLocalMovie { videos += 1 } else { photos += 1 }
+            } else if image.isLocalMovie { skippedVideos += 1 }
+        }
+        let skipped = images.count - photos - videos
+        if photos > 0, videos == 0, skippedVideos > 0, skipped == skippedVideos {
+            return L10n.text("仅更改 %1$@ 张照片，跳过 %2$@ 段视频。", photos, skippedVideos)
+        }
+        return L10n.text("本规则适用于 %1$@ 张照片、%2$@ 段视频，跳过 %3$@ 项", photos, videos, skipped)
+    }
+
     var dateCopySource: MetadataTag? {
         guard let first = operations.first, case .copy(let source) = first.action, source.isDate,
               operations.allSatisfy({ $0.action == first.action && ($0.tag.isDate || $0.tag.isPartialDate) }) else { return nil }

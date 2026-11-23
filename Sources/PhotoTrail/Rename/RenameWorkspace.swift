@@ -205,6 +205,10 @@ final class RenameWorkspace {
         })
         manualOrder = manualOrder.filter { importedGroups.contains($0) }
         let selected = images.filter { !onlySelected || selection.contains($0.id) }
+        let protectedVideoBases = Set(images.compactMap { image -> String? in
+            guard image.videoInfo?.hasContentIdentifier == true, let url = image.metadataCreatorImageURL else { return nil }
+            return RenameEngine.key(url.standardizedFileURL.deletingPathExtension().path)
+        })
         let urls = selected.compactMap(\.metadataCreatorImageURL)
         let sourceRules = self.rules, previousExample = presetExample
         let updateExample = needsExampleUpdate
@@ -222,7 +226,7 @@ final class RenameWorkspace {
             do {
                 try await Task.sleep(for: .milliseconds(180))
                 let reader = Task.detached(priority: .userInitiated) {
-                    try Self.prepare(urls: urls, rules: frozenRules, settings: settings, cache: cached,
+                    try Self.prepare(urls: urls, protectedVideoBases: protectedVideoBases, rules: frozenRules, settings: settings, cache: cached,
                                      counters: counterValues, directories: directories, filter: filter, manual: manual, progress: { completed, total, calculating in
                                          Task { @MainActor in
                                              guard token == self.revision, self.busy else { return }
@@ -444,6 +448,8 @@ private final class RenameCancellation: @unchecked Sendable {
 enum RenameCopy {
     static func issue(_ issue: RenameIssue) -> String {
         switch issue {
+        case .livePhoto: L10n.text("Live Photo 配对保护，保留原名")
+        case .uncertainVideoTime: L10n.text("视频时间缺失或时区待确认，保留原名")
         case .missingDate: L10n.text("缺少拍摄时间")
         case .missingTag: L10n.text("缺少模板字段")
         case .missingAnchor: L10n.text("未找到定位文字")
@@ -580,7 +586,7 @@ extension RenameWorkspace {
     }
 
     // swiftlint:disable:next function_parameter_count
-    nonisolated private static func prepare(urls: [URL], rules: [RenameRule], settings: RenameSettings,
+    nonisolated private static func prepare(urls: [URL], protectedVideoBases: Set<String>, rules: [RenameRule], settings: RenameSettings,
                                            cache: [URL: (RenameFileIdentity, RenameInput)], counters: [Int: Int], directories: Set<URL>,
                                            filter: RenameFileFilter, manual: [String],
                                            progress: @escaping @Sendable (Int, Int, Bool) -> Void) throws -> Prepared {
@@ -601,6 +607,9 @@ extension RenameWorkspace {
             let input = try Self.readInput(url: url, version: before, cached: cache[url], needsTags: needsTags)
             guard try RenameFileIdentity.read(url) == before else { throw RenameError.stalePlan }
             var prepared = input
+            if protectedVideoBases.contains(RenameEngine.key(url.standardizedFileURL.deletingPathExtension().path)) {
+                prepared.tags["PhotoTrail:LivePhoto"] = "1"
+            }
             prepared.referenceDate = referenceDate
             inputs.append(prepared); versions[url] = before; updated[url] = (before, input)
             let now = ProcessInfo.processInfo.systemUptime
@@ -655,6 +664,14 @@ extension RenameWorkspace {
                 }
                 catch { failed = true }
             }
+            if needsTags, QuickTimeVideoInfo.acceptsExtension(url) {
+                do {
+                    let info = try Exiftool.helper.quickTimeVideoInfo(from: url)
+                    tags["PhotoTrail:MovieCaptureDate"] = info.zonedCreationDate
+                    if info.hasContentIdentifier { tags["PhotoTrail:LivePhoto"] = "1" }
+                } catch { failed = true }
+            }
+            if tags["Apple:ContentIdentifier"] != nil { tags["PhotoTrail:LivePhoto"] = "1" }
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.sortedKeys]
             let seed = try encoder.encode(version)

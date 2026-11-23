@@ -32,6 +32,7 @@ public struct Exiftool: Sendable {
 }
 
 public enum MetadataTag: String, CaseIterable, Codable, Sendable {
+    case captureLocation = "Composite:GPSPosition"
     case creator = "XMP-dc:Creator"
     case titleDefault = "XMP-dc:Title-x-default"
     case descriptionDefault = "XMP-dc:Description-x-default"
@@ -112,7 +113,7 @@ public enum MetadataTag: String, CaseIterable, Codable, Sendable {
     public var isFileTime: Bool { self == .fileCreateDate || self == .fileModifyDate }
     public var isPartialDate: Bool { self == .iptcDateCreated || self == .iptcTimeCreated }
     public var isList: Bool { [.creator, .subject, .iptcByline, .iptcBylineTitle, .iptcContact, .iptcKeywords].contains(self) }
-    public var supportsSidecar: Bool { rawValue.hasPrefix("XMP-") }
+    public var supportsSidecar: Bool { self == .captureLocation || rawValue.hasPrefix("XMP-") }
 
     public var isDate: Bool { [.captureDate, .sidecarDate, .dateOriginal, .dateDigitized, .dateModified, .exifCreateDate, .exifModifyDate, .fileCreateDate, .fileModifyDate].contains(self) }
 
@@ -141,6 +142,10 @@ public enum MetadataTag: String, CaseIterable, Codable, Sendable {
     }
 
     public func matches(_ actual: MetadataTagValue?, _ expected: MetadataTagValue) -> Bool {
+        if self == .captureLocation, case .text(let left) = actual, case .text(let right) = expected,
+           let a = CaptureLocationField.parse(left), let b = CaptureLocationField.parse(right) {
+            return abs(a.latitude - b.latitude) < 0.000002 && abs(a.longitude - b.longitude) < 0.000002
+        }
         if numericRange != nil, case .text(let left) = actual, case .text(let right) = expected,
            let actual = Double(left), let expected = Double(right) {
             // EXIF APEX fields store a rational logarithm; conversion back to seconds/f-number has bounded rounding.
@@ -171,6 +176,10 @@ public enum MetadataTag: String, CaseIterable, Codable, Sendable {
 
     public func checkedText(_ text: String) throws -> String {
         guard !text.isEmpty else { throw Exiftool.ExiftoolError.invalidTagValue(tag: rawValue) }
+        if self == .captureLocation {
+            guard let coordinates = CaptureLocationField.parse(text) else { throw Exiftool.ExiftoolError.invalidTagValue(tag: rawValue) }
+            return CaptureLocationField.text(coordinates)
+        }
         if let limit = maxUTF8Length, text.utf8.count > limit { throw Exiftool.ExiftoolError.invalidTagValue(tag: rawValue) }
         if self == .iptcCountryCode && (text.utf8.count != 3 || !text.utf8.allSatisfy({ (65...90).contains($0) || (97...122).contains($0) })) {
             throw Exiftool.ExiftoolError.invalidTagValue(tag: rawValue)
@@ -345,6 +354,11 @@ extension Exiftool {
     public func metadataTags(_ tags: Set<MetadataTag>,
                              from image: URL) throws -> [MetadataTag: MetadataTagValue] {
         guard !tags.isEmpty else { return [:] }
+        if QuickTimeVideoInfo.acceptsExtension(image) {
+            guard tags.contains(.captureLocation) else { return [:] }
+            let info = try quickTimeVideoInfo(from: image)
+            return info.location.map { [.captureLocation: .text(CaptureLocationField.text($0))] } ?? [:]
+        }
         if tags.contains(where: \.isFileTime) {
             var values = try metadataTags(Set(tags.filter { !$0.isFileTime }), from: image)
             guard image.pathExtension.lowercased() != "xmp" else { return values }
@@ -378,7 +392,10 @@ extension Exiftool {
         var result: [MetadataTag: MetadataTagValue] = [:]
         for tag in sortedTags {
             switch (tag.valueKind, entry[tag.readName] ?? dateFallbacks[tag].flatMap { entry[$0] }) {
-            case (.text, .text(let value)): result[tag] = .text(value)
+            case (.text, .text(let value)):
+                if tag == .captureLocation, let point = CaptureLocationField.parse(value) {
+                    result[tag] = .text(CaptureLocationField.text(point))
+                } else { result[tag] = .text(value) }
             case (.text, .number(let value)) where tag.numericRange != nil:
                 result[tag] = .text(value.rounded() == value ? String(format: "%.0f", value) : String(value))
             case (.list, .text(let value)): result[tag] = .list([value])
@@ -419,6 +436,12 @@ extension Exiftool {
                   mapMetadata.elevation?.isFinite != false else {
                 throw ExiftoolError.invalidTagValue(tag: "GPS")
             }
+        }
+        if QuickTimeVideoInfo.acceptsExtension(image) {
+            guard changes.count == 1, let change = changes[.captureLocation], mapMetadata == nil else {
+                throw ExiftoolError.invalidTagValue(tag: MetadataTag.captureLocation.rawValue)
+            }
+            return try updateMovieLocation(change, in: image)
         }
         if changes.keys.contains(where: \.isFileTime) {
             guard image.pathExtension.lowercased() != "xmp" else {
@@ -485,6 +508,10 @@ extension Exiftool {
             args.append("-IPTC:CodedCharacterSet=UTF8")
         }
         for (tag, change) in sortedChanges {
+            if tag == .captureLocation {
+                args += try CaptureLocationField.photoArguments(change, xmp: MetadataImageFormat.usesXMPGPS(extension: image.pathExtension))
+                continue
+            }
             switch change {
             case .set(.text(let value)):
                 guard tag.valueKind == .text else { throw ExiftoolError.invalidTagValue(tag: tag.rawValue) }
@@ -750,7 +777,8 @@ extension Exiftool {
     public func update(image: URL,
                        from metadata: Metadata,
                        timeZone: TimeZone?) async throws {
-        try await runAsync(metadataArguments(image: image, from: metadata, timeZone: timeZone, writeDate: true))
+        guard !QuickTimeVideoInfo.acceptsExtension(image) else { throw ExiftoolError.invalidTagValue(tag: "Photo GPS") }
+        _ = try await runAsync(metadataArguments(image: image, from: metadata, timeZone: timeZone, writeDate: true))
     }
 
     private func metadataArguments(image: URL, from metadata: Metadata,

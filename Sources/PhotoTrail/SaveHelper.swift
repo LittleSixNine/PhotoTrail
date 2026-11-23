@@ -333,6 +333,7 @@ extension SaveHelper {
         tagFiles: Bool, tagName: String
     ) async -> SaveStatus {
         let started = ContinuousClock.now
+        let movieVersions = await MainActor.run { Dictionary(uniqueKeysWithValues: store.imageData.compactMap { image in image.movieVersion.map { (image.id, $0) } }) }
         let originals = await MainActor.run {
             Dictionary(uniqueKeysWithValues: store.imageData.map { ($0.id, $0.original) })
         }
@@ -353,10 +354,23 @@ extension SaveHelper {
             do {
                 let sandbox = try Sandbox(for: imageURL)
                 defer { sandbox.removeSandboxFolder() }
+                if QuickTimeVideoInfo.acceptsExtension(imageURL), movieVersions[id] != MetadataInspectionFileVersion.read(imageURL) {
+                    throw MetadataInspectionError.sourceChanged
+                }
                 if let backup {
                     let backupInterval = signposter.beginInterval("Backup", id: signposter.makeSignpostID())
                     defer { signposter.endInterval("Backup", backupInterval) }
                     try await sandbox.makeManagedBackup(in: backup, sidecar: sidecar)
+                }
+                if QuickTimeVideoInfo.acceptsExtension(imageURL) {
+                    guard movieVersions[id] == MetadataInspectionFileVersion.read(imageURL) else { throw MetadataInspectionError.sourceChanged }
+                    let change = metadata.location.map { MetadataTagChange.set(.text(CaptureLocationField.text($0))) } ?? .remove
+                    var failure: String?
+                    let outcome = await saveThenTag(save: {
+                        _ = try sandbox.updateMetadataTags([.captureLocation: change], sidecar: false)
+                    }, tag: tagFiles ? { try await sandbox.setTag(name: tagName) } : nil,
+                       onFailure: { failure = $0.localizedDescription })
+                    return LocalSaveResult(id: id, metadata: metadata, sidecarCreated: false, outcome: outcome, failure: failure)
                 }
                 if createSidecar {
                     try sandbox.makeSidecarFile()

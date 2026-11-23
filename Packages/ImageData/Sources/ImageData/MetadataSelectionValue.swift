@@ -58,6 +58,7 @@ public struct MetadataInspectionSnapshot: Sendable {
 public extension ImageData {
     var supportsMetadataEditing: Bool {
         guard updatable else { return false }
+        if isLocalMovie { return videoInfo != nil }
         switch metadata.source {
         case .xmp: return true
         case .image(let url):
@@ -68,6 +69,7 @@ public extension ImageData {
 
     func supportsMetadataEditing(_ tag: MetadataTag) -> Bool {
         guard supportsMetadataEditing else { return false }
+        if isLocalMovie { return tag == .captureLocation }
         switch metadata.source {
         case .xmp: return tag.supportsSidecar
         case .image(let url):

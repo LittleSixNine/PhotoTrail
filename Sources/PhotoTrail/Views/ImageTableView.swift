@@ -2,6 +2,14 @@ import ImageData
 import SwiftUI
 import UDF
 
+private struct MediaListVisibleIDsKey: FocusedValueKey { typealias Value = Set<Int> }
+extension FocusedValues {
+    var mediaListVisibleIDs: Set<Int>? {
+        get { self[MediaListVisibleIDsKey.self] }
+        set { self[MediaListVisibleIDsKey.self] = newValue }
+    }
+}
+
 struct ImageTableView: View {
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) var store
     @AppStorage(Self.hideInvalidImagesKey) var hideInvalidImages = false
@@ -19,6 +27,7 @@ struct ImageTableView: View {
     var visibleIDsChanged: (Set<ImageData.ID>) -> Void = { _ in }
     var openDetail: () -> Void = {}
 
+    @SceneStorage("PhotoTrailMediaFilter") private var media: MediaListFilter = .all
     @State private var projection = PhotoListProjection()
 
     private var listSnapshot: PhotoListProjection.TableSnapshot {
@@ -26,7 +35,7 @@ struct ImageTableView: View {
             $0.status == .unmatched || $0.status == .ambiguous || $0.status == .missingTime ? $0.id : nil
         }) : nil
         return projection.table(store.state, search: store.searchText, hideInvalid: hideInvalidImages,
-                                filter: filter, unmatchedIDs: unmatchedIDs)
+                                filter: filter, unmatchedIDs: unmatchedIDs, media: media)
     }
 
     var body: some View {
@@ -61,6 +70,11 @@ struct ImageTableView: View {
                     }
                 }.pickerStyle(.menu).labelsHidden().fixedSize()
             }.padding(.leading, 14).padding(.vertical, 14)
+            Picker(L10n.text("媒体类型"), selection: $media) {
+                Text("\(L10n.text("全部")) \(snapshot.photoCount + snapshot.movieCount)").tag(MediaListFilter.all)
+                Text("\(L10n.text("照片")) \(snapshot.photoCount)").tag(MediaListFilter.photos)
+                Text("\(L10n.text("视频")) \(snapshot.movieCount)").tag(MediaListFilter.videos)
+            }.pickerStyle(.segmented).labelsHidden().padding(.horizontal, 12).padding(.bottom, 8)
             Divider()
             HStack {
                 if !workspace.listMatchResults.isEmpty {
@@ -68,7 +82,7 @@ struct ImageTableView: View {
                     Button(L10n.text("清除匹配记录")) { workspace.listMatchResults = []; unmatchedOnly = false }
                 }
                 Spacer()
-                Text(L10n.text("已选择 %1$@ 张（当前显示 %2$@ 张）", store.selection.count, store.selection.intersection(snapshot.ids).count))
+                Text(L10n.text("已选择 %1$@ 项（当前显示 %2$@ 项）", store.selection.count, store.selection.intersection(snapshot.ids).count))
                     .foregroundStyle(.secondary)
             }.font(.callout).padding(10)
             photoTable(images: images)
@@ -76,7 +90,7 @@ struct ImageTableView: View {
             HStack(spacing: 18) {
                 Label(L10n.text("待保存"), systemImage: "square.and.arrow.down").foregroundStyle(.orange)
                 Label(L10n.text("无待保存修改"), systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-                Text(L10n.text("显示 %1$@ / 共 %2$@ 张照片", images.count, snapshot.total)).foregroundStyle(.secondary)
+                Text(L10n.text("显示 %1$@ / 共 %2$@ 项", images.count, snapshot.total)).foregroundStyle(.secondary)
                 Spacer()
             }.font(.caption).padding(12)
         }
@@ -86,6 +100,8 @@ struct ImageTableView: View {
         .onChange(of: snapshot.ids, initial: true) { visibleIDsChanged(snapshot.ids) }
         .onChange(of: store.selection) { selection = store.selection }
         .onChange(of: filter) { retainVisibleSelection() }
+        .onChange(of: media) { retainVisibleSelection() }
+        .focusedSceneValue(\.mediaListVisibleIDs, snapshot.ids)
         .onChange(of: store.searchText) { retainVisibleSelection() }
         .onChange(of: sortOrder) {
             SettingsPreferences.savePhotoSort(sortOrder)

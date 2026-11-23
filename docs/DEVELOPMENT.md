@@ -2,6 +2,10 @@
 
 **简体中文** · [English](i18n/DEVELOPMENT.en.md)
 
+## 视频回归样本
+
+运行 ImageData 包测试会使用随库的小型 MOV／MP4。可给 `swift test --package-path Packages/ImageData` 设置 `PHOTOTRAIL_TIMED_GPS_FIXTURE`（含播放时间 GPS 的视频）和 `PHOTOTRAIL_LIVE_MOV_FIXTURE`（含配对标识的 MOV）。测试先复制文件再执行保存。应用测试 `MixedVideoTests` 检查导入、跨页保存及重命名，`MixedVideoUITests` 使用独立标识构建的测试实例检查视频详情与筛选。
+
 ## 环境与构建
 
 需要支持 Swift 6.3 或更新版本、macOS 26 或更新 SDK 的完整 Xcode，以及 XcodeGen。安装 SwiftLint 后会在构建时运行代码检查；未安装时构建脚本给出提示。地图脚本测试需要 Node.js 20 或更新版本；可通过 `make test-map NODE=/path/to/node` 指定可执行文件。

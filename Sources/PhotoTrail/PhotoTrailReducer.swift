@@ -206,7 +206,7 @@ struct PhotoTrailReducer: Reducer, Sendable {
             for id in state.selection where state[id].updatable {
                 update(&newState, id: id, location: coords, elevation: elevation)
                 newState[id].metadata.gpsMapDatum = "WGS-84"
-                newState[id].metadata.gpsProcessingMethod = "MANUAL"
+                if !state[id].isLocalMovie { newState[id].metadata.gpsProcessingMethod = "MANUAL" }
                 if let pairedID = state[id].pairedID, state[pairedID].updatable {
                     newState[pairedID].metadata.gpsMapDatum = "WGS-84"
                     newState[pairedID].metadata.gpsProcessingMethod = "MANUAL"
@@ -216,9 +216,9 @@ struct PhotoTrailReducer: Reducer, Sendable {
         case .confirmedWGS84Location(let coords):
             guard !state.saveInProgress else { return state }
             update(&newState, coords: coords)
-            for id in state.selection {
+            for id in state.selection where state[id].updatable {
                 newState[id].metadata.gpsMapDatum = "WGS-84"
-                newState[id].metadata.gpsProcessingMethod = "MANUAL"
+                if !state[id].isLocalMovie { newState[id].metadata.gpsProcessingMethod = "MANUAL" }
                 if let pairedID = state[id].pairedID, state[pairedID].updatable {
                     newState[pairedID].metadata.gpsMapDatum = "WGS-84"
                     newState[pairedID].metadata.gpsProcessingMethod = "MANUAL"
@@ -230,7 +230,7 @@ struct PhotoTrailReducer: Reducer, Sendable {
             newState.trackMatches = updates.filter { photoIDs.contains($0.id) }
 
         case .applyTrackMatches:
-            for entry in state.trackMatches where entry.status == .matched && entry.coords != nil {
+            for entry in state.trackMatches where entry.status == .matched && entry.coords != nil && state[entry.id].updatable {
                 update(&newState, id: entry.id,
                        location: entry.coords, elevation: entry.elevation)
                 newState[entry.id].metadata.gpsMapDatum = "WGS-84"

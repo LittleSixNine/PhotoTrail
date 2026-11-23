@@ -33,7 +33,7 @@ struct MetadataBatchEditView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(L10n.text("批量编辑")).font(.headline)
-                    Text(L10n.text("已选择 %1$@ 张照片", session.readings.count)).font(.caption).foregroundStyle(.secondary)
+                    Text(L10n.text("已选择 %1$@ 项", session.readings.count)).font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
                 Menu {
@@ -52,9 +52,11 @@ struct MetadataBatchEditView: View {
                     }
                     if cards.isEmpty { actionChoices }
                     ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
+                        Text(card.scopeDescription(for: session.readings.map(\.image)))
+                            .font(.caption).foregroundStyle(.secondary)
                         MetadataOperationCardView(operations: operationBinding(card.id), readings: session.readings,
                             selected: Binding(get: { selectedCard == card.id }, set: { selectedCard = $0 ? card.id : nil }),
-                            availableTags: MetadataTag.allCases, index: index,
+                            availableTags: MetadataTag.allCases.filter { tag in session.readings.contains { $0.image.supportsMetadataEditing(tag) } }, index: index,
                             moveUp: index > 0 ? { cards.swapAt(index, index - 1) } : nil,
                             moveDown: index + 1 < cards.count ? { cards.swapAt(index, index + 1) } : nil,
                             remove: { cards.removeAll { $0.id == card.id } }, inlineLayout: true,
@@ -98,7 +100,7 @@ struct MetadataBatchEditView: View {
                     Text(session.application.notice).font(.caption).foregroundStyle(.orange)
                 }
                 if let preview = session.recipePreview {
-                    Text(L10n.text("将修改：%1$@ 张 · 无变化：%2$@ 张 · 未处理：%3$@ 张",
+                    Text(L10n.text("将修改 %1$@ 项 · 无变化 %2$@ 项 · 未处理 %3$@ 项",
                         preview.preview.items.count, Set(preview.preview.steps.map(\.id)).subtracting(preview.preview.items.map(\.id)).count,
                         session.readings.count - Set(preview.preview.steps.map(\.id)).count))
                         .font(.caption).foregroundStyle(.secondary)
@@ -115,10 +117,13 @@ struct MetadataBatchEditView: View {
                     if session.statisticsBusy || session.application.busy { ProgressView().controlSize(.small) }
                     Button(L10n.text("取消")) { discard = true }.labelStyle(.titleOnly)
                         .disabled(session.application.busy)
-                    Button(L10n.text("应用到 %1$@ 张照片", session.readings.count)) {
+                    let tags = Set(cards.flatMap(\.operations).map(\.tag))
+                    let applicable = session.readings.filter { reading in tags.contains(where: reading.image.supportsMetadataEditing) }.count
+                    Button(L10n.text("应用到 %1$@ 项", applicable)) {
                         session.application.apply(readings: session.readings, operations: [], cards: cards, store: store)
                     }.buttonStyle(.borderedProminent)
-                        .disabled(!session.isValid || !currentScope || session.statisticsBusy || !session.statisticsError.isEmpty || session.application.busy || store.saveInProgress)
+                        .disabled(applicable == 0 || !session.isValid || !currentScope || session.statisticsBusy
+                            || !session.statisticsError.isEmpty || session.application.busy || store.saveInProgress)
                         .accessibilityIdentifier("metadataBatchApply")
                 }
             }.padding(14)
@@ -157,18 +162,19 @@ struct MetadataBatchEditView: View {
     private var presets: [MetadataPreset] { (try? MetadataPreset.stored(in: presetData)) ?? [] }
     private var actionChoices: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-            ForEach(["set", "copy", "offset", "clear", "filename"], id: \.self) { mode in
+            ForEach(["location", "set", "copy", "offset", "clear", "filename"], id: \.self) { mode in
                 Button { add(mode) } label: {
-                    Label(L10n.text(["set": "设置值", "copy": "复制字段", "offset": "调整时间", "clear": "清除字段", "filename": "从文件名恢复拍摄时间"][mode] ?? "添加操作"),
-                          systemImage: ["set": "textformat", "copy": "doc.on.doc", "offset": "clock", "clear": "eraser", "filename": "calendar"][mode] ?? "plus")
+                    Label(L10n.text(["location": "拍摄地点", "set": "设置值", "copy": "复制字段", "offset": "调整时间", "clear": "清除字段", "filename": "从文件名恢复拍摄时间"][mode] ?? "添加操作"),
+                          systemImage: ["location": "mappin", "set": "textformat", "copy": "doc.on.doc", "offset": "clock", "clear": "eraser", "filename": "calendar"][mode] ?? "plus")
                         .frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 5)
-                }
+                }.disabled(mode != "location" && session.readings.allSatisfy { $0.image.isLocalMovie })
             }
         }
     }
     private func add(_ mode: String) {
         let operation: MetadataOperation
         switch mode {
+        case "location": operation = MetadataOperation(tag: .captureLocation, action: .setText(""))
         case "copy": operation = MetadataOperation(tag: .dateOriginal, action: .copy(.captureDate))
         case "offset": operation = MetadataOperation(tag: .captureDate, action: .offsetDate(years: 0, months: 0, days: 0, hours: 1, minutes: 0, seconds: 0))
         case "clear": operation = MetadataOperation(tag: .titleDefault, action: .remove)

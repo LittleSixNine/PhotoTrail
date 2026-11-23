@@ -272,6 +272,9 @@ public struct MetadataCreatorEditPlan: Sendable {
             guard seen.insert(FileID(device: device, inode: inode)).inserted else {
                 throw MetadataCreatorPlanError.duplicateTarget
             }
+            if reading.image.isLocalMovie, reading.image.movieVersion != reading.snapshot.version {
+                throw MetadataCreatorPlanError.sourceChanged
+            }
             var value = reading.snapshot.values[tag]
             var changes = reading.image.creatorDraft?.changes ?? [:]
             if let draft = reading.image.creatorDraft {

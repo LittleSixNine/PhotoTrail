@@ -46,11 +46,18 @@ final class MetadataPresetSession: Identifiable {
         application.cancel()
     }
 
+    var targetTags: Set<MetadataTag> { Set(cards.flatMap(\.operations).map(\.tag)) }
+    func targets(_ images: [ImageData]) -> [ImageData] {
+        let tags = targetTags
+        return images.filter { image in tags.contains { image.supportsMetadataEditing($0) } }
+    }
+
     func applyAll(in store: Store<PhotoTrailState, PhotoTrailEvent>, queue: MetadataLoadingQueue) {
         guard !busy, isValid, !store.imageData.isEmpty, !store.saveInProgress,
               !store.renameInProgress, !store.importProgress.isActive else { return }
-        let images = store.imageData.sorted(using: store.sortOrder)
-        queue.synchronize(images)
+        let images = targets(store.imageData).sorted(using: store.sortOrder)
+        guard !images.isEmpty else { return }
+        queue.synchronize(store.imageData)
         let cards = cards
         let token = UUID(); generation = token; preparing = true; preparationCount = 0; notice = ""
         preparation = Task {
@@ -69,7 +76,7 @@ final class MetadataPresetSession: Identifiable {
                 }
                 try Task.checkCancellation()
                 guard generation == token,
-                      MetadataDraftRequest(readings: readings, requiresSelection: false, requiresAllPhotos: true).matches(store.state, checkFiles: true) else {
+                      MetadataDraftRequest(readings: readings, requiresSelection: false, requiresAllPhotos: true, allTargetTags: targetTags).matches(store.state, checkFiles: true) else {
                     throw MetadataCreatorPlanError.sourceChanged
                 }
                 application.apply(readings: readings, operations: [], requiresSelection: false,

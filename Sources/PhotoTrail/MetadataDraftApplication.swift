@@ -9,9 +9,11 @@ struct MetadataDraftRequest: Sendable {
     let selection: Set<ImageData.ID>
     let order: [ImageData.ID]
     let requiresSelection: Bool
+    let allTargetTags: Set<MetadataTag>?
     let requiresAllPhotos: Bool
 
-    init(readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)], requiresSelection: Bool = true, requiresAllPhotos: Bool = false) {
+    init(readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)], requiresSelection: Bool = true, requiresAllPhotos: Bool = false, allTargetTags: Set<MetadataTag>? = nil) {
+        self.allTargetTags = allTargetTags
         self.requiresSelection = requiresSelection
         self.requiresAllPhotos = requiresAllPhotos
         self.readings = readings
@@ -22,7 +24,12 @@ struct MetadataDraftRequest: Sendable {
     @MainActor func matches(_ state: PhotoTrailState, checkFiles: Bool = false) -> Bool {
         guard !state.saveInProgress, !state.renameInProgress, !state.importProgress.isActive, (!requiresSelection || state.selection == selection),
               (!requiresSelection || state.imageData.filter({ selection.contains($0.id) }).sorted(using: state.sortOrder).map(\.id) == order) else { return false }
-        if requiresAllPhotos && state.imageData.sorted(using: state.sortOrder).map(\.id) != order { return false }
+        if requiresAllPhotos {
+            let targets = state.imageData.filter { image in
+                allTargetTags.map { tags in tags.contains { image.supportsMetadataEditing($0) } } ?? !image.isLocalMovie
+            }
+            guard targets.sorted(using: state.sortOrder).map(\.id) == order else { return false }
+        }
         let images = Dictionary(uniqueKeysWithValues: state.imageData.map { ($0.id, $0) })
         return readings.allSatisfy { reading in
             guard let image = images[reading.image.id], image.updatable == reading.image.updatable, !image.hasLegacyDateChanges,
@@ -72,7 +79,8 @@ final class MetadataDraftApplication {
                description: String? = nil, requiresSelection: Bool = true, dateBatch: MetadataDateBatch? = nil, cards: [MetadataWorkflowCard]? = nil, requiresAllPhotos: Bool = false,
                store: Store<PhotoTrailState, PhotoTrailEvent>) {
         guard !busy, !applied, !store.saveInProgress else { return }
-        let request = MetadataDraftRequest(readings: readings, requiresSelection: requiresSelection, requiresAllPhotos: requiresAllPhotos)
+        let request = MetadataDraftRequest(readings: readings, requiresSelection: requiresSelection, requiresAllPhotos: requiresAllPhotos,
+            allTargetTags: cards.map { Set($0.flatMap(\.operations).map(\.tag)) })
         guard request.matches(store.state) else {
             notice = L10n.text("来源文件已变化；请重新读取元数据。")
             OperationFailure.present(notice); return

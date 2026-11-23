@@ -61,6 +61,9 @@ enum MetadataBatchRecipe {
                 batch.offset = card.datePolicy.offset
                 let rows = try batch.inspect(working)
                 results = try zip(working, rows).map { reading, row in
+                    if row.unsupported.count == batch.targets.count {
+                        return try MetadataWorkflowPreview.prepare([reading], operations: card.operations)
+                    }
                     if row.missing {
                         issues.append(MetadataRecipeIssue(photoID: row.id, filename: row.filename, tag: source,
                                                           reason: L10n.text("来源值缺失")))

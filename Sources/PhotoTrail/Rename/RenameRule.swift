@@ -126,7 +126,7 @@ struct RenameInput: Sendable, Equatable {
 }
 
 enum RenameIssue: String, Codable, Sendable {
-    case missingDate, missingTag, missingAnchor, listMismatch, excluded, unchanged, invalidName, conflict, metadataFailure
+    case livePhoto, uncertainVideoTime, missingDate, missingTag, missingAnchor, listMismatch, excluded, unchanged, invalidName, conflict, metadataFailure
 }
 
 struct RenameStep: Identifiable, Sendable {
@@ -142,6 +142,7 @@ struct RenamePreview: Identifiable, Sendable {
     var steps: [RenameStep]
     var issues: [RenameIssue]
     var group: String
+    var movieCaptureDate: String?
     var id: URL { source }
     var changes: Bool { source.path != target.path && !issues.contains(.invalidName) && !issues.contains(.conflict) }
 }

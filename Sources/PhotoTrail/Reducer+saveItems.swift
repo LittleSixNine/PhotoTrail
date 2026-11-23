@@ -48,6 +48,10 @@ struct SaveTargets {
             if hasMap || hasFields, let url = image.metadataInspectionURL {
                 changedFiles.append((index, url))
             }
+            if let change = image.creatorDraft?.changes[.captureLocation], change.coordinate != image.metadata.location {
+                editConflicts.append(index)
+                continue
+            }
             if creatorChanged, image.creatorDraft?.captureDateChange != nil, image.hasLegacyDateChanges {
                 editConflicts.append(index)
                 continue
@@ -100,6 +104,7 @@ extension PhotoTrailReducer {
                 // Saving can resolve region fields that were not present in the editable snapshot.
                 newState.imageData[index].metadata.restore(from: result.metadata)
                 newState.imageData[index].original = Metadata(copying: result.metadata)
+                newState.imageData[index].refreshMovieVersion()
             }
         }
         newState.saveCompleted = min(newState.saveTotal, newState.saveCompleted + results.count)
@@ -112,6 +117,17 @@ extension PhotoTrailReducer {
             else {
                 let savedDate = state.imageData[index].metadata.dateTimeCreated
                 state.imageData[index].original?.dateTimeCreated = savedDate
+            }
+        }
+        if state.imageData[index].creatorDraft?.changes[.captureLocation] != nil {
+            if discard {
+                state.imageData[index].metadata.location = state.imageData[index].original?.location
+                state.imageData[index].metadata.gpsMapDatum = state.imageData[index].original?.gpsMapDatum
+            } else {
+                let snapshot = state.imageData[index].metadata
+                state.imageData[index].original?.location = snapshot.location
+                state.imageData[index].original?.gpsMapDatum = snapshot.gpsMapDatum
+                state.imageData[index].refreshMovieVersion()
             }
         }
         state.imageData[index].creatorDraft = nil

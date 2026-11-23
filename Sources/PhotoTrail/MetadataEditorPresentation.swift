@@ -14,6 +14,7 @@ extension MetadataTag {
 
     var inputExample: String {
         switch self {
+        case .captureLocation: "31.2304, 121.4737"
         case .exposureTime, .exifExposureTime, .exifShutter: "1/125"
         case .fNumber, .exifFNumber, .exifAperture, .exifMaxAperture: "2.8"
         case .iso, .exifISO: "100"

@@ -1,3 +1,4 @@
+import AVFoundation
 import Imagetool
 import Phototool
 import PhotosUI
@@ -34,6 +35,13 @@ extension ImageData {
     }
 
     public func measuredThumbnail(scale: CGFloat, maxDimension: Double, prioritize: Bool = false) async -> MeasuredThumbnail {
+        if videoInfo != nil, let url = metadataCreatorImageURL {
+            let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+            generator.appliesPreferredTrackTransform = true
+            generator.maximumSize = CGSize(width: maxDimension, height: maxDimension)
+            if let frame = try? await generator.image(at: .zero) { return MeasuredThumbnail(frame.image) }
+            return MeasuredThumbnail(image: Image(systemName: "film"), bytes: 128)
+        }
         var image: MeasuredThumbnail?
         switch metadata.source {
         case .image(let url), .xmp(let url):

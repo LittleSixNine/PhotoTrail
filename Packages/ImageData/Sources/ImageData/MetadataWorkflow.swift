@@ -74,14 +74,16 @@ public struct MetadataWorkflowPreview: Sendable {
             try MetadataCreatorEditPlan.validate(working.filter { $0.image.supportsMetadataEditing(operation.tag) },
                                                 tag: operation.tag, validation: validation)
             try validateDateParameters(operation)
+            let eligibleCount = working.filter { $0.image.supportsMetadataEditing(operation.tag) }.count
+            var sequenceIndex = 0
             let sequence: [String]?
             switch operation.action {
             case .sequence(let start, let step):
                 guard operation.tag.isDate else { throw MetadataFieldEditError.invalidAction }
-                sequence = try MetadataDate.sequence(start: start, stepSeconds: step, count: readings.count)
+                sequence = try MetadataDate.sequence(start: start, stepSeconds: step, count: max(1, eligibleCount))
             case .distribute(let start, let end):
                 guard operation.tag.isDate else { throw MetadataFieldEditError.invalidAction }
-                sequence = try MetadataDate.distribute(start: start, end: end, count: readings.count)
+                sequence = try MetadataDate.distribute(start: start, end: end, count: max(1, eligibleCount))
             default: sequence = nil
             }
             for index in working.indices {
@@ -102,7 +104,7 @@ public struct MetadataWorkflowPreview: Sendable {
                     }
                     return reading.snapshot.values[tag]
                 }
-                if let sequence { action = .setText(sequence[index]) }
+                if let sequence { action = .setText(sequence[sequenceIndex]); sequenceIndex += 1 }
                 switch action {
                 case .filenameDate(let pattern, let template):
                     guard operation.tag.isDate else { throw MetadataFieldEditError.invalidAction }

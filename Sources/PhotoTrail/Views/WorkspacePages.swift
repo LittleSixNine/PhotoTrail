@@ -134,7 +134,10 @@ struct PhotoThumbnail: View {
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .clipped()
         .overlay(alignment: .bottomTrailing) {
-            if showsPairedBadge {
+            if let info = image.videoInfo {
+                Label(info.duration.map { Duration.seconds($0).formatted(.time(pattern: .minuteSecond)) } ?? L10n.text("视频"), systemImage: "film")
+                    .font(.caption2.monospacedDigit()).padding(2).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 3))
+            } else if showsPairedBadge {
                 Text("JPG + RAW")
                     .font(.system(size: 9, weight: .semibold))
                     .padding(.horizontal, 4).padding(.vertical, 2)
@@ -411,6 +414,10 @@ struct PhotoDetailPage: View {
             VStack(spacing: 0) {
                 HStack(spacing: 0) {
                     SidebarScrollView {
+                        if store.selection.count == 1, let id = store.selection.first,
+                           store[id].videoInfo != nil, let url = store[id].metadataCreatorImageURL {
+                            VideoTrackButton(url: url).padding(.horizontal)
+                        }
                         LocationPanel()
                     }
                     .frame(width: max(260, min(geometry.size.width * leftRatio, geometry.size.width - 420)))
@@ -725,7 +732,7 @@ fileprivate extension PhotoDetailPage {
             LocationHelper.locationFromTrack(store, extendedTime: extendedTime)
         }.disabled(!editableSelection || !store.gpxTracks.contains(where: \.hasRecordedTimes))
         Button(L10n.text("调整拍摄时间"), systemImage: "clock") { timePresented = true }
-            .disabled(!editableSelection)
+            .disabled(!editableSelection || selectedImages.contains(where: \.isLocalMovie))
         Button(L10n.text("从所选照片新建 GPX 轨迹"), systemImage: "point.topleft.down.to.point.bottomright.curvepath") {
             photoGPXPresented = true
         }.disabled(!hasGPXPoints)
@@ -792,6 +799,7 @@ fileprivate extension PhotoDetailPage {
 
     var hasLocalFiles: Bool {
         selectedImages.contains { image in
+            guard !image.isLocalMovie else { return false }
             if case .image = image.metadata.source { return true }
             if case .xmp = image.metadata.source { return true }
             return false

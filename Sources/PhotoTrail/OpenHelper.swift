@@ -70,7 +70,7 @@ enum OpenHelper {
     @MainActor static private
     func images(for urls: [URL],
                 store: Store<PhotoTrailState, PhotoTrailEvent>) async {
-        let imageURLs = urls.filter(\.isSupportedPhotoImage)
+        let imageURLs = urls.filter(\.isSupportedLocalMedia)
         guard !imageURLs.isEmpty else { return }
         store.importProgress.begin(.images, total: imageURLs.count)
         var newImages: [ImageData] = []
@@ -110,7 +110,7 @@ enum OpenHelper {
             }
         }
         await MainActor.run {
-            store.send(.addImages(newImages))
+            store.send(.addImages(newImages.filter { !$0.isLocalMovie || $0.videoInfo != nil }))
             let unreadable = newImages.filter { !$0.metadata.readable }
             if !unreadable.isEmpty {
                 store.send(.catchUnexpectedError(unreadable.map(\.name).joined(separator: "\n"),

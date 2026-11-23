@@ -13,6 +13,8 @@ struct PasteboardCommands: Commands {
     @FocusedValue(\.metadataFieldClipboard) private var metadataFieldClipboard
     @AppStorage(SettingsView.extendedTimeKey) var extendedTime = 120.0
 
+    @FocusedValue(\.mediaListVisibleIDs) private var mediaListVisibleIDs
+
     private var editingMetadataText: Bool { metadataFieldClipboard?.textInput == true }
 
     var body: some Commands {
@@ -75,6 +77,8 @@ struct PasteboardCommands: Commands {
                     } else if store.textfieldActive {
                         NSApp.sendAction(#selector(NSText.selectAll(_:)),
                                          to: nil, from: nil)
+                    } else if let mediaListVisibleIDs {
+                        store.send(.selectionChanged(mediaListVisibleIDs), undoable: false)
                     } else {
                         store.send(.selectAllRequest)
                     }

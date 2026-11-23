@@ -133,6 +133,10 @@ enum RenameEngine {
     }
 
     static func shooting(_ input: RenameInput, settings: RenameSettings) -> ShotDate? {
+        if ["mov", "mp4"].contains(input.url.pathExtension.lowercased()) {
+            guard let raw = input.tags["PhotoTrail:MovieCaptureDate"], let date = parseDate(raw), date.offsetRecorded else { return nil }
+            return date
+        }
         let priorities = settings.datePriority.split(separator: "\n").map(String.init)
         for name in priorities {
             if let raw = tag(name, input: input) {
@@ -627,7 +631,9 @@ extension RenameEngine {
             var steps: [RenameStep] = []
             var issues: [RenameIssue] = []
             var included = true
-            var skip = false
+            let livePair = grouped[groupID]?.contains { $0.tags["PhotoTrail:LivePhoto"] != nil } == true
+            var skip = livePair
+            if livePair { issues.append(.livePhoto); retainedGroups.insert(groupID) }
             for rule in rules where rule.enabled {
                 if rule.action == 99 { continue }
                 if rule.action == 98 {
@@ -643,8 +649,12 @@ extension RenameEngine {
                 name = next
                 if let issue { issues.append(issue) }
                 let missingField = issue == .missingDate || issue == .missingTag
-                if (missingField && (settings.skipMissingFields == false || leader.metadataFailure))
+                if (issue == .missingDate && ["mov", "mp4"].contains(leader.url.pathExtension.lowercased()))
+                    || (missingField && (settings.skipMissingFields == false || leader.metadataFailure))
                     || (issue == .listMismatch && rule.skipMissing) {
+                    if issue == .missingDate && ["mov", "mp4"].contains(leader.url.pathExtension.lowercased()) {
+                        issues.append(.uncertainVideoTime)
+                    }
                     skip = true; name = leader.name
                     retainedGroups.insert(groupID)
                 }
@@ -667,7 +677,7 @@ extension RenameEngine {
                                     let name = keepOriginal && step.name == row.source.lastPathComponent ? input.name
                                         : row.source == input.url ? step.name : split(step.name).stem + split(input.name).ext
                                     return RenameStep(id: step.id, name: name, issue: step.issue, ordinal: step.ordinal)
-                                }, issues: row.issues, group: row.group)
+                                }, issues: row.issues, group: row.group, movieCaptureDate: input.tags["PhotoTrail:MovieCaptureDate"])
             if !validName(final) { row.issues.append(.invalidName) }
             if input.metadataFailure { row.issues.append(.metadataFailure) }
             return row

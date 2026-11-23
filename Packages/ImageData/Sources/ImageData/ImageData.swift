@@ -13,6 +13,15 @@ public struct ImageData: Identifiable, Sendable {
     public private(set) var name: String
     public var metadata: Metadata
     public private(set) var videoInfo: QuickTimeVideoInfo?
+    public var isLocalMovie: Bool {
+        guard case .image(let url) = metadata.source else { return false }
+        return QuickTimeVideoInfo.acceptsExtension(url)
+    }
+    public private(set) var movieVersion: MetadataInspectionFileVersion?
+    public mutating func refreshMovieVersion() {
+        if isLocalMovie { movieVersion = MetadataInspectionFileVersion.read(metadataCreatorImageURL) }
+    }
+
     public var original: Metadata?
     public var creatorDraft: MetadataCreatorEditPlan.Item?
     public var pairedID: ImageData.ID?
@@ -44,12 +53,17 @@ public struct ImageData: Identifiable, Sendable {
         let wasSidecar = name.hasSuffix("*")
         metadata = Metadata(converting: metadata, to: newSource)
         if let baseline = original { original = Metadata(converting: baseline, to: newSource) }
+        refreshMovieVersion()
         name = target.lastPathComponent + (wasSidecar ? "*" : "")
     }
 
     // The effective shooting date is projected into the existing map/track model.
     // Do not route that projection through the legacy writer a second time.
     public mutating func applyMetadataDraft(_ item: MetadataCreatorEditPlan.Item) {
+        if let change = item.changes[.captureLocation] {
+            metadata.location = change.coordinate
+            metadata.gpsMapDatum = metadata.location == nil ? original?.gpsMapDatum : "WGS-84"
+        }
         creatorDraft = item.changes.isEmpty ? nil : item
         if item.captureDateChange != nil { metadata.dateTimeCreated = item.captureDateValue }
     }
@@ -60,6 +74,10 @@ public struct ImageData: Identifiable, Sendable {
         if let draft = creatorDraft, draft.captureDateChange != nil,
            metadata.dateTimeCreated == draft.captureDateValue {
             comparison.dateTimeCreated = original?.dateTimeCreated
+        }
+        if let change = creatorDraft?.changes[.captureLocation], metadata.location == change.coordinate {
+            comparison.location = original?.location
+            comparison.gpsMapDatum = original?.gpsMapDatum
         }
         return comparison != original
     }
@@ -108,11 +126,19 @@ public struct ImageData: Identifiable, Sendable {
         }
         if QuickTimeVideoInfo.acceptsExtension(url) {
             var metadata = Metadata(source: .image(url))
-            let info = Imagetool.readVideoInfo(from: url)
+            let version = MetadataInspectionFileVersion.read(url)
+            let read = Imagetool.readVideoInfo(from: url)
+            let info = version == MetadataInspectionFileVersion.read(url) ? read : nil
             metadata.readable = info != nil
             metadata.location = info?.location
+            metadata.gpsMapDatum = info?.location == nil ? nil : "WGS-84"
+            metadata.dateTimeCreated = info?.zonedCreationDate
             self.init(metadata: metadata, name: url.lastPathComponent)
             videoInfo = info
+            if info != nil && FileManager.default.isWritableFile(atPath: url.path) {
+                original = Metadata(copying: metadata)
+                movieVersion = version
+            }
             return
         }
         let sidecarURL = url.deletingPathExtension()

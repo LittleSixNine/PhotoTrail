@@ -50,7 +50,7 @@ struct ContentView: View {
             }
             if let ignoredFileNotice {
                 HStack(spacing: 10) {
-                    Label(L10n.text("本次已跳过 %1$@ 个不支持的文件。支持导入图片及 GPX、KML、KMZ 轨迹。", ignoredFileNotice),
+                    Label(L10n.text("本次已跳过 %1$@ 个不支持的文件。支持照片、MOV／MP4 视频及 GPX、KML、KMZ 轨迹。", ignoredFileNotice),
                           systemImage: "doc.badge.ellipsis")
                     Spacer(minLength: 0)
                     Button { self.ignoredFileNotice = nil } label: {
@@ -275,7 +275,7 @@ struct ContentView: View {
                 Button { store.send(.openCommand, undoable: false) } label: {
                     HStack(spacing: 7) {
                         Image(systemName: "plus")
-                        Text(L10n.text("导入照片"))
+                        Text(L10n.text("导入照片和视频"))
                     }.fixedSize()
                 }
                 .labelStyle(.titleAndIcon)
@@ -343,7 +343,7 @@ struct ContentView: View {
     }
 
     private func importTypes() -> [UTType] {
-        UTType.photoTrailImages + [.folder] + UTType.photoTrailTracks
+        UTType.photoTrailImages + [.quickTimeMovie, .mpeg4Movie, .folder] + UTType.photoTrailTracks
     }
 }
 
