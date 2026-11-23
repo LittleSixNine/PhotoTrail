@@ -3,7 +3,7 @@ import Exiftool
 import Foundation
 import Metadata
 
-public enum MetadataInspectionFileVersion: Equatable, Sendable {
+public enum MetadataInspectionFileVersion: Codable, Equatable, Sendable {
     case unavailable
     case missing
     case file(device: UInt64, inode: UInt64, size: Int64,

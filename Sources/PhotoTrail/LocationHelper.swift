@@ -220,6 +220,7 @@ enum LocationHelper {
     static nonisolated func locations(for locations: [LocationById],
                                       extendedTime: Double,
                                       tracks: [GpxTrackLog]) async -> [LocationById] {
+        let indexedTracks = tracks.map { (sourceURL: $0.sourceURL, index: GpxTrackLog.MatchIndex($0)) }
         func findLocation(_ ix: Int) -> (Int, LocationById) {
             let input = locations[ix]
             guard input.status == .matched else { return (ix, input) }
@@ -227,8 +228,8 @@ enum LocationHelper {
             var matches: [(GpxTrackLog.MatchResult, URL)] = []
             var reasons = [String]()
             var ambiguous = false
-            for track in tracks {
-                switch track.match(imageTime: input.timestamp, maximumGap: maximumGap) {
+            for track in indexedTracks {
+                switch track.index.match(imageTime: input.timestamp, maximumGap: maximumGap) {
                 case .matched(let result): matches.append((result, track.sourceURL))
                 case .ambiguous(let reason):
                     ambiguous = true

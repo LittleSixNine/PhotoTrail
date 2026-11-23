@@ -305,6 +305,7 @@ public struct MetadataCreatorEditPlan: Sendable {
 
 public enum MetadataCreatorBackup: Sendable {
     case folder(URL)
+    case managedFolder(URL)
     case disabled
 }
 
@@ -345,6 +346,8 @@ public extension MetadataCreatorEditPlan.Item {
                 } else {
                     try await sandbox.makeImageBackup(folder)
                 }
+            case .managedFolder(let folder):
+                try await sandbox.makeManagedBackup(in: folder, sidecar: sidecar)
             case .disabled:
                 break
             }

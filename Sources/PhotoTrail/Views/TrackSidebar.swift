@@ -18,6 +18,7 @@ struct TrackSidebar: View {
     @State private var importNotice: String?
     @State private var matching = false
     @State private var adjustment: TrackRecord?
+    @State private var historyToDelete: TrackRecord?
     @State private var originalToRestore: TrackRecord?
     @State private var exportDocument: PhotoGPXDocument?
     @State private var exportFilename = ""
@@ -104,7 +105,7 @@ struct TrackSidebar: View {
         .sheet(item: $adjustment) { record in
             TrackAdjustmentView(record: record) { adjusted in
                 guard !store.saveInProgress, !matching else { throw MetadataInspectionError.sourceChanged }
-                try library.applyAdjustment(record.id, expected: record.log, adjusted: adjusted, amap: amap)
+                try await library.applyAdjustment(record.id, expected: record.log, adjusted: adjusted, amap: amap)
                 workspace.listMatchResults = []
                 store.send(.restoreTracks([adjusted]), undoable: false)
             }
@@ -113,15 +114,27 @@ struct TrackSidebar: View {
             Button(L10n.text("取消"), role: .cancel) { originalToRestore = nil }
             Button(L10n.text("恢复原轨迹")) {
                 guard let record = originalToRestore else { return }
-                do {
-                    if let log = try library.restoreOriginal(record.id, amap: amap) {
-                        workspace.listMatchResults = []
-                        store.send(.restoreTracks([log]), undoable: false)
-                    }
-                } catch { importNotice = L10n.text("轨迹恢复失败：%1$@", error.localizedDescription); OperationFailure.present(importNotice!) }
+                Task {
+                    do {
+                        if let log = try await library.restoreOriginal(record.id, amap: amap) {
+                            workspace.listMatchResults = []
+                            store.send(.restoreTracks([log]), undoable: false)
+                        }
+                    } catch { importNotice = L10n.text("轨迹恢复失败：%1$@", error.localizedDescription); OperationFailure.present(importNotice!) }
+                }
                 originalToRestore = nil
             }
         } message: { Text(L10n.text("重新读取原文件并放弃当前调整，已有照片定位不自动改变。")) }
+        .alert(L10n.text("删除轨迹历史？"), isPresented: Binding(get: { historyToDelete != nil }, set: { if !$0 { historyToDelete = nil } }), presenting: historyToDelete) { record in
+            Button(L10n.text("取消"), role: .cancel) {}
+            Button(L10n.text("Delete"), role: .destructive) {
+                Task {
+                    do { try await library.forget(record.id) } catch { OperationFailure.present(error.localizedDescription) }
+                }
+            }
+        } message: { record in
+            Text(record.name + "\n" + L10n.text("同时移除应用保存的 GPX 副本。外部导入的文件将保留。"))
+        }
         .fileImporter(isPresented: $importing,
                       allowedContentTypes: UTType.photoTrailTracks,
                       allowsMultipleSelection: true) { result in
@@ -381,12 +394,14 @@ private extension TrackSidebar {
             .disabled(store.saveInProgress || matching || library.readingSources[record.id] != nil || record.sourceUnavailable)
         if record.originalLog != nil {
             Button(L10n.text("撤销轨迹调整")) {
-                do {
-                    if let log = try library.undoAdjustment(record.id, amap: amap) {
-                        workspace.listMatchResults = []
-                        store.send(.restoreTracks([log]), undoable: false)
-                    }
-                } catch { importNotice = L10n.text("轨迹恢复失败：%1$@", error.localizedDescription); OperationFailure.present(importNotice!) }
+                Task {
+                    do {
+                        if let log = try await library.undoAdjustment(record.id, amap: amap) {
+                            workspace.listMatchResults = []
+                            store.send(.restoreTracks([log]), undoable: false)
+                        }
+                    } catch { importNotice = L10n.text("轨迹恢复失败：%1$@", error.localizedDescription); OperationFailure.present(importNotice!) }
+                }
             }.disabled(!library.canUndoAdjustment(record.id) || store.saveInProgress || matching)
             Button(L10n.text("恢复原轨迹")) { originalToRestore = record }
                 .disabled(store.saveInProgress || matching)
@@ -405,6 +420,10 @@ private extension TrackSidebar {
         }
         Button(L10n.text("清除这条轨迹的转换缓存")) { library.clearCache(record.id) }
             .disabled(record.converted == nil)
+        if !library.activeIDs.contains(record.id) {
+            Button(L10n.text("删除轨迹历史？"), role: .destructive) { historyToDelete = record }
+                .disabled(store.saveInProgress || library.readingSources[record.id] != nil)
+        }
         Button(L10n.text("从操作区移除")) {
             library.remove(record.id)
             store.send(.removeTrack(record.log.sourceURL), description: L10n.text("移除轨迹"))

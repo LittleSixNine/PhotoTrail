@@ -121,3 +121,24 @@ struct GpxTests {
         }
     }
 }
+
+extension GpxTests {
+    @Test func indexedBatchMatchesOneThousandPhotosOnLongTrack() throws {
+        let points = (0..<100_000).map {
+            GpxTrackLog.Point(hasRecordedTime: true, lat: 31, lon: 121, timeFromEpoch: Double($0))
+        }
+        let log = GpxTrackLog(sourceURL: URL(filePath: "/test.gpx"),
+                              tracks: [.init(segments: [.init(points: points)])])
+        let clock = ContinuousClock()
+        let start = clock.now
+        let index = GpxTrackLog.MatchIndex(log)
+        let indexed = clock.now
+        for i in 0..<1_000 {
+            guard case .matched(let result) = index.match(imageTime: Double(i * 95) + 0.5, maximumGap: 10) else {
+                Issue.record("Interpolation lost"); return
+            }
+            #expect(result.timeDelta == 0.5)
+        }
+        print("100000 points, 1000 timestamps: index \(start.duration(to: indexed)), lookup \(indexed.duration(to: clock.now))")
+    }
+}

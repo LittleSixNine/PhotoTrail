@@ -92,7 +92,7 @@ struct CombinedMetadataSaveTests {
         #expect(values[.descriptionDefault] == .text("e\u{301}，🌿"))
         try Exiftool.helper.verifyMapMetadata(store.imageData[0].metadata, in: target)
         if let pixels { #expect(try Exiftool.helper.run(["-s3", "-ImageDataMD5", target.path]) == pixels) }
-        let backups = try FileManager.default.contentsOfDirectory(at: store.backupURL!, includingPropertiesForKeys: nil)
+        let backups = try FileManager.default.contentsOfDirectory(at: store.backupURL!.appendingPathComponent("PhotoTrail Backups"), includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
         #expect(backups.count == 1)
         #expect(try Data(contentsOf: #require(backups.first)) == before)
         let reloaded = Exiftool.helper.metadata(from: sidecar ? target : nil,

@@ -1,5 +1,6 @@
 import Coords
 import ImageData
+import Imagetool
 import Metadata
 import SwiftUI
 import Testing
@@ -122,42 +123,38 @@ extension ReducerTests {
         #expect(store.gpxBadFileNames.isEmpty)
     }
 
-    @Test func removeOldFilesEvent() async throws {
-        // create a backup folder
+    @Test func cleanupOnlyRemovesConfirmedUnchangedManagedBackups() async throws {
+        let root = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let fm = FileManager.default
-        var state = PhotoTrailState()
-        let backupURL =
-            URL.temporaryDirectory.appending(components: UUID().uuidString,
-                                             directoryHint: .isDirectory)
-        try fm.createDirectory(at: backupURL,
-                               withIntermediateDirectories: true)
-        defer {
-            try? fm.removeItem(at: backupURL)
+        try fm.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: root) }
+        let original = root.appendingPathComponent("original.jpg")
+        try Data([1]).write(to: original)
+        for name in ["first.jpg", "second.jpg"] {
+            try ManagedBackup.write(in: root) { directory in
+                let file = directory.appendingPathComponent(name)
+                try fm.copyItem(at: original, to: file)
+                return file
+            }
         }
-        state.backupURL = backupURL
-
-        // put some files in the folder and add each to the list
-        // of oldfiles
-        let urls = state.previewURLs()
-        for url in urls {
-            let name = url.lastPathComponent
-            let oldFileName = backupURL.appending(component: name)
-            try fm.copyItem(at: url, to: oldFileName)
-            state.oldFiles.append(oldFileName)
+        let confirmation = try ManagedBackup.list(in: root)
+        #expect(confirmation.count == 2)
+        let managed = ManagedBackup.directory(in: root)
+        let second = managed.appendingPathComponent("second.jpg")
+        try Data([2]).write(to: second, options: .atomic)
+        let extra = managed.appendingPathComponent("foreign.jpg")
+        try Data([3]).write(to: extra)
+        try ManagedBackup.write(in: root) { directory in
+            let file = directory.appendingPathComponent("later.jpg")
+            try fm.copyItem(at: original, to: file)
+            return file
         }
-
-        let store = Store(initialState: state, reduce: PhotoTrailReducer())
-        store.send(.removeOldFiles)
-        #expect(store.oldFiles.isEmpty)
-
-        // files are removed in a task... wait a bit to give the task
-        // a chance to complete before verifying.
-        try await Task.sleep(for: .milliseconds(300))
-        store.send(.backupFolderSizeCheck)
-        #expect(store.oldFiles.isEmpty)
-        #expect(store.folderSize > 0)
-        #expect(store.deletedSize == 0)
-        #expect(state.oldFiles.allSatisfy { fm.fileExists(atPath: $0.path) })
+        for backup in confirmation { try backup.remove(from: root) }
+        #expect(!fm.fileExists(atPath: managed.appendingPathComponent("first.jpg").path))
+        #expect(try Data(contentsOf: second) == Data([2]))
+        #expect(try Data(contentsOf: original) == Data([1]))
+        #expect(try Data(contentsOf: extra) == Data([3]))
+        #expect(try ManagedBackup.list(in: root).map(\.name) == ["later.jpg"])
     }
 
     @Test func saveCompleteEvent() async throws {
@@ -329,5 +326,23 @@ extension ReducerTests {
         let store = Store(initialState: PhotoTrailState(), reduce: PhotoTrailReducer())
         store.send(.toggleLogWindow)
         #expect(store.showLogWindow)
+    }
+}
+
+extension ReducerTests {
+    @Test func terminationPreservesDocumentInIsolatedTestContainer() throws {
+        // This check creates a sentinel only inside an independent sandboxed test host.
+        let dir = URL.documentsDirectory
+        guard let id = Bundle.main.bundleIdentifier, id != "local.GeoTagCN",
+              dir.pathComponents.contains(id), dir.pathComponents.contains("Containers") else { return }
+        let fm = FileManager.default
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        let file = dir.appendingPathComponent("PhotoTrail-quit-test-" + UUID().uuidString)
+        defer { try? fm.removeItem(at: file) }
+        let bytes = Data("preserve".utf8)
+        try bytes.write(to: file, options: .withoutOverwriting)
+        AppDelegate().applicationWillTerminate(.init(name: NSApplication.willTerminateNotification))
+        #expect(try Data(contentsOf: file) == bytes)
+        print("Verified Documents sentinel in independent sandbox")
     }
 }

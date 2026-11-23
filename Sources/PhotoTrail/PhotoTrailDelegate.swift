@@ -8,6 +8,7 @@ import UDF
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var store: Store<PhotoTrailState, PhotoTrailEvent>?
+    weak var trackLibrary: TrackLibrary?
     weak var metadataEditSession: MetadataBatchEditSession?
     weak var metadataRuleSession: MetadataBatchEditSession?
     let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "PhotoTrail",
@@ -66,12 +67,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         logger.info("\(#function, privacy: .public)")
-        let environ = ProcessInfo.processInfo.environment
-        if environ["APP_SANDBOX_CONTAINER_ID"] != nil {
-            // we're sandboxed -- blow away the sandbox document directory
-            let fileManager = FileManager.default
-            try? fileManager.removeItem(at: URL.documentsDirectory)
-        }
+        trackLibrary?.flushWrites()
     }
 
     // Closing the main window follows the same quit flow as the app menu.

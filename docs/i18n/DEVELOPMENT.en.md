@@ -82,6 +82,8 @@ The map sidebar uses `SidebarScrollView` to configure its reserved vertical gutt
 
 `LinkedRegionTests` covers filling only missing region values, preserving existing text and drafts, frozen targets, late results and busy states. `SaveAddressTests` covers skipping lookups when the existing preference is off, filling only missing fields during save, retaining coordinates after lookup failure and preserving ineligible snapshots. Settings and the sidebar share `SettingsPreferences.writeRegionKey` (`PhotoTrailWriteRegionWithLocation`, default true); there is no second persistent switch.
 
+Routine track-history writes share a serial queue. Clear, adjustment and deletion stage a complete archive in a same-volume system replacement directory, check the current state and publish it with an atomic rename. Normal termination drains pending writes. Migration and backup-ownership tests use isolated fixtures. Run app tests with a separate bundle identifier. Package tests cover 100,000 timestamped points and orientation-aware downsampling at list and preview sizes.
+
 ### Shared photos and preset regression coverage
 
 All tabs import through `ContentView` and `OpenHelper.importFiles`; `PhotoTrailState` owns photos and selection. Rename has no independent file URL list. Removal uses `.removeImages` and undo; rename/restore mappings update shared objects through `.filesRenamed`. Imports are rejected while saving or renaming.

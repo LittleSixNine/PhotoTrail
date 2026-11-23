@@ -1,4 +1,5 @@
 import Foundation
+import Imagetool
 import ImageData
 import Metadata
 import Testing
@@ -56,8 +57,8 @@ struct OperationFailureTests {
         var errors: [String] = []
         #expect(PhotoTrailReducer().urlsIn(folder: missing, failures: &errors).isEmpty)
         #expect(!errors.isEmpty)
-        let failures = await PhotoTrailReducer().removeFiles(filesToRemove: [missing, photo], from: root).value
-        #expect(failures.count == 1 && !FileManager.default.fileExists(atPath: photo.path))
+        #expect(try ManagedBackup.list(in: root).isEmpty)
+        #expect(FileManager.default.fileExists(atPath: photo.path))
     }
 
     @Test func invalidImageProducesVisibleFailureState() async throws {

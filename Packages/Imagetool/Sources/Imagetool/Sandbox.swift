@@ -88,21 +88,17 @@ extension Sandbox {
     // the link in the sandbox.
 
     public func makeImageBackup(_ backupFolder: URL) async throws {
+        _ = try copyImageBackup(backupFolder)
+    }
+
+    private func copyImageBackup(_ backupFolder: URL) throws -> URL {
         try Task.checkCancellation()
         let fileName = orgURL.lastPathComponent
-        let saveFileURL = backupName(for: fileName, in: backupFolder)
-
-        _ = backupFolder.startAccessingSecurityScopedResource()
-        defer { backupFolder.stopAccessingSecurityScopedResource() }
-
-        // Copy the image file to the backup folder
-        let fileManager = FileManager.default
-        try fileManager.copyItem(at: orgURL, to: saveFileURL)
-
-        // belts and suspenders: verify the copy happened.  There once was
-        // a macOS bug where the copy failed but no error was reported.
-        if !fileManager.fileExists(atPath: saveFileURL.path) {
-            throw BackupError.backupError("Image \(fileName) copy failed!")
+        return try writeBackup(named: fileName, in: backupFolder) { url in
+            try FileManager.default.copyItem(at: orgURL, to: url)
+            guard FileManager.default.fileExists(atPath: url.path) else {
+                throw BackupError.backupError("Image \(fileName) copy failed!")
+            }
         }
     }
 
@@ -112,48 +108,46 @@ extension Sandbox {
     // an error.
 
     public func makeSidecarBackup(_ backupFolder: URL) async throws {
+        _ = try copySidecarBackup(backupFolder)
+    }
+
+    private func copySidecarBackup(_ backupFolder: URL) throws -> URL {
         try Task.checkCancellation()
         let fileName = imgURL.deletingPathExtension()
                              .appendingPathExtension(xmpExtension)
                              .lastPathComponent
-        let saveFileURL = backupName(for: fileName, in: backupFolder)
-
-        _ = backupFolder.startAccessingSecurityScopedResource()
-        defer { backupFolder.stopAccessingSecurityScopedResource() }
-
         NSFileCoordinator.addFilePresenter(xmpPresenter)
         defer { NSFileCoordinator.removeFilePresenter(xmpPresenter) }
 
         guard let data = xmpPresenter.readData() else {
             throw BackupError.backupError("Sidecar \(fileName) copy failed!")
         }
-        try data.write(to: saveFileURL)
+        return try writeBackup(named: fileName, in: backupFolder) { try data.write(to: $0, options: .withoutOverwriting) }
     }
 
-    // Modify name for backup file. Add a suffix to the name until no file
-    // is found at the save location
-
-    private func backupName(for name: String, in backupFolder: URL) -> URL {
-        let fileManager = FileManager.default
-        var fileNumber = 1
-        var saveFileURL = backupFolder.appendingPathComponent(name,
-                                                              isDirectory: false)
-
-        // enable access to backupFolder
-        _ = backupFolder.startAccessingSecurityScopedResource()
-        defer { backupFolder.stopAccessingSecurityScopedResource() }
-
-        // loop until there is no file at the backup location with the
-        // calculated URL
-        while fileManager.fileExists(atPath: (saveFileURL.path)) {
-            var newName = name
-            let nameDot = newName.lastIndex(of: ".") ?? newName.endIndex
-            newName.insert(contentsOf: "-\(fileNumber)", at: nameDot)
-            fileNumber += 1
-            saveFileURL = backupFolder.appendingPathComponent(
-                newName, isDirectory: false)
+    public func makeManagedBackup(in folder: URL, sidecar: Bool) async throws {
+        try ManagedBackup.write(in: folder) { directory in
+            if sidecar { return try copySidecarBackup(directory) }
+            return try copyImageBackup(directory)
         }
-        return saveFileURL
+    }
+
+    // The exclusive copy/write chooses the winner if two same-named photos are backed up concurrently.
+    private func writeBackup(named name: String, in folder: URL, write: (URL) throws -> Void) throws -> URL {
+        let scoped = folder.startAccessingSecurityScopedResource()
+        defer { if scoped { folder.stopAccessingSecurityScopedResource() } }
+        var suffix = 0
+        while true {
+            try Task.checkCancellation()
+            var candidate = name
+            if suffix > 0 {
+                let dot = candidate.lastIndex(of: ".") ?? candidate.endIndex
+                candidate.insert(contentsOf: "-\(suffix)", at: dot)
+            }
+            let url = folder.appendingPathComponent(candidate, isDirectory: false)
+            do { try write(url); return url }
+            catch CocoaError.fileWriteFileExists { suffix += 1 }
+        }
     }
 }
 

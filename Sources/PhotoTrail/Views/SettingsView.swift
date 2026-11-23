@@ -79,12 +79,14 @@ struct SettingsView: View {
         .alert(L10n.text("清除轨迹转换缓存？"), isPresented: $clearConversions) {
             Button(L10n.text("取消"), role: .cancel) {}
             Button(L10n.text("清除转换缓存"), role: .destructive) {
-                do {
-                    try locationWorkspace.tracks.clearConversionCaches()
-                    cacheNotice = L10n.text("转换缓存已清除。")
-                } catch {
-                    cacheNotice = OperationFailure.message(L10n.text("转换缓存清除失败，原数据已保留。"), error: error)
-                    OperationFailure.present(cacheNotice)
+                Task {
+                    do {
+                        try await locationWorkspace.tracks.clearConversionCaches()
+                        cacheNotice = L10n.text("转换缓存已清除。")
+                    } catch {
+                        cacheNotice = OperationFailure.message(L10n.text("转换缓存清除失败，原数据已保留。"), error: error)
+                        OperationFailure.present(cacheNotice)
+                    }
                 }
             }
         } message: {
@@ -311,7 +313,7 @@ struct SettingsView: View {
                 await locationWorkspace.tracks.restore()
                 cacheBytes = locationWorkspace.tracks.cacheFileSize
             }
-            .onChange(of: locationWorkspace.tracks.revision) { cacheBytes = locationWorkspace.tracks.cacheFileSize }
+            .onChange(of: locationWorkspace.tracks.archiveRevision) { cacheBytes = locationWorkspace.tracks.cacheFileSize }
             Section(L10n.text("照片备份")) {
                 Toggle(L10n.text("修改前备份照片"), isOn: Binding(
                     get: { !doNotBackup }, set: { doNotBackup = !$0 }))

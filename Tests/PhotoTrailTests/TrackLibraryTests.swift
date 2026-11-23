@@ -34,12 +34,14 @@ struct TrackLibraryTests {
         let segments = try #require(library.record(id)?.segments)
         library.complete(id, request: token, converted: segments)
         #expect(library.storageError == nil)
+        library.flushWrites()
         let cache = try Data(contentsOf: url)
         library.setVisible(id, false, amap: true)
         library.setVisible(id, true, amap: true)
         #expect(library.requests.isEmpty)
         #expect(library.displays(amap: true).count == 1)
         #expect(try Data(contentsOf: url) == cache)
+        library.flushWrites()
         let restored = TrackLibrary(url: url)
         await restored.restore()
         #expect(restored.records.map(\.log) == [log])
@@ -84,6 +86,7 @@ struct TrackLibraryTests {
         let before = try #require(library.record(id))
         library.complete(id, request: try #require(library.requests[id]), converted: before.segments)
         let changed = try fixture(dir, changed: true, times: false)
+        library.flushWrites()
         let restored = TrackLibrary(url: url)
         await restored.restore()
         #expect(restored.records.map(\.log) == [log])
@@ -104,6 +107,7 @@ struct TrackLibraryTests {
         library.synchronize([log]); library.select(id, amap: true)
         library.complete(id, request: try #require(library.requests[id]), converted: try #require(library.record(id)?.segments))
         try FileManager.default.removeItem(at: log.sourceURL)
+        library.flushWrites()
         let restored = TrackLibrary(url: url)
         await restored.restore()
         #expect(await restored.addHistory(id, amap: true) == nil)
@@ -188,6 +192,7 @@ struct TrackLibraryTests {
         library.synchronize([])
         #expect(library.activeRecords.isEmpty)
         #expect(library.record(id)?.cacheIsCurrent == true)
+        library.flushWrites()
         let restored = TrackLibrary(url: cache)
         await restored.restore()
         restored.synchronize([], amap: true)
@@ -257,6 +262,7 @@ struct TrackLibraryTests {
         library.synchronize([log])
 
         #expect(library.record(log.sourceURL.path)?.generatedFromPhotos == true)
+        library.flushWrites()
         let restored = TrackLibrary(url: cache)
         await restored.restore()
         #expect(restored.records.map(\.log) == [log])
@@ -274,6 +280,7 @@ struct TrackLibraryTests {
         let cache = dir.appendingPathComponent("cache.json")
         let library = TrackLibrary(url: cache)
         library.synchronize([log])
+        library.flushWrites()
         let restored = TrackLibrary(url: cache)
         await restored.restore()
         #expect(restored.records.map(\.log) == [log])
@@ -291,6 +298,7 @@ struct TrackLibraryTests {
         let cache = dir.appendingPathComponent("cache.json")
         let first = TrackLibrary(url: cache)
         first.synchronize([old, other])
+        first.flushWrites()
         let before = try Data(contentsOf: cache)
         let next = TrackLibrary(url: cache)
         let changed = try fixture(dir, changed: true)
@@ -302,6 +310,7 @@ struct TrackLibraryTests {
         #expect(next.records.count == 2)
         #expect(next.record(old.sourceURL.path)?.log == changed)
         #expect(next.activeIDs == [changed.sourceURL.path])
+        next.flushWrites()
         let reopened = TrackLibrary(url: cache)
         await reopened.restore()
         #expect(reopened.records.count == 2)
@@ -357,8 +366,9 @@ extension TrackLibraryTests {
         library.complete(id, request: try #require(library.requests[id]), converted: try #require(library.record(id)?.segments))
         library.start(id)
         let stale = try #require(library.requests[id])
+        library.flushWrites()
         #expect(library.conversionCacheCount == 1 && library.cacheFileSize > 0)
-        try library.clearConversionCaches()
+        try await library.clearConversionCaches()
         #expect(library.conversionCacheCount == 0)
         #expect(library.records.map(\.log) == [log])
         #expect(library.activeIDs == [id] && library.visible == [id])
@@ -366,13 +376,14 @@ extension TrackLibraryTests {
         library.complete(id, request: stale, converted: try #require(library.record(id)?.segments))
         #expect(library.conversionCacheCount == 0)
         #expect(try Data(contentsOf: log.sourceURL) == bytes)
+        library.flushWrites()
         let reopened = TrackLibrary(url: cache)
         await reopened.restore()
         #expect(reopened.records.map(\.log) == [log])
         #expect(reopened.conversionCacheCount == 0)
     }
 
-    @Test func failedConversionClearKeepsInMemoryData() throws {
+    @Test func failedConversionClearKeepsInMemoryData() async throws {
         let dir = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: dir) }
         let log = try fixture(dir), id = log.sourceURL.path
@@ -381,10 +392,73 @@ extension TrackLibraryTests {
         library.synchronize([log], amap: true)
         library.complete(id, request: try #require(library.requests[id]), converted: try #require(library.record(id)?.segments))
         let before = try #require(library.record(id))
+        library.flushWrites()
         try FileManager.default.removeItem(at: cache)
         try FileManager.default.createDirectory(at: cache, withIntermediateDirectories: false)
-        #expect(throws: Error.self) { try library.clearConversionCaches() }
+        await #expect(throws: Error.self) { try await library.clearConversionCaches() }
         #expect(library.record(id) == before)
     }
 
+}
+
+extension TrackLibraryTests {
+    @Test func migrationPreservesOriginalBytesAndNeverOverwritesAnotherTrack() throws {
+        let root = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let old = root.appendingPathComponent("old"), new = root.appendingPathComponent("new")
+        let log = try fixture(old)
+        let bytes = try Data(contentsOf: log.sourceURL)
+        let existing = try PhotoGPXDocument.store(Data("unrelated".utf8), name: log.sourceURL.lastPathComponent, in: new)
+        let saved = TrackRecord(log: log, origin: .photos)
+        var records = [saved]
+        let migrated = TrackLibrary.migrateGenerated(&records, old: old, new: new)
+        #expect(migrated.count == 1)
+        #expect(try Data(contentsOf: records[0].log.sourceURL) == bytes)
+        #expect(try Data(contentsOf: existing) == Data("unrelated".utf8))
+        #expect(try Data(contentsOf: log.sourceURL) == bytes)
+        var retry = [saved]
+        _ = TrackLibrary.migrateGenerated(&retry, old: old, new: new)
+        #expect(retry[0].id == records[0].id)
+        try FileManager.default.removeItem(at: log.sourceURL)
+        var purged = [saved]
+        _ = TrackLibrary.migrateGenerated(&purged, old: old, new: new)
+        #expect(try GpxTrackLog(contentsOf: purged[0].log.sourceURL).tracks == log.tracks)
+    }
+
+    @Test func deletingInactiveExternalHistoryPreservesFileAfterRestart() async throws {
+        let root = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let log = try fixture(root)
+        let history = root.appendingPathComponent("history.json")
+        let library = TrackLibrary(url: history)
+        library.synchronize([log])
+        await #expect(throws: Error.self) { try await library.forget(log.sourceURL.path) }
+        library.synchronize([])
+        try await library.forget(log.sourceURL.path)
+        let reopened = TrackLibrary(url: history)
+        await reopened.restore()
+        #expect(reopened.records.isEmpty)
+        #expect(try GpxTrackLog(contentsOf: log.sourceURL) == log)
+    }
+}
+
+extension TrackLibraryTests {
+    @Test func forgettingAppGeneratedGPXDeletesOnlyTheOriginalCopy() async throws {
+        let root = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let example = try fixture(root)
+        let bytes = try Data(contentsOf: example.sourceURL)
+        let library = TrackLibrary(url: root.appendingPathComponent("history.json"))
+        for replace in [false, true] {
+            let source = try PhotoGPXDocument.store(bytes, name: UUID().uuidString + ".gpx", in: PhotoGPXDocument.generatedDirectory)
+            defer { try? FileManager.default.removeItem(at: source) }
+            library.markPhotoGenerated(source)
+            library.synchronize([try GpxTrackLog(contentsOf: source)])
+            library.synchronize([])
+            if replace { try Data("replacement".utf8).write(to: source, options: .atomic) }
+            try await library.forget(source.path)
+            #expect(FileManager.default.fileExists(atPath: source.path) == replace)
+            if replace { #expect(try Data(contentsOf: source) == Data("replacement".utf8)) }
+        }
+    }
 }

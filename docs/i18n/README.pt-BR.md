@@ -82,6 +82,8 @@ Cada fluxo funciona sozinho. Remover fotos da lista não apaga arquivos; exporta
 
 A importação mostra progresso e tempo restante estimado; miniaturas carregam sob demanda. Ajustes, favoritos e cache de trajetos são preservados. Os caches de miniaturas e leitura de metadados são refeitos na próxima abertura.
 
+Os novos backups ficam na subpasta `PhotoTrail Backups` da pasta escolhida. A limpeza inclui apenas as cópias registradas pelo app. Os GPX gerados a partir de fotos ficam em Application Support. Remova a trilha da área de trabalho e use o menu do histórico para excluir o registro e a cópia do app. Os arquivos de origem externos são mantidos.
+
 ## Idiomas
 
 Disponível em chinês simplificado, English, 繁體中文, 日本語, 한국어, Español e Português do Brasil. Altere nos ajustes, salve o trabalho e reabra o aplicativo.

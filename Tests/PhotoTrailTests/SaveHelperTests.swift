@@ -275,7 +275,7 @@ struct SaveHelperTests {
     }
 
     func copyTestImages(_ state: PhotoTrailState) throws -> URL {
-        let url = URL.documentsDirectory.appending(component: UUID().uuidString,
+        let url = URL.temporaryDirectory.appending(component: UUID().uuidString,
                                                    directoryHint: .isDirectory)
         let fm = FileManager.default
         try fm.createDirectory(at: url, withIntermediateDirectories: true)

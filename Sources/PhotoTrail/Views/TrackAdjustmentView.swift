@@ -4,7 +4,7 @@ import SwiftUI
 
 struct TrackAdjustmentView: View {
     let record: TrackRecord
-    let apply: (GpxTrackLog) throws -> Void
+    let apply: (GpxTrackLog) async throws -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var days = "0"
     @State private var hours = "0"
@@ -15,7 +15,8 @@ struct TrackAdjustmentView: View {
     @State private var north = "0"
     @State private var eastward = true
     @State private var northward = true
-    @State private var preview: GpxTrackLog?
+    @State private var preview: TrackRecord?
+    @State private var applying = false
     @State private var error: String?
 
     var body: some View {
@@ -55,7 +56,7 @@ struct TrackAdjustmentView: View {
             Text(L10n.text("原文件保留。位置校正使用球面距离，合成距离最多 100 公里，纬度须在南北 85° 以内；无时间的点不补造时间。"))
                 .font(.caption).foregroundStyle(.secondary)
             if let preview {
-                let adjustedSegments = TrackRecord(log: preview, bookmark: nil).segments
+                let adjustedSegments = preview.segments
                 let framing = record.segments + adjustedSegments
                 HStack {
                     VStack {
@@ -67,7 +68,7 @@ struct TrackAdjustmentView: View {
                         TrackThumbnail(segments: adjustedSegments, framingSegments: framing).frame(height: 70)
                     }
                 }
-                Text(record.timeRange + " → " + TrackRecord(log: preview, bookmark: nil).timeRange)
+                Text(record.timeRange + " → " + preview.timeRange)
                     .font(.caption).textSelection(.enabled)
             }
             if let error { Text(error).foregroundStyle(.orange).font(.callout) }
@@ -77,14 +78,18 @@ struct TrackAdjustmentView: View {
                 Button(L10n.text("预览")) { updatePreview() }
                 Button(L10n.text("应用调整")) {
                     guard let preview else { return }
-                    do { try apply(preview); dismiss() }
-                    catch {
-                        self.error = L10n.text("轨迹已变化或保存失败，未应用调整：%1$@", error.localizedDescription)
-                        OperationFailure.present(self.error!)
+                    applying = true
+                    Task {
+                        defer { applying = false }
+                        do { try await apply(preview.log); dismiss() }
+                        catch {
+                            self.error = L10n.text("轨迹已变化或保存失败，未应用调整：%1$@", error.localizedDescription)
+                            OperationFailure.present(self.error!)
+                        }
                     }
-                }.disabled(preview == nil || preview == record.log).keyboardShortcut(.defaultAction)
+                }.disabled(preview == nil || preview?.log == record.log).keyboardShortcut(.defaultAction)
             }
-        }.padding(20).frame(width: 580)
+        }.disabled(applying).interactiveDismissDisabled(applying).padding(20).frame(width: 580)
         .onChange(of: parameters) { preview = nil; error = nil }
     }
 
@@ -105,8 +110,9 @@ struct TrackAdjustmentView: View {
             }
             let time = record.log.hasRecordedTimes ?
                 (values[0] * 86_400 + values[1] * 3_600 + values[2] * 60 + values[3]) * (later ? 1 : -1) : 0
-            preview = try record.log.adjusted(seconds: time, east: values[4] * (eastward ? 1 : -1),
+            let adjusted = try record.log.adjusted(seconds: time, east: values[4] * (eastward ? 1 : -1),
                                              north: values[5] * (northward ? 1 : -1))
+            preview = TrackRecord(log: adjusted)
             error = nil
         } catch {
             preview = nil

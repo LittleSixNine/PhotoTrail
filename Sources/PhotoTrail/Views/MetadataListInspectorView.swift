@@ -74,19 +74,25 @@ final class MetadataInspectorReadCache: @unchecked Sendable {
     private struct Entry {
         let versions: [MetadataInspectionFileVersion]
         let value: Value
+        let cost: Int
     }
     private let lock = NSLock()
     private var entries: [Key: Entry] = [:]
     private var order: [Key] = []
-    // ponytail: cap by dataset count; add a byte budget if measured metadata memory warrants it.
+    private var totalCost = 0
+    private let byteLimit: Int
     private let limit: Int
 
-    init(limit: Int = 64) { self.limit = limit }
+    init(limit: Int = 2_048, byteLimit: Int = 32 * 1024 * 1024) {
+        self.limit = limit
+        self.byteLimit = byteLimit
+    }
 
     func value(for key: Key, versions: [MetadataInspectionFileVersion]) -> Value? {
         lock.withLock {
             guard let entry = entries[key] else { return nil }
             guard entry.versions == versions else {
+                totalCost -= entry.cost
                 entries[key] = nil
                 order.removeAll { $0 == key }
                 return nil
@@ -96,19 +102,44 @@ final class MetadataInspectorReadCache: @unchecked Sendable {
     }
 
     func insert(_ value: Value, for key: Key, versions: [MetadataInspectionFileVersion]) {
+        let cost = value.estimatedBytes
         lock.withLock {
-            entries[key] = Entry(versions: versions, value: value)
-            order.removeAll { $0 == key }
+            if let previous = entries.removeValue(forKey: key) {
+                totalCost -= previous.cost
+                order.removeAll { $0 == key }
+            }
+            guard cost <= byteLimit else { return }
+            entries[key] = Entry(versions: versions, value: value, cost: cost)
+            totalCost += cost
             order.append(key)
-            if order.count > limit { entries[order.removeFirst()] = nil }
+            while order.count > limit || totalCost > byteLimit {
+                if let old = entries.removeValue(forKey: order.removeFirst()) { totalCost -= old.cost }
+            }
         }
     }
 
     func invalidate(urls: Set<URL>) {
         lock.withLock {
-            let removed = order.filter { urls.contains($0.url) || urls.contains($0.imageURL) }
-            for key in removed { entries[key] = nil }
+            let removed = Set(order.filter { urls.contains($0.url) || urls.contains($0.imageURL) })
+            for key in removed { totalCost -= entries.removeValue(forKey: key)?.cost ?? 0 }
             order.removeAll { removed.contains($0) }
+        }
+    }
+}
+
+private extension MetadataInspectorReadCache.Value {
+    var estimatedBytes: Int {
+        func cost(_ list: [String]) -> Int { list.reduce(0) { $0 + 32 + $1.utf8.count } }
+        switch self {
+        case .display(let tags):
+            return tags.reduce(128) { $0 + 96 + $1.key.utf8.count + $1.value.utf8.count }
+        case .editable(let snapshot, let legacy):
+            return snapshot.values.values.reduce(128 + legacy.values.reduce(0) { $0 + cost($1) }) {
+                switch $1 {
+                case .text(let text): return $0 + 96 + text.utf8.count
+                case .list(let list): return $0 + 96 + cost(list)
+                }
+            }
         }
     }
 }
@@ -146,6 +177,7 @@ struct MetadataListInspectorView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectionProjection = PhotoListProjection()
     @State private var results: [ImageData.ID: MetadataInspectionRead] = [:]
+    @State private var lastVersionCheck = -Double.infinity
     @State private var checkingVersions = false
     @State private var observedVersions: [MetadataInspectionFileVersion] = []
     @State private var loading = false
@@ -425,7 +457,10 @@ private extension MetadataListInspectorView {
             selectedFields = []
         }
         .onReceive(Timer.publish(every: 5, on: .main, in: .common).autoconnect()) { _ in
-            if scenePhase == .active { reloadIfFilesChanged() }
+            if scenePhase == .active {
+                let interval: Double = store.selection.count >= 100 ? 60 : 5
+                if ProcessInfo.processInfo.systemUptime - lastVersionCheck >= interval { reloadIfFilesChanged() }
+            }
         }
         .onChange(of: scenePhase) {
             if scenePhase == .active { reloadIfFilesChanged() }
@@ -1422,6 +1457,7 @@ extension FocusedValues {
 extension MetadataListInspectorView {
     private func reloadIfFilesChanged() {
         guard !store.saveInProgress, !checkingVersions else { return }
+        lastVersionCheck = ProcessInfo.processInfo.systemUptime
         let key = loadKey
         let requests = selected.map {
             MetadataInspectionRequest(id: $0.id, url: $0.metadataInspectionURL,

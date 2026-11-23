@@ -91,7 +91,7 @@ struct ReducerTests {
         }
         store.send(.backupFolderSizeCheck)
         #expect(store.oldFiles.count == 0)
-        #expect(store.folderSize == 226059455)
+        #expect(store.folderSize == 0)
         #expect(store.deletedSize == 0)
 
         // no test for old files

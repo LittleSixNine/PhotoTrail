@@ -162,16 +162,20 @@ enum RenameExecutor {
         let targets = Set(settings.targetExtensions.split(separator: ",").map { RenameEngine.key($0.trimmingCharacters(in: .whitespaces)) })
         if settings.pair {
             var seen = Set(urls)
-            var directoryCache: [URL: [String]] = [:]
+            var directoryCache: [URL: [String: [String]]] = [:]
             for url in initial where sources.contains(RenameEngine.key(url.pathExtension)) {
                 let parent = url.deletingLastPathComponent()
                 guard directories.contains(parent.standardizedFileURL) else { continue }
-                if directoryCache[parent] == nil { directoryCache[parent] = try FileManager.default.contentsOfDirectory(atPath: parent.path) }
-                for name in directoryCache[parent]! {
-                    let parts = RenameEngine.split(name)
-                    let ext = RenameEngine.key(String(parts.ext.dropFirst()))
-                    guard RenameEngine.key(parts.stem) == RenameEngine.key(RenameEngine.split(url.lastPathComponent).stem),
-                          targets.contains(ext) || sources.contains(ext) else { continue }
+                if directoryCache[parent] == nil {
+                    let names = try FileManager.default.contentsOfDirectory(atPath: parent.path)
+                    let eligible = names.filter {
+                        let ext = RenameEngine.key(String(RenameEngine.split($0).ext.dropFirst()))
+                        return sources.contains(ext) || targets.contains(ext)
+                    }
+                    directoryCache[parent] = Dictionary(grouping: eligible) { RenameEngine.key(RenameEngine.split($0).stem) }
+                }
+                let stem = RenameEngine.key(RenameEngine.split(url.lastPathComponent).stem)
+                for name in directoryCache[parent]?[stem] ?? [] {
                     let candidate = parent.appendingPathComponent(name)
                     if seen.insert(candidate).inserted { urls.append(candidate) }
                 }

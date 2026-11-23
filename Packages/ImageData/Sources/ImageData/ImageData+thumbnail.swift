@@ -3,11 +3,21 @@ import Phototool
 import PhotosUI
 import SwiftUI
 
+public struct MeasuredThumbnail: Sendable {
+    public let image: Image
+    public let bytes: Int
+    public init(image: Image, bytes: Int) { self.image = image; self.bytes = bytes }
+    init(_ bitmap: CGImage) {
+        image = Image(decorative: bitmap, scale: 1)
+        bytes = bitmap.bytesPerRow * bitmap.height
+    }
+}
+
 private final class ThumbnailResult: @unchecked Sendable {
     private let lock = NSLock()
-    private var value: Image?
-    func set(_ image: Image?) { lock.withLock { value = image } }
-    func get() -> Image? { lock.withLock { value } }
+    private var value: MeasuredThumbnail?
+    func set(_ image: MeasuredThumbnail?) { lock.withLock { value = image } }
+    func get() -> MeasuredThumbnail? { lock.withLock { value } }
 }
 
 extension ImageData {
@@ -20,7 +30,11 @@ extension ImageData {
     }()
 
     public func makeThumbnail(scale: CGFloat, maxDimension: Double = 1024, prioritize: Bool = false) async -> Image {
-        var image: Image?
+        await measuredThumbnail(scale: scale, maxDimension: maxDimension, prioritize: prioritize).image
+    }
+
+    public func measuredThumbnail(scale: CGFloat, maxDimension: Double, prioritize: Bool = false) async -> MeasuredThumbnail {
+        var image: MeasuredThumbnail?
         switch metadata.source {
         case .image(let url), .xmp(let url):
             // ImageIO decoding must not occupy the UI executor. Bound RAW decoding as well.
@@ -32,36 +46,36 @@ extension ImageData {
                 await withCheckedContinuation { continuation in
                     operation.addExecutionBlock {
                         let decoded = Imagetool.imageThumbnail(url: url, maxDimension: maxDimension)
-                        result.set(decoded.map { Image(nsImage: $0) })
+                        result.set(decoded?.cgImage(forProposedRect: nil, context: nil, hints: nil).map(MeasuredThumbnail.init))
                     }
                     // Completion also runs for a cancelled, not-yet-started operation.
                     operation.completionBlock = { continuation.resume(returning: result.get()) }
                     Self.thumbnailQueue.addOperation(operation)
                 }
             } onCancel: { operation.cancel() }
-        case .photos(let pickerItem, _):
-            if let thumbnail = await Phototool.image(from: pickerItem) {
-                image = thumbnail
+        case .photos(let pickerItem, let asset):
+            if let thumbnail = await Phototool.thumbnail(from: pickerItem, asset: asset, maxDimension: Int(maxDimension)) {
+                image = MeasuredThumbnail(thumbnail)
             }
         default:
             break
         }
-        if Task.isCancelled { return Image(systemName: "photo.badge.exclamationmark") }
+        if Task.isCancelled { return MeasuredThumbnail(image: Image(systemName: "photo.badge.exclamationmark"), bytes: 128) }
         if image == nil {
             // try to create an image of noImageView for proper
             // opacity
             await MainActor.run {
                 let renderer = ImageRenderer(content: noImageView(maxDimension: maxDimension))
                 renderer.scale = scale
-                if let nsImage = renderer.nsImage {
-                    image = Image(nsImage: nsImage)
+                if let bitmap = renderer.cgImage {
+                    image = MeasuredThumbnail(bitmap)
                 }
             }
         }
         if let image {
             return image
         }
-        return Image(systemName: "photo.badge.exclamationmark")
+        return MeasuredThumbnail(image: Image(systemName: "photo.badge.exclamationmark"), bytes: 128)
     }
 
     func noImageView(maxDimension: Double = 1024) -> some View {

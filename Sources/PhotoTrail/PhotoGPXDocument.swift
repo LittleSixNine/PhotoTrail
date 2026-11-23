@@ -77,18 +77,35 @@ struct PhotoGPXDocument: FileDocument {
         return L10n.text("照片轨迹_生成%1$@_%2$@点_%3$@-%4$@.gpx", formatter.string(from: createdAt), exportedCount, start, end)
     }
 
-    func saveToCache(timeZone: TimeZone, createdAt: Date = .now) throws -> URL {
-        let directory = URL.cachesDirectory.appending(path: "PhotoTrail/GeneratedTracks", directoryHint: .isDirectory)
+    nonisolated static var generatedDirectory: URL {
+        URL.applicationSupportDirectory.appending(path: "PhotoTrail/GeneratedTracks", directoryHint: .isDirectory)
+    }
+    nonisolated static var legacyDirectory: URL {
+        URL.cachesDirectory.appending(path: "PhotoTrail/GeneratedTracks", directoryHint: .isDirectory)
+    }
+
+    func saveGenerated(timeZone: TimeZone, createdAt: Date = .now) throws -> URL {
+        try Self.store(data, name: suggestedFilename(timeZone: timeZone, createdAt: createdAt), in: Self.generatedDirectory)
+    }
+
+    nonisolated static func store(_ data: Data, name: String, in directory: URL, reuseIdentical: Bool = false, excluding occupied: Set<String> = []) throws -> URL {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let name = suggestedFilename(timeZone: timeZone, createdAt: createdAt)
-        var url = directory.appending(path: name)
-        var suffix = 2
-        while FileManager.default.fileExists(atPath: url.path) {
-            url = directory.appending(path: "\((name as NSString).deletingPathExtension)-\(suffix).gpx")
+        let temporary = try FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask,
+                                                    appropriateFor: directory, create: true)
+        defer { try? FileManager.default.removeItem(at: temporary) }
+        let staging = temporary.appendingPathComponent("track.gpx")
+        try data.write(to: staging)
+        var suffix = 1
+        while true {
+            let candidate = suffix == 1 ? name : "\((name as NSString).deletingPathExtension)-\(suffix).gpx"
+            let url = directory.appendingPathComponent(candidate)
+            if occupied.contains(url.standardizedFileURL.path) { suffix += 1; continue }
+            if renamex_np(staging.path, url.path, UInt32(RENAME_EXCL)) == 0 { return url }
+            guard errno == EEXIST else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+            if reuseIdentical, (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true,
+               try Data(contentsOf: url) == data { return url }
             suffix += 1
         }
-        try data.write(to: url, options: .atomic)
-        return url
     }
 
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {

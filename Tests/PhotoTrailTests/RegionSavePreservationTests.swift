@@ -103,7 +103,7 @@ import UDF
         #expect(store[id].metadata.city == (conflict ? "IPTC City" : "已有城市"))
         #expect(store[id].metadata.location == Coords(latitude: 31.2, longitude: 121.5))
         #expect(try Exiftool.helper.run(["-s3", "-ImageDataMD5", url.path]) == pixels)
-        let backups = try FileManager.default.contentsOfDirectory(at: store.backupURL!, includingPropertiesForKeys: nil)
+        let backups = try FileManager.default.contentsOfDirectory(at: store.backupURL!.appendingPathComponent("PhotoTrail Backups"), includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
         #expect(backups.count == 1)
         #expect(try Data(contentsOf: #require(backups.first)) == before)
         if combined {

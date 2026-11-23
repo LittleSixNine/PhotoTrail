@@ -356,8 +356,7 @@ extension SaveHelper {
                 if let backup {
                     let backupInterval = signposter.beginInterval("Backup", id: signposter.makeSignpostID())
                     defer { signposter.endInterval("Backup", backupInterval) }
-                    if sidecar { try await sandbox.makeSidecarBackup(backup) }
-                    else { try await sandbox.makeImageBackup(backup) }
+                    try await sandbox.makeManagedBackup(in: backup, sidecar: sidecar)
                 }
                 if createSidecar {
                     try sandbox.makeSidecarFile()
@@ -437,7 +436,7 @@ extension SaveHelper {
             return .saveErrorSupressWarning
         }
         let backup: MetadataCreatorBackup =
-            if doNotBackup { .disabled } else { .folder(store.backupURL!) }
+            if doNotBackup { .disabled } else { .managedFolder(store.backupURL!) }
         var status: SaveStatus = .saveOK
         for item in items {
             if store.metadataSaveCancelled { break }

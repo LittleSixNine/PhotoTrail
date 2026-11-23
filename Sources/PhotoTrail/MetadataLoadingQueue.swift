@@ -1,4 +1,5 @@
 import Exiftool
+import CryptoKit
 import ImageData
 import Observation
 import SwiftUI
@@ -12,10 +13,6 @@ final class MetadataLoadingQueue {
         let request: MetadataInspectionRequest
         let key: MetadataInspectorReadCache.Key
         var priority: Int
-    }
-    private struct Record {
-        let versions: [MetadataInspectionFileVersion]
-        let value: MetadataInspectorReadCache.Value?
     }
     @Observable final class Row {
         var status: Status = .waiting
@@ -190,14 +187,14 @@ final class MetadataLoadingQueue {
     func hasCached(_ request: MetadataInspectionRequest, kind: MetadataInspectorReadCache.Kind) -> Bool {
         guard targets[request.id] == request, let key = key(request, kind: kind),
               let record = records[key] else { return false }
-        return record.versions == request.versions
+        return record.versions == request.versions && (record.failed || MetadataInspectorReadCache.shared.value(for: key, versions: record.versions) != nil)
     }
 
     func read(_ request: MetadataInspectionRequest, kind: MetadataInspectorReadCache.Kind) async
         -> MetadataInspectorReadCache.Value? {
         guard targets[request.id] == request, let key = key(request, kind: kind) else { return nil }
         let versions = request.versions
-        if let record = records[key], record.versions == versions { return record.value }
+        if let record = records[key], record.versions == versions, record.failed { return nil }
         if let cached = MetadataInspectorReadCache.shared.value(for: key, versions: versions) {
             records[key] = Record(versions: versions, value: cached)
             updateStatus(request)
@@ -205,7 +202,7 @@ final class MetadataLoadingQueue {
         }
         return await withCheckedContinuation { continuation in
             waiters[key, default: []].append(continuation)
-            enqueue(request, kind: kind)
+            enqueue(request, kind: kind, demand: true)
             start()
         }
     }
@@ -218,9 +215,9 @@ final class MetadataLoadingQueue {
     private func rank(_ request: MetadataInspectionRequest, kind: MetadataInspectorReadCache.Kind) -> Int {
         selectedIDs.contains(request.id) ? (kind == .editable ? 0 : 1) : 2
     }
-    private func enqueue(_ request: MetadataInspectionRequest, kind: MetadataInspectorReadCache.Kind) {
+    private func enqueue(_ request: MetadataInspectionRequest, kind: MetadataInspectorReadCache.Kind, demand: Bool = false) {
         guard let key = key(request, kind: kind) else { return }
-        if let record = records[key], record.versions == request.versions { return }
+        if !demand, let record = records[key], record.versions == request.versions { return }
         guard !current.contains(where: { $0.key == key }), !queuedKeys.contains(key) else { return }
         let job = Job(request: request, key: key, priority: rank(request, kind: kind))
         if jobs.last.map({ $0.priority <= job.priority }) ?? true {
@@ -283,15 +280,13 @@ final class MetadataLoadingQueue {
             row.displayRead = full != nil
         }
         progress.updateTiming()
-        let count: Int?
-        if case .display(let tags) = full?.value { count = Self.originalCount(tags) }
-        else { count = nil }
+        let count = full?.fieldCount
         if row.originalCount != count { row.originalCount = count }
         if core != nil && full != nil {
-            setStatus(core?.value == nil || full?.value == nil ? .failed : .ready, for: request.id)
+            setStatus(core?.failed == true || full?.failed == true ? .failed : .ready, for: request.id)
         } else { setStatus(current.contains { $0.request.id == request.id } ? .reading : .waiting, for: request.id) }
     }
-    static func originalCount(_ tags: [String: String]) -> Int {
+    nonisolated static func originalCount(_ tags: [String: String]) -> Int {
         tags.keys.filter {
             let name = $0.hasPrefix("Image/") ? String($0.dropFirst(6)) : $0
             return !name.hasPrefix("File:") && !name.hasPrefix("System:")
@@ -301,11 +296,11 @@ final class MetadataLoadingQueue {
     func editedCount(_ image: ImageData) -> Int {
         var count = image.creatorDraft?.changes.count ?? 0
         if let request = targets[image.id], let key = key(request, kind: .editable),
-           case .editable(let snapshot, _) = records[key]?.value, snapshot.version == image.creatorDraft?.version {
+           let snapshot = records[key], snapshot.version == image.creatorDraft?.version {
             count = image.creatorDraft?.changes.filter { tag, change in
                 switch change {
-                case .remove: snapshot.values[tag] != nil
-                case .set(let value): !(snapshot.values[tag].map { tag.matches($0, value) } ?? false)
+                case .remove: snapshot.editable[tag] != nil
+                case .set(let value): !(snapshot.editable[tag].map { $0.matches(value, tag: tag) } ?? false)
                 }
             }.count ?? 0
         }
@@ -354,5 +349,58 @@ final class MetadataLoadingQueue {
             }
             return request.versions == before ? value : nil
         } catch { return nil }
+    }
+}
+
+extension MetadataLoadingQueue {
+    private struct Record {
+        let versions: [MetadataInspectionFileVersion]
+        let failed: Bool
+        let fieldCount: Int?
+        let editable: [MetadataTag: Baseline]
+        let version: MetadataInspectionFileVersion?
+
+        init(versions: [MetadataInspectionFileVersion], value: MetadataInspectorReadCache.Value?) {
+            self.versions = versions
+            failed = value == nil
+            if case .display(let tags) = value { fieldCount = MetadataLoadingQueue.originalCount(tags) }
+            else { fieldCount = nil }
+            if case .editable(let snapshot, _) = value {
+                editable = snapshot.values.mapValues(Baseline.init)
+                version = snapshot.version
+            } else { editable = [:]; version = nil }
+        }
+    }
+    // Short values retain the existing numeric/date comparison rules. Large text
+    // and lists use byte-exact digests solely for the unsaved-field count.
+    private enum Baseline {
+        case small(MetadataTagValue)
+        case digest(SHA256.Digest)
+        init(_ value: MetadataTagValue) {
+            switch value {
+            case .text(let text) where text.utf8.count <= 128: self = .small(value)
+            case .list(let list) where list.count <= 4 && list.allSatisfy({ $0.utf8.count <= 32 }): self = .small(value)
+            default: self = .digest(Self.hash(value))
+            }
+        }
+        func matches(_ value: MetadataTagValue, tag: MetadataTag) -> Bool {
+            switch self {
+            case .small(let original): return tag.matches(original, value)
+            case .digest(let digest): return digest == Self.hash(value)
+            }
+        }
+        private static func hash(_ value: MetadataTagValue) -> SHA256.Digest {
+            var hash = SHA256()
+            let strings: [String]
+            switch value {
+            case .text(let text): strings = [text]; hash.update(data: [0])
+            case .list(let list): strings = list; hash.update(data: [1])
+            }
+            for text in strings {
+                withUnsafeBytes(of: UInt64(text.utf8.count).bigEndian) { hash.update(bufferPointer: $0) }
+                hash.update(data: Data(text.utf8))
+            }
+            return hash.finalize()
+        }
     }
 }

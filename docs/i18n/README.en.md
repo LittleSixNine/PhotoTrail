@@ -82,6 +82,8 @@ Each workflow works independently. Removing photos from the list does not delete
 
 Import shows progress and estimated time remaining; thumbnails load on demand. Settings, favorites and track caches persist. Thumbnail and metadata-read caches rebuild on the next launch.
 
+New backups go in the `PhotoTrail Backups` subfolder of the folder you select. Cleanup covers only copies recorded by the app. GPX files generated from photos are kept in Application Support. Remove a track from the workspace, then use its history menu to delete the record and its app-managed copy. External source files are kept.
+
 ## Languages
 
 Supports Simplified Chinese, English, Traditional Chinese, Japanese, Korean, Spanish and Brazilian Portuguese. Change the language in Settings, save your work and reopen the app to apply it.

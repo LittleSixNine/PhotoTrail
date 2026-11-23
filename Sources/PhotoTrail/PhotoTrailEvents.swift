@@ -3,6 +3,7 @@ import Coords
 import Foundation
 import GpxTrackLog
 import ImageData
+import Imagetool
 import Metadata
 import SwiftUI
 
@@ -66,7 +67,7 @@ enum PhotoTrailEvent: Equatable {
     case quitRequested
     case quitWithMetadataInputRequested
     case readTrackLog(String, GpxTrackLog?)
-    case removeOldFiles
+    case backupScanFinished(UUID, [ManagedBackup], Int)
     case saveFailure(String)
     case saveComplete(SaveHelper.SaveStatus)
     case saveProgress(Int)
@@ -149,7 +150,7 @@ extension PhotoTrailEvent: CustomStringConvertible {
         case .quitRequested: "quitRequested"
         case .quitWithMetadataInputRequested: "quitWithMetadataInputRequested"
         case .readTrackLog: "readTrackLog"
-        case .removeOldFiles: "removeOldFiles"
+        case .backupScanFinished: "backupScanFinished"
         case .saveFailure: "saveFailure"
         case .saveComplete: "saveComplete"
         case .saveProgress: "saveProgress"

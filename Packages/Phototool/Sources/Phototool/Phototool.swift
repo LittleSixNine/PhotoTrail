@@ -2,6 +2,8 @@ import Metadata
 import OSLog
 import Photos
 import PhotosUI
+import ImageIO
+import UniformTypeIdentifiers
 import SwiftUI
 
 public struct Phototool {
@@ -20,26 +22,57 @@ public struct Phototool {
         return metadata
     }
 
-    // return an image from the photos library
+    private struct PickerFile: Transferable {
+        let data: Data
+        static var transferRepresentation: some TransferRepresentation {
+            FileRepresentation(importedContentType: .image) { received in
+                // Keep a mapping of the picker file after its temporary URL expires.
+                try Self(data: Data(contentsOf: received.file, options: .alwaysMapped))
+            }
+            // Some picker providers vend only a data representation.
+            DataRepresentation(importedContentType: .image) { Self(data: $0) }
+        }
+    }
 
     public static func image(from item: PhotosPickerItem) async -> Image? {
-        // Data -> NSImage -> Image dance needed to get proper orientation of
-        // HEIC images.
-        if let data = try? await item.loadTransferable(type: Data.self),
-            let nsImage = NSImage(data: data) {
-            return Image(nsImage: nsImage)
+        await thumbnail(from: item, asset: nil, maxDimension: 1024).map { Image(decorative: $0, scale: 1) }
+    }
+
+    public static func thumbnail(from item: PhotosPickerItem, asset: PHAsset?, maxDimension: Int) async -> CGImage? {
+        let size = max(1, min(4096, maxDimension))
+        if let asset {
+            let options = PHImageRequestOptions()
+            options.isNetworkAccessAllowed = true
+            options.deliveryMode = .highQualityFormat
+            options.resizeMode = .exact
+            let stream = AsyncStream<CGImage?> { continuation in
+                let request = PHImageManager.default().requestImage(for: asset, targetSize: CGSize(width: size, height: size),
+                    contentMode: .aspectFit, options: options) { image, info in
+                    guard info?[PHImageResultIsDegradedKey] as? Bool != true else { return }
+                    continuation.yield(image?.cgImage(forProposedRect: nil, context: nil, hints: nil))
+                    continuation.finish()
+                }
+                continuation.onTermination = { reason in
+                    if case .cancelled = reason { PHImageManager.default().cancelImageRequest(request) }
+                }
+            }
+            for await bitmap in stream {
+                if let bitmap { return bitmap }
+            }
         }
-        let name: String
-        if let id = item.itemIdentifier {
-            let asset = await Self.assets(for: id)
-            name = Self.name(from: asset)
-        } else {
-            name = "unknown item"
-        }
-        Logger(subsystem: Bundle.main.bundleIdentifier ?? "PhotoTool",
-               category: "Phototool")
-            .error("Can not extract image for item \(name, privacy: .public)")
-        return nil
+        guard !Task.isCancelled, let file = try? await item.loadTransferable(type: PickerFile.self) else { return nil }
+        guard !Task.isCancelled else { return nil }
+        return downsample(file.data, maxDimension: size)
+    }
+
+    static func downsample(_ data: Data, maxDimension size: Int) -> CGImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                  kCGImageSourceCreateThumbnailFromImageAlways: true,
+                  kCGImageSourceCreateThumbnailWithTransform: true,
+                  kCGImageSourceThumbnailMaxPixelSize: size
+              ] as CFDictionary) else { return nil }
+        return cgImage
     }
 
     public static func assets(for id: String) async -> PHAsset? {

@@ -985,3 +985,21 @@ extension RenameTests {
         #expect(restored.rules == preset.rules)
     }
 }
+
+extension RenameTests {
+    @Test func pairsOneThousandSourcesInOneDirectory() throws {
+        let root = try fixture()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let photos = (0..<1_000).map { root.appendingPathComponent("photo-\($0).jpg") }
+        for photo in photos {
+            try Data().write(to: photo)
+            try Data().write(to: photo.deletingPathExtension().appendingPathExtension("xmp"))
+        }
+        let start = ContinuousClock.now
+        let matched = try RenameExecutor.pairedSources(photos, settings: RenameSettings(),
+                                                       directories: [photos[0].deletingLastPathComponent().standardizedFileURL])
+        #expect(Array(matched.prefix(photos.count)) == photos)
+        #expect(Set(matched).count == 2_000)
+        print("1000 source photos, 2000 directory entries: pairing \(start.duration(to: .now))")
+    }
+}

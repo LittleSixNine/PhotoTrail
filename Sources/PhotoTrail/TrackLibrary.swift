@@ -10,12 +10,25 @@ enum TrackOrigin: String, Codable, Sendable {
 }
 
 struct TrackRecord: Codable, Identifiable, Equatable, Sendable {
-    var log: GpxTrackLog
+    var log: GpxTrackLog { didSet { rebuildGeometry() } }
+    private(set) var segments: [[MapCoordinate]] = []
+    private(set) var fingerprint = ""
+
+    private enum CodingKeys: String, CodingKey {
+        case log, originalLog, bookmark, converted, convertedAt, convertedSource, origin, sourceUnavailable, ownedVersion
+    }
+    init(log: GpxTrackLog, bookmark: Data? = nil, origin: TrackOrigin? = nil) {
+        self.log = log
+        self.bookmark = bookmark
+        self.origin = origin
+        rebuildGeometry()
+    }
     var originalLog: GpxTrackLog? = nil
     var bookmark: Data?
     var converted: [[MapCoordinate]]?
     var convertedAt: Date?
     var convertedSource: String?
+    var ownedVersion: MetadataInspectionFileVersion?
     var origin: TrackOrigin? = nil
     var cacheIsCurrent: Bool { converted != nil && convertedSource == fingerprint }
     var sourceUnavailable = false
@@ -23,17 +36,15 @@ struct TrackRecord: Codable, Identifiable, Equatable, Sendable {
     var name: String { log.sourceURL.lastPathComponent }
     var generatedFromPhotos: Bool { origin == .photos }
     var points: [GpxTrackLog.Point] { log.tracks.flatMap(\.segments).flatMap(\.points) }
-    var segments: [[MapCoordinate]] {
-        log.tracks.flatMap(\.segments).map { $0.points.map {
+    mutating func rebuildGeometry() {
+        segments = log.tracks.flatMap(\.segments).map { $0.points.map {
             MapCoordinate(latitude: $0.lat, longitude: $0.lon)
         } }.filter { $0.count >= 2 }
-    }
-    // Coordinate order and segment boundaries matter; filename and timestamps do not.
-    var fingerprint: String {
+        // Preserve the v1 geometry fingerprint across application upgrades.
         let encoder = JSONEncoder()
         encoder.outputFormatting = .sortedKeys
         let data = (try? encoder.encode(segments)) ?? Data()
-        return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+        fingerprint = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
     var timeRange: String {
         let times = points.filter(\.hasRecordedTime).map(\.timeFromEpoch).filter(\.isFinite)
@@ -72,10 +83,14 @@ final class TrackLibrary {
     private(set) var selected: String?
     private(set) var states: [String: TrackConversionState] = [:]
     private(set) var requests: [String: Int] = [:]
+    private(set) var archiveRevision = 0
     private(set) var revision = 0
     private(set) var fitRevision = 0
     var storageError: String?
     @ObservationIgnored private let url: URL
+    @ObservationIgnored private let writes = DispatchQueue(label: "PhotoTrail.track-history", qos: .utility)
+    @ObservationIgnored private var pendingWrite: DispatchWorkItem?
+    @ObservationIgnored private var writeID = UUID()
     @ObservationIgnored private var loaded = false
     @ObservationIgnored private var unreadable = false
     @ObservationIgnored private var sequence = 0
@@ -135,43 +150,19 @@ final class TrackLibrary {
         if needsPersist { needsPersist = false; persist() }
     }
 
-    nonisolated private static func readArchive(at url: URL, legacy: URL?) throws -> [TrackRecord] {
-        if let legacy { PhotoTrailMigration.file(at: url, legacyURL: legacy) }
-        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
-        let archive = try JSONDecoder().decode(Archive.self, from: Data(contentsOf: url))
-        guard archive.version == 1, Set(archive.records.map(\.id)).count == archive.records.count else {
-            throw CocoaError(.fileReadCorruptFile)
-        }
-        return try archive.records.map { saved in
-            var record = saved
-            guard record.originalLog.map({ base in
-                base.sourceURL == record.log.sourceURL && base.tracks.flatMap(\.segments).flatMap(\.points).allSatisfy {
-                    $0.lat.isFinite && $0.lon.isFinite && abs($0.lat) <= 90 && abs($0.lon) <= 180
-                        && (!$0.hasRecordedTime || $0.timeFromEpoch.isFinite)
-                }
-            }) ?? true, record.log.sourceURL.isFileURL,
-                  record.points.allSatisfy({ $0.lat.isFinite && $0.lon.isFinite && abs($0.lat) <= 90 && abs($0.lon) <= 180 }) else {
-                throw CocoaError(.fileReadCorruptFile)
-            }
-            if let converted = record.converted,
-               !TrackRecord.valid(converted, for: record.segments) || !record.cacheIsCurrent {
-                record.converted = nil; record.convertedAt = nil
-            }
-            return record
-        }
-    }
-
     @discardableResult
     func synchronize(_ logs: [GpxTrackLog], amap: Bool = false) -> [GpxTrackLog] {
         guard !logs.isEmpty || !storeIDs.isEmpty else { return logs }
         let ids = Set(logs.map { $0.sourceURL.path })
         for id in storeIDs.subtracting(ids) { remove(id) }
+        var needsArchive = false
         for incoming in logs {
             var log = incoming
             let id = log.sourceURL.path
             if let index = records.firstIndex(where: { $0.id == id }),
                let original = records[index].originalLog, incoming != records[index].log {
                 guard incoming.tracks == original.tracks else {
+                    needsArchive = true
                     records[index].sourceUnavailable = true
                     cancel(id)
                     states[id] = .failed(L10n.text("原轨迹已变化，保留调整；请恢复原轨迹后重新调整。"))
@@ -182,6 +173,7 @@ final class TrackLibrary {
             var changed = false
             if let index = records.firstIndex(where: { $0.id == id }) {
                 if records[index].log != log || records[index].sourceUnavailable {
+                    needsArchive = true
                     let oldFingerprint = records[index].fingerprint
                     records[index].log = log
                     records[index].sourceUnavailable = false
@@ -193,9 +185,12 @@ final class TrackLibrary {
                     }
                 }
             } else {
-                let generated = photoGeneratedURLs.remove(id) != nil || Self.isPhotoGenerated(log.sourceURL)
-                records.append(TrackRecord(log: log, bookmark: bookmark(for: log.sourceURL),
-                                           origin: generated ? .photos : nil))
+                needsArchive = true
+                let owned = photoGeneratedURLs.remove(id) != nil
+                var record = TrackRecord(log: log, bookmark: bookmark(for: log.sourceURL),
+                                         origin: owned || Self.isPhotoGenerated(log.sourceURL) ? .photos : nil)
+                if owned { record.ownedVersion = .read(log.sourceURL) }
+                records.append(record)
             }
             if !activeIDs.contains(id) {
                 activeIDs.append(id)
@@ -207,7 +202,7 @@ final class TrackLibrary {
         }
         storeIDs = ids
         revision += 1
-        persist()
+        if needsArchive { persist() }
         return logs.compactMap { input in
             guard let record = record(input.sourceURL.path), !record.sourceUnavailable else { return nil }
             return record.log
@@ -389,7 +384,7 @@ final class TrackLibrary {
     var cacheFileSize: Int64 { Int64((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0) }
     var canClearConversionCaches: Bool { loaded && !unreadable && readingSources.isEmpty && conversionCacheCount > 0 }
 
-    func clearConversionCaches() throws {
+    func clearConversionCaches() async throws {
         guard canClearConversionCaches else { throw CocoaError(.fileWriteUnknown) }
         var updated = records
         for index in updated.indices {
@@ -398,7 +393,7 @@ final class TrackLibrary {
             updated[index].convertedSource = nil
         }
         // Commit first; a failed write must leave the current cache usable.
-        try writeArchive(updated)
+        try await writeArchive(updated)
         records = updated
         requests.removeAll(); states.removeAll()
         storageError = nil
@@ -431,7 +426,7 @@ private extension TrackLibrary {
                                  includingResourceValuesForKeys: nil, relativeTo: nil)
     }
 
-    private static func isPhotoGenerated(_ url: URL) -> Bool {
+    nonisolated private static func isPhotoGenerated(_ url: URL) -> Bool {
         guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
         defer { try? handle.close() }
         let prefix = (try? handle.read(upToCount: 8_192)) ?? nil
@@ -442,17 +437,56 @@ private extension TrackLibrary {
     private func persist() {
         guard loaded else { needsPersist = true; return }
         guard !unreadable else { return }
-        do {
-            try writeArchive(records)
-            storageError = nil
-        } catch {
-            let message = OperationFailure.message(L10n.text("缓存保存失败，本次仍可查看；下次启动可能需要重新转换。"), error: error)
-            let changed = storageError != message
-            storageError = message
-            if changed { OperationFailure.present(message) }
+        pendingWrite?.cancel()
+        let token = UUID(), snapshot = records, destination = url
+        writeID = token
+        let work = DispatchWorkItem { @Sendable [weak self] in
+            let result = Result { try Self.save(snapshot, to: destination) }
+            Task { @MainActor in
+                guard let self, self.writeID == token else { return }
+                self.pendingWrite = nil
+                switch result {
+                case .success:
+                    self.storageError = nil
+                    self.archiveRevision += 1
+                case .failure(let error):
+                    let message = OperationFailure.message(L10n.text("缓存保存失败，本次仍可查看；下次启动可能需要重新转换。"), error: error)
+                    if self.storageError != message { OperationFailure.present(message) }
+                    self.storageError = message
+                }
+            }
         }
+        pendingWrite = work
+        writes.async(execute: work)
     }
-    func writeArchive(_ records: [TrackRecord]) throws {
+
+    private func writeArchive(_ updated: [TrackRecord]) async throws {
+        let destination = url, generation = revision, pendingID = writeID
+        // Stage on the same volume, behind prior writes. Only the final atomic rename
+        // runs on the main actor, together with the caller's in-memory commit.
+        let temporary = try await withCheckedThrowingContinuation { (reply: CheckedContinuation<URL, Error>) in
+            writes.async { @Sendable in
+                reply.resume(with: Result {
+                    try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    let folder = try FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask,
+                                                             appropriateFor: destination, create: true)
+                    do { try Self.save(updated, to: folder.appendingPathComponent("archive")) }
+                    catch { try? FileManager.default.removeItem(at: folder); throw error }
+                    return folder
+                })
+            }
+        }
+        defer { try? FileManager.default.removeItem(at: temporary) }
+        guard generation == revision, pendingID == writeID else { throw MetadataInspectionError.sourceChanged }
+        guard rename(temporary.appendingPathComponent("archive").path, destination.path) == 0 else {
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+        }
+        writeID = UUID()
+        pendingWrite = nil
+        archiveRevision += 1
+    }
+
+    nonisolated private static func save(_ records: [TrackRecord], to url: URL) throws {
         let directory = url.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true,
             attributes: [.posixPermissions: 0o700])
@@ -463,12 +497,13 @@ private extension TrackLibrary {
 }
 
 extension TrackLibrary {
-    func applyAdjustment(_ id: String, expected: GpxTrackLog, adjusted: GpxTrackLog, amap: Bool) throws {
+    func applyAdjustment(_ id: String, expected: GpxTrackLog, adjusted: GpxTrackLog, amap: Bool) async throws {
         guard loaded, !unreadable, readingSources[id] == nil,
               let index = records.firstIndex(where: { $0.id == id }), records[index].log == expected,
               adjusted.sourceURL == expected.sourceURL else { throw MetadataInspectionError.sourceChanged }
         let current = records[index]
-        let source = try Self.readSource(current, preserveCache: true)
+        let source = try await Task.detached { try Self.readSource(current, preserveCache: true) }.value
+        guard records.indices.contains(index), records[index] == current else { throw MetadataInspectionError.sourceChanged }
         guard source.log == expected else { throw MetadataInspectionError.sourceChanged }
         var updated = records
         updated[index].originalLog = current.originalLog ?? expected
@@ -476,7 +511,7 @@ extension TrackLibrary {
         if current.fingerprint != updated[index].fingerprint {
             updated[index].converted = nil; updated[index].convertedAt = nil; updated[index].convertedSource = nil
         }
-        try writeArchive(updated)
+        try await writeArchive(updated)
         adjustmentUndo[id] = expected
         records = updated
         if selected == id, current.fingerprint != records[index].fingerprint { fitRevision += 1 }
@@ -485,25 +520,27 @@ extension TrackLibrary {
         revision += 1
     }
 
-    func undoAdjustment(_ id: String, amap: Bool) throws -> GpxTrackLog? {
+    func undoAdjustment(_ id: String, amap: Bool) async throws -> GpxTrackLog? {
         guard let previous = adjustmentUndo[id], let current = record(id) else { return nil }
-        try applyAdjustment(id, expected: current.log, adjusted: previous, amap: amap)
+        try await applyAdjustment(id, expected: current.log, adjusted: previous, amap: amap)
         adjustmentUndo.removeValue(forKey: id)
         return previous
     }
 
     func canUndoAdjustment(_ id: String) -> Bool { adjustmentUndo[id] != nil }
 
-    func restoreOriginal(_ id: String, amap: Bool) throws -> GpxTrackLog? {
+    func restoreOriginal(_ id: String, amap: Bool) async throws -> GpxTrackLog? {
         guard let index = records.firstIndex(where: { $0.id == id }), records[index].originalLog != nil,
               loaded, !unreadable else { return nil }
         var source = records[index]
         source.originalLog = nil
-        let restored = try Self.readSource(source, preserveCache: false)
+        let expected = records[index]
+        let restored = try await Task.detached { [source] in try Self.readSource(source, preserveCache: false) }.value
+        guard records.indices.contains(index), records[index] == expected else { throw MetadataInspectionError.sourceChanged }
         var updated = records
         updated[index] = restored
         updated[index].converted = nil; updated[index].convertedAt = nil; updated[index].convertedSource = nil
-        try writeArchive(updated)
+        try await writeArchive(updated)
         if selected == id, records[index].fingerprint != restored.fingerprint { fitRevision += 1 }
         records = updated
         adjustmentUndo.removeValue(forKey: id)
@@ -513,4 +550,103 @@ extension TrackLibrary {
         return restored.log
     }
 
+}
+
+extension TrackLibrary {
+    nonisolated private static func readArchive(at url: URL, legacy: URL?) throws -> [TrackRecord] {
+        if let legacy { PhotoTrailMigration.file(at: url, legacyURL: legacy) }
+        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+        let archive = try JSONDecoder().decode(Archive.self, from: Data(contentsOf: url))
+        guard archive.version == 1, Set(archive.records.map(\.id)).count == archive.records.count else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        var validated = try archive.records.map { saved in
+            var record = saved
+            record.rebuildGeometry()
+            guard record.originalLog.map({ base in
+                base.sourceURL == record.log.sourceURL && base.tracks.flatMap(\.segments).flatMap(\.points).allSatisfy {
+                    $0.lat.isFinite && $0.lon.isFinite && abs($0.lat) <= 90 && abs($0.lon) <= 180
+                        && (!$0.hasRecordedTime || $0.timeFromEpoch.isFinite)
+                }
+            }) ?? true, record.log.sourceURL.isFileURL,
+                  record.points.allSatisfy({ $0.lat.isFinite && $0.lon.isFinite && abs($0.lat) <= 90 && abs($0.lon) <= 180 }) else {
+                throw CocoaError(.fileReadCorruptFile)
+            }
+            if let converted = record.converted,
+               !TrackRecord.valid(converted, for: record.segments) || !record.cacheIsCurrent {
+                record.converted = nil; record.convertedAt = nil
+            }
+            return record
+        }
+        if legacy != nil {
+            var updated = validated
+            let migrated = migrateGenerated(&updated, old: PhotoGPXDocument.legacyDirectory,
+                                             new: PhotoGPXDocument.generatedDirectory)
+            if !migrated.isEmpty {
+                // Old references remain usable if the archive cannot be committed.
+                do { try save(updated, to: url) } catch { return validated }
+                validated = updated
+                for (source, identity) in migrated where identity == MetadataInspectionFileVersion.read(source) {
+                    if case .file = identity { _ = unlink(source.path) }
+                }
+            }
+        }
+        return validated
+    }
+
+    nonisolated static func migrateGenerated(_ records: inout [TrackRecord], old: URL, new: URL)
+        -> [URL: MetadataInspectionFileVersion] {
+        var migrated: [URL: MetadataInspectionFileVersion] = [:]
+        var occupied = Set(records.map { $0.log.sourceURL.standardizedFileURL.path })
+        for index in records.indices {
+            let record = records[index], source = record.log.sourceURL
+            guard source.deletingLastPathComponent().standardizedFileURL.path == old.standardizedFileURL.path,
+                  source.pathExtension.lowercased() == "gpx" else { continue }
+            let identity = MetadataInspectionFileVersion.read(source)
+            let bytes: Data
+            do {
+                if identity == .missing, record.generatedFromPhotos {
+                    // Recover the geometry and times when an older cache was already purged.
+                    bytes = try (record.originalLog ?? record.log).gpxData()
+                } else {
+                    guard (try? source.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true,
+                          record.generatedFromPhotos || isPhotoGenerated(source) else { continue }
+                    bytes = try Data(contentsOf: source)
+                }
+                guard identity == MetadataInspectionFileVersion.read(source) else { continue }
+                let destination = try PhotoGPXDocument.store(bytes, name: source.lastPathComponent, in: new,
+                                                             reuseIdentical: true, excluding: occupied)
+                occupied.insert(destination.standardizedFileURL.path)
+                records[index].log = GpxTrackLog(sourceURL: destination, tracks: record.log.tracks)
+                records[index].originalLog = record.originalLog.map { GpxTrackLog(sourceURL: destination, tracks: $0.tracks) }
+                records[index].bookmark = nil
+                records[index].sourceUnavailable = false
+                records[index].origin = .photos
+                records[index].ownedVersion = .read(destination)
+                migrated[source] = identity
+            } catch { continue } // Keep this reference for retry without blocking unrelated history.
+        }
+        return migrated
+    }
+}
+
+extension TrackLibrary {
+    func flushWrites() { writes.sync {} }
+
+    func forget(_ id: String) async throws {
+        guard loaded, !unreadable, !activeIDs.contains(id), readingSources[id] == nil,
+              let index = records.firstIndex(where: { $0.id == id }) else { throw CocoaError(.fileWriteUnknown) }
+        var updated = records
+        let removed = updated.remove(at: index)
+        try await writeArchive(updated)
+        records = updated
+        adjustmentUndo.removeValue(forKey: id)
+        cancel(id)
+        let source = removed.log.sourceURL
+        if let version = removed.ownedVersion, case .file = version, version == .read(source),
+           source.deletingLastPathComponent().standardizedFileURL.path == PhotoGPXDocument.generatedDirectory.standardizedFileURL.path,
+           (try? source.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true {
+            guard unlink(source.path) == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        }
+    }
 }

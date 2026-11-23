@@ -115,7 +115,7 @@ struct MetadataCreatorBatchTests {
             #expect(values[.rightsDefault] == .text("© 六九"))
             #expect(values[.creator] == .list(["六九"]))
             #expect(values[.subject] == .list(["Travel", "travel", "新词"]))
-            #expect(try Data(contentsOf: state.backupURL!.appending(component: url.lastPathComponent)) == before[index])
+            #expect(try Data(contentsOf: state.backupURL!.appending(path: "PhotoTrail Backups").appending(component: url.lastPathComponent)) == before[index])
         }
     }
 

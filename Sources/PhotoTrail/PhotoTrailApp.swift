@@ -53,7 +53,10 @@ struct PhotoTrailApp: App {
                 .preferredColorScheme(appearance.colorScheme)
                 .background(WindowAccessor(window: $mainWindow))
                 .frame(minWidth: windowWidth, minHeight: windowHeight)
-                .onAppear { appDelegate.store = store }
+                .onAppear {
+                    appDelegate.store = store
+                    appDelegate.trackLibrary = locationWorkspace.tracks
+                }
                 .onChange(of: metadataEditSession?.id) { appDelegate.metadataEditSession = metadataEditSession }
                 .onChange(of: metadataRuleSession?.id) { appDelegate.metadataRuleSession = metadataRuleSession }
                 .onChange(of: mainWindow) {

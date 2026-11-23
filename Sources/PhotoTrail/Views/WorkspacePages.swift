@@ -155,9 +155,7 @@ struct PhotoThumbnail: View {
 @MainActor
 final class PhotoThumbnailCache {
     static let shared = PhotoThumbnailCache()
-    static let preview = PhotoThumbnailCache {
-        await $0.makeThumbnail(scale: $1, maxDimension: $2, prioritize: true)
-    }
+    static let preview = PhotoThumbnailCache(prioritize: true)
     private struct Key: Hashable {
         let id: ImageData.ID
         let path: String
@@ -169,24 +167,27 @@ final class PhotoThumbnailCache {
     private var order: [Key] = []
     private struct Loading {
         let id = UUID()
-        let task: Task<Image, Never>
+        let task: Task<MeasuredThumbnail, Never>
         var consumers: Set<UUID>
     }
     private var loading: [Key: Loading] = [:]
     private var cost = 0
     private let limit = 384
     private let costLimit = 64 * 1024 * 1024
-    private let loader: (ImageData, CGFloat, Double) async -> Image
+    private let loader: (ImageData, CGFloat, Double) async -> MeasuredThumbnail
 
-    init(loader: @escaping (ImageData, CGFloat, Double) async -> Image = {
-        await $0.makeThumbnail(scale: $1, maxDimension: $2)
-    }) { self.loader = loader }
+    init(prioritize: Bool = false) {
+        loader = { await $0.measuredThumbnail(scale: $1, maxDimension: $2, prioritize: prioritize) }
+    }
+
+    init(loader: @escaping (ImageData, CGFloat, Double) async -> Image) {
+        self.loader = { image, scale, size in
+            MeasuredThumbnail(image: await loader(image, scale, size), bytes: Int(size * size) * 4)
+        }
+    }
 
     func image(for image: ImageData, scale: CGFloat, maxDimension: Double) async -> Image {
-        // Photos transfers still return a full image; do not account them as tiny list bitmaps.
-        let size: Int
-        if case .photos = image.metadata.source { size = 1024 }
-        else { size = Int(min(4096, max(32, maxDimension))) }
+        let size = Int(min(4096, max(32, maxDimension)))
         let key = Key(id: image.id, path: image.fullPath, size: size, scale: scale)
         if let cached = images[key] {
             order.removeAll { $0 == key }
@@ -205,21 +206,21 @@ final class PhotoThumbnailCache {
         } onCancel: {
             Task { @MainActor in self.cancelConsumer(consumer, key: key, requestID: request.id) }
         }
-        guard loading[key]?.id == request.id else { return loaded }
+        guard loading[key]?.id == request.id else { return loaded.image }
         if Task.isCancelled {
             cancelConsumer(consumer, key: key, requestID: request.id)
-            return loaded
+            return loaded.image
         }
         loading[key] = nil
-        let entryCost = size * size * 4
-        images[key] = Entry(image: loaded, cost: entryCost)
+        let entryCost = loaded.bytes
+        images[key] = Entry(image: loaded.image, cost: entryCost)
         order.append(key)
         cost += entryCost
         while order.count > limit || cost > costLimit {
             let oldest = order.removeFirst()
             if let removed = images.removeValue(forKey: oldest) { cost -= removed.cost }
         }
-        return loaded
+        return loaded.image
     }
 
     private func cancelConsumer(_ consumer: UUID, key: Key, requestID: UUID) {
@@ -757,7 +758,7 @@ fileprivate extension PhotoDetailPage {
     func prepareGPX(minutes: Double) {
         do {
             let url = try PhotoGPXDocument(images: selectedImages, timeZone: store.timeZone, segmentGap: minutes * 60)
-                .saveToCache(timeZone: store.timeZone)
+                .saveGenerated(timeZone: store.timeZone)
             importPhotoTrack(url, store: store, workspace: workspace)
         } catch { gpxError = error.localizedDescription }
     }

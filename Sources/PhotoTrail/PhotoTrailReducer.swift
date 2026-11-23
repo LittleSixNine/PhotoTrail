@@ -2,6 +2,7 @@ import AppKit
 import Coords
 import Foundation
 import ImageData
+import Imagetool
 import Metadata
 import OSLog
 import UDF
@@ -279,11 +280,11 @@ struct PhotoTrailReducer: Reducer, Sendable {
         case .readTrackLog(let path, let tracklog):
             addTrackLog(&newState, path: path, tracklog: tracklog)
 
-        case .removeOldFiles:
-            checkBackupFolderSize(&newState)
-            removeFiles(filesToRemove: newState.oldFiles,
-                        from: newState.backupURL)
-            newState.oldFiles = []
+        case .backupScanFinished(let token, let expired, let bytes):
+            guard token == state.backupScanID else { return state }
+            newState.oldFiles = expired
+            newState.folderSize = bytes
+            newState.deletedSize = expired.reduce(0) { $0 + $1.bytes }
 
         case .saveFailure(let message):
             newState.saveFailures.append(message)

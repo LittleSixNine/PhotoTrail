@@ -220,3 +220,18 @@ extension MapPhotoPerformanceTests {
         #expect(single.missingCity == 0)
     }
 }
+
+extension MapPhotoPerformanceTests {
+    @Test func metadataBudgetEvictsOversizedFieldValues() {
+        let cache = MetadataInspectorReadCache(limit: 64, byteLimit: 2048)
+        let image = URL(fileURLWithPath: "/tmp/budget-test.jpg")
+        let key = MetadataInspectorReadCache.Key(url: image, imageURL: image, kind: .additional)
+        let other = MetadataInspectorReadCache.Key(url: image, imageURL: image, kind: .standard)
+        cache.insert(.display(["tag": "keep"]), for: other, versions: [.missing])
+        cache.insert(.display(["tag": String(repeating: "a", count: 4096)]), for: key, versions: [.missing])
+        #expect(cache.value(for: key, versions: [.missing]) == nil)
+        #expect(cache.value(for: other, versions: [.missing]) != nil)
+        cache.insert(.display(["tag": "small"]), for: key, versions: [.missing])
+        #expect(cache.value(for: key, versions: [.missing]) != nil)
+    }
+}

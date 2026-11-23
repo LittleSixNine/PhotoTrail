@@ -2,6 +2,7 @@ import AppKit
 import Coords
 import GpxTrackLog
 import ImageData
+import Imagetool
 import OSLog
 import SwiftUI
 
@@ -116,7 +117,8 @@ struct PhotoTrailState {
     // new backup folder is selected. The user is given the option to remove
     // backups older than 7 days.
 
-    var oldFiles: [URL] = []
+    var backupScanID = UUID()
+    var oldFiles: [ManagedBackup] = []
     var folderSize = 0
     var deletedSize = 0
 }

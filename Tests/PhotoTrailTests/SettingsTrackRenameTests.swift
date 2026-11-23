@@ -60,30 +60,31 @@ struct SettingsTrackRenameTests {
         let library = TrackLibrary(url: cache)
         library.synchronize([source])
         let moved = try source.adjusted(seconds: 3600, east: 100, north: 0)
-        try library.applyAdjustment(sourceURL.path, expected: source, adjusted: moved, amap: false)
+        try await library.applyAdjustment(sourceURL.path, expected: source, adjusted: moved, amap: false)
         #expect(try Data(contentsOf: sourceURL) == bytes)
         #expect(library.synchronize([source]) == [moved])
         #expect(library.record(sourceURL.path)?.log == moved)
-        #expect(throws: (any Error).self) { try library.applyAdjustment(sourceURL.path, expected: source, adjusted: moved, amap: false) }
+        await #expect(throws: (any Error).self) { try await library.applyAdjustment(sourceURL.path, expected: source, adjusted: moved, amap: false) }
+        library.flushWrites()
         let restored = TrackLibrary(url: cache)
         await restored.restore()
         #expect(restored.record(sourceURL.path)?.log == moved)
         #expect(await restored.addHistory(sourceURL.path, amap: false) == moved)
-        #expect(try library.undoAdjustment(sourceURL.path, amap: false) == source)
-        try library.applyAdjustment(sourceURL.path, expected: source, adjusted: moved, amap: false)
-        #expect(try library.restoreOriginal(sourceURL.path, amap: false) == source)
+        #expect(try await library.undoAdjustment(sourceURL.path, amap: false) == source)
+        try await library.applyAdjustment(sourceURL.path, expected: source, adjusted: moved, amap: false)
+        #expect(try await library.restoreOriginal(sourceURL.path, amap: false) == source)
         #expect(try Data(contentsOf: sourceURL) == bytes)
         library.select(sourceURL.path, amap: true)
         let cached = try #require(library.record(sourceURL.path)?.segments)
         library.complete(sourceURL.path, request: try #require(library.requests[sourceURL.path]), converted: cached)
         let fitRevision = library.fitRevision
         let timed = try source.adjusted(seconds: 30, east: 0, north: 0)
-        try library.applyAdjustment(sourceURL.path, expected: source, adjusted: timed, amap: true)
+        try await library.applyAdjustment(sourceURL.path, expected: source, adjusted: timed, amap: true)
         #expect(library.record(sourceURL.path)?.converted == cached)
         #expect(library.fitRevision == fitRevision)
         library.start(sourceURL.path)
         let staleRequest = try #require(library.requests[sourceURL.path])
-        try library.applyAdjustment(sourceURL.path, expected: timed, adjusted: moved, amap: true)
+        try await library.applyAdjustment(sourceURL.path, expected: timed, adjusted: moved, amap: true)
         #expect(library.fitRevision == fitRevision + 1)
         library.complete(sourceURL.path, request: staleRequest, converted: cached)
         #expect(library.record(sourceURL.path)?.converted == nil)
@@ -91,8 +92,8 @@ struct SettingsTrackRenameTests {
         try external.gpxData().write(to: sourceURL)
         #expect(library.synchronize([external]).isEmpty)
         #expect(library.record(sourceURL.path)?.log == moved)
-        #expect(throws: (any Error).self) { try library.applyAdjustment(sourceURL.path, expected: moved, adjusted: timed, amap: false) }
-        #expect(try library.restoreOriginal(sourceURL.path, amap: false)?.tracks == external.tracks)
+        await #expect(throws: (any Error).self) { try await library.applyAdjustment(sourceURL.path, expected: moved, adjusted: timed, amap: false) }
+        #expect(try await library.restoreOriginal(sourceURL.path, amap: false)?.tracks == external.tracks)
     }
 
     @Test @MainActor func trackChangeDiscardsLateMatchingResults() async {
