@@ -26,6 +26,13 @@ enum LivePhotoSave {
         var errorDescription: String? { cause }
     }
 
+    static func failureMessage(_ error: Error) -> String {
+        if error is MetadataInspectionError {
+            return L10n.text("源文件已变化；请放弃草稿并重新读取。")
+        }
+        return error.localizedDescription
+    }
+
     private struct Entry: Codable {
         let original: URL
         let staged: URL
@@ -100,7 +107,7 @@ enum LivePhotoSave {
             do { try finish(journal, at: url) }
             catch {
                 blocked.formUnion((journal.members ?? journal.entries.map(\.original)).map(\.standardizedFileURL))
-                reason = error.localizedDescription
+                reason = failureMessage(error)
             }
         }
         if let reason { throw RecoveryNeeded(files: blocked, cause: reason) }
@@ -163,7 +170,7 @@ enum LivePhotoSave {
                         restored[member.image.id] = MetadataInspectionFileVersion.read(url)
                     }
                 }
-                throw RolledBack(versions: restored, cause: error.localizedDescription)
+                throw RolledBack(versions: restored, cause: failureMessage(error))
             }
             // A committed transaction with deferred housekeeping is safe to finish on next import.
             try? finish(journal, at: record)

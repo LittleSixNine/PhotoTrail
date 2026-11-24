@@ -204,7 +204,7 @@ enum SaveHelper {
                     if let restored = error as? LivePhotoSave.RolledBack { store.send(.livePhotoRollback(restored.versions), undoable: false) }
                     pairStatus = .saveError
                     store.send(.saveProgress(pending.count), undoable: false)
-                    store.send(.saveFailure("Live Photo · " + images.map(\.name).joined(separator: " + ") + " · " + error.localizedDescription), undoable: false)
+                    store.send(.saveFailure("Live Photo · " + images.map(\.name).joined(separator: " + ") + " · " + LivePhotoSave.failureMessage(error)), undoable: false)
                 }
             }
             let status = legacyStatus + [creatorStatus, pairStatus]
