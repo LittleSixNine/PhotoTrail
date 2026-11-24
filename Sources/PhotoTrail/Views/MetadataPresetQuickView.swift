@@ -4,6 +4,64 @@ import SwiftUI
 import UDF
 
 struct MetadataPresetQuickView: View {
+    let session: MetadataPresetSession
+    @Binding var expanded: Bool
+    @Binding var onlySelected: Bool
+    var editRules: ([MetadataWorkflowCard]) -> Void
+    var completed: (MetadataWorkflowPreview, [MetadataRecipeIssue]) -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var contentHeight: CGFloat = 0
+    @State private var measuredSession: UUID?
+
+    private var reveal: Animation? { reduceMotion ? nil : .easeOut(duration: 0.22) }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Button { expanded.toggle() } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "bolt.fill").foregroundStyle(Color.accentColor)
+                    Text(session.original.name).font(.headline)
+                    Spacer()
+                    Image(systemName: "chevron.down").font(.caption.weight(.semibold))
+                        .rotationEffect(.degrees(expanded ? 0 : -90))
+                        .animation(reveal, value: expanded)
+                        .foregroundStyle(.secondary)
+                }.padding(.horizontal, 12).padding(.vertical, 9).contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .background(Color.accentColor.opacity(0.09))
+            .accessibilityLabel(Text(session.original.name))
+            .accessibilityValue(Text(L10n.text(expanded ? "已展开" : "已收起")))
+            .accessibilityIdentifier("metadataPresetDisclosure")
+            .disabled(session.busy)
+
+            ScrollView {
+                MetadataPresetForm(session: session, onlySelected: $onlySelected, editRules: editRules, completed: completed)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                        let isNewPreset = measuredSession != session.id
+                        measuredSession = session.id
+                        withAnimation(isNewPreset ? reveal : nil) { contentHeight = height }
+                    }
+                    .id(session.id)
+                    .transition(.opacity)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .animation(reveal, value: session.id)
+            .frame(idealHeight: expanded ? contentHeight : 0, maxHeight: expanded ? contentHeight : 0, alignment: .top)
+            .clipped()
+            .animation(reveal, value: expanded)
+            .allowsHitTesting(expanded)
+            .accessibilityHidden(!expanded)
+        }
+        .background(Color(nsColor: .controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 9))
+        .overlay { RoundedRectangle(cornerRadius: 9).strokeBorder(.secondary.opacity(0.22)).allowsHitTesting(false) }
+        .padding(.vertical, 3)
+    }
+}
+
+private struct MetadataPresetForm: View {
     @Bindable var session: MetadataPresetSession
     @Binding var onlySelected: Bool
     var editRules: ([MetadataWorkflowCard]) -> Void
@@ -22,7 +80,6 @@ struct MetadataPresetQuickView: View {
     var body: some View {
         let scope = self.scope
         VStack(alignment: .leading, spacing: 12) {
-            Text(session.original.name).font(.headline)
             MetadataPresetScopePicker(onlySelected: $onlySelected).disabled(session.busy)
             let configuredOperations = session.cards.flatMap(\.operations)
             let support = MetadataRuleScope(configuredOperations, in: session.scope(in: store.state))
@@ -81,7 +138,7 @@ struct MetadataPresetQuickView: View {
                 }
             }
         }
-        .padding(12).background(Color.accentColor.opacity(0.04), in: RoundedRectangle(cornerRadius: 9))
+        .padding(12)
         .textFieldStyle(.roundedBorder)
         .onAppear { active = true; if baseline.isEmpty { baseline = session.cards } }
         .onChange(of: session.cards) { session.application.resetFeedback() }

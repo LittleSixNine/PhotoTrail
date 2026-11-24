@@ -199,6 +199,7 @@ struct MetadataListInspectorView: View {
     @State private var showingBatch = false
     @AppStorage("PhotoTrail.MetadataPresetShortcuts") private var presetShortcutData = Data()
     @State private var quickPresetSession: MetadataPresetSession?
+    @State private var presetExpanded = true
     @State private var presetNotice = ""
     @State private var presetSkipped = false
     @State private var showingPresetChooser = false
@@ -366,7 +367,7 @@ struct MetadataListInspectorView: View {
                         showingBatch = false
                         if ruleSession.application.applied || !ruleSession.hasInput { self.ruleSession = nil }
                     }, saved: { preset in
-                        do { quickPresetSession = try presetSession(preset) }
+                        do { quickPresetSession = try presetSession(preset); presetExpanded = true }
                         catch { presetNotice = L10n.text("预设无法读取，原数据已保留。") }
                     })
                     .clipShape(UnevenRoundedRectangle(topLeadingRadius: 12, bottomLeadingRadius: 12))
@@ -814,7 +815,7 @@ private extension MetadataListInspectorView {
                 .disabled(store.saveInProgress || store.imageData.isEmpty)
             }
             if let quickPresetSession {
-                MetadataPresetQuickView(session: quickPresetSession, onlySelected: presetScopeBinding, editRules: { cards in
+                MetadataPresetQuickView(session: quickPresetSession, expanded: $presetExpanded, onlySelected: presetScopeBinding, editRules: { cards in
                     openPresetRules(cards, name: quickPresetSession.original.name)
                 }, completed: { result, issues in
                     let processed = Set(result.steps.map(\.id))
@@ -860,7 +861,7 @@ private extension MetadataListInspectorView {
         .frame(maxWidth: .infinity, minHeight: 46, alignment: .leading)
         .padding(.horizontal, 10).padding(.vertical, 8)
         .foregroundStyle(Color.accentColor)
-        .background(Color.accentColor.opacity(featured ? 0.12 : 0.025), in: RoundedRectangle(cornerRadius: 9))
+        .background(Color.accentColor.opacity(featured && quickPresetSession == nil ? 0.12 : 0.025), in: RoundedRectangle(cornerRadius: 9))
         .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Color.accentColor.opacity(featured ? 0.28 : 0.5)))
         .contentShape(RoundedRectangle(cornerRadius: 9))
     }
@@ -885,9 +886,12 @@ private extension MetadataListInspectorView {
     private func openPreset(_ preset: MetadataPreset, toggle: Bool = false) {
         guard quickPresetSession?.busy != true else { return }
         do {
-            if toggle && quickPresetSession?.original.name == preset.name { quickPresetSession = nil }
-            else if quickPresetSession?.original.name == preset.name { return }
-            else { quickPresetSession = try presetSession(preset) }
+            if quickPresetSession?.original.name == preset.name {
+                presetExpanded = toggle ? !presetExpanded : true
+            } else {
+                quickPresetSession = try presetSession(preset)
+                presetExpanded = true
+            }
             presetNotice = ""; presetIssues = []; presetSkipped = false
         } catch { presetNotice = L10n.text("预设无法读取，原数据已保留。") }
     }
