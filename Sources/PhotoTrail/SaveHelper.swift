@@ -595,8 +595,11 @@ extension SaveHelper {
                 : L10n.text("只保存当前页的待保存修改，其他页修改保留。"))
         let indices = (targets.files + targets.xmp + targets.creator + targets.library).sorted()
         let files = indices.map { images[$0] }
+        if files.contains(where: \.isLivePhotoPair) {
+            alert.informativeText += "\n" + L10n.text("%1$@ 项素材 · %2$@ 个文件", Set(files.map(\.livePhotoAssetID)).count, files.count)
+        }
         if !selection.isEmpty {
-            let outside = files.filter { !selection.contains($0.id) }.count
+            let outside = Set(files.filter { !selection.contains($0.livePhotoAssetID) && !selection.contains($0.id) }.map(\.livePhotoAssetID)).count
             if outside > 0 { alert.informativeText += "\n" + L10n.text("其中 %1$@ 项在当前选区之外。", outside) }
         }
         let scroll = NSScrollView(frame: NSRect(x: 0, y: 0, width: 380, height: min(96, max(32, files.count * 18))))

@@ -735,7 +735,7 @@ private extension MetadataListInspectorView {
                          : readFailureCount > 0 || advancedFailed ? L10n.text("未能读取") : L10n.text("读取完成"))
                 }.font(.caption).foregroundStyle(.secondary)
             }
-            let pending = store.imageData.filter(\.hasPendingChanges).count
+            let pending = Set(store.imageData.filter(\.hasPendingChanges).map(\.livePhotoAssetID)).count
             if !selected.isEmpty || store.saveInProgress || pending > 0 {
                 HStack(spacing: 8) {
                     if !selected.isEmpty {

@@ -139,13 +139,15 @@ enum LivePhotoSave {
             try persist(journal, at: record)
             published = true
             do {
+                var committedVersions = versions
                 for (index, entry) in journal.entries.enumerated() {
                     try beforeExchange(index)
                     guard MetadataInspectionFileVersion.read(entry.original) == versions[entry.original] else { throw MetadataInspectionError.sourceChanged }
                     try exchange(entry.original, entry.staged)
+                    committedVersions[entry.original] = MetadataInspectionFileVersion.read(entry.original)
                     guard try RenameExecutor.digest(entry.staged) == entry.before else { throw MetadataInspectionError.sourceChanged }
                 }
-                for (url, version) in versions where !journal.entries.contains(where: { $0.original == url }) {
+                for (url, version) in committedVersions {
                     guard MetadataInspectionFileVersion.read(url) == version else { throw MetadataInspectionError.sourceChanged }
                 }
                 journal.committed = true

@@ -63,6 +63,15 @@ private final class VideoTestResources {}
             #expect(try Exiftool.helper.metadataTags([.city], from: file)[.city] == .text("Hangzhou"))
             #expect(ImageData(from: file).livePhotoIdentifier == asset.livePhotoIdentifier)
         }
+        let coords = Coords(latitude: 30.25, longitude: 120.16)
+        store.send(.confirmedWGS84Location(coords))
+        #expect(store.imageData.allSatisfy { $0.metadata.location == coords })
+        await store.send(.savePageRequest(.map)) { _ = await SaveHelper.save(store).result }
+        #expect(store.saveFailures.isEmpty && store.imageData.allSatisfy { !$0.hasPendingChanges })
+        for file in files {
+            let location = try #require(ImageData(from: file).metadata.location)
+            #expect(abs(location.latitude - coords.latitude) < 0.00001 && abs(location.longitude - coords.longitude) < 0.00001)
+        }
         let workspace = RenameWorkspace()
         var name = RenameRule(action: 97)
         name.text = "Summer"
