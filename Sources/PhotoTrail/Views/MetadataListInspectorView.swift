@@ -220,6 +220,7 @@ struct MetadataListInspectorView: View {
     @State private var pasteFailed = false
     @State private var pasteSkipped: [String] = []
     @State private var fieldColumnWidth: CGFloat = 190
+    @State private var inspectorHeight: CGFloat = 640
 
     private struct LoadKey: Hashable {
         let ids: [ImageData.ID]
@@ -568,8 +569,9 @@ private extension MetadataListInspectorView {
             }
             .background(Color(nsColor: .windowBackgroundColor))
         }
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
-            fieldColumnWidth = min(240, max(140, (width - 68) * 0.4))
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
+            fieldColumnWidth = min(240, max(140, (size.width - 68) * 0.4))
+            inspectorHeight = size.height
         }
         .onChange(of: selected.map(\.id)) { selectedFields = [] }
         .onChange(of: fieldQuery) { selectedFields = [] }
@@ -815,7 +817,7 @@ private extension MetadataListInspectorView {
                 .disabled(store.saveInProgress || store.imageData.isEmpty)
             }
             if let quickPresetSession {
-                MetadataPresetQuickView(session: quickPresetSession, expanded: $presetExpanded, onlySelected: presetScopeBinding, editRules: { cards in
+                MetadataPresetQuickView(session: quickPresetSession, maximumBodyHeight: inspectorHeight * 0.55, expanded: $presetExpanded, onlySelected: presetScopeBinding, editRules: { cards in
                     openPresetRules(cards, name: quickPresetSession.original.name)
                 }, completed: { result, issues in
                     let processed = Set(result.steps.map(\.id))

@@ -5,6 +5,7 @@ import UDF
 
 struct MetadataPresetQuickView: View {
     let session: MetadataPresetSession
+    let maximumBodyHeight: CGFloat
     @Binding var expanded: Bool
     @Binding var onlySelected: Bool
     var editRules: ([MetadataWorkflowCard]) -> Void
@@ -43,12 +44,15 @@ struct MetadataPresetQuickView: View {
                         measuredSession = session.id
                         withAnimation(isNewPreset ? reveal : nil) { contentHeight = height }
                     }
+                    .disabled(!expanded)
+                    .accessibilityElement(children: expanded ? .contain : .ignore)
+                    .accessibilityHidden(!expanded)
                     .id(session.id)
                     .transition(.opacity)
             }
             .scrollBounceBehavior(.basedOnSize)
             .animation(reveal, value: session.id)
-            .frame(idealHeight: expanded ? contentHeight : 0, maxHeight: expanded ? contentHeight : 0, alignment: .top)
+            .frame(height: expanded ? min(contentHeight, maximumBodyHeight) : 0, alignment: .top)
             .clipped()
             .animation(reveal, value: expanded)
             .allowsHitTesting(expanded)
