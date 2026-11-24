@@ -137,6 +137,9 @@ struct PhotoThumbnail: View {
             if let info = image.videoInfo {
                 Label(info.duration.map { Duration.seconds($0).formatted(.time(pattern: .minuteSecond)) } ?? L10n.text("视频"), systemImage: "film")
                     .font(.caption2.monospacedDigit()).padding(2).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 3))
+            } else if image.isLivePhotoPair {
+                Image(systemName: "livephoto").font(.caption.weight(.semibold)).padding(3)
+                    .background(.regularMaterial, in: Circle()).accessibilityLabel("Live Photo")
             } else if showsPairedBadge {
                 Text("JPG + RAW")
                     .font(.system(size: 9, weight: .semibold))

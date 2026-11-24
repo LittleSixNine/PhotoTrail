@@ -42,6 +42,7 @@ struct SaveTargets {
         for index in images.indices {
             let image = images[index]
             guard image.updatable else { continue }
+            if image.livePhotoAmbiguous && image.hasPendingChanges { editConflicts.append(index); continue }
             let hasMap = image.hasLegacyChanges
             let hasFields = image.creatorDraft?.changes.isEmpty == false
             let metadataChanged = hasMap && scope != .metadata
@@ -105,6 +106,7 @@ extension PhotoTrailReducer {
                 // Saving can resolve region fields that were not present in the editable snapshot.
                 newState.imageData[index].metadata.restore(from: result.metadata)
                 newState.imageData[index].original = Metadata(copying: result.metadata)
+                if newState.imageData[index].isLivePhotoPair { newState.imageData[index].refreshMovieVersion() }
                 if newState.imageData[index].isLocalMovie {
                     let change = result.metadata.location.map { MetadataTagChange.set(.text(CaptureLocationField.text($0))) } ?? .remove
                     newState.imageData[index].finishMetadataSave([.captureLocation: change])

@@ -57,7 +57,7 @@ public struct MetadataInspectionSnapshot: Sendable {
 
 public extension ImageData {
     var supportsMetadataEditing: Bool {
-        guard updatable, metadataTargetWritable else { return false }
+        guard updatable, metadataTargetWritable, !livePairReadOnly, !livePhotoAmbiguous else { return false }
         if isLocalMovie { return videoInfo != nil }
         switch metadata.source {
         case .xmp: return true

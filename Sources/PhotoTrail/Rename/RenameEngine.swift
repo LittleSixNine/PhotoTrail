@@ -535,6 +535,8 @@ extension RenameEngine {
     }
 
     static func groupID(_ input: RenameInput, settings: RenameSettings) -> String {
+        if let id = input.confirmedLiveGroup { return input.directory.path + "\u{0}LivePhoto/" + id }
+
         let extensions = (settings.sourceExtensions + "," + settings.targetExtensions).split(separator: ",")
             .map { key($0.trimmingCharacters(in: .whitespaces)) }
         return settings.pair && extensions.contains(key(input.url.pathExtension))
@@ -542,6 +544,7 @@ extension RenameEngine {
     }
 
     static func leader(_ inputs: [RenameInput], settings: RenameSettings) -> RenameInput {
+        if let still = inputs.first(where: { $0.confirmedLiveGroup != nil && $0.url.pathExtension.lowercased() != "mov" }) { return still }
         let extensions = settings.sourceExtensions.split(separator: ",").map { key($0.trimmingCharacters(in: .whitespaces)) }
         return inputs.min {
             (extensions.firstIndex(of: key($0.url.pathExtension)) ?? Int.max) <
@@ -606,21 +609,9 @@ extension RenameEngine {
     static func preview(inputs: [RenameInput], rules: [RenameRule], settings: RenameSettings,
                         occupied: [String: Set<String>]) throws -> [RenamePreview] {
         let inputs = ordered(inputs, settings: settings)
-        let sourceOrder = settings.sourceExtensions.split(separator: ",").map { key($0.trimmingCharacters(in: .whitespaces)) }
-        let targets = Set(settings.targetExtensions.split(separator: ",").map { key($0.trimmingCharacters(in: .whitespaces)) })
-        func group(_ input: RenameInput) -> String {
-            let ext = key(String(split(input.name).ext.dropFirst()))
-            return settings.pair && (sourceOrder.contains(ext) || targets.contains(ext)) ?
-                input.directory.path + "/" + key(split(input.name).stem) : input.url.path
-        }
+        func group(_ input: RenameInput) -> String { groupID(input, settings: settings) }
         let grouped = Dictionary(grouping: inputs, by: group)
-        let leaders: [String: RenameInput] = grouped.mapValues { values in
-            values.min { left, right in
-                let lhs = sourceOrder.firstIndex(of: key(String(split(left.name).ext.dropFirst()))) ?? Int.max
-                let rhs = sourceOrder.firstIndex(of: key(String(split(right.name).ext.dropFirst()))) ?? Int.max
-                return lhs < rhs
-            }!
-        }
+        let leaders = grouped.mapValues { leader($0, settings: settings) }
         var counts: [UUID: [String: Int]] = [:]
         var computed: [String: RenamePreview] = [:]
         var retainedGroups = Set<String>()
@@ -631,7 +622,7 @@ extension RenameEngine {
             var steps: [RenameStep] = []
             var issues: [RenameIssue] = []
             var included = true
-            let livePair = grouped[groupID]?.contains { $0.tags["PhotoTrail:LivePhoto"] != nil } == true
+            let livePair = leader.confirmedLiveGroup == nil && grouped[groupID]?.contains { $0.tags["PhotoTrail:LivePhoto"] != nil } == true
             var skip = livePair
             if livePair { issues.append(.livePhoto); retainedGroups.insert(groupID) }
             for rule in rules where rule.enabled {
@@ -668,7 +659,10 @@ extension RenameEngine {
             var row = computed[group(input)]!
             let keepOriginal = retainedGroups.contains(row.group)
             let final: String
-            if keepOriginal { final = input.name }
+            if input.confirmedLiveGroup != nil {
+                let stem = split(row.target.lastPathComponent).stem
+                final = keepOriginal || stem == split(row.source.lastPathComponent).stem ? input.name : stem + split(input.name).ext
+            } else if keepOriginal { final = input.name }
             else if row.source != input.url {
                 final = split(row.target.lastPathComponent).stem + split(input.name).ext
             } else { final = row.target.lastPathComponent }
@@ -694,6 +688,17 @@ extension RenameEngine {
             guard processed.insert(groupID).inserted else { continue }
             let indices = groupIndices[groupID]!
             guard indices.contains(where: { result[$0].changes }) else { continue }
+            if leaders[groupID]?.confirmedLiveGroup != nil {
+                let originals = Set(indices.map { key(result[$0].source.lastPathComponent) })
+                let folder = result[index].source.deletingLastPathComponent().path
+                let unavailable = (occupied[folder] ?? []).subtracting(originals).union(reserved[folder] ?? [])
+                let clash = indices.contains { result[$0].changes && unavailable.contains(key(result[$0].target.lastPathComponent)) }
+                for i in indices {
+                    if clash { result[i].target = result[i].source; result[i].issues.append(.livePhoto) }
+                    reserved[folder, default: []].insert(key(result[i].target.lastPathComponent))
+                }
+                continue
+            }
             let originalTargets = indices.map { result[$0].target }
             var suffix = settings.keepFirst ? 0 : 1
             while true {

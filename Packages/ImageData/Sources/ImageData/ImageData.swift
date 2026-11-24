@@ -1,6 +1,7 @@
 import Coords
 import Exiftool
 import Foundation
+import ImageIO
 import Imagetool
 import Metadata
 import OSLog
@@ -66,11 +67,34 @@ public struct ImageData: Identifiable, Sendable {
 
     public mutating func refreshMovieVersion() {
         if isLocalMovie { movieVersion = MetadataInspectionFileVersion.read(metadataCreatorImageURL) }
+        if livePhotoIdentifier != nil { livePhotoVersion = MetadataInspectionFileVersion.read(metadataCreatorImageURL) }
+    }
+
+    public mutating func restoreLivePhotoVersion(_ version: MetadataInspectionFileVersion) {
+        guard isLivePhotoPair, MetadataInspectionFileVersion.read(metadataCreatorImageURL) == version else { return }
+        livePhotoVersion = version
+        if isLocalMovie { movieVersion = version }
+        creatorDraft?.version = version
     }
 
     public var original: Metadata?
     public var creatorDraft: MetadataCreatorEditPlan.Item?
     public var pairedID: ImageData.ID?
+    public private(set) var livePhotoVersion: MetadataInspectionFileVersion?
+    public private(set) var livePhotoIdentifier: String?
+    public var isLivePhotoPair = false
+    public var livePairReadOnly = false
+    public var livePhotoAmbiguous = false
+    public var livePhotoAssetID: ID { isLivePhotoPair && isLocalMovie ? pairedID ?? id : id }
+
+    public static func stillContentIdentifier(_ url: URL) -> String? {
+        guard ["heic", "heif", "jpeg", "jpg"].contains(url.pathExtension.lowercased()),
+              let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any],
+              let maker = props[kCGImagePropertyMakerAppleDictionary as String] as? [String: Any],
+              let value = maker["17"] as? String, !value.isEmpty else { return nil }
+        return value
+    }
     public var thumbnail: Image?
     public var fileRenameRecoveryRequired = false
 
@@ -189,6 +213,7 @@ public struct ImageData: Identifiable, Sendable {
             metadata.dateTimeCreated = info?.zonedCreationDate
             self.init(metadata: metadata, name: url.lastPathComponent)
             videoInfo = info
+            if url.pathExtension.lowercased() == "mov" { livePhotoIdentifier = info?.contentIdentifier; livePhotoVersion = version }
             metadataTargetWritable = FileManager.default.isWritableFile(atPath: url.path)
             if info != nil && metadataTargetWritable {
                 original = Metadata(copying: metadata)
@@ -202,6 +227,7 @@ public struct ImageData: Identifiable, Sendable {
             FileManager.default.fileExists(atPath: sidecarURL.path)
         let name = url.lastPathComponent + (hasSidecar ? "*" : "")
 
+        let stillVersion = MetadataInspectionFileVersion.read(url)
         var metadata: Metadata
         if hasSidecar {
             metadata = Imagetool.metadata(from: url, xmp: sidecarURL)
@@ -209,6 +235,8 @@ public struct ImageData: Identifiable, Sendable {
             metadata = Imagetool.metadata(from: url)
         }
         self.init(metadata: metadata, name: name)
+        livePhotoIdentifier = Self.stillContentIdentifier(url)
+        if livePhotoIdentifier != nil { livePhotoVersion = stillVersion }
         metadataTargetWritable = FileManager.default.isWritableFile(atPath: (hasSidecar ? sidecarURL : url).path)
     }
 

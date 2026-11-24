@@ -16,7 +16,7 @@ extension PhotoTrailReducer {
         for id in state.selection
             where state[id].updatable && state[id].metadata.location != nil {
             update(&state, id: id, location: nil)
-            if state[id].isLocalMovie { continue }
+            if state[id].isLocalMovie || state[id].isLivePhotoPair { continue }
             state[id].metadata.sublocation = nil
             state[id].metadata.city = nil
             state[id].metadata.state = nil

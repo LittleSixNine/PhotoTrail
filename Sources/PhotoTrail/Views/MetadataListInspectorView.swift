@@ -313,7 +313,13 @@ struct MetadataListInspectorView: View {
     private func label(for tag: MetadataTag) -> String { tag.displayName }
 
     private var sourceDescription: String {
+        if selected.contains(where: \.isLivePhotoPair) {
+            let assets = Set(selected.map(\.livePhotoAssetID))
+            return L10n.text("%1$@ 项素材 · %2$@ 个文件", assets.count, selected.count)
+        }
         if selected.count == 1, let image = selected.first {
+            if image.livePhotoAmbiguous { return L10n.text("Live Photo · 配对标识重复") }
+            if image.livePhotoIdentifier != nil { return L10n.text("Live Photo · 只导入了一份文件") }
             if image.isLocalMovie { return L10n.text("视频") + " · " + image.name }
             switch image.metadata.source {
             case .image(let url):
@@ -721,7 +727,9 @@ private extension MetadataListInspectorView {
             }
             if !selected.isEmpty {
                 HStack(spacing: 8) {
-                    Text(L10n.text("已选择 %1$@ 项（当前显示 %2$@ 项）", selected.count, selected.filter { visiblePhotoIDs?.contains($0.id) ?? true }.count))
+                    let assets = Set(selected.map(\.livePhotoAssetID))
+                    Text(L10n.text("已选择 %1$@ 项（当前显示 %2$@ 项）", assets.count,
+                                   assets.filter { visiblePhotoIDs?.contains($0) ?? true }.count))
                     Text("·")
                     Text(loading || advancedLoading ? L10n.text("正在读取元数据…")
                          : readFailureCount > 0 || advancedFailed ? L10n.text("未能读取") : L10n.text("读取完成"))
@@ -748,8 +756,46 @@ private extension MetadataListInspectorView {
                     }
                 }.font(.caption).foregroundStyle(.secondary)
             }
+            if selected.contains(where: \.isLivePhotoPair) {
+                DisclosureGroup("Live Photo") {
+                    ForEach(selected.filter(\.isLivePhotoPair)) { member in
+                        Label(member.name, systemImage: member.isLocalMovie ? "video" : "photo")
+                            .font(.caption).frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
+            if selected.contains(where: \.livePairReadOnly) {
+                Text(L10n.text("Live Photo · 成员只读或使用 XMP，跳过整组")).font(.caption).foregroundStyle(.red)
+            }
+            if selected.count == 1, let member = selected.first, member.livePhotoIdentifier != nil, !member.livePhotoAmbiguous {
+                Button(L10n.text("添加配对文件…")) { addCompanion(to: member) }
+                    .disabled(store.saveInProgress || store.importProgress.isActive || member.hasPendingChanges)
+            }
             batchEntryCards(readings: readings)
         }.padding(.horizontal, 14).padding(.vertical, 12)
+    }
+
+    private func addCompanion(to member: ImageData) {
+        guard let url = member.metadataCreatorImageURL else { return }
+        let panel = NSOpenPanel()
+        panel.directoryURL = url.deletingLastPathComponent()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = member.isLocalMovie ? [.jpeg, .heic, .heif] : [.quickTimeMovie]
+        panel.begin { result in
+            guard result == .OK, let candidate = panel.url else { return }
+            Task { @MainActor in
+                let access = candidate.startAccessingSecurityScopedResource()
+                defer { if access { candidate.stopAccessingSecurityScopedResource() } }
+                let partner = await Task.detached { ImageData(from: candidate) }.value
+                guard candidate.deletingLastPathComponent().standardizedFileURL == url.deletingLastPathComponent().standardizedFileURL,
+                      partner.isLocalMovie != member.isLocalMovie, partner.livePhotoIdentifier == member.livePhotoIdentifier,
+                      store.imageData.contains(where: { $0.id == member.id && !$0.hasPendingChanges }) else {
+                    presetNotice = L10n.text("所选文件与当前 Live Photo 不匹配。"); return
+                }
+                await OpenHelper.importFiles(store, urls: [candidate], description: L10n.text("添加配对文件…")).value
+            }
+        }
     }
 
     private var shortcutNames: [String] {
@@ -821,10 +867,15 @@ private extension MetadataListInspectorView {
                     openPresetRules(cards, name: quickPresetSession.original.name)
                 }, completed: { result, issues in
                     let processed = Set(result.steps.map(\.id))
-                    let unprocessed = quickPresetSession.scope(in: store.state).count - processed.union(result.items.map(\.id)).count
+                    let scope = quickPresetSession.scope(in: store.state)
+                    let changedIDs = Set(result.items.map(\.id))
+                    let handled = processed.union(changedIDs)
+                    let changed = Set(scope.filter { changedIDs.contains($0.id) }.map(\.livePhotoAssetID))
+                    let touched = Set(scope.filter { handled.contains($0.id) }.map(\.livePhotoAssetID))
+                    let unprocessed = Set(scope.map(\.livePhotoAssetID)).subtracting(touched).count
                     presetSkipped = unprocessed > 0 || !result.skipDetails.isEmpty || !issues.isEmpty
                     presetNotice = L10n.text("已加入待保存 %1$@ 项 · 无变化 %2$@ 项 · 未处理 %3$@ 项",
-                        result.items.count, processed.subtracting(result.items.map(\.id)).count,
+                        changed.count, touched.subtracting(changed).count,
                         unprocessed)
                     presetIssues = issues
                     self.quickPresetSession = nil
@@ -869,7 +920,7 @@ private extension MetadataListInspectorView {
     }
 
     private var presetScopeImages: [ImageData] {
-        presetOnlySelected ? store.imageData.filter { store.selection.contains($0.id) } : store.imageData
+        presetOnlySelected ? store.state.members(of: store.selection) : store.imageData
     }
 
     private var presetScopeBinding: Binding<Bool> {

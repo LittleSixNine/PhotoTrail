@@ -226,14 +226,20 @@ struct MetadataRuleScope: Equatable {
     private(set) var videos = 0
     private(set) var skippedPhotos = 0
     private(set) var skippedVideos = 0
+    private var liveAssets = Set<ImageData.ID>()
+    private var liveFiles = 0
     var count: Int { photos + videos }
     var skipped: Int { skippedPhotos + skippedVideos }
 
     init(_ operations: [MetadataOperation], in images: [ImageData]) {
+        let applicable = images.filter { image in operations.contains { $0.applies(to: image) } }
+        let liveTargets = Set(applicable.filter(\.isLivePhotoPair).map(\.livePhotoAssetID))
         for image in images {
             if operations.contains(where: { $0.applies(to: image) }) {
+                if image.isLivePhotoPair { liveAssets.insert(image.livePhotoAssetID); liveFiles += 1 }
                 if image.isLocalMovie { videos += 1 } else { photos += 1 }
-            } else if image.isLocalMovie { skippedVideos += 1 } else { skippedPhotos += 1 }
+            } else if image.isLivePhotoPair && liveTargets.contains(image.livePhotoAssetID) { continue }
+            else if image.isLocalMovie { skippedVideos += 1 } else { skippedPhotos += 1 }
         }
     }
 
@@ -245,12 +251,16 @@ struct MetadataRuleScope: Equatable {
     }
 
     var applyLabel: String {
+        if !liveAssets.isEmpty { return L10n.text("应用到 %1$@ 项", count - liveFiles + liveAssets.count) }
         if photos > 0, videos == 0 { return L10n.text("应用到 %1$@ 张照片", photos) }
         if videos > 0, photos == 0 { return L10n.text("应用到 %1$@ 段视频", videos) }
         return L10n.text("应用到 %1$@ 项", count)
     }
 
     var description: String {
+        if !liveAssets.isEmpty {
+            return L10n.text("%1$@ 项素材 · %2$@ 个文件", count - liveFiles + liveAssets.count, count) + " · " + L10n.text("本规则适用于 %1$@ 张照片、%2$@ 段视频，跳过 %3$@ 项", photos, videos, skipped)
+        }
         if photos > 0, videos == 0, skippedVideos > 0, skippedPhotos == 0 {
             return L10n.text("仅更改 %1$@ 张照片，跳过 %2$@ 段视频。", photos, skippedVideos)
         }

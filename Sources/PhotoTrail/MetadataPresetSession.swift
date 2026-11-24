@@ -52,7 +52,7 @@ final class MetadataPresetSession: Identifiable {
 
     var onlySelected = false
     func scope(in state: PhotoTrailState) -> [ImageData] {
-        onlySelected ? state.imageData.filter { state.selection.contains($0.id) } : state.imageData
+        onlySelected ? state.members(of: state.selection) : state.imageData
     }
 
     var targetOperations: [MetadataOperation] { activeCards.flatMap(\.operations) }

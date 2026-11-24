@@ -9,7 +9,8 @@ public struct QuickTimeVideoInfo: Equatable, Sendable {
     public let codec: String?
     public let frameRate: Double?
     public private(set) var model: String?
-    public let hasContentIdentifier: Bool
+    public let contentIdentifier: String?
+    public var hasContentIdentifier: Bool { contentIdentifier != nil }
     public private(set) var location: Coords?
     let userDataLocation: Bool
     let altitude: Double?
@@ -51,7 +52,8 @@ public struct QuickTimeVideoInfo: Equatable, Sendable {
         frameRate = (tags[samples + ":VideoFrameRate"] as? String).flatMap(Double.init)
         duration = (tags["QuickTime:MOV-Movie-MovieHeader:Duration"] as? String).flatMap(Double.init)
         model = tags[keys + "Model"] as? String
-        hasContentIdentifier = tags[keys + "ContentIdentifier"] != nil
+        let identifier = (tags[keys + "ContentIdentifier"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        contentIdentifier = identifier?.isEmpty == false ? identifier : nil
         creationDate = Self.date(tags[keys + "CreationDate"])
         containerDate = Self.date(tags["QuickTime:MOV-Movie-MovieHeader:CreateDate"])
         userDataLocation = tags["UserData:MOV-Movie-UserData:GPSCoordinates"] != nil

@@ -27,6 +27,7 @@ enum PhotoTrailEvent: Equatable {
     case clearPlaces
     case clearUniqueURLs
     case creatorDraftApplied([MetadataCreatorEditPlan.Item])
+    case livePhotoRollback([ImageData.ID: MetadataInspectionFileVersion])
     case creatorDraftRemoved(ImageData.ID)
     case creatorSaved(ImageData.ID)
     case creatorSaveResult(ImageData.ID, MetadataCreatorSaveResult)
@@ -111,6 +112,7 @@ extension PhotoTrailEvent: CustomStringConvertible {
         case .clearUniqueURLs: "clearUniqueURLs"
         case .creatorDraftApplied: "creatorDraftApplied"
         case .creatorDraftRemoved: "creatorDraftRemoved"
+        case .livePhotoRollback: "livePhotoRollback"
         case .creatorSaved: "creatorSaved"
         case .creatorSaveResult: "creatorSaveResult"
         case .cancelMetadataSave: "cancelMetadataSave"

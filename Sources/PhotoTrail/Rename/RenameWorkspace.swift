@@ -205,9 +205,16 @@ final class RenameWorkspace {
             RenameEngine.groupID(RenameInput(url: $0), settings: settings)
         })
         manualOrder = manualOrder.filter { importedGroups.contains($0) }
-        let selected = images.filter { !onlySelected || selection.contains($0.id) }
+        let selected = images.filter { !onlySelected || selection.contains($0.livePhotoAssetID) || selection.contains($0.id) }
+        let liveGroups = Dictionary(grouping: selected.filter(\.isLivePhotoPair), by: \.livePhotoAssetID)
+        var confirmed: [URL: String] = [:]
+        for group in liveGroups.values where group.count == 2 {
+            guard let id = group.first?.livePhotoIdentifier, group.allSatisfy({ !$0.livePairReadOnly && $0.livePhotoIdentifier == id }) else { continue }
+            for image in group { if let url = image.metadataCreatorImageURL { confirmed[url.standardizedFileURL] = id } }
+        }
+        let liveIdentifiers = confirmed
         let protectedVideoBases = Set(images.compactMap { image -> String? in
-            guard image.videoInfo?.hasContentIdentifier == true, let url = image.metadataCreatorImageURL else { return nil }
+            guard image.livePhotoIdentifier != nil || image.videoInfo?.hasContentIdentifier == true, let url = image.metadataCreatorImageURL else { return nil }
             return RenameEngine.key(url.standardizedFileURL.deletingPathExtension().path)
         })
         let urls = selected.compactMap(\.metadataCreatorImageURL)
@@ -227,7 +234,7 @@ final class RenameWorkspace {
             do {
                 try await Task.sleep(for: .milliseconds(180))
                 let reader = Task.detached(priority: .userInitiated) {
-                    try Self.prepare(urls: urls, protectedVideoBases: protectedVideoBases, rules: frozenRules, settings: settings, cache: cached,
+                    try Self.prepare(urls: urls, protectedVideoBases: protectedVideoBases, liveIdentifiers: liveIdentifiers, rules: frozenRules, settings: settings, cache: cached,
                                      counters: counterValues, directories: directories, filter: filter, manual: manual, progress: { completed, total, calculating in
                                          Task { @MainActor in
                                              guard token == self.revision, self.busy else { return }
@@ -587,7 +594,7 @@ extension RenameWorkspace {
     }
 
     // swiftlint:disable:next function_parameter_count
-    nonisolated private static func prepare(urls: [URL], protectedVideoBases: Set<String>, rules: [RenameRule], settings: RenameSettings,
+    nonisolated private static func prepare(urls: [URL], protectedVideoBases: Set<String>, liveIdentifiers: [URL: String], rules: [RenameRule], settings: RenameSettings,
                                            cache: [URL: (RenameFileIdentity, RenameInput)], counters: [Int: Int], directories: Set<URL>,
                                            filter: RenameFileFilter, manual: [String],
                                            progress: @escaping @Sendable (Int, Int, Bool) -> Void) throws -> Prepared {
@@ -616,6 +623,11 @@ extension RenameWorkspace {
             var prepared = input
             if protectedBases.contains(RenameEngine.key(url.standardizedFileURL.deletingPathExtension().path)) {
                 prepared.tags["PhotoTrail:LivePhoto"] = "1"
+            }
+            if let id = liveIdentifiers[url.standardizedFileURL] {
+                let current = QuickTimeVideoInfo.acceptsExtension(url) ? try Exiftool.helper.quickTimeVideoInfo(from: url).contentIdentifier : ImageData.stillContentIdentifier(url)
+                guard current == id else { throw RenameError.stalePlan }
+                prepared.confirmedLiveGroup = id
             }
             prepared.referenceDate = referenceDate
             inputs.append(prepared); versions[url] = before; updated[url] = (before, input)

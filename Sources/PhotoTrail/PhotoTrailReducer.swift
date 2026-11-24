@@ -52,9 +52,11 @@ struct PhotoTrailReducer: Reducer, Sendable {
 
         case .addImage(let imageData):
             newState.imageData.append(imageData)
+            if imageData.livePhotoIdentifier != nil { newState.linkLivePhotos() }
 
         case .addImages(let imageDatas):
             newState.imageData.append(contentsOf: imageDatas)
+            newState.linkLivePhotos()
             if UserDefaults.standard.object(forKey: SettingsPreferences.pairJPGRAWKey) as? Bool != false {
                 newState.pairingEligibleIDs = (newState.pairingEligibleIDs ?? []).union(imageDatas.map(\.id))
             } else if newState.pairingEligibleIDs == nil {
@@ -112,6 +114,11 @@ struct PhotoTrailReducer: Reducer, Sendable {
             newState.imageData = images
             newState.unsavedChanges = images.contains { $0.hasPendingChanges }
 
+        case .livePhotoRollback(let versions):
+            for (id, version) in versions {
+                if let index = newState.imageIndex(for: id) { newState.imageData[index].restoreLivePhotoVersion(version) }
+            }
+
         case .creatorDraftRemoved(let id), .creatorSaved(let id):
             clearCreatorDraft(&newState, id: id, discard: event == .creatorDraftRemoved(id))
 
@@ -128,6 +135,7 @@ struct PhotoTrailReducer: Reducer, Sendable {
         case .removeImages(let ids):
             let removed = ids.union(state.imageData.filter { ids.contains($0.id) }.compactMap(\.pairedID))
             newState.imageData.removeAll { removed.contains($0.id) }
+            newState.linkLivePhotos()
             newState.trackMatches.removeAll { removed.contains($0.id) }
             newState.pairingEligibleIDs?.subtract(removed)
             newState.locationSavedPhotoIDs.subtract(removed)
@@ -142,6 +150,7 @@ struct PhotoTrailReducer: Reducer, Sendable {
 
         case .discardChangesRequest:
             discardChanges(&newState)
+            newState.linkLivePhotos()
 
         case .restoreTracks(let tracks):
             newState.trackMatches = []
@@ -203,25 +212,25 @@ struct PhotoTrailReducer: Reducer, Sendable {
 
         case .locationFromPhoto(let coords, let elevation):
             guard !state.saveInProgress else { return state }
-            for id in state.selection where state[id].updatable {
+            for id in state.selection where state[id].updatable && !state[id].livePairReadOnly && !state[id].livePhotoAmbiguous {
                 update(&newState, id: id, location: coords, elevation: elevation)
                 newState[id].metadata.gpsMapDatum = "WGS-84"
                 if !state[id].isLocalMovie { newState[id].metadata.gpsProcessingMethod = "MANUAL" }
                 if let pairedID = state[id].pairedID, state[pairedID].updatable {
                     newState[pairedID].metadata.gpsMapDatum = "WGS-84"
-                    newState[pairedID].metadata.gpsProcessingMethod = "MANUAL"
+                    if !state[pairedID].isLocalMovie { newState[pairedID].metadata.gpsProcessingMethod = "MANUAL" }
                 }
             }
 
         case .confirmedWGS84Location(let coords):
             guard !state.saveInProgress else { return state }
             update(&newState, coords: coords)
-            for id in state.selection where state[id].updatable {
+            for id in state.selection where state[id].updatable && !state[id].livePairReadOnly && !state[id].livePhotoAmbiguous {
                 newState[id].metadata.gpsMapDatum = "WGS-84"
                 if !state[id].isLocalMovie { newState[id].metadata.gpsProcessingMethod = "MANUAL" }
                 if let pairedID = state[id].pairedID, state[pairedID].updatable {
                     newState[pairedID].metadata.gpsMapDatum = "WGS-84"
-                    newState[pairedID].metadata.gpsProcessingMethod = "MANUAL"
+                    if !state[pairedID].isLocalMovie { newState[pairedID].metadata.gpsProcessingMethod = "MANUAL" }
                 }
             }
 
@@ -230,7 +239,8 @@ struct PhotoTrailReducer: Reducer, Sendable {
             newState.trackMatches = updates.filter { photoIDs.contains($0.id) }
 
         case .applyTrackMatches:
-            for entry in state.trackMatches where entry.status == .matched && entry.coords != nil && state[entry.id].updatable {
+            for entry in state.trackMatches where entry.status == .matched && entry.coords != nil && state[entry.id].updatable
+                && !state[entry.id].livePairReadOnly && !state[entry.id].livePhotoAmbiguous {
                 update(&newState, id: entry.id,
                        location: entry.coords, elevation: entry.elevation)
                 newState[entry.id].metadata.gpsMapDatum = "WGS-84"
@@ -290,6 +300,7 @@ struct PhotoTrailReducer: Reducer, Sendable {
             newState.saveFailures.append(message)
 
         case .saveComplete(let saveStatus):
+            newState.linkLivePhotos()
             newState.saveImageIndices.removeAll()
             newState.saveInProgress = false
             newState.libraryImages = []

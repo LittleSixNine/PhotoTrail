@@ -71,7 +71,7 @@ enum MediaListFilter: String { case all, photos, videos }
         if selectedIDs != state.selection || selectionSort != state.sortOrder {
             selectedIDs = state.selection
             selectionSort = state.sortOrder
-            selectedImages = state.imageData.filter { state.selection.contains($0.id) }.sorted(using: state.sortOrder)
+            selectedImages = state.members(of: state.selection).sorted(using: state.sortOrder)
         }
         return selectedImages
     }

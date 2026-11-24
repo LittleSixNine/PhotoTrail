@@ -1,6 +1,7 @@
 import Coords
 @testable import Exiftool
 import Foundation
+import ImageIO
 import ImageData
 import Testing
 import UDF
@@ -9,6 +10,113 @@ import UDF
 private final class VideoTestResources {}
 
 @MainActor struct MixedVideoTests {
+    private func liveSources(in folder: URL) throws -> [URL] {
+        let fm = FileManager.default
+        try fm.createDirectory(at: folder, withIntermediateDirectories: true)
+        let source = try #require(Bundle.main.url(forResource: "L1000051", withExtension: "JPG"))
+        let still = folder.appendingPathComponent("still.jpg"), movie = folder.appendingPathComponent("motion.mov")
+        let identifier = UUID().uuidString
+        let original = try #require(CGImageSourceCreateWithURL(source as CFURL, nil))
+        let image = try #require(CGImageSourceCreateThumbnailAtIndex(original, 0, [
+            kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceThumbnailMaxPixelSize: 128
+        ] as CFDictionary))
+        let dest = try #require(CGImageDestinationCreateWithURL(still as CFURL, "public.jpeg" as CFString, 1, nil))
+        CGImageDestinationAddImage(dest, image, [kCGImagePropertyMakerAppleDictionary: ["17": identifier]] as CFDictionary)
+        try #require(CGImageDestinationFinalize(dest))
+        let clip = try #require(Bundle(for: VideoTestResources.self).url(forResource: "tagged", withExtension: "mov"))
+        try fm.copyItem(at: clip, to: movie)
+        try Exiftool.helper.run(["-overwrite_original", "-Keys:ContentIdentifier=" + identifier, movie.path])
+        return [still, movie]
+    }
+
+    @Test func livePairScopeSaveRollbackAndRename() async throws {
+        let folder = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let files = try liveSources(in: folder)
+        var state = PhotoTrailState()
+        state.backupURL = folder.appendingPathComponent("backups")
+        try FileManager.default.createDirectory(at: try #require(state.backupURL), withIntermediateDirectories: true)
+        let store = Store(initialState: state, reduce: PhotoTrailReducer(), undoEnabled: true)
+        await OpenHelper.importFiles(store, urls: [folder], description: "Import").value
+        let asset = try #require(store.state.visibleImages.first)
+        #expect(store.state.visibleImages.count == 1 && !asset.isLocalMovie && asset.isLivePhotoPair)
+        store.send(.selectionChanged([asset.id]), undoable: false)
+        let photos = store.state.members(of: store.selection)
+        #expect(photos.count == 2)
+        let readings = try photos.map { image in
+            (image: image, snapshot: try MetadataInspectionSnapshot.read([.city], from: #require(image.metadataInspectionURL)))
+        }
+        let plan = try MetadataCreatorEditPlan.prepare(readings, tag: .city, action: .setText("Hangzhou"))
+        store.send(.creatorDraftApplied(plan.items))
+        let before = try files.map { try RenameExecutor.digest($0) }
+        let pending = store.imageData.map { LivePhotoSave.Member(image: $0, fields: $0.creatorDraft, map: nil) }
+        do {
+            try LivePhotoSave.write(pending, backup: nil, timeZone: nil) { if $0 == 1 { throw CocoaError(.fileWriteUnknown) } }
+            Issue.record("The injected failure must roll the pair back")
+        } catch let error as LivePhotoSave.RolledBack {
+            store.send(.livePhotoRollback(error.versions), undoable: false)
+        }
+        #expect(try files.map { try RenameExecutor.digest($0) } == before)
+        await store.send(.savePageRequest(.metadata)) { _ = await SaveHelper.save(store).result }
+        #expect(store.saveFailures.isEmpty && !store.imageData.contains(where: \.hasPendingChanges))
+        for file in files {
+            #expect(try Exiftool.helper.metadataTags([.city], from: file)[.city] == .text("Hangzhou"))
+            #expect(ImageData(from: file).livePhotoIdentifier == asset.livePhotoIdentifier)
+        }
+        let workspace = RenameWorkspace()
+        var name = RenameRule(action: 97)
+        name.text = "Summer"
+        workspace.rules = [name]
+        workspace.settings = RenameSettings()
+        workspace.refresh(images: store.imageData, selection: [], directoryScopes: [folder])
+        for _ in 0..<600 where workspace.busy { try await Task.sleep(for: .milliseconds(25)) }
+        let rows = try #require(workspace.plan).rows
+        #expect(rows.count == 2 && Set(rows.map(\.group)).count == 1)
+        #expect(rows.allSatisfy { !$0.issues.contains(.livePhoto) })
+        let history = folder.appendingPathComponent("history")
+        let result = try RenameExecutor.execute(try #require(workspace.plan), directory: history)
+        #expect(result.error == nil && result.mappings.count == 2)
+        #expect(Set(result.mappings.values.map(\.lastPathComponent)) == ["Summer.jpg", "Summer.mov"])
+        var journal = result.journal
+        try RenameExecutor.restore(&journal, directory: history)
+        let duplicate = folder.appendingPathComponent("duplicate.mov")
+        try FileManager.default.copyItem(at: files[1], to: duplicate)
+        await OpenHelper.importFiles(store, urls: [duplicate], description: "Duplicate").value
+        #expect(store.state.visibleImages.count == 3 && store.imageData.allSatisfy(\.livePhotoAmbiguous))
+    }
+
+    @Test func livePhotoRecoversAfterInterruptedExchange() throws {
+        let fm = FileManager.default
+        let folder = URL.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let work = folder.appendingPathComponent(".PhotoTrail-Live-test", isDirectory: true)
+        try fm.createDirectory(at: work, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: folder) }
+        let storage = RenameExecutor.storage.deletingLastPathComponent().appendingPathComponent("LivePhotoSaves")
+        try fm.createDirectory(at: storage, withIntermediateDirectories: true)
+        let record = storage.appendingPathComponent(UUID().uuidString + ".json")
+        defer { try? fm.removeItem(at: record) }
+        var entries: [[String: String]] = []
+        for (index, name) in ["still.heic", "motion.mov"].enumerated() {
+            let original = folder.appendingPathComponent(name), staged = work.appendingPathComponent(name)
+            try Data("before".utf8).write(to: original)
+            try Data("after".utf8).write(to: staged)
+            entries.append(["original": original.absoluteString, "staged": staged.absoluteString,
+                            "before": try RenameExecutor.digest(original), "after": try RenameExecutor.digest(staged)])
+            if index == 0 {
+                try Data("after".utf8).write(to: original)
+                try Data("before".utf8).write(to: staged)
+            }
+        }
+        let journal: [String: Any] = ["work": work.absoluteString, "entries": entries, "committed": false]
+        try JSONSerialization.data(withJSONObject: journal).write(to: record)
+        try LivePhotoSave.recover(in: folder)
+        try LivePhotoSave.recover(in: folder)
+        for name in ["still.heic", "motion.mov"] {
+            #expect(try Data(contentsOf: folder.appendingPathComponent(name)) == Data("before".utf8))
+        }
+        #expect(!fm.fileExists(atPath: work.path) && !fm.fileExists(atPath: record.path))
+    }
+
     @Test func oldRecipesPreservePhotoOnlySourcesAndTargets() throws {
         for operation in [MetadataOperation(tag: .lens, action: .setText("Prime")),
                           MetadataOperation(tag: .descriptionDefault, action: .copy(.rating)),

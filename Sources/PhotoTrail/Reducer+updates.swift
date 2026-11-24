@@ -28,7 +28,7 @@ extension PhotoTrailReducer {
             return formatted
         }
 
-        guard state[id].updatable else { return }
+        guard state[id].updatable, !state[id].livePairReadOnly, !state[id].livePhotoAmbiguous else { return }
         let logImg = state[id]
         logger.notice("""
             \(logImg.name, privacy: .public)
@@ -45,10 +45,11 @@ extension PhotoTrailReducer {
             state[id].metadata.elevation = elevation
         }
         if let pairedID = state[id].pairedID, state[pairedID].updatable {
+            state[pairedID].supersedeMovieLocationDraft()
             state[pairedID].metadata.location = location
-            state[pairedID].metadata.gpsMapDatum = nil
+            state[pairedID].metadata.gpsMapDatum = state[pairedID].isLocalMovie && location != nil ? "WGS-84" : nil
             state[pairedID].metadata.gpsProcessingMethod = nil
-            state[pairedID].metadata.elevation = elevation
+            if !state[pairedID].isLocalMovie { state[pairedID].metadata.elevation = elevation }
         }
         state.unsavedChanges = true
     }
@@ -59,7 +60,7 @@ extension PhotoTrailReducer {
                 address: Place) {
         guard UserDefaults.standard.object(forKey: SettingsPreferences.writeRegionKey) as? Bool != false else { return }
         for id in selected {
-            guard !state[id].isLocalMovie, state[id].updatable, state[id].metadata.location == Coords(
+            guard !state[id].isLocalMovie, !state[id].livePairReadOnly, !state[id].livePhotoAmbiguous, state[id].updatable, state[id].metadata.location == Coords(
                 latitude: address.coordinate.latitude, longitude: address.coordinate.longitude) else { continue }
             state[id].metadata.sublocation = address.sublocation
             state[id].metadata.city = address.city
@@ -68,11 +69,11 @@ extension PhotoTrailReducer {
             state[id].metadata.countryCode = address.countryCode
             if let changes = state[id].creatorDraft?.changes { state[id].metadata.applyCatalogRegions(changes) }
             if let pairedID = state[id].pairedID, state[pairedID].updatable {
-                state[pairedID].metadata.sublocation = address.sublocation
+                if !state[pairedID].isLocalMovie { state[pairedID].metadata.sublocation = address.sublocation }
                 state[pairedID].metadata.city = address.city
                 state[pairedID].metadata.state = address.state
                 state[pairedID].metadata.country = address.country
-                state[pairedID].metadata.countryCode = address.countryCode
+                if !state[pairedID].isLocalMovie { state[pairedID].metadata.countryCode = address.countryCode }
                 if let changes = state[pairedID].creatorDraft?.changes { state[pairedID].metadata.applyCatalogRegions(changes) }
             }
         }
@@ -90,6 +91,11 @@ extension PhotoTrailReducer {
             if LocationHelper.isMissingRegionValue(metadata.country) { metadata.country = address.country }
             if LocationHelper.isMissingRegionValue(metadata.countryCode) { metadata.countryCode = address.countryCode }
             state[id].metadata = metadata
+            if state[id].isLivePhotoPair, let other = state[id].pairedID, state[other].creatorDraft == nil {
+                if LocationHelper.isMissingRegionValue(state[other].metadata.city) { state[other].metadata.city = address.city }
+                if LocationHelper.isMissingRegionValue(state[other].metadata.state) { state[other].metadata.state = address.state }
+                if LocationHelper.isMissingRegionValue(state[other].metadata.country) { state[other].metadata.country = address.country }
+            }
         }
         state.unsavedChanges = state.imageData.contains { $0.hasPendingChanges }
     }
@@ -99,7 +105,7 @@ extension PhotoTrailReducer {
 
     func update(_ state: inout PhotoTrailState,
                 date: Date, adjustment: TimeInterval) {
-        for id in state.selection where !state[id].isLocalMovie {
+        for id in state.selection where !state[id].isLocalMovie && !state[id].livePairReadOnly && !state[id].livePhotoAmbiguous {
             let updatedDate: Date
             if state[id].metadata.dateTimeCreated == nil {
                 updatedDate = date
@@ -108,7 +114,16 @@ extension PhotoTrailReducer {
                 updatedDate = Date(timeInterval: adjustment,
                                    since: originalDate)
             }
-            let timestamp = Metadata.timestamp(from: updatedDate)
+            let timestamp: String
+            if state[id].isLivePhotoPair {
+                let formatter = DateFormatter()
+                formatter.locale = Locale(identifier: "en_US_POSIX")
+                formatter.timeZone = state.timeZone ?? .current
+                formatter.dateFormat = Metadata.dateFormat + "XXXXX"
+                timestamp = formatter.string(from: updatedDate)
+            } else {
+                timestamp = Metadata.timestamp(from: updatedDate)
+            }
             state[id].metadata.dateTimeCreated = timestamp
             if let pairedID = state[id].pairedID, state[pairedID].updatable {
                 state[pairedID].metadata.dateTimeCreated = timestamp

@@ -17,12 +17,52 @@ extension ImageData {
         }
     }
 
-    var isPairedJPEG: Bool { isJPEG && pairedID != nil }
+    var isPairedJPEG: Bool { isJPEG && pairedID != nil && !isLivePhotoPair }
 }
 
 extension PhotoTrailState {
     var visibleImages: [ImageData] {
-        imageData.filter { $0.pairedID == nil || $0.isJPEG }
+        imageData.filter { $0.pairedID == nil || ($0.isLivePhotoPair ? !$0.isLocalMovie : $0.isJPEG) }
+    }
+
+    func members(of selection: Set<ImageData.ID>) -> [ImageData] {
+        imageData.filter { selection.contains($0.id) || ($0.isLivePhotoPair && selection.contains($0.livePhotoAssetID)) }
+    }
+
+    mutating func linkLivePhotos() {
+        struct GroupKey: Hashable { let folder: URL; let identifier: String }
+        var groups: [GroupKey: [Int]] = [:]
+        for i in imageData.indices {
+            guard let identifier = imageData[i].livePhotoIdentifier,
+                  let url = imageData[i].metadataCreatorImageURL else { continue }
+            let key = GroupKey(folder: url.standardizedFileURL.deletingLastPathComponent(), identifier: identifier)
+            groups[key, default: []].append(i)
+        }
+        for indices in groups.values {
+            let stills = indices.filter { !imageData[$0].isLocalMovie }
+            let movies = indices.filter { imageData[$0].isLocalMovie }
+            let ambiguous = stills.count > 1 || movies.count > 1
+            for i in indices {
+                imageData[i].livePhotoAmbiguous = ambiguous
+                if ambiguous && imageData[i].isLivePhotoPair {
+                    imageData[i].pairedID = nil
+                    imageData[i].isLivePhotoPair = false
+                    imageData[i].livePairReadOnly = false
+                }
+            }
+            guard !ambiguous, let still = stills.first, let movie = movies.first,
+                  [still, movie].allSatisfy({ imageData[$0].pairedID == nil && !imageData[$0].hasPendingChanges }) else { continue }
+            let stillID = imageData[still].id, movieID = imageData[movie].id
+            let readOnly = [still, movie].contains { i in
+                let image = imageData[i]
+                return !image.updatable || !image.metadataTargetWritable || image.metadataInspectionURL != image.metadataCreatorImageURL
+            }
+            imageData[still].livePairReadOnly = readOnly; imageData[movie].livePairReadOnly = readOnly
+            imageData[still].pairedID = movieID; imageData[movie].pairedID = stillID
+            imageData[still].isLivePhotoPair = true; imageData[movie].isLivePhotoPair = true
+            if selection.remove(movieID) != nil { selection.insert(stillID) }
+            if mostSelected == movieID { mostSelected = stillID }
+        }
     }
 
     mutating func linkPairedImages() {
@@ -45,7 +85,7 @@ extension PhotoTrailState {
 
         for index in imageData.indices {
             let jpeg = imageData[index]
-            guard jpeg.pairedID == nil, jpeg.isJPEG, let url = jpeg.metadataCreatorImageURL,
+            guard jpeg.pairedID == nil, jpeg.livePhotoIdentifier == nil, jpeg.isJPEG, let url = jpeg.metadataCreatorImageURL,
                   let rawIndex = rawByBase[url.deletingPathExtension().path] else { continue }
             let raw = imageData[rawIndex]
             guard raw.pairedID == nil,

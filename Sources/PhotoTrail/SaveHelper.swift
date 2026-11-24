@@ -153,6 +153,9 @@ enum SaveHelper {
         let combined = Dictionary(uniqueKeysWithValues: store.combinedImages.map {
             (store.imageData[$0].id, store.imageData[$0].metadata.forSaving(comparedTo: store.imageData[$0].original))
         })
+        let groupedIDs = Set(store.imageData.filter(\.isLivePhotoPair).map(\.id))
+        let itemsByID = Dictionary(uniqueKeysWithValues: creatorItems.map { ($0.id, $0) })
+        let pairs = Dictionary(grouping: store.imageData.filter(\.isLivePhotoPair), by: \.livePhotoAssetID)
         // Do the save in the background, report when done.
         let task = Task {
             let resolvedFiles = await resolveAddresses(fileImages, images: store.imageData, workspace: workspace,
@@ -162,13 +165,49 @@ enum SaveHelper {
             let resolvedCombined = await resolveAddresses(combined, images: store.imageData, workspace: workspace,
                 onFailure: { store.send(.saveFailure($0), undoable: false) })
             async let libUpdated = saveToLibrary(store, libraryImages)
-            async let imgUpdated = saveToImage(store, resolvedFiles)
-            async let xmpUpdated = saveToImage(store, resolvedXmp, xmp: true)
+            async let imgUpdated = saveToImage(store, resolvedFiles.filter { !groupedIDs.contains($0.key) })
+            async let xmpUpdated = saveToImage(store, resolvedXmp.filter { !groupedIDs.contains($0.key) }, xmp: true)
 
             let legacyStatus = await [libUpdated, imgUpdated, xmpUpdated]
             // Do not write a physical target concurrently with the legacy save.
-            let creatorStatus = await saveToCreator(store, creatorItems, mapMetadata: resolvedCombined)
-            let status = legacyStatus + [creatorStatus]
+            let creatorStatus = await saveToCreator(store, creatorItems.filter { !groupedIDs.contains($0.id) }, mapMetadata: resolvedCombined)
+            var pairStatus: SaveStatus = .saveOK
+            for images in pairs.values {
+                if store.metadataSaveCancelled { break }
+                let members = images.map { image in
+                    LivePhotoSave.Member(image: image, fields: itemsByID[image.id],
+                        map: resolvedCombined[image.id] ?? resolvedFiles[image.id] ?? resolvedXmp[image.id])
+                }
+                let pending = members.filter { $0.fields != nil || $0.map != nil }
+                guard !pending.isEmpty else { continue }
+                guard UserDefaults.standard.bool(forKey: PhotoTrailApp.doNotBackupKey) || store.backupURL != nil else {
+                    store.send(.noBackupNotice, undoable: false)
+                    pairStatus = .saveErrorSupressWarning
+                    break
+                }
+                let backup = UserDefaults.standard.bool(forKey: PhotoTrailApp.doNotBackupKey) ? nil : store.backupURL
+                let zone = store.timeZone
+                do {
+                    guard !images.contains(where: { store.creatorSaveResults[$0.id] == .resultUnknown }) else { throw MetadataInspectionError.sourceChanged }
+                    try await Task.detached(priority: .userInitiated) { try LivePhotoSave.write(members, backup: backup, timeZone: zone) }.value
+                    for member in pending {
+                        let id = member.image.id
+                        if let map = member.map {
+                            store.send(.localSaveBatch([LocalSaveResult(id: id, metadata: map, sidecarCreated: false, outcome: .saved)]), undoable: false)
+                        } else { store.send(.saveProgress(1), undoable: false) }
+                        if member.fields != nil {
+                            store.send(.creatorSaveResult(id, .saved), undoable: false)
+                            store.send(.creatorSaved(id), undoable: false)
+                        }
+                    }
+                } catch {
+                    if let restored = error as? LivePhotoSave.RolledBack { store.send(.livePhotoRollback(restored.versions), undoable: false) }
+                    pairStatus = .saveError
+                    store.send(.saveProgress(pending.count), undoable: false)
+                    store.send(.saveFailure("Live Photo · " + images.map(\.name).joined(separator: " + ") + " · " + error.localizedDescription), undoable: false)
+                }
+            }
+            let status = legacyStatus + [creatorStatus, pairStatus]
 
             let sendStatus: SaveStatus =
                 if status.allSatisfy({ $0 == .saveOK }) {

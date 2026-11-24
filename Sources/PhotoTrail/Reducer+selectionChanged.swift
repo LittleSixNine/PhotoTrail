@@ -25,7 +25,7 @@ extension PhotoTrailReducer {
         }
         state.selection = Set(selection.compactMap { id in
             guard let image = imagesByID[id] else { return nil }
-            let visibleID = image.isJPEG ? id : image.pairedID ?? id
+            let visibleID = image.isLivePhotoPair ? image.livePhotoAssetID : (image.isJPEG ? id : image.pairedID ?? id)
             return imagesByID[visibleID]?.updatable == true ? visibleID : nil
         })
 

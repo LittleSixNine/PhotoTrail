@@ -177,7 +177,7 @@ public struct MetadataCreatorEditPlan: Sendable {
         public let sidecar: Bool
         public let tag: MetadataTag
         public let originalValue: MetadataTagValue?
-        public let version: MetadataInspectionFileVersion
+        public internal(set) var version: MetadataInspectionFileVersion
         public let change: MetadataTagChange?
         public internal(set) var changes: [MetadataTag: MetadataTagChange]
     }

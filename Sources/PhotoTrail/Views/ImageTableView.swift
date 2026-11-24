@@ -137,9 +137,9 @@ struct ImageTableView: View {
             }.width(min: 68, ideal: 76, max: 220)
             TableColumn(L10n.text("文件名"), value: \.name) { image in
                 HStack(spacing: 6) {
-                    Image(systemName: image.isLocalMovie ? "video" : "photo")
+                    Image(systemName: image.isLivePhotoPair ? "livephoto" : (image.isLocalMovie ? "video" : "photo"))
                         .foregroundStyle(.secondary).frame(width: 16)
-                        .accessibilityLabel(L10n.text(image.isLocalMovie ? "视频" : "照片"))
+                        .accessibilityLabel(image.isLivePhotoPair ? "Live Photo" : L10n.text(image.isLocalMovie ? "视频" : "照片"))
                     Text(image.name).lineLimit(1).truncationMode(.middle)
                 }.help(image.fullPath)
                     .foregroundStyle(image.updatable ? .primary : .secondary)

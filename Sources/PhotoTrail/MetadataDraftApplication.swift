@@ -25,12 +25,12 @@ struct MetadataDraftRequest: Sendable {
     }
 
     @MainActor func matches(_ state: PhotoTrailState, checkFiles: Bool = false) -> Bool {
-        guard !state.saveInProgress, !state.renameInProgress, !state.importProgress.isActive, (!requiresSelection || state.selection == selection),
+        guard !state.saveInProgress, !state.renameInProgress, !state.importProgress.isActive, (!requiresSelection || Set(state.members(of: state.selection).map(\.id)) == selection),
               (!requiresSelection || state.imageData.filter({ selection.contains($0.id) }).sorted(using: state.sortOrder).map(\.id) == order) else { return false }
         if requiresAllPhotos {
             if let selectedScope, selectedScope != state.selection { return false }
             let targets = state.imageData.filter { image in
-                if let selectedScope, !selectedScope.contains(image.id) { return false }
+                if let selectedScope, !selectedScope.contains(image.livePhotoAssetID) { return false }
                 return allTargetOperations.map { operations in operations.contains { $0.applies(to: image) } } ?? !image.isLocalMovie
             }
             guard targets.sorted(using: state.sortOrder).map(\.id) == order else { return false }

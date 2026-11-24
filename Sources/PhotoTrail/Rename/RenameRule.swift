@@ -119,6 +119,7 @@ struct RenameInput: Sendable, Equatable {
     var created: Date?
     var modified: Date?
     var metadataFailure = false
+    var confirmedLiveGroup: String?
     var tagsRead = false
     var referenceDate = Date()
     var name: String { url.lastPathComponent }

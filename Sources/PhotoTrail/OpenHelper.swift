@@ -70,7 +70,20 @@ enum OpenHelper {
     @MainActor static private
     func images(for urls: [URL],
                 store: Store<PhotoTrailState, PhotoTrailEvent>) async {
-        let imageURLs = urls.filter(\.isSupportedLocalMedia)
+        var candidates = urls.filter(\.isSupportedLocalMedia)
+        for folder in Set(candidates.map { $0.deletingLastPathComponent() }) {
+            do { try await Task.detached(priority: .utility) { try LivePhotoSave.recover(in: folder) }.value }
+            catch {
+                if let recovery = error as? LivePhotoSave.RecoveryNeeded {
+                    candidates.removeAll { recovery.files.contains($0.standardizedFileURL) }
+                } else {
+                    candidates.removeAll { $0.deletingLastPathComponent() == folder }
+                }
+                store.send(.catchUnexpectedError(folder.lastPathComponent + " · " + error.localizedDescription,
+                    L10n.text("Live Photo · 恢复未完成")), undoable: false)
+            }
+        }
+        let imageURLs = candidates
         guard !imageURLs.isEmpty else { return }
         store.importProgress.begin(.images, total: imageURLs.count)
         var newImages: [ImageData] = []
