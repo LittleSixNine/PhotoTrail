@@ -13,6 +13,7 @@ struct TableColumnResizeTests {
         let host = NSHostingView(rootView: root)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 700),
                               styleMask: [.titled], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
         defer { window.close() }
         window.contentView = host
         host.layoutSubtreeIfNeeded()
@@ -63,6 +64,7 @@ struct TableColumnResizeTests {
         let host = NSHostingView(rootView: RenameWorkspaceView(workspace: workspace).environment(LocationWorkspace()).environment(store).defaultAppStorage(defaults))
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 700),
                               styleMask: [.titled], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
         defer { window.close() }
         window.contentView = host
         host.layoutSubtreeIfNeeded()
