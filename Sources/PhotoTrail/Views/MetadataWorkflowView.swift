@@ -683,24 +683,6 @@ struct MetadataWorkflowCard: Identifiable, Equatable, Sendable {
         }
     }
 
-    func scopeDescription(for images: [ImageData]) -> String {
-        guard let card = executableCard else { return L10n.text("本步留空，将跳过。") }
-        var photos = 0, videos = 0, skippedVideos = 0
-        for image in images {
-            if card.operations.contains(where: { $0.applies(to: image) }) {
-                if image.isLocalMovie { videos += 1 } else { photos += 1 }
-            } else if image.isLocalMovie { skippedVideos += 1 }
-        }
-        let skipped = images.count - photos - videos
-        if photos > 0, videos == 0, skippedVideos > 0, skipped == skippedVideos {
-            return L10n.text("仅更改 %1$@ 张照片，跳过 %2$@ 段视频。", photos, skippedVideos)
-        }
-        if videos > 0, photos == 0, skipped > 0, skippedVideos == 0 {
-            return L10n.text("仅更改 %1$@ 段视频，跳过 %2$@ 张照片。", videos, skipped)
-        }
-        return L10n.text("本规则适用于 %1$@ 张照片、%2$@ 段视频，跳过 %3$@ 项", photos, videos, skipped)
-    }
-
     var dateCopySource: MetadataTag? {
         guard let first = operations.first, case .copy(let source) = first.action, source.isDate,
               operations.allSatisfy({ $0.action == first.action && ($0.tag.isDate || $0.tag.isPartialDate) }) else { return nil }

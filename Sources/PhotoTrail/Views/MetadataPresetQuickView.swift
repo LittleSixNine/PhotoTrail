@@ -5,6 +5,7 @@ import UDF
 
 struct MetadataPresetQuickView: View {
     @Bindable var session: MetadataPresetSession
+    @Binding var onlySelected: Bool
     var editRules: ([MetadataWorkflowCard]) -> Void
     var completed: (MetadataWorkflowPreview, [MetadataRecipeIssue]) -> Void
     @Environment(Store<PhotoTrailState, PhotoTrailEvent>.self) private var store
@@ -16,16 +17,19 @@ struct MetadataPresetQuickView: View {
     @State private var active = false
     @Environment(\.metadataEditSession) private var inlineSession
 
-    private var targets: [ImageData] { session.targets(session.scope(in: store.state)) }
-    private var photoCount: Int { targets.count }
+    private var scope: MetadataRuleScope { MetadataRuleScope(session.targetOperations, in: session.scope(in: store.state)) }
 
     var body: some View {
+        let scope = self.scope
         VStack(alignment: .leading, spacing: 12) {
             Text(session.original.name).font(.headline)
-            Picker(L10n.text("操作范围"), selection: $session.onlySelected) {
-                Text(L10n.text("全部导入文件")).tag(false)
-                Text(L10n.text("当前选中项")).tag(true)
-            }.pickerStyle(.segmented).disabled(session.busy)
+            MetadataPresetScopePicker(onlySelected: $onlySelected).disabled(session.busy)
+            let configuredOperations = session.cards.flatMap(\.operations)
+            let support = MetadataRuleScope(configuredOperations, in: session.scope(in: store.state))
+            if support.skipped > 0 {
+                let icons = MetadataMediaIcons(operations: configuredOperations)
+                Text(icons.label + " · " + support.description).font(.caption).foregroundStyle(.red)
+            }
             ForEach(Array(session.cards.enumerated()), id: \.element.id) { index, card in
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
@@ -36,9 +40,8 @@ struct MetadataPresetQuickView: View {
                     if let guidance = card.parameterGuidance {
                         Text(guidance).font(.caption).foregroundStyle(.secondary)
                     }
-                    if store.imageData.contains(where: \.isLocalMovie) {
-                        Text(card.scopeDescription(for: session.scope(in: store.state))).font(.caption).foregroundStyle(.secondary)
-                    }
+                    MetadataRuleScopeText(card: card, images: session.scope(in: store.state),
+                                          alreadyExplained: support.skipped > 0 ? support : nil)
                     MetadataOperationCardView(operations: operations(card.id), readings: [], selected: .constant(true),
                         availableTags: MetadataTag.allCases, index: index, moveUp: nil, moveDown: nil, remove: {},
                         inlineLayout: true, quickParameters: true, datePolicy: policy(card.id))
@@ -48,7 +51,7 @@ struct MetadataPresetQuickView: View {
             .disabled(session.busy)
             if !session.notice.isEmpty { Text(session.notice).font(.caption).foregroundStyle(.orange) }
             if session.preparing {
-                ProgressView(L10n.text("正在准备文件：%1$@/%2$@", session.preparationCount, photoCount)).controlSize(.small)
+                ProgressView(L10n.text("正在准备文件：%1$@/%2$@", session.preparationCount, scope.count)).controlSize(.small)
             } else if !session.application.notice.isEmpty {
                 Text(session.application.notice).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
             }
@@ -61,7 +64,7 @@ struct MetadataPresetQuickView: View {
                 if session.busy {
                     Button(L10n.text("取消")) { session.cancel() }
                 } else {
-                    Button(L10n.text("应用到 %1$@ 项", photoCount)) {
+                    Button(scope.applyLabel) {
                         guard !launching else { return }
                         launching = true
                         Task { @MainActor in
@@ -73,7 +76,7 @@ struct MetadataPresetQuickView: View {
                             launching = false
                         }
                     }.buttonStyle(.borderedProminent)
-                        .disabled(launching || !session.isValid || photoCount == 0 || store.saveInProgress || store.renameInProgress || store.importProgress.isActive)
+                        .disabled(launching || !session.isValid || scope.count == 0 || store.saveInProgress || store.renameInProgress || store.importProgress.isActive)
                         .accessibilityIdentifier("metadataPresetApplyAll")
                 }
             }
@@ -126,7 +129,7 @@ struct MetadataMediaIcons: View {
         supportsVideo = operations.contains(where: \.supportsMovieEditing)
     }
 
-    private var label: String {
+    var label: String {
         if supportsPhotos && supportsVideo { return L10n.text("适用于照片和视频") }
         if supportsPhotos { return L10n.text("仅适用于照片") }
         if supportsVideo { return L10n.text("仅适用于视频") }
@@ -135,13 +138,144 @@ struct MetadataMediaIcons: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            if supportsPhotos { Image(systemName: "photo") }
-            if supportsVideo { Image(systemName: "video") }
+            Image(systemName: "photo").frame(width: 16).opacity(supportsPhotos ? 1 : 0)
+            Image(systemName: "video").frame(width: 16).opacity(supportsVideo ? 1 : 0)
         }
         .font(.caption)
         .foregroundStyle(.secondary)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label)
         .help(label)
+    }
+}
+
+struct MetadataPresetScopePicker: View {
+    @Binding var onlySelected: Bool
+
+    var body: some View {
+        Picker(L10n.text("操作范围"), selection: $onlySelected) {
+            Text(L10n.text("全部导入文件")).tag(false)
+            Text(L10n.text("当前选中项")).tag(true)
+        }.pickerStyle(.segmented)
+    }
+}
+
+struct MetadataRuleScope: Equatable {
+    private(set) var photos = 0
+    private(set) var videos = 0
+    private(set) var skippedPhotos = 0
+    private(set) var skippedVideos = 0
+    var count: Int { photos + videos }
+    var skipped: Int { skippedPhotos + skippedVideos }
+
+    init(_ operations: [MetadataOperation], in images: [ImageData]) {
+        for image in images {
+            if operations.contains(where: { $0.applies(to: image) }) {
+                if image.isLocalMovie { videos += 1 } else { photos += 1 }
+            } else if image.isLocalMovie { skippedVideos += 1 } else { skippedPhotos += 1 }
+        }
+    }
+
+    var applyLabel: String {
+        if photos > 0, videos == 0 { return L10n.text("应用到 %1$@ 张照片", photos) }
+        if videos > 0, photos == 0 { return L10n.text("应用到 %1$@ 段视频", videos) }
+        return L10n.text("应用到 %1$@ 项", count)
+    }
+
+    var description: String {
+        if photos > 0, videos == 0, skippedVideos > 0, skippedPhotos == 0 {
+            return L10n.text("仅更改 %1$@ 张照片，跳过 %2$@ 段视频。", photos, skippedVideos)
+        }
+        if videos > 0, photos == 0, skippedPhotos > 0, skippedVideos == 0 {
+            return L10n.text("仅更改 %1$@ 段视频，跳过 %2$@ 张照片。", videos, skippedPhotos)
+        }
+        return L10n.text("本规则适用于 %1$@ 张照片、%2$@ 段视频，跳过 %3$@ 项", photos, videos, skipped)
+    }
+}
+
+struct MetadataRuleScopeText: View {
+    let card: MetadataWorkflowCard
+    let images: [ImageData]
+    var alreadyExplained: MetadataRuleScope?
+
+    var body: some View {
+        if let active = card.executableCard {
+            let scope = MetadataRuleScope(active.operations, in: images)
+            if scope != alreadyExplained {
+                Text(scope.description).font(.caption)
+                    .foregroundStyle(scope.skipped > 0 ? Color.red : .secondary)
+            }
+        } else {
+            Text(L10n.text("本步留空，将跳过。")).font(.caption).foregroundStyle(.red)
+        }
+    }
+}
+
+struct MetadataPresetChooser: View {
+    let presets: [MetadataPreset]
+    let images: [ImageData]
+    @Binding var onlySelected: Bool
+    let shortcuts: [String]
+    let toggleShortcut: (String, Bool) -> Void
+    let choose: (MetadataPreset) -> Void
+    let manage: () -> Void
+    @State private var choosingShortcuts = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if choosingShortcuts {
+                Text(L10n.text("选择常用预设")).font(.headline)
+            } else {
+                MetadataPresetScopePicker(onlySelected: $onlySelected)
+            }
+            Divider()
+            if presets.isEmpty {
+                Text(L10n.text("暂无预设")).foregroundStyle(.secondary)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 2) {
+                        ForEach(presets, id: \.name) { preset in
+                            let icons = MetadataMediaIcons(operations: preset.operations)
+                            if choosingShortcuts {
+                                Toggle(isOn: Binding(get: { shortcuts.contains(preset.name) },
+                                    set: { toggleShortcut(preset.name, $0) })) {
+                                    row(preset, icons: icons)
+                                }.toggleStyle(.checkbox)
+                            } else {
+                                let scope = MetadataRuleScope(preset.operations, in: images)
+                                let reason = !icons.supportsPhotos || !icons.supportsVideo ? icons.label : L10n.text("当前范围没有适用文件")
+                                Button { choose(preset) } label: {
+                                    row(preset, icons: icons, reason: scope.count == 0 ? reason : nil, skipped: scope.skipped)
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(scope.count == 0)
+                                .accessibilityLabel(Text(preset.name + "、" + icons.label))
+                                .accessibilityValue(Text(scope.skipped > 0 ? scope.description : ""))
+                                .accessibilityIdentifier("presetChoice-" + preset.name)
+                            }
+                        }
+                    }.padding(.trailing, 4)
+                }.frame(height: min(CGFloat(presets.count) * 32, 320))
+            }
+            Divider()
+            HStack {
+                Button(L10n.text(choosingShortcuts ? "完成" : "选择常用预设")) { choosingShortcuts.toggle() }
+                    .disabled(presets.isEmpty)
+                Spacer()
+                if !choosingShortcuts { Button(L10n.text("管理预设…"), action: manage) }
+            }
+        }.padding(12).frame(width: 380)
+    }
+
+    private func row(_ preset: MetadataPreset, icons: MetadataMediaIcons, reason: String? = nil, skipped: Int = 0) -> some View {
+        HStack(spacing: 8) {
+            Text(preset.name).lineLimit(1).truncationMode(.middle)
+            Spacer(minLength: 4)
+            if let reason { Text(reason).font(.caption).foregroundStyle(.secondary) }
+            if skipped > 0 { Text(L10n.text("跳过 %1$@ 项", skipped)).font(.caption).foregroundStyle(.red) }
+            icons
+        }
+        .padding(.horizontal, 4).frame(height: 30).contentShape(Rectangle())
+        .help(preset.name + " · " + (reason ?? icons.label))
     }
 }

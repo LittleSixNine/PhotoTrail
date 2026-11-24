@@ -23,6 +23,28 @@ private final class VideoTestResources {}
         #expect(!MetadataOperation(tag: .descriptionDefault, action: .copy(.director)).supportsPhotoEditing)
     }
 
+    @Test func presetScopeCountsFilesOnceAndKeepsBlankTemplatesSelectable() throws {
+        let (folder, readings) = try MetadataBatchEditingTests().input([[:]])
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let photo = try #require(readings.first?.image)
+        let source = try #require(Bundle(for: VideoTestResources.self).url(forResource: "tagged", withExtension: "mov"))
+        let url = folder.appendingPathComponent("clip.mov")
+        try FileManager.default.copyItem(at: source, to: url)
+        let movie = ImageData(from: url)
+        let photoOnly = MetadataOperation(tag: .lens, action: .setText("35 mm"), photosOnly: true)
+        let director = MetadataOperation(tag: .director, action: .setText(""))
+        let city = MetadataOperation(tag: .city, action: .setText("杭州"))
+        let mixed = [photo, movie]
+        let partial = MetadataRuleScope([photoOnly], in: mixed)
+        #expect(partial.photos == 1 && partial.videos == 0 && partial.skippedVideos == 1)
+        #expect(MetadataRuleScope([photoOnly], in: [movie]).count == 0)
+        let template = MetadataRuleScope([director], in: mixed)
+        #expect(template.videos == 1 && template.skippedPhotos == 1)
+        let combined = MetadataRuleScope([city, director], in: mixed)
+        #expect(combined.count == 2 && combined.skipped == 0)
+        #expect(MetadataRuleScope([], in: mixed).count == 0)
+    }
+
     @Test func importedMovieCanBeFilteredEditedAndSavedFromBothPages() async throws {
         let bundle = Bundle(for: VideoTestResources.self)
         let fixture = try #require(bundle.url(forResource: "tagged", withExtension: "mov"))

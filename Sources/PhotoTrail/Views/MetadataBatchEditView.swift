@@ -57,7 +57,7 @@ struct MetadataBatchEditView: View {
                     if cards.isEmpty { actionChoices }
                     ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
                         HStack {
-                            Text(card.scopeDescription(for: session.readings.map(\.image)))
+                            MetadataRuleScopeText(card: card, images: session.readings.map(\.image))
                             Spacer()
                             MetadataMediaIcons(operations: card.operations)
                         }
@@ -90,11 +90,11 @@ struct MetadataBatchEditView: View {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(reading.image.name)
                                     ForEach(Array(Set((groups[reading.image.id] ?? []).map { $0.tag.displayName + " · " + $0.reason })).sorted(), id: \.self) { reason in
-                                        Text(reason).foregroundStyle(.secondary)
+                                        Text(reason).foregroundStyle(.red)
                                     }
                                 }.font(.caption).padding(.vertical, 4)
                             }
-                        }.font(.callout).foregroundStyle(.orange)
+                        }.font(.callout).foregroundStyle(.red)
                     }
                     if !cards.isEmpty {
                         DisclosureGroup(L10n.text("修改前后"), isExpanded: $showingExamples) {
@@ -108,7 +108,8 @@ struct MetadataBatchEditView: View {
             VStack(alignment: .leading, spacing: 8) {
                 if !notice.isEmpty { Text(notice).font(.caption).foregroundStyle(.secondary) }
                 if session.application.result == nil && !session.application.notice.isEmpty {
-                    Text(session.application.notice).font(.caption).foregroundStyle(.orange)
+                    Text(session.application.notice).font(.caption)
+                        .foregroundStyle(session.application.result?.skipDetails.isEmpty == false || !session.application.recipeIssues.isEmpty ? Color.red : .orange)
                 }
                 if let preview = session.recipePreview {
                     Text(L10n.text("将修改 %1$@ 项 · 无变化 %2$@ 项 · 未处理 %3$@ 项",
@@ -130,11 +131,11 @@ struct MetadataBatchEditView: View {
                         .disabled(session.application.busy)
                     let active = session.activeWorkflowCards ?? []
                     let operations = active.flatMap(\.operations)
-                    let applicable = session.readings.filter { reading in operations.contains { $0.applies(to: reading.image) } }.count
-                    Button(L10n.text("应用到 %1$@ 项", applicable)) {
+                    let scope = MetadataRuleScope(operations, in: session.readings.map(\.image))
+                    Button(scope.applyLabel) {
                         session.application.apply(readings: session.readings, operations: [], cards: active, store: store)
                     }.buttonStyle(.borderedProminent)
-                        .disabled(applicable == 0 || !session.isValid || !currentScope || session.statisticsBusy
+                        .disabled(scope.count == 0 || !session.isValid || !currentScope || session.statisticsBusy
                             || !session.statisticsError.isEmpty || session.application.busy || store.saveInProgress)
                         .accessibilityIdentifier("metadataBatchApply")
                 }
@@ -304,7 +305,8 @@ struct MetadataInlineFieldEditor: View {
             }
             if session.application.busy { ProgressView().controlSize(.small) }
             if !session.application.notice.isEmpty && session.application.result == nil {
-                Text(session.application.notice).font(.caption).foregroundStyle(.orange).textSelection(.enabled)
+                Text(session.application.notice).font(.caption)
+                        .foregroundStyle(session.application.result?.skipDetails.isEmpty == false || !session.application.recipeIssues.isEmpty ? Color.red : .orange).textSelection(.enabled)
             }
         }
         .disabled(session.application.busy)
@@ -384,7 +386,8 @@ struct MetadataBatchResultView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text(L10n.text("已加入待保存：%1$@ 张 · 无变化：%2$@ 张 · 未处理：%3$@ 张",
                                changed.count, processed.subtracting(changed).count, unprocessed.count))
-                    .font(.callout).accessibilityIdentifier("metadataBatchResult")
+                    .font(.callout).foregroundStyle(unprocessed.isEmpty ? Color.primary : .red)
+                    .accessibilityIdentifier("metadataBatchResult")
                 if !result.skipDetails.isEmpty {
                     DisclosureGroup(L10n.text("跳过了 %1$@ 项字段操作，查看原因", result.skipDetails.count)) {
                         VStack(alignment: .leading, spacing: 8) {
@@ -393,11 +396,11 @@ struct MetadataBatchResultView: View {
                             }
                             if result.skipDetails.count > 100 { Text(L10n.text("仅显示前 100 项。可选择未处理的文件继续检查。")) .font(.caption) }
                         }.padding(.top, 8)
-                    }
+                    }.foregroundStyle(.red)
                 }
                 if result.skipReasons.isEmpty && !result.skipped.isEmpty {
                     Text(result.skipped.joined(separator: "\n")).font(.caption)
-                        .foregroundStyle(.orange).textSelection(.enabled)
+                        .foregroundStyle(.red).textSelection(.enabled)
                 }
                 if !unprocessed.isEmpty, let select {
                     Button(L10n.text("选中未处理的文件")) { select(unprocessed) }

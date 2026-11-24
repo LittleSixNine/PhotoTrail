@@ -200,6 +200,9 @@ struct MetadataListInspectorView: View {
     @AppStorage("PhotoTrail.MetadataPresetShortcuts") private var presetShortcutData = Data()
     @State private var quickPresetSession: MetadataPresetSession?
     @State private var presetNotice = ""
+    @State private var presetSkipped = false
+    @State private var showingPresetChooser = false
+    @State private var presetOnlySelected = false
     @State private var presetIssues: [MetadataRecipeIssue] = []
     @AppStorage(MetadataPresetParameters.key) private var presetParameterData = Data()
     @State private var workflowEditor: MetadataWorkflowSelection?
@@ -363,7 +366,7 @@ struct MetadataListInspectorView: View {
                         showingBatch = false
                         if ruleSession.application.applied || !ruleSession.hasInput { self.ruleSession = nil }
                     }, saved: { preset in
-                        do { quickPresetSession = try MetadataPresetSession(preset: preset, parameters: presetParameterData) }
+                        do { quickPresetSession = try presetSession(preset) }
                         catch { presetNotice = L10n.text("预设无法读取，原数据已保留。") }
                     })
                     .clipShape(UnevenRoundedRectangle(topLeadingRadius: 12, bottomLeadingRadius: 12))
@@ -761,28 +764,26 @@ private extension MetadataListInspectorView {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("metadataBatchStart")
                 .disabled(readings == nil)
-                Menu {
-                    ForEach(savedMetadataPresets, id: \.name) { preset in
-                        Button { openPreset(preset, readings: readings) } label: {
-                            HStack { Text(preset.name); MetadataMediaIcons(operations: preset.operations) }
-                        }
-                    }
-                    if savedMetadataPresets.isEmpty { Text(L10n.text("暂无预设")) }
-                    Divider()
-                    Menu(L10n.text("选择常用预设")) {
-                        ForEach(savedMetadataPresets, id: \.name) { preset in
-                            Toggle(preset.name, isOn: Binding(get: { shortcutNames.contains(preset.name) }, set: { enabled in
-                                presetShortcutData = MetadataPresetShortcuts.updating(preset.name, enabled: enabled,
-                                    in: savedMetadataPresets, data: presetShortcutData)
-                            }))
-                        }
-                    }.disabled(savedMetadataPresets.isEmpty)
-                    Button(L10n.text("管理预设…")) { openWorkflow(readings, tab: "presets") }
-                } label: {
+                Button { showingPresetChooser.toggle() } label: {
                     batchEntryLabel("应用批量预设", subtitle: "快速调用已存预设", icon: "bolt.fill", featured: true)
                 }
-                .menuStyle(.borderlessButton).menuIndicator(.hidden)
+                .buttonStyle(.plain)
+                .disabled(quickPresetSession?.busy == true)
                 .accessibilityIdentifier("metadataPresetButton")
+                .popover(isPresented: $showingPresetChooser) {
+                    MetadataPresetChooser(presets: savedMetadataPresets, images: presetScopeImages,
+                        onlySelected: presetScopeBinding, shortcuts: shortcutNames,
+                        toggleShortcut: { name, enabled in
+                            presetShortcutData = MetadataPresetShortcuts.updating(name, enabled: enabled,
+                                in: savedMetadataPresets, data: presetShortcutData)
+                        }, choose: { preset in
+                            showingPresetChooser = false
+                            openPreset(preset)
+                        }, manage: {
+                            showingPresetChooser = false
+                            openWorkflow(readings, tab: "presets")
+                        })
+                }
             }
             .disabled(store.saveInProgress || store.imageData.isEmpty)
             if !shortcutNames.isEmpty {
@@ -791,23 +792,21 @@ private extension MetadataListInspectorView {
                     ScrollView(.horizontal) {
                         HStack(spacing: 6) {
                             ForEach(shortcutNames, id: \.self) { name in
-                                Button {
-                                    if let preset = savedMetadataPresets.first(where: { $0.name == name }) {
-                                        openPreset(preset, readings: readings)
-                                    }
-                                } label: {
-                                    HStack(spacing: 5) {
-                                        Text(name)
-                                        if let preset = savedMetadataPresets.first(where: { $0.name == name }) {
+                                if let preset = savedMetadataPresets.first(where: { $0.name == name }) {
+                                    let enabled = presetScopeImages.contains { image in preset.operations.contains { $0.applies(to: image) } }
+                                    Button { openPreset(preset, toggle: true) } label: {
+                                        HStack(spacing: 5) {
+                                            Text(name)
                                             MetadataMediaIcons(operations: preset.operations)
-                                        }
-                                    }.font(.caption)
-                                        .lineLimit(1).padding(.horizontal, 9).padding(.vertical, 5)
-                                        .background(Color.accentColor.opacity(0.08), in: Capsule())
+                                        }.font(.caption)
+                                            .lineLimit(1).padding(.horizontal, 9).padding(.vertical, 5)
+                                            .background(Color.accentColor.opacity(0.08), in: Capsule())
+                                    }
+                                    .buttonStyle(.plain).foregroundStyle(enabled ? Color.accentColor : .secondary)
+                                    .disabled(!enabled || quickPresetSession?.busy == true)
+                                    .help(name)
+                                    .accessibilityIdentifier("metadataPresetShortcut-" + name)
                                 }
-                                .buttonStyle(.plain).foregroundStyle(Color.accentColor)
-                                .help(name)
-                                .accessibilityIdentifier("metadataPresetShortcut-" + name)
                             }
                         }
                     }.scrollIndicators(.hidden)
@@ -815,19 +814,21 @@ private extension MetadataListInspectorView {
                 .disabled(store.saveInProgress || store.imageData.isEmpty)
             }
             if let quickPresetSession {
-                MetadataPresetQuickView(session: quickPresetSession, editRules: { cards in
+                MetadataPresetQuickView(session: quickPresetSession, onlySelected: presetScopeBinding, editRules: { cards in
                     openPresetRules(cards, name: quickPresetSession.original.name)
                 }, completed: { result, issues in
                     let processed = Set(result.steps.map(\.id))
+                    let unprocessed = quickPresetSession.scope(in: store.state).count - processed.union(result.items.map(\.id)).count
+                    presetSkipped = unprocessed > 0 || !result.skipDetails.isEmpty || !issues.isEmpty
                     presetNotice = L10n.text("已加入待保存 %1$@ 项 · 无变化 %2$@ 项 · 未处理 %3$@ 项",
                         result.items.count, processed.subtracting(result.items.map(\.id)).count,
-                        quickPresetSession.targets(quickPresetSession.scope(in: store.state)).count - processed.count)
+                        unprocessed)
                     presetIssues = issues
                     self.quickPresetSession = nil
                 })
             }
             if !presetNotice.isEmpty {
-                Text(presetNotice).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                Text(presetNotice).font(.caption).foregroundStyle(presetSkipped ? Color.red : .secondary).textSelection(.enabled)
             }
             if !presetIssues.isEmpty {
                 let groups = Dictionary(grouping: presetIssues, by: \.photoID)
@@ -841,7 +842,7 @@ private extension MetadataListInspectorView {
                             }
                         }
                     }.frame(maxHeight: 120)
-                }.font(.caption).foregroundStyle(.secondary)
+                }.font(.caption).foregroundStyle(.red)
             }
         }.padding(.top, 5)
     }
@@ -864,13 +865,30 @@ private extension MetadataListInspectorView {
         .contentShape(RoundedRectangle(cornerRadius: 9))
     }
 
-    private func openPreset(_ preset: MetadataPreset,
-                            readings: [(image: ImageData, snapshot: MetadataInspectionSnapshot)]?) {
+    private var presetScopeImages: [ImageData] {
+        presetOnlySelected ? store.imageData.filter { store.selection.contains($0.id) } : store.imageData
+    }
+
+    private var presetScopeBinding: Binding<Bool> {
+        Binding(get: { presetOnlySelected }, set: { value in
+            presetOnlySelected = value
+            quickPresetSession?.onlySelected = value
+        })
+    }
+
+    private func presetSession(_ preset: MetadataPreset) throws -> MetadataPresetSession {
+        let session = try MetadataPresetSession(preset: preset, parameters: presetParameterData)
+        session.onlySelected = presetOnlySelected
+        return session
+    }
+
+    private func openPreset(_ preset: MetadataPreset, toggle: Bool = false) {
         guard quickPresetSession?.busy != true else { return }
         do {
-            if quickPresetSession?.original.name == preset.name { quickPresetSession = nil }
-            else { quickPresetSession = try MetadataPresetSession(preset: preset, parameters: presetParameterData) }
-            presetNotice = ""; presetIssues = []
+            if toggle && quickPresetSession?.original.name == preset.name { quickPresetSession = nil }
+            else if quickPresetSession?.original.name == preset.name { return }
+            else { quickPresetSession = try presetSession(preset) }
+            presetNotice = ""; presetIssues = []; presetSkipped = false
         } catch { presetNotice = L10n.text("预设无法读取，原数据已保留。") }
     }
 
