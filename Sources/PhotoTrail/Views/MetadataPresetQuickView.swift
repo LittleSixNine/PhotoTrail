@@ -176,6 +176,13 @@ struct MetadataRuleScope: Equatable {
         }
     }
 
+    var skipLabel: String? {
+        guard skipped > 0 else { return nil }
+        if skippedPhotos == 0 { return L10n.text("跳过 %1$@ 段视频", skippedVideos) }
+        if skippedVideos == 0 { return L10n.text("跳过 %1$@ 张照片", skippedPhotos) }
+        return L10n.text("跳过 %1$@ 项", skipped)
+    }
+
     var applyLabel: String {
         if photos > 0, videos == 0 { return L10n.text("应用到 %1$@ 张照片", photos) }
         if videos > 0, photos == 0 { return L10n.text("应用到 %1$@ 段视频", videos) }
@@ -245,7 +252,7 @@ struct MetadataPresetChooser: View {
                                 let scope = MetadataRuleScope(preset.operations, in: images)
                                 let reason = !icons.supportsPhotos || !icons.supportsVideo ? icons.label : L10n.text("当前范围没有适用文件")
                                 Button { choose(preset) } label: {
-                                    row(preset, icons: icons, reason: scope.count == 0 ? reason : nil, skipped: scope.skipped)
+                                    row(preset, icons: icons, reason: scope.count == 0 ? reason : nil, skipLabel: scope.skipLabel)
                                 }
                                 .buttonStyle(.plain)
                                 .disabled(scope.count == 0)
@@ -267,12 +274,12 @@ struct MetadataPresetChooser: View {
         }.padding(12).frame(width: 380)
     }
 
-    private func row(_ preset: MetadataPreset, icons: MetadataMediaIcons, reason: String? = nil, skipped: Int = 0) -> some View {
+    private func row(_ preset: MetadataPreset, icons: MetadataMediaIcons, reason: String? = nil, skipLabel: String? = nil) -> some View {
         HStack(spacing: 8) {
             Text(preset.name).lineLimit(1).truncationMode(.middle)
             Spacer(minLength: 4)
             if let reason { Text(reason).font(.caption).foregroundStyle(.secondary) }
-            if skipped > 0 { Text(L10n.text("跳过 %1$@ 项", skipped)).font(.caption).foregroundStyle(.red) }
+            if let skipLabel { Text(skipLabel).font(.caption).foregroundStyle(.red) }
             icons
         }
         .padding(.horizontal, 4).frame(height: 30).contentShape(Rectangle())
